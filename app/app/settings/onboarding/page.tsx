@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback, useRef, useState } from 'react'
+import { useEffect, useCallback, useRef, useState, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -54,7 +54,8 @@ function useUsernameCheck(username: string)
 {
     const [status, setStatus] = useState<UsernameStatus>('idle')
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const supabase = createClient()
+
+    const supabase = useMemo(() => createClient(), [])
 
     useEffect(() =>
     {
@@ -69,6 +70,7 @@ function useUsernameCheck(username: string)
         timerRef.current = setTimeout(async () =>
         {
             setStatus('checking')
+
             try
             {
                 const { data, error } = await supabase
@@ -79,20 +81,27 @@ function useUsernameCheck(username: string)
 
                 if (error)
                 {
+                    console.error('Username check error:', error)
                     setStatus('error')
-                } else
+                }
+                else
                 {
                     setStatus(data ? 'taken' : 'available')
                 }
-            } catch
+            }
+            catch (error)
             {
+                console.error('Username check error:', error)
                 setStatus('error')
             }
         }, 300)
 
         return () =>
         {
-            if (timerRef.current) clearTimeout(timerRef.current)
+            if (timerRef.current)
+            {
+                clearTimeout(timerRef.current)
+            }
         }
     }, [username, supabase])
 
@@ -110,24 +119,60 @@ function useAvatarUpload()
         async (file: File): Promise<string | null> =>
         {
             setUploading(true)
+
             try
             {
+                // Show the selected image immediately
+                const localPreview = URL.createObjectURL(file)
+                setPreview(localPreview)
+
                 const formData = new FormData()
                 formData.append('file', file)
-                const res = await fetch('/api/upload', { method: 'POST', body: formData })
-                if (!res.ok) throw new Error('Upload failed')
+
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData,
+                })
+
                 const json = await res.json()
-                setPreview(json.url ?? null)
-                return json.url ?? null
-            } catch (err)
+
+                if (!res.ok)
+                {
+                    console.error('Avatar upload failed:', json)
+
+                    throw new Error(
+                        json.detail ||
+                        json.error ||
+                        'Avatar upload failed'
+                    )
+                }
+
+                // Your API returns secure_url
+                const url = json.url || json.secure_url
+
+                if (!url)
+                {
+                    throw new Error('Upload succeeded but no image URL was returned.')
+                }
+
+                // Replace local preview with Cloudinary URL
+                setPreview(url)
+
+                return url
+            }
+            catch (err)
             {
-                // Upload endpoint may not be live yet (task 6). Treat as non-blocking.
-                console.warn('Avatar upload skipped:', err)
-                // Show local preview anyway
-                setPreview(URL.createObjectURL(file))
-                toast.warning('Avatar upload is not available yet. You can add one later in Settings.')
+                console.error('Avatar upload error:', err)
+
+                toast.error(
+                    err instanceof Error
+                        ? err.message
+                        : 'Failed to upload photo.'
+                )
+
                 return null
-            } finally
+            }
+            finally
             {
                 setUploading(false)
             }
@@ -135,7 +180,11 @@ function useAvatarUpload()
         [],
     )
 
-    return { upload, uploading, preview }
+    return {
+        upload,
+        uploading,
+        preview,
+    }
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -173,51 +222,79 @@ export default function OnboardingPage()
     }
 
     async function onSubmit(values: FormValues)
+{
+    console.log('SUBMIT VALUES:', values)
+    console.log('USERNAME STATUS:', usernameStatus)
+
+    if (usernameStatus === 'taken')
     {
-        if (usernameStatus === 'taken')
-        {
-            form.setError('username', { message: 'That username is already taken.' })
-            return
-        }
-        if (usernameStatus === 'checking')
-        {
-            toast.info('Still checking username availability, please wait a moment.')
-            return
-        }
-
-        setSubmitting(true)
-        try
-        {
-            const result = await completeOnboarding({
-                display_name: values.display_name,
-                username: values.username,
-                bio: values.bio || undefined,
-                profession: values.profession || undefined,
-                avatar_url: values.avatar_url || undefined,
-            })
-
-            if (result && !result.success)
-            {
-                toast.error(result.error)
-                if (result.error.toLowerCase().includes('username'))
-                {
-                    form.setError('username', { message: result.error })
-                }
-            }
-            // On success the server action redirects to /app/feed
-        } catch (err)
-        {
-            // redirect() throws; let it propagate
-            if (err instanceof Error && err.message !== 'NEXT_REDIRECT')
-            {
-                toast.error('Something went wrong. Please try again.')
-            }
-            throw err
-        } finally
-        {
-            setSubmitting(false)
-        }
+        form.setError('username', {
+            message: 'That username is already taken.',
+        })
+        return
     }
+
+    if (usernameStatus === 'checking')
+    {
+        toast.info('Still checking username availability, please wait a moment.')
+        return
+    }
+
+    setSubmitting(true)
+
+    try
+    {
+        const result = await completeOnboarding({
+            display_name: values.display_name,
+            username: values.username,
+            bio: values.bio || undefined,
+            profession: values.profession || undefined,
+            avatar_url: values.avatar_url || undefined,
+        })
+
+        console.log('COMPLETE ONBOARDING RESULT:', result)
+
+        if (result && !result.success)
+        {
+            toast.error(result.error)
+
+            if (result.error.toLowerCase().includes('username'))
+            {
+                form.setError('username', {
+                    message: result.error,
+                })
+            }
+
+            return
+        }
+
+    }
+    catch (err)
+    {
+        console.error('COMPLETE PROFILE ERROR:', err)
+
+        // Next.js redirect() throws a special error.
+        // Don't show an error toast for a successful redirect.
+        if (
+            err instanceof Error &&
+            !err.message.includes('NEXT_REDIRECT')
+        )
+        {
+            toast.error(
+                err instanceof Error
+                    ? err.message
+                    : 'Something went wrong. Please try again.'
+            )
+        }
+
+        // Re-throw redirect errors
+        throw err
+    }
+    finally
+    {
+        setSubmitting(false)
+    }
+}
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12">

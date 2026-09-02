@@ -76,7 +76,7 @@ export type ActionResult<T = void> =
  * Updates the users row and sets onboarded=true, then redirects to /app/feed.
  * Requirements: 3.1, 3.2, 3.3, 3.4
  */
-export async function completeOnboarding(formData: {
+ export async function completeOnboarding(formData: {
   display_name: string
   username: string
   bio?: string
@@ -92,55 +92,143 @@ export async function completeOnboarding(formData: {
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return { success: false, error: 'You must be signed in to complete onboarding.' }
+    return {
+      success: false,
+      error: 'You must be signed in to complete onboarding.',
+    }
   }
 
   // 2. Validate input
   const parsed = onboardingSchema.safeParse(formData)
+
   if (!parsed.success) {
-    return { success: false, error: parsed.error.errors[0]?.message ?? 'Invalid input.' }
+    return {
+      success: false,
+      error: parsed.error.errors[0]?.message ?? 'Invalid input.',
+    }
   }
 
-  const { display_name, username, bio, profession, avatar_url } = parsed.data
+  const {
+    display_name,
+    username,
+    bio,
+    profession,
+    avatar_url,
+  } = parsed.data
 
-  // 3. Check username uniqueness (server-side double-check)
-  const { data: existing } = await supabase
+  // 3. Check whether this user already has a profile
+  const { data: existingProfile, error: profileCheckError } = await supabase
     .from('users')
-    .select('id')
-    .eq('username', username)
-    .neq('auth_id', user.id)
+    .select('id, auth_id, username')
+    .eq('auth_id', user.id)
     .maybeSingle()
 
-  if (existing) {
-    return { success: false, error: 'That username is already taken. Please choose another.' }
-  }
+  if (profileCheckError) {
+    console.error('Profile lookup error:', profileCheckError)
 
-  // 4. Update users row
-  const { error: updateError } = await supabase
-    .from('users')
-    .update({
-      display_name,
-      username,
-      bio: bio || null,
-      profession: profession || null,
-      avatar_url: avatar_url || null,
-      onboarded: true,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('auth_id', user.id)
-
-  if (updateError) {
-    console.error('completeOnboarding update error:', updateError.message)
-    if (updateError.code === '23505') {
-      return { success: false, error: 'That username is already taken. Please choose another.' }
+    return {
+      success: false,
+      error: 'Unable to find your profile. Please try again.',
     }
-    return { success: false, error: 'Failed to save your profile. Please try again.' }
   }
 
-  // 5. Redirect to feed
+  // 4. Check username uniqueness
+  const { data: existingUsername, error: usernameError } = await supabase
+    .from('users')
+    .select('id, auth_id')
+    .eq('username', username)
+    .maybeSingle()
+
+  if (usernameError) {
+    console.error('Username check error:', usernameError)
+
+    return {
+      success: false,
+      error: 'Unable to check username availability.',
+    }
+  }
+
+  if (
+    existingUsername &&
+    existingUsername.auth_id !== user.id
+  ) {
+    return {
+      success: false,
+      error: 'That username is already taken. Please choose another.',
+    }
+  }
+
+  // 5. Data to save
+  const profileData = {
+    display_name,
+    username,
+    bio: bio || null,
+    profession: profession || null,
+    avatar_url: avatar_url || null,
+    onboarded: true,
+    updated_at: new Date().toISOString(),
+  }
+
+  let updateError
+
+  // 6. Update existing profile
+  if (existingProfile) {
+    const result = await supabase
+      .from('users')
+      .update(profileData)
+      .eq('auth_id', user.id)
+
+    updateError = result.error
+
+    if (updateError) {
+      console.error('completeOnboarding insert error:', updateError)
+  
+      return {
+          success: false,
+          error: `Profile creation failed: ${updateError.message}`,
+      }
+  }
+  }
+
+  // 7. Create profile if it doesn't exist
+  else {
+    const result = await supabase
+    .from('users')
+    .insert({
+      id: user.id,
+      auth_id: user.id,
+      email: user.email ?? '',
+      fullname: display_name,
+        ...profileData,
+      })
+
+    updateError = result.error
+
+    if (updateError) {
+      console.error('completeOnboarding insert error:', updateError)
+
+      if (updateError.code === '23505') {
+        return {
+          success: false,
+          error: 'That username is already taken. Please choose another.',
+        }
+      }
+
+      return {
+        success: false,
+        error: 'Failed to create your profile. Please try again.',
+      }
+    }
+  }
+
+  // 8. Revalidate pages that display the profile
+  revalidatePath('/app/feed')
+  revalidatePath('/app/profile')
+  revalidatePath('/app/settings')
+
+  // 9. Redirect
   redirect('/app/feed')
 }
-
 /**
  * Updates display_name, bio, profession, and avatar_url for the current user.
  * Requirements: 3.2, 3.5, 3.6

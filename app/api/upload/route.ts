@@ -131,6 +131,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   return NextResponse.json({
+    url: data.secure_url,
     secure_url: data.secure_url,
     public_id: data.public_id,
     width: data.width ?? null,

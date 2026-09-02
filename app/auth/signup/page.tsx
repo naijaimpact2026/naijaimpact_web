@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import { signUp } from '@/lib/actions/auth'
+import SignupSlideshow from '../signup-slideshow/signupSlideshow'
 
 const signupSchema = z.object({
     fullName: z.string().min(1, 'Full name is required'),
@@ -84,35 +85,16 @@ export default function SignupPage()
 
     return (
         <div className="min-h-screen flex">
-            {/* Left — brand panel */}
-            <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 relative overflow-hidden flex-col items-center justify-center p-12">
-                <div
-                    className="absolute inset-0 opacity-20"
-                    style={{
-                        backgroundImage:
-                            'radial-gradient(circle at 30% 40%, hsl(166,76%,40%) 0%, transparent 50%), radial-gradient(circle at 70% 70%, hsl(199,100%,43%) 0%, transparent 50%)',
-                    }}
-                />
-                <div className="relative z-10 text-center space-y-6">
-                    <div className="flex items-center justify-center gap-3 mb-8">
-                        <Image src="/logo.png" alt="NaijaImpact" width={52} height={52} className="rounded-xl" />
-                        <span className="text-white font-bold text-2xl">NaijaImpact</span>
-                    </div>
-                    <h2 className="text-4xl font-bold text-white leading-tight">
-                        Join the movement.
-                        <br />
-                        Build Nigeria.
-                    </h2>
-                    <p className="text-slate-300 text-lg max-w-sm">
-                        Access social networking, crowdfunding, learning, services, and fintech — all in one
-                        place.
-                    </p>
-                </div>
+    
+            {/* Left — slideshow */}
+            <div className="hidden lg:block lg:w-1/2 min-h-screen">
+                <SignupSlideshow />
             </div>
-
+    
             {/* Right — form */}
             <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-white dark:bg-slate-950 overflow-y-auto">
                 <div className="w-full max-w-sm space-y-7 py-8">
+    
                     <div>
                         <div className="flex items-center gap-2 mb-6 lg:hidden">
                             <Image src="/logo.png" alt="NaijaImpact" width={36} height={36} className="rounded-lg" />

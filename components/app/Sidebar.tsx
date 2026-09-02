@@ -8,7 +8,7 @@ import
     Home,
     FileText,
     Search,
-    TrendingUp,
+    HandCoins,
     MessageCircle,
     Bell,
     Wallet,
@@ -38,7 +38,7 @@ interface SidebarProps
 const navItems = [
     { icon: Home, label: 'Community', href: '/app/feed' },
     { icon: Search, label: 'Search', href: '/app/search' },
-    { icon: TrendingUp, label: 'Funding', href: '/app/funding' },
+    { icon: HandCoins, label: 'Crowd Funding', href: '/app/funding' },
     { icon: MessageCircle, label: 'Chat', href: '/app/chat', badgeProp: 'messageCount' as const },
     { icon: Bell, label: 'Notifications', href: '/app/notifications', badgeProp: 'notificationCount' as const },
     { icon: Wallet, label: 'Wallet', href: '/app/wallet' },

@@ -135,6 +135,7 @@ export default function WalletPanel({
     naijaPoints = 0,
 }: WalletPanelProps)
 {
+    console.log('🔥 WALLET PANEL IS RENDERING')
     const [depositOpen, setDepositOpen] = useState(false)
     const [sendOpen, setSendOpen] = useState(false)
     const [withdrawOpen, setWithdrawOpen] = useState(false)
