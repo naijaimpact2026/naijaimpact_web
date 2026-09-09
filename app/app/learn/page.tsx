@@ -1,21 +1,46 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { fetchCourses, fetchCategories } from '@/lib/actions/learn'
+import {
+    fetchCourses,
+    fetchCategories,
+} from '@/lib/actions/learn'
 import LearnHubHome from '@/components/app/learn/LearnHubHome'
 
 export const dynamic = 'force-dynamic'
 
 interface LearnPageProps
 {
-    searchParams: Promise<{ track?: string; category?: string; view?: string }>
+    searchParams: Promise<{
+        track?: string
+        category?: string
+        view?: string
+    }>
 }
 
-export default async function LearnPage({ searchParams }: LearnPageProps)
+export default async function LearnPage({
+    searchParams,
+}: LearnPageProps)
 {
     const params = await searchParams
+
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/auth/login')
+
+    // ─────────────────────────────────────────────────────────────
+    // AUTHENTICATION
+    // ─────────────────────────────────────────────────────────────
+
+    const {
+        data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user)
+    {
+        redirect('/auth/login')
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // LEARNER PROFILE
+    // ─────────────────────────────────────────────────────────────
 
     const { data: profile } = await supabase
         .from('users')
@@ -25,35 +50,82 @@ export default async function LearnPage({ searchParams }: LearnPageProps)
 
     const userId = profile?.id ?? ''
 
-    const activeCategoryId = params.category && params.category !== 'all'
-        ? params.category
-        : null
+    // ─────────────────────────────────────────────────────────────
+    // FILTER
+    // ─────────────────────────────────────────────────────────────
 
-    // Fetch categories + initial courses in parallel
-    const [categories, { courses: initialCourses, nextCursor }] = await Promise.all([
+    const activeCategoryId =
+        params.category && params.category !== 'all'
+            ? params.category
+            : null
+
+    // ─────────────────────────────────────────────────────────────
+    // INITIAL CATALOG DATA
+    // ─────────────────────────────────────────────────────────────
+
+    const [
+        categories,
+        {
+            courses: initialCourses,
+            nextCursor,
+        },
+    ] = await Promise.all([
         fetchCategories(),
-        fetchCourses(null, 24, activeCategoryId),
+        fetchCourses(
+            null,
+            24,
+            activeCategoryId
+        ),
     ])
 
-    // Fetch enrollment data — use profile.id (users table pk), not auth uid
+    // ─────────────────────────────────────────────────────────────
+    // ENROLLMENTS
+    // ─────────────────────────────────────────────────────────────
+
     const { data: enrollments } = userId
         ? await supabase
             .from('lms_courses_enrollment')
-            .select('course_id, status, progress, last_lesson_id')
+            .select(
+                'course_id, status, progress, last_lesson_id'
+            )
             .eq('user_id', userId)
         : { data: [] }
 
     const allEnrollments = enrollments ?? []
-    // Both 'enrolled' and 'completed' count as enrolled; only 'completed' counts as complete
-    const enrolledCount = allEnrollments.filter(e => ['enrolled', 'completed'].includes(e.status)).length
-    const completedCount = allEnrollments.filter(e => e.status === 'completed').length
-    // In-progress = enrolled but not yet completed
-    const inProgressIds = allEnrollments
-        .filter(e => e.status === 'enrolled')
-        .map(e => e.course_id)
-    const completedIds = allEnrollments
-        .filter(e => e.status === 'completed')
-        .map(e => e.course_id)
+
+    // Both enrolled and completed courses count toward
+    // the learner's enrolled-course total.
+    const enrolledCount = allEnrollments.filter(
+        enrollment =>
+            ['enrolled', 'completed'].includes(
+                enrollment.status
+            )
+    ).length
+
+    const completedCount = allEnrollments.filter(
+        enrollment =>
+            enrollment.status === 'completed'
+    ).length
+
+    // Courses currently being taken.
+    const inProgressCourseIds = allEnrollments
+        .filter(
+            enrollment =>
+                enrollment.status === 'enrolled'
+        )
+        .map(enrollment => enrollment.course_id)
+
+    // Courses already completed.
+    const completedCourseIds = allEnrollments
+        .filter(
+            enrollment =>
+                enrollment.status === 'completed'
+        )
+        .map(enrollment => enrollment.course_id)
+
+    // ─────────────────────────────────────────────────────────────
+    // LEARN HUB
+    // ─────────────────────────────────────────────────────────────
 
     return (
         <LearnHubHome
@@ -61,12 +133,20 @@ export default async function LearnPage({ searchParams }: LearnPageProps)
             initialNextCursor={nextCursor}
             categories={categories}
             activeCategoryId={activeCategoryId}
-            displayName={profile?.display_name ?? 'Learner'}
-            avatarUrl={profile?.avatar_url ?? null}
+            displayName={
+                profile?.display_name ?? 'Learner'
+            }
+            avatarUrl={
+                profile?.avatar_url ?? null
+            }
             enrolledCount={enrolledCount}
             completedCount={completedCount}
-            inProgressCourseIds={inProgressIds}
-            completedCourseIds={completedIds}
+            inProgressCourseIds={
+                inProgressCourseIds
+            }
+            completedCourseIds={
+                completedCourseIds
+            }
             view={params.view ?? null}
         />
     )
