@@ -21,6 +21,8 @@ import
         MoreHorizontal,
         BadgeCheck,
         Link2,
+        UserPlus,
+        UserCheck,
     } from 'lucide-react'
 import MediaDisplay from './MediaDisplay'
 import type { PostWithAuthor } from '@/lib/types'
@@ -79,6 +81,8 @@ export default function PostCard({ post, currentUserId, onReactionToggle }: Post
     const [reactionPending, setReactionPending] = useState(false)
     const [saved, setSaved] = useState(false)
     const [expanded, setExpanded] = useState(false)
+    const [following, setFollowing] = useState(false)
+    const [followPending, setFollowPending] = useState(false)
 
     const { author, medias, comment_count } = post
     const authorInitials = author.display_name
@@ -87,6 +91,38 @@ export default function PostCard({ post, currentUserId, onReactionToggle }: Post
         .join('')
         .toUpperCase()
         .slice(0, 2)
+
+    async function handleFollowToggle()
+    {
+        if (followPending) return
+    
+        setFollowPending(true)
+    
+        const newFollowing = !following
+        setFollowing(newFollowing)
+    
+        try
+        {
+            const { followUser, unfollowUser } = await import('@/lib/actions/profile')
+    
+            const result = newFollowing
+                ? await followUser(author.id)
+                : await unfollowUser(author.id)
+    
+            if (!result.success)
+            {
+                setFollowing(!newFollowing)
+            }
+        }
+        catch
+        {
+            setFollowing(!newFollowing)
+        }
+        finally
+        {
+            setFollowPending(false)
+        }
+    }    
 
     async function handleReaction()
     {
@@ -117,7 +153,7 @@ export default function PostCard({ post, currentUserId, onReactionToggle }: Post
         const url = `${window.location.origin}/app/feed/${post.id}`
         if (navigator.share)
         {
-            try { await navigator.share({ title: 'NaijaImpact post', url }) } catch { /* cancelled */ }
+            try { await navigator.share({ title: 'Hubnovo post', url }) } catch { /* cancelled */ }
         } else
         {
             await navigator.clipboard.writeText(url)
@@ -156,6 +192,29 @@ export default function PostCard({ post, currentUserId, onReactionToggle }: Post
                         <time dateTime={post.created_at}>{timeAgo(post.created_at)}</time>
                     </div>
                 </div>
+
+                {/* FOLLOW BUTTON */}
+                {currentUserId !== author.id && (
+                    <Button
+                        variant={following ? 'outline' : 'default'}
+                        size="sm"
+                        onClick={handleFollowToggle}
+                        disabled={followPending}
+                        className="shrink-0 rounded-full gap-1.5 px-3"
+                    >
+                        {following ? (
+                            <>
+                                <UserCheck className="h-3.5 w-3.5" />
+                                Following
+                            </>
+                        ) : (
+                            <>
+                                <UserPlus className="h-3.5 w-3.5" />
+                                Follow
+                            </>
+                        )}
+                    </Button>
+                )}
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
