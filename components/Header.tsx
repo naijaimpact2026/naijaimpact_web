@@ -40,14 +40,14 @@ export default function Header()
           <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
             <Image
               src="/logo.png"
-              alt="NaijaImpact"
+              alt="Hubnovo"
               width={36}
               height={36}
               className="rounded-lg"
               priority
             />
             <span className="font-bold text-[15px] text-gray-900 dark:text-white tracking-tight hidden sm:inline">
-              NaijaImpact
+            Hubnovo
             </span>
           </Link>
 

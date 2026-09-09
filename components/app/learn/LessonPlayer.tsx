@@ -2,11 +2,22 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle, ChevronLeft, ChevronRight, Loader2, Trophy } from 'lucide-react'
+import {
+    CheckCircle,
+    ChevronLeft,
+    ChevronRight,
+    Loader2,
+    Trophy,
+    PlayCircle,
+} from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { markLessonComplete } from '@/lib/actions/learn'
-import type { CourseLesson, CourseEnrollment } from '@/lib/types'
+import type {
+    CourseLesson,
+    CourseEnrollment,
+} from '@/lib/types'
 
 interface LessonPlayerProps
 {
@@ -30,39 +41,70 @@ export default function LessonPlayer({
 }: LessonPlayerProps)
 {
     const router = useRouter()
+
     const [marking, setMarking] = useState(false)
-    const [completed, setCompleted] = useState(enrollment?.status === 'completed')
-    const [currentProgress, setCurrentProgress] = useState(enrollment?.progress ?? 0)
+
+    const [completed, setCompleted] = useState(
+        enrollment?.status === 'completed'
+    )
+
+    const [currentProgress, setCurrentProgress] = useState(
+        Number(enrollment?.progress ?? 0)
+    )
+
     const [justCompleted, setJustCompleted] = useState(false)
 
     const isLastLesson = nextLesson === null
 
     async function handleMarkComplete()
     {
-        if (marking) return
+        if (marking || completed)
+        {
+            return
+        }
+
         setMarking(true)
 
         try
         {
-            const result = await markLessonComplete(courseId, lesson.id)
-            setCurrentProgress(result.progress)
+            const result = await markLessonComplete(
+                courseId,
+                lesson.id
+            )
+
+            setCurrentProgress(
+                Number(result.progress ?? 0)
+            )
+
             if (result.completed)
             {
                 setCompleted(true)
                 setJustCompleted(true)
-            }
-            // Navigate to next lesson if available
-            if (nextLesson && !result.completed)
-            {
-                router.push(`/app/learn/${courseId}/${nextLesson.id}`)
-            } else
-            {
+
                 router.refresh()
+
+                return
             }
-        } catch (err)
+
+            if (nextLesson)
+            {
+                router.push(
+                    `/app/learn/${courseId}/${nextLesson.id}`
+                )
+
+                return
+            }
+
+            router.refresh()
+        }
+        catch (err)
         {
-            console.error('markLessonComplete error:', err)
-        } finally
+            console.error(
+                'markLessonComplete error:',
+                err
+            )
+        }
+        finally
         {
             setMarking(false)
         }
@@ -70,178 +112,557 @@ export default function LessonPlayer({
 
     function getEmbedUrl(url: string): string
     {
-        // Support YouTube URLs
+        /*
+         * YouTube:
+         *
+         * https://www.youtube.com/watch?v=XXXXXXXXXXX
+         * https://youtu.be/XXXXXXXXXXX
+         * https://www.youtube.com/embed/XXXXXXXXXXX
+         */
         const ytMatch = url.match(
             /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/
         )
+
         if (ytMatch)
         {
             return `https://www.youtube.com/embed/${ytMatch[1]}?rel=0&modestbranding=1`
         }
-        // Support Vimeo URLs
-        const vimeoMatch = url.match(/vimeo\.com\/(\d+)/)
+
+        /*
+         * Vimeo:
+         *
+         * https://vimeo.com/123456789
+         * https://player.vimeo.com/video/123456789
+         */
+        const vimeoMatch = url.match(
+            /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)(\d+)/
+        )
+
         if (vimeoMatch)
         {
             return `https://player.vimeo.com/video/${vimeoMatch[1]}`
         }
+
         return url
     }
 
+    const videoUrl = lesson.video_url ?? ''
+
     const isEmbed =
-        lesson.video_url &&
-        (lesson.video_url.includes('youtube') ||
-            lesson.video_url.includes('youtu.be') ||
-            lesson.video_url.includes('vimeo'))
+        videoUrl.includes('youtube.com') ||
+        videoUrl.includes('youtu.be') ||
+        videoUrl.includes('vimeo.com')
 
     return (
-        <div className="space-y-4">
-            {/* Course breadcrumb */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="space-y-5">
+
+            {/* ─────────────────────────────────────────────
+                COURSE BREADCRUMB
+            ───────────────────────────────────────────── */}
+
+            <div className="flex items-center gap-2 text-sm">
+
                 <button
-                    onClick={() => router.push(`/app/learn/${courseId}`)}
-                    className="hover:text-foreground transition-colors"
+                    type="button"
+                    onClick={() =>
+                        router.push(
+                            `/app/learn/${courseId}`
+                        )
+                    }
+                    className="
+                        max-w-[240px]
+                        truncate
+                        font-medium
+                        text-slate-500
+                        transition-colors
+                        hover:text-emerald-700
+                    "
                 >
                     {courseTitle}
                 </button>
-                <ChevronRight className="h-4 w-4" />
-                <span className="text-foreground font-medium">{lesson.title}</span>
+
+                <ChevronRight
+                    className="
+                        h-4 w-4
+                        shrink-0
+                        text-slate-300
+                    "
+                />
+
+                <span className="
+                    truncate
+                    font-semibold
+                    text-slate-900
+                ">
+                    {lesson.title}
+                </span>
+
             </div>
 
-            {/* Completion badge */}
+            {/* ─────────────────────────────────────────────
+                COMPLETION MESSAGE
+            ───────────────────────────────────────────── */}
+
             {justCompleted && (
-                <div className="bento-card noise-bg p-6 text-center space-y-3 border-green-500/40 bg-green-50/50 dark:bg-green-950/20">
-                    <div className="flex justify-center">
-                        <Trophy className="h-12 w-12 text-yellow-500" />
+                <div className="
+                    overflow-hidden
+                    rounded-xl
+                    border border-emerald-200
+                    bg-emerald-50
+                ">
+                    <div className="
+                        flex flex-col
+                        items-center
+                        px-6 py-8
+                        text-center
+                    ">
+
+                        <div className="
+                            mb-4
+                            flex h-16 w-16
+                            items-center justify-center
+                            rounded-full
+                            border border-emerald-100
+                            bg-white
+                            shadow-sm
+                        ">
+                            <Trophy
+                                className="
+                                    h-8 w-8
+                                    text-amber-500
+                                "
+                            />
+                        </div>
+
+                        <h2 className="
+                            text-xl
+                            font-bold
+                            text-slate-900
+                        ">
+                            Course Completed! 🎉
+                        </h2>
+
+                        <p className="
+                            mt-1.5
+                            max-w-md
+                            text-sm
+                            leading-relaxed
+                            text-slate-600
+                        ">
+                            Congratulations! You&apos;ve
+                            completed{' '}
+                            <strong>
+                                {courseTitle}
+                            </strong>.
+                        </p>
+
+                        <Badge className="
+                            mt-4
+                            bg-emerald-600
+                            px-4 py-1.5
+                            text-sm
+                            text-white
+                        ">
+                            <CheckCircle
+                                className="
+                                    mr-1.5
+                                    h-4 w-4
+                                "
+                            />
+                            Certificate Earned
+                        </Badge>
+
                     </div>
-                    <h2 className="text-xl font-bold">Course Completed! 🎉</h2>
-                    <p className="text-muted-foreground">
-                        Congratulations! You&apos;ve completed <strong>{courseTitle}</strong>.
-                    </p>
-                    <Badge className="bg-green-500 text-white text-sm px-4 py-1">
-                        ✓ Certificate Earned
-                    </Badge>
                 </div>
             )}
 
-            {/* Video player */}
-            <div className="bento-card overflow-hidden">
-                {lesson.video_url ? (
+            {/* ─────────────────────────────────────────────
+                VIDEO PLAYER
+            ───────────────────────────────────────────── */}
+
+            <div className="
+                overflow-hidden
+                rounded-xl
+                bg-black
+                shadow-sm
+            ">
+
+                {videoUrl ? (
+
                     isEmbed ? (
-                        <div className="relative aspect-video w-full bg-black">
+
+                        <div className="
+                            relative
+                            aspect-video
+                            w-full
+                            bg-black
+                        ">
                             <iframe
-                                src={getEmbedUrl(lesson.video_url)}
-                                className="absolute inset-0 w-full h-full"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                src={getEmbedUrl(videoUrl)}
+                                className="
+                                    absolute
+                                    inset-0
+                                    h-full
+                                    w-full
+                                "
+                                allow="
+                                    accelerometer;
+                                    autoplay;
+                                    clipboard-write;
+                                    encrypted-media;
+                                    gyroscope;
+                                    picture-in-picture
+                                "
                                 allowFullScreen
                                 title={lesson.title}
                             />
                         </div>
+
                     ) : (
-                        // Direct video file (e.g. Cloudinary)
-                        <div className="aspect-video w-full bg-black">
+
+                        <div className="
+                            aspect-video
+                            w-full
+                            bg-black
+                        ">
                             <video
-                                src={lesson.video_url}
+                                src={videoUrl}
                                 controls
-                                className="w-full h-full"
+                                className="
+                                    h-full
+                                    w-full
+                                    object-contain
+                                "
                                 controlsList="nodownload"
                             >
-                                Your browser does not support the video tag.
+                                Your browser does not support
+                                the video tag.
                             </video>
                         </div>
+
                     )
+
                 ) : (
-                    <div className="aspect-video w-full bg-muted flex items-center justify-center">
-                        <div className="text-center text-muted-foreground">
-                            <div className="text-4xl mb-2">🎬</div>
-                            <p>No video available for this lesson</p>
+
+                    <div className="
+                        flex
+                        aspect-video
+                        w-full
+                        items-center
+                        justify-center
+                        bg-slate-950
+                    ">
+                        <div className="text-center">
+
+                            <div className="
+                                mx-auto
+                                mb-3
+                                flex h-14 w-14
+                                items-center justify-center
+                                rounded-full
+                                bg-white/10
+                            ">
+                                <PlayCircle
+                                    className="
+                                        h-7 w-7
+                                        text-white/60
+                                    "
+                                />
+                            </div>
+
+                            <p className="
+                                text-sm
+                                font-medium
+                                text-white/70
+                            ">
+                                No video available for
+                                this lesson
+                            </p>
+
                         </div>
                     </div>
+
                 )}
+
             </div>
 
-            {/* Lesson info + controls */}
-            <div className="bento-card noise-bg p-5 space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <h1 className="text-xl font-bold">{lesson.title}</h1>
+            {/* ─────────────────────────────────────────────
+                LESSON HEADER
+            ───────────────────────────────────────────── */}
+
+            <div className="
+                rounded-xl
+                border border-slate-200
+                bg-white
+                p-5
+                sm:p-6
+            ">
+
+                <div className="
+                    flex
+                    flex-col
+                    gap-4
+                    sm:flex-row
+                    sm:items-start
+                    sm:justify-between
+                ">
+
+                    <div className="min-w-0">
+
+                        <div className="
+                            mb-1.5
+                            text-xs
+                            font-semibold
+                            uppercase
+                            tracking-wide
+                            text-emerald-700
+                        ">
+                            Lesson
+                        </div>
+
+                        <h1 className="
+                            text-xl
+                            font-bold
+                            leading-tight
+                            text-slate-900
+                            sm:text-2xl
+                        ">
+                            {lesson.title}
+                        </h1>
+
                         {lesson.duration_s && (
-                            <p className="text-sm text-muted-foreground mt-0.5">
-                                Duration: {Math.ceil(lesson.duration_s / 60)} min
+                            <p className="
+                                mt-2
+                                text-sm
+                                text-slate-500
+                            ">
+                                {Math.ceil(
+                                    lesson.duration_s / 60
+                                )}{' '}
+                                min
                             </p>
                         )}
+
                     </div>
 
-                    {/* Progress indicator */}
                     {enrollment && (
-                        <div className="text-right shrink-0">
-                            <p className="text-sm font-medium">{currentProgress}%</p>
-                            <p className="text-xs text-muted-foreground">Progress</p>
+                        <div className="
+                            shrink-0
+                            sm:min-w-[100px]
+                            sm:text-right
+                        ">
+                            <p className="
+                                text-xl
+                                font-bold
+                                text-slate-900
+                            ">
+                                {Math.round(
+                                    currentProgress
+                                )}%
+                            </p>
+
+                            <p className="
+                                text-xs
+                                text-slate-500
+                            ">
+                                Course progress
+                            </p>
                         </div>
                     )}
+
                 </div>
 
-                {/* Progress bar */}
                 {enrollment && (
-                    <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                        <div
-                            className="h-full rounded-full bg-gradient-to-r from-primary to-secondary transition-all duration-700"
-                            style={{ width: `${currentProgress}%` }}
-                        />
+                    <div className="mt-5">
+
+                        <div className="
+                            h-1.5
+                            w-full
+                            overflow-hidden
+                            rounded-full
+                            bg-slate-100
+                        ">
+                            <div
+                                className="
+                                    h-full
+                                    rounded-full
+                                    bg-emerald-600
+                                    transition-all
+                                    duration-500
+                                "
+                                style={{
+                                    width: `${Math.min(
+                                        100,
+                                        Math.max(
+                                            0,
+                                            currentProgress
+                                        )
+                                    )}%`,
+                                }}
+                            />
+                        </div>
+
                     </div>
                 )}
 
-                {/* Navigation + complete button */}
-                <div className="flex items-center justify-between gap-3 pt-1">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => prevLesson && router.push(`/app/learn/${courseId}/${prevLesson.id}`)}
-                        disabled={!prevLesson}
-                        className="gap-1"
-                    >
-                        <ChevronLeft className="h-4 w-4" />
-                        Previous
-                    </Button>
+            </div>
+
+            {/* ─────────────────────────────────────────────
+                LESSON ACTIONS
+            ───────────────────────────────────────────── */}
+
+            <div className="
+                flex
+                flex-col
+                gap-3
+                rounded-xl
+                border border-slate-200
+                bg-white
+                p-4
+                sm:flex-row
+                sm:items-center
+                sm:justify-between
+            ">
+
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                    {
+                        if (prevLesson)
+                        {
+                            router.push(
+                                `/app/learn/${courseId}/${prevLesson.id}`
+                            )
+                        }
+                    }}
+                    disabled={!prevLesson}
+                    className="
+                        gap-1.5
+                        border-slate-200
+                        text-slate-700
+                        hover:border-slate-300
+                    "
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                </Button>
+
+                <div className="
+                    order-first
+                    flex flex-1
+                    justify-center
+                    sm:order-none
+                ">
 
                     {enrollment && !completed && (
                         <Button
-                            className="gradient-primary text-white gap-2 font-semibold"
                             onClick={handleMarkComplete}
                             disabled={marking}
+                            className="
+                                min-w-[190px]
+                                gap-2
+                                bg-emerald-700
+                                font-semibold
+                                text-white
+                                shadow-sm
+                                hover:bg-emerald-800
+                            "
                         >
                             {marking ? (
                                 <>
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <Loader2
+                                        className="
+                                            h-4 w-4
+                                            animate-spin
+                                        "
+                                    />
                                     Saving…
                                 </>
                             ) : (
                                 <>
-                                    <CheckCircle className="h-4 w-4" />
-                                    {isLastLesson ? 'Complete Course' : 'Mark Complete & Next'}
+                                    <CheckCircle
+                                        className="
+                                            h-4 w-4
+                                        "
+                                    />
+
+                                    {isLastLesson
+                                        ? 'Complete Course'
+                                        : 'Complete & Continue'}
                                 </>
                             )}
                         </Button>
                     )}
 
-                    {completed && !justCompleted && (
-                        <Badge className="bg-green-500 text-white gap-1.5 px-3 py-1.5">
-                            <CheckCircle className="h-4 w-4" />
-                            Completed
-                        </Badge>
-                    )}
+                    {completed &&
+                        !justCompleted && (
+                            <Badge className="
+                                gap-1.5
+                                border
+                                border-emerald-200
+                                bg-emerald-50
+                                px-4 py-2
+                                text-sm
+                                font-semibold
+                                text-emerald-700
+                            ">
+                                <CheckCircle
+                                    className="
+                                        h-4 w-4
+                                    "
+                                />
+                                Lesson Completed
+                            </Badge>
+                        )}
 
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => nextLesson && router.push(`/app/learn/${courseId}/${nextLesson.id}`)}
-                        disabled={!nextLesson}
-                        className="gap-1"
-                    >
-                        Next
-                        <ChevronRight className="h-4 w-4" />
-                    </Button>
                 </div>
+
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                    {
+                        if (nextLesson)
+                        {
+                            router.push(
+                                `/app/learn/${courseId}/${nextLesson.id}`
+                            )
+                        }
+                    }}
+                    disabled={!nextLesson}
+                    className="
+                        gap-1.5
+                        border-slate-200
+                        text-slate-700
+                        hover:border-slate-300
+                    "
+                >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                </Button>
+
             </div>
+
+            {/* ─────────────────────────────────────────────
+                MOBILE COURSE PROGRESS
+            ───────────────────────────────────────────── */}
+
+            {enrollment && (
+                <div className="
+                    text-center
+                    text-xs
+                    text-slate-400
+                    lg:hidden
+                ">
+                    {totalLessons > 0
+                        ? `Keep going — you're ${Math.round(
+                            currentProgress
+                        )}% through the course`
+                        : 'Keep learning to complete this course'}
+                </div>
+            )}
+
         </div>
     )
 }

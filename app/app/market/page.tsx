@@ -62,7 +62,7 @@ export default function MarketPage() {
                         We&apos;re preparing something exciting.
                         Soon, you&apos;ll be able to discover,
                         buy, sell, and connect with businesses
-                        and customers on NaijaImpact.
+                        and customers on Hubnovo.
                     </p>
 
                     {/* Status */}

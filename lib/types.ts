@@ -1,6 +1,6 @@
 // ============================================================
 // lib/types.ts
-// NaijaImpact – TypeScript types matching the Supabase DB schema
+// Hubnovo – TypeScript types matching the Supabase DB schema
 // Column names are snake_case to match the SQL definitions exactly.
 // ============================================================
 

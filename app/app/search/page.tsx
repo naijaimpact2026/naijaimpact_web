@@ -58,7 +58,7 @@ function IdleState()
                 <Search className="w-8 h-8 text-white" />
             </div>
             <div>
-                <p className="font-bold text-foreground text-lg">Discover NaijaImpact</p>
+                <p className="font-bold text-foreground text-lg">Discover Hubnovo</p>
                 <p className="text-sm text-muted-foreground mt-1">Search for people, posts, and courses</p>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
@@ -235,7 +235,7 @@ export default function SearchPage()
                     <input
                         ref={inputRef}
                         type="search"
-                        placeholder="Search NaijaImpact…"
+                        placeholder="Search Hubnovo…"
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                         className="w-full pl-11 pr-4 py-3 rounded-xl text-sm font-medium placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all"

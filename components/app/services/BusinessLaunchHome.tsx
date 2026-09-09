@@ -118,7 +118,7 @@
 //                     style={{ background: 'radial-gradient(circle,#4ade80,transparent 70%)' }} />
 
 //                 <div className="relative z-10 px-5 pt-6 pb-8 max-w-2xl mx-auto">
-//                     <p className="text-green-400 text-[10px] font-bold uppercase tracking-widest mb-3">NaijaImpact</p>
+//                     <p className="text-green-400 text-[10px] font-bold uppercase tracking-widest mb-3">Hubnovo</p>
 
 //                     <div className="flex items-end justify-between gap-4">
 //                         <div className="flex-1">
@@ -487,7 +487,7 @@ export default function BusinessLaunchPage() {
                         We&apos;re preparing something impactful.
                         Soon, you&apos;ll be able to save, access business
                         equipment, get your business formalized, and grow
-                        your business with NaijaImpact.
+                        your business with Hubnovo.
                     </p>
 
                     {/* Status */}

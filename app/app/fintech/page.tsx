@@ -143,7 +143,7 @@ export default async function FintechPage()
                     {/* Label row */}
                     <div className="flex items-center justify-between mb-5">
                         <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-1">NaijaImpact</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-1">Hubnovo</p>
                             <h1 className="text-3xl font-black text-white leading-tight">Fintech Hub</h1>
                             <p className="text-sm text-green-300/60 mt-1">Your complete financial suite</p>
                         </div>

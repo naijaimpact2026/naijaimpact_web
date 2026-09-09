@@ -96,7 +96,7 @@ export default function Hero()
                 <span className="text-gray-900 dark:text-white">Build Nigeria.</span>
               </h1>
               <p className="text-lg md:text-xl text-gray-500 dark:text-gray-400 max-w-lg leading-relaxed">
-                NaijaImpact brings your social life, finances, learning, and community savings into one
+              Hubnovo brings your social life, finances, learning, and community savings into one
                 beautiful platform — built for every Nigerian, everywhere.
               </p>
             </div>

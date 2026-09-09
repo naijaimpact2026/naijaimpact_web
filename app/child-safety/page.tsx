@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { ChevronRight, Shield, AlertTriangle, Eye, Lock, Users, Flag, Phone, Heart } from 'lucide-react'
 
 export const metadata = {
-    title: 'Child Safety Standards — NaijaImpact',
-    description: 'NaijaImpact is committed to creating a safe environment for all users with zero tolerance for child exploitation.',
+    title: 'Child Safety Standards — Hubnovo',
+    description: 'Hubnovo is committed to creating a safe environment for all users with zero tolerance for child exploitation.',
 }
 
 const prohibitedItems = [
@@ -75,14 +75,14 @@ export default function ChildSafetyPage()
                     style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.4) 1px,transparent 1px)', backgroundSize: '32px 32px' }} />
                 <div className="relative z-10 max-w-4xl mx-auto px-5 pt-10 pb-12 text-center">
                     <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-blue-300 border border-blue-700/50 bg-blue-900/30 mb-6">
-                        🇳🇬 NaijaImpact
+                        🇳🇬 Hubnovo
                     </div>
                     <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-3xl mx-auto mb-5">
                         🛡️
                     </div>
                     <h1 className="text-4xl sm:text-5xl font-black text-white mb-4 leading-tight">Child Safety Standards</h1>
                     <p className="text-blue-200/80 text-base max-w-xl mx-auto leading-relaxed">
-                        At NaijaImpact, we are committed to creating a safe environment for all users.
+                        At Hubnovo, we are committed to creating a safe environment for all users.
                         We have <span className="text-white font-bold">zero tolerance</span> for any form of child sexual abuse, exploitation, or CSAM.
                     </p>
                     <div className="mt-7 flex items-center justify-center gap-2 flex-wrap">
@@ -106,7 +106,7 @@ export default function ChildSafetyPage()
                         </div>
                         <span className="text-sm font-bold text-gray-800">Child Safety</span>
                         <span className="text-gray-300 hidden sm:block">·</span>
-                        <span className="text-[11px] text-gray-400 hidden sm:block">NaijaImpact</span>
+                        <span className="text-[11px] text-gray-400 hidden sm:block">Hubnovo</span>
                     </div>
                     <Link href="/privacy-policy"
                         className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 border border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50 rounded-full px-3 py-1.5 transition-colors">
@@ -146,7 +146,7 @@ export default function ChildSafetyPage()
                     </div>
                     <div className="px-5 py-5">
                         <p className="text-sm text-gray-600 leading-relaxed mb-4">
-                            NaijaImpact is dedicated to creating a safe, respectful platform for every user. We actively work to detect, remove, and report any content or behavior that endangers children. Any account found violating these standards will be <strong>permanently removed</strong> and may be reported to appropriate law enforcement authorities.
+                            Hubnovo is dedicated to creating a safe, respectful platform for every user. We actively work to detect, remove, and report any content or behavior that endangers children. Any account found violating these standards will be <strong>permanently removed</strong> and may be reported to appropriate law enforcement authorities.
                         </p>
                         <div className="rounded-2xl border-2 border-red-100 bg-red-50 p-4">
                             <div className="flex items-center gap-2 mb-3">
@@ -257,7 +257,7 @@ export default function ChildSafetyPage()
                         </div>
                     </div>
                     <div className="px-5 py-5">
-                        <p className="text-sm text-gray-500 mb-4">Every NaijaImpact user has access to privacy tools to protect themselves:</p>
+                        <p className="text-sm text-gray-500 mb-4">Every Hubnovo user has access to privacy tools to protect themselves:</p>
                         <div className="grid sm:grid-cols-2 gap-2">
                             {[
                                 { icon: '🚫', label: 'Block other users' },
@@ -287,7 +287,7 @@ export default function ChildSafetyPage()
                         </div>
                     </div>
                     <div className="px-5 py-5">
-                        <p className="text-sm text-gray-500 mb-4">NaijaImpact does not permit the following involving minors:</p>
+                        <p className="text-sm text-gray-500 mb-4">Hubnovo does not permit the following involving minors:</p>
                         <ul className="space-y-2">
                             {minorProtections.map((item, i) => (
                                 <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
@@ -314,7 +314,7 @@ export default function ChildSafetyPage()
                     </div>
                     <div className="px-5 py-5">
                         <p className="text-sm text-gray-500 mb-4">
-                            Where legally required, NaijaImpact cooperates fully with authorities regarding credible reports of child exploitation or abuse:
+                            Where legally required, Hubnovo cooperates fully with authorities regarding credible reports of child exploitation or abuse:
                         </p>
                         <div className="grid sm:grid-cols-3 gap-3">
                             {authorities.map((a) => (
@@ -380,8 +380,8 @@ export default function ChildSafetyPage()
                         </p>
                         <div className="grid sm:grid-cols-3 gap-3">
                             {[
-                                { icon: '🏢', label: 'Team', value: 'Naija Impact Safety Team' },
-                                { icon: '✉️', label: 'Email', value: 'naijaimpact2026@gmail.com' },
+                                { icon: '🏢', label: 'Team', value: 'Hubnovo Safety Team' },
+                                { icon: '✉️', label: 'Email', value: 'hubnovo2026@gmail.com' },
                                 { icon: '⏱️', label: 'Response Time', value: 'Within 24–48 hours' },
                             ].map(({ icon, label, value }) => (
                                 <div key={label} className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-center">
@@ -391,7 +391,7 @@ export default function ChildSafetyPage()
                                 </div>
                             ))}
                         </div>
-                        <a href="mailto:naijaimpact2026@gmail.com?subject=Child%20Safety%20Concern%20-%20NaijaImpact"
+                        <a href="mailto:hubnovo2026@gmail.com?subject=Child%20Safety%20Concern%20-%20Hubnovo"
                             className="mt-4 inline-flex items-center gap-2 bg-blue-600 text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors">
                             ✉️ Email Safety Team
                         </a>
@@ -405,7 +405,7 @@ export default function ChildSafetyPage()
                         <div>
                             <p className="text-sm font-black text-red-800 mb-1">Zero-Tolerance Policy</p>
                             <p className="text-sm text-red-700 leading-relaxed">
-                                NaijaImpact maintains a strict zero-tolerance policy toward child sexual abuse and exploitation. We are committed to removing prohibited content, banning offending accounts, and cooperating with appropriate authorities to protect children.
+                            Hubnovo maintains a strict zero-tolerance policy toward child sexual abuse and exploitation. We are committed to removing prohibited content, banning offending accounts, and cooperating with appropriate authorities to protect children.
                             </p>
                         </div>
                     </div>
@@ -418,10 +418,10 @@ export default function ChildSafetyPage()
                         <div className="text-4xl mb-3">💙</div>
                         <h3 className="text-xl font-black text-white mb-2">Every child deserves to be safe</h3>
                         <p className="text-blue-300/70 text-sm mb-6 max-w-md mx-auto">
-                            Help us keep NaijaImpact a safe space. Report anything suspicious and we will act fast.
+                            Help us keep Hubnovo a safe space. Report anything suspicious and we will act fast.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                            <a href="mailto:naijaimpact2026@gmail.com?subject=Child%20Safety%20Concern%20-%20NaijaImpact"
+                            <a href="mailto:hubnovo2026@gmail.com?subject=Child%20Safety%20Concern%20-%20Hubnovo"
                                 className="inline-flex items-center justify-center gap-2 bg-white text-blue-900 font-bold text-sm px-6 py-3 rounded-xl hover:bg-blue-50 transition-colors">
                                 🚨 Report a Concern
                             </a>
@@ -435,7 +435,7 @@ export default function ChildSafetyPage()
 
                 {/* Footer */}
                 <div className="text-center pt-2 pb-6">
-                    <p className="text-xs text-gray-400">© 2026 NaijaImpact. All rights reserved.</p>
+                    <p className="text-xs text-gray-400">© 2026 Hubnovo. All rights reserved.</p>
                     <div className="mt-2 flex items-center justify-center gap-4 text-xs text-gray-400">
                         <Link href="/privacy-policy" className="hover:text-emerald-700 transition-colors font-medium">Privacy Policy</Link>
                         <span>·</span>

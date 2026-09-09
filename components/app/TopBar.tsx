@@ -42,9 +42,9 @@ export default function TopBar({ user, notificationCount = 0, onMenuToggle }: To
 
             {/* Logo */}
             <Link href="/app/feed" className="flex items-center gap-1.5 shrink-0">
-                <Image src="/logo.png" alt="NaijaImpact" width={28} height={28} className="rounded-md" unoptimized />
+                <Image src="/logo.png" alt="Hubnovo" width={28} height={28} className="rounded-md" unoptimized />
                 <div className="leading-none hidden sm:block">
-                    <p className="font-bold text-sm text-white tracking-tight">NaijaImpact</p>
+                    <p className="font-bold text-sm text-white tracking-tight">Hubnovo</p>
                     <p className="text-[8px] font-medium" style={{ color: '#6ee7b7' }}>Empower. Equip. Elevate.</p>
                 </div>
             </Link>

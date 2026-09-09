@@ -17,7 +17,7 @@ export default function PostDetailShareButton({ postId, postCaption }: Props)
         {
             try
             {
-                await navigator.share({ title: postCaption.slice(0, 60) || 'NaijaImpact post', url })
+                await navigator.share({ title: postCaption.slice(0, 60) || 'Hubnovo post', url })
             } catch { /* user cancelled */ }
         } else
         {

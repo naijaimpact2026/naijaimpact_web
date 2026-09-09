@@ -211,8 +211,8 @@ function ResetPasswordContent()
             <div className="w-full max-w-sm space-y-8">
                 {/* Logo */}
                 <div className="flex items-center gap-2">
-                    <Image src="/logo.png" alt="NaijaImpact" width={36} height={36} className="rounded-lg" />
-                    <span className="font-bold text-lg text-gray-900 dark:text-white">NaijaImpact</span>
+                    <Image src="/logo.png" alt="Hubnovo" width={36} height={36} className="rounded-lg" />
+                    <span className="font-bold text-lg text-gray-900 dark:text-white">Hubnovo</span>
                 </div>
 
                 {/* ── OTP step ── */}

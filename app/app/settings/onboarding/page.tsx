@@ -301,7 +301,7 @@ export default function OnboardingPage()
             <div className="bento-card noise-bg w-full max-w-lg p-8 space-y-6">
                 {/* Header */}
                 <div className="text-center space-y-1">
-                    <h1 className="text-2xl font-bold text-foreground">Welcome to NaijaImpact</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Welcome to Hubnovo</h1>
                     <p className="text-muted-foreground text-sm">
                         Set up your profile to get started
                     </p>

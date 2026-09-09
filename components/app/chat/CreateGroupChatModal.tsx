@@ -161,7 +161,7 @@ export default function CreateGroupChatModal()
                         <Label htmlFor="group-name">Group Name</Label>
                         <Input
                             id="group-name"
-                            placeholder="e.g. NaijaImpact Team"
+                            placeholder="e.g. Hubnovo Team"
                             {...register('name')}
                         />
                         {errors.name && (

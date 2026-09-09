@@ -649,7 +649,7 @@ function AppearanceTab()
                 <div>
                     <h2 className="font-semibold text-lg">Appearance</h2>
                     <p className="text-muted-foreground text-sm mt-1">
-                        Choose how NaijaImpact looks to you
+                        Choose how Hubnovo looks to you
                     </p>
                 </div>
 
@@ -713,7 +713,7 @@ function AppearanceTab()
 // ─── Danger Zone Tab ──────────────────────────────────────────────────────────
 
 const DELETE_STEPS = [
-    { step: '01', icon: '📱', title: 'Open the NaijaImpact App', description: 'Launch the NaijaImpact mobile application or visit the website on your device. Ensure you are logged into the account you wish to delete.' },
+    { step: '01', icon: '📱', title: 'Open the Hubnovo App', description: 'Launch the Hubnovo mobile application or visit the website on your device. Ensure you are logged into the account you wish to delete.' },
     { step: '02', icon: '👤', title: 'Go to Your Profile', description: 'Tap your profile icon or avatar at the top of the screen. Select "My Profile" or "Account Settings" from the menu.' },
     { step: '03', icon: '⚙️', title: 'Open Account Settings', description: 'Scroll down within your profile or settings page to find the "Account" section. Look for "Privacy & Security" or "Account Management".' },
     { step: '04', icon: '🗑️', title: 'Select "Delete Account"', description: 'Tap on "Delete Account" or "Close Account". Read the information provided about what will happen to your data and memberships.' },
@@ -874,7 +874,7 @@ function DangerZoneTab({ user }: { user: AppUser })
                     <p className="text-xs text-gray-500 mb-3 leading-relaxed">
                         If you cannot access your account settings, email our support team with: your full name, registered email, phone number, and membership ID.
                     </p>
-                    <a href="mailto:support@naijaimpact.org?subject=Account%20Deletion%20Request"
+                    <a href="mailto:support@Hubnovo.org?subject=Account%20Deletion%20Request"
                         className="inline-flex items-center gap-2 bg-emerald-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-emerald-700 transition-colors">
                         ✉️ Send Deletion Request Email
                     </a>

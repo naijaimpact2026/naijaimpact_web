@@ -1,6 +1,6 @@
-# NaijaImpact - Community Technology Platform
+# Hubnovo - Community Technology Platform
 
-A modern, advanced website for NaijaImpact featuring a professional design with full mobile responsiveness, smooth animations, and an engaging user interface.
+A modern, advanced website for Hubnovo featuring a professional design with full mobile responsiveness, smooth animations, and an engaging user interface.
 
 ## Features
 
@@ -33,7 +33,7 @@ A modern, advanced website for NaijaImpact featuring a professional design with 
 
 ```bash
 # Clone or download the project
-cd naijaimpact-website
+cd hubnovo-website
 
 # Install dependencies
 pnpm install
@@ -69,7 +69,7 @@ pnpm start
   └── Footer.tsx         # Footer with links and social icons
 
 /public
-  └── logo.jpg          # NaijaImpact logo
+  └── logo.jpg          # Hubnovo logo
 
 tailwind.config.ts      # Tailwind configuration with custom animations
 package.json            # Dependencies and scripts
@@ -160,21 +160,21 @@ This generates a `.next` folder ready for deployment.
 
 ## Contact & Support
 
-For questions about NaijaImpact:
-- Email: hello@naijaimpact.com
+For questions about Hubnovo:
+- Email: hello@hubnovo.com
 - Phone: +234 (0) 901 234 5678
 - Location: Lagos, Nigeria
 
 ## License
 
-© 2024 NaijaImpact. All rights reserved.
+© 2024 Hubnovo. All rights reserved.
 
 ---
 
 **Made with ❤️ for Nigerian Communities**
-# naijaimpact
-# naijaimpact_web
-# naijaimpact_web
-# naijaimpact_web
-# naijaimpact_web
-# naijaimpact_web
+# hubnovo
+# hubnovo_web
+# hubnovo_web
+# hubnovo_web
+# hubnovo_web
+# hubnovo_web

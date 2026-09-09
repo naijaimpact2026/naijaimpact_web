@@ -5,7 +5,7 @@ html {
 }
 
 @theme {
-  /* ── NaijaImpact brand palette — forest green + mint ── */
+  /* ── Hubnovo brand palette — forest green + mint ── */
   --color-background: hsl(140, 40%, 97%); /* very light mint #f2faf5 */
   --color-foreground: hsl(220, 56%, 10%); /* near-black #0a1628     */
   --color-card: hsl(0, 0%, 100%); /* pure white cards       */

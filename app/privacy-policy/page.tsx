@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { Shield, Lock, Eye, Database, Globe, Bell, Scale, AlertTriangle, ChevronRight } from 'lucide-react'
 
 export const metadata = {
-    title: 'Privacy Policy — NaijaImpact',
-    description: 'Learn how NaijaImpact collects, uses, and protects your personal information.',
+    title: 'Privacy Policy — Hubnovo',
+    description: 'Learn how Hubnovo collects, uses, and protects your personal information.',
 }
 
 const sections = [
@@ -11,11 +11,11 @@ const sections = [
         number: '01',
         icon: '🌍',
         title: 'Introduction',
-        content: `Welcome to NaijaImpact — a humanitarian, empowerment, cooperative, education, financial inclusion, and digital community platform dedicated to empowering Nigerians and Africans through skills development, cooperative programs, grants, scholarships, financial support initiatives, entrepreneurship, digital services, and community development.
+        content: `Welcome to Hubnovo — a humanitarian, empowerment, cooperative, education, financial inclusion, and digital community platform dedicated to empowering Nigerians and Africans through skills development, cooperative programs, grants, scholarships, financial support initiatives, entrepreneurship, digital services, and community development.
 
-This Privacy Policy explains how NaijaImpact collects, uses, stores, protects, processes, and shares your personal information when you use our website, mobile applications, cooperative platforms, educational portals, community platforms, financial services, events, trainings, and any related products or services.
+This Privacy Policy explains how Hubnovo collects, uses, stores, protects, processes, and shares your personal information when you use our website, mobile applications, cooperative platforms, educational portals, community platforms, financial services, events, trainings, and any related products or services.
 
-By accessing or using NaijaImpact services, you agree to the terms of this Privacy Policy.`,
+By accessing or using Hubnovo services, you agree to the terms of this Privacy Policy.`,
     },
     {
         number: '02',
@@ -75,19 +75,19 @@ By accessing or using NaijaImpact services, you agree to the terms of this Priva
         number: '07',
         icon: '🍪',
         title: 'Cookies & Tracking Technologies',
-        content: 'NaijaImpact may use cookies and related technologies to improve platform functionality, personalize user experience, analyze traffic and usage, enhance security, remember preferences, and measure performance. Users may disable cookies through browser settings; however, some features may not function properly.',
+        content: 'Hubnovo may use cookies and related technologies to improve platform functionality, personalize user experience, analyze traffic and usage, enhance security, remember preferences, and measure performance. Users may disable cookies through browser settings; however, some features may not function properly.',
     },
     {
         number: '08',
         icon: '🤲',
         title: 'Data Sharing & Disclosure',
-        content: 'NaijaImpact does not sell personal data. We may share information with authorized staff, financial institutions, government agencies where legally required, cooperative partners, service providers, legal authorities, and third-party organizations involved in empowerment programs. All third parties are expected to maintain appropriate confidentiality and security standards.',
+        content: 'Hubnovo does not sell personal data. We may share information with authorized staff, financial institutions, government agencies where legally required, cooperative partners, service providers, legal authorities, and third-party organizations involved in empowerment programs. All third parties are expected to maintain appropriate confidentiality and security standards.',
     },
     {
         number: '09',
         icon: '🌐',
         title: 'International Data Transfers',
-        content: 'Where data is transferred across borders, NaijaImpact shall implement appropriate safeguards to ensure adequate protection of personal information in accordance with applicable laws and international best practices.',
+        content: 'Where data is transferred across borders, Hubnovo shall implement appropriate safeguards to ensure adequate protection of personal information in accordance with applicable laws and international best practices.',
     },
     {
         number: '10',
@@ -108,19 +108,19 @@ By accessing or using NaijaImpact services, you agree to the terms of this Priva
         icon: '✋',
         title: 'Your Rights',
         bullets: ['Access personal information', 'Correct inaccurate data', 'Request deletion of data', 'Withdraw consent', 'Restrict or object to processing', 'Request portability of data', 'Lodge complaints with regulatory authorities', 'Request clarification regarding data practices'],
-        content: 'Requests may be submitted through the official NaijaImpact contact channels.',
+        content: 'Requests may be submitted through the official Hubnovo contact channels.',
     },
     {
         number: '13',
         icon: '👶',
         title: "Children's Privacy",
-        content: "NaijaImpact does not knowingly collect personal information from children without appropriate parental or guardian consent where required by law. Where youth-focused programs exist, additional safeguards may be implemented.",
+        content: "Hubnovo does not knowingly collect personal information from children without appropriate parental or guardian consent where required by law. Where youth-focused programs exist, additional safeguards may be implemented.",
     },
     {
         number: '14',
         icon: '🔗',
         title: 'Third-Party Links & Services',
-        content: 'NaijaImpact platforms may contain links to third-party websites, applications, or services. We are not responsible for the privacy practices or content of third-party platforms. Users are encouraged to review the privacy policies of external services before providing information.',
+        content: 'Hubnovo platforms may contain links to third-party websites, applications, or services. We are not responsible for the privacy practices or content of third-party platforms. Users are encouraged to review the privacy policies of external services before providing information.',
     },
     {
         number: '15',
@@ -140,13 +140,13 @@ By accessing or using NaijaImpact services, you agree to the terms of this Priva
         icon: '🚨',
         title: 'Reporting Security Incidents',
         bullets: ['Unauthorized account access', 'Fraudulent activities', 'Suspicious communications', 'Data breaches', 'Privacy concerns'],
-        content: 'NaijaImpact may investigate and take appropriate action where necessary.',
+        content: 'Hubnovo may investigate and take appropriate action where necessary.',
     },
     {
         number: '18',
         icon: '🔄',
         title: 'Policy Updates',
-        content: 'NaijaImpact reserves the right to modify or update this Privacy Policy at any time. Updated versions shall become effective upon publication on official platforms unless otherwise stated. Continued use of NaijaImpact services after updates constitutes acceptance of the revised Privacy Policy.',
+        content: 'Hubnovo reserves the right to modify or update this Privacy Policy at any time. Updated versions shall become effective upon publication on official platforms unless otherwise stated. Continued use of Hubnovo services after updates constitutes acceptance of the revised Privacy Policy.',
     },
     {
         number: '19',
@@ -158,7 +158,7 @@ By accessing or using NaijaImpact services, you agree to the terms of this Priva
         number: '20',
         icon: '✅',
         title: 'Acceptance of Policy',
-        content: 'By accessing, registering for, or using NaijaImpact services, users acknowledge that they have read, understood, and agreed to this Privacy Policy.',
+        content: 'By accessing, registering for, or using Hubnovo services, users acknowledge that they have read, understood, and agreed to this Privacy Policy.',
     },
 ]
 
@@ -181,7 +181,7 @@ export default function PrivacyPolicyPage()
 
                 <div className="relative z-10 max-w-4xl mx-auto px-5 pt-10 pb-12 text-center">
                     <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-green-300 border border-green-700/50 bg-green-900/30 mb-6">
-                        🇳🇬 NaijaImpact
+                        🇳🇬 Hubnovo
                     </div>
                     <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-3xl mx-auto mb-5">
                         🔒
@@ -308,10 +308,10 @@ export default function PrivacyPolicyPage()
                         <div className="text-4xl mb-3">🤝</div>
                         <h3 className="text-xl font-black text-white mb-2">Questions about your data?</h3>
                         <p className="text-green-300/70 text-sm mb-6 max-w-md mx-auto">
-                            Reach out to the NaijaImpact team for any privacy-related questions or data requests.
+                            Reach out to the Hubnovo team for any privacy-related questions or data requests.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                            <a href="mailto:privacy@naijaimpact.org"
+                            <a href="mailto:privacy@hubnovo.org"
                                 className="inline-flex items-center justify-center gap-2 bg-white text-emerald-900 font-bold text-sm px-6 py-3 rounded-xl hover:bg-emerald-50 transition-colors">
                                 ✉️ Email Us
                             </a>
@@ -325,7 +325,7 @@ export default function PrivacyPolicyPage()
 
                 {/* Footer */}
                 <div className="text-center pt-2 pb-6">
-                    <p className="text-xs text-gray-400">© 2025 NaijaImpact. All rights reserved.</p>
+                    <p className="text-xs text-gray-400">© 2025 Hubnovo. All rights reserved.</p>
                     <div className="mt-2 flex items-center justify-center gap-4 text-xs text-gray-400">
                         <Link href="/privacy-policy" className="hover:text-emerald-700 transition-colors font-medium">Privacy Policy</Link>
                         <span>·</span>

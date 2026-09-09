@@ -167,7 +167,7 @@ export default function WalletPanel({
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-green-400 text-[10px] font-bold uppercase tracking-widest">
-                                NaijaImpact Wallet
+                            Hubnovo Wallet
                             </p>
                             {displayName && (
                                 <p className="text-white/75 text-sm font-medium mt-0.5">{displayName}</p>

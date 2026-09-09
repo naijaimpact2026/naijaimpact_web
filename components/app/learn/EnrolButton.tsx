@@ -2,7 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import {
+    Loader2,
+    PlayCircle,
+    LockKeyhole,
+} from 'lucide-react'
 import { enrolCourse } from '@/lib/actions/learn'
 
 interface EnrolButtonProps
@@ -13,21 +17,44 @@ interface EnrolButtonProps
     alreadyEnrolled: boolean
 }
 
-export default function EnrolButton({ courseId, amount, isFree, alreadyEnrolled }: EnrolButtonProps)
+export default function EnrolButton({
+    courseId,
+    amount,
+    isFree,
+    alreadyEnrolled,
+}: EnrolButtonProps)
 {
     const router = useRouter()
+
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
+    /*
+     * Already enrolled
+     */
     if (alreadyEnrolled)
     {
         return (
             <button
-                className="w-full py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95"
-                style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}
-                onClick={() => router.push(`/app/learn`)}
+                type="button"
+                onClick={() => router.push('/app/learn')}
+                className="
+                    flex w-full items-center
+                    justify-center gap-2
+                    rounded-lg
+                    bg-emerald-700
+                    px-5 py-3
+                    text-sm font-semibold
+                    text-white
+                    shadow-sm
+                    transition-all
+                    hover:bg-emerald-800
+                    hover:shadow-md
+                    active:scale-[0.99]
+                "
             >
-                Continue Learning
+                <PlayCircle className="h-4 w-4" />
+                Continue learning
             </button>
         )
     }
@@ -36,47 +63,113 @@ export default function EnrolButton({ courseId, amount, isFree, alreadyEnrolled 
     {
         setLoading(true)
         setError(null)
+
         try
         {
             if (isFree)
             {
                 await enrolCourse(courseId)
                 router.refresh()
-            } else
+            }
+            else
             {
                 // Paid courses — redirect to wallet/payment flow
-                // For now show a message; paid Paystack flow can be wired up later
-                setError('Paid course purchase coming soon. Add funds to your wallet.')
+                // Paystack can be wired here later.
+                setError(
+                    'Paid course purchase is coming soon. Add funds to your wallet.'
+                )
             }
-        } catch (err)
+        }
+        catch (err)
         {
-            setError(err instanceof Error ? err.message : 'Enrolment failed')
-        } finally
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'Enrolment failed'
+            )
+        }
+        finally
         {
             setLoading(false)
         }
     }
 
     return (
-        <div className="space-y-2">
+        <div className="space-y-3">
+
             <button
+                type="button"
                 onClick={handleEnrol}
                 disabled={loading}
-                className="w-full py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}
+                className="
+                    flex w-full items-center
+                    justify-center gap-2
+                    rounded-lg
+                    bg-emerald-700
+                    px-5 py-3
+                    text-sm font-semibold
+                    text-white
+                    shadow-sm
+                    transition-all
+                    hover:bg-emerald-800
+                    hover:shadow-md
+                    active:scale-[0.99]
+                    disabled:cursor-not-allowed
+                    disabled:opacity-60
+                "
             >
                 {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        {isFree ? 'Enrolling…' : 'Processing…'}
-                    </span>
+                    <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {isFree
+                            ? 'Enrolling…'
+                            : 'Processing…'
+                        }
+                    </>
                 ) : isFree ? (
-                    'Enrol for Free'
+                    <>
+                        <PlayCircle className="h-4 w-4" />
+                        Enrol for free
+                    </>
                 ) : (
-                    `Purchase — ₦${amount.toLocaleString('en-NG')}`
+                    <>
+                        <LockKeyhole className="h-4 w-4" />
+                        Purchase — ₦
+                        {amount.toLocaleString('en-NG')}
+                    </>
                 )}
             </button>
-            {error && <p className="text-xs text-rose-500 text-center">{error}</p>}
+
+            {error && (
+                <div className="
+                    rounded-lg
+                    border border-rose-100
+                    bg-rose-50
+                    px-3 py-2.5
+                    text-center
+                ">
+                    <p className="
+                        text-xs
+                        leading-relaxed
+                        text-rose-600
+                    ">
+                        {error}
+                    </p>
+                </div>
+            )}
+
+            {!alreadyEnrolled && (
+                <p className="
+                    text-center
+                    text-[11px]
+                    text-slate-400
+                ">
+                    {isFree
+                        ? 'Start learning immediately'
+                        : 'Secure payment coming soon'
+                    }
+                </p>
+            )}
         </div>
     )
 }

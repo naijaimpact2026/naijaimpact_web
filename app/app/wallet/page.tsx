@@ -5,7 +5,7 @@ import { fetchWallet } from '@/lib/actions/wallet'
 import WalletPanel from '@/components/app/wallet/WalletPanel'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Wallet — NaijaImpact' }
+export const metadata = { title: 'Wallet — Hubnovo' }
 
 export default async function WalletPage() {
     console.log('🔥🔥🔥 WALLET PAGE IS RENDERING 🔥🔥🔥')

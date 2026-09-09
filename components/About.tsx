@@ -55,7 +55,7 @@ export default function About()
                   N
                 </div>
                 <div>
-                  <div className="font-bold text-gray-900 dark:text-white">NaijaImpact</div>
+                  <div className="font-bold text-gray-900 dark:text-white">Hubnovo</div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">Est. 2020 · Lagos, Nigeria</div>
                 </div>
               </div>
@@ -120,7 +120,7 @@ export default function About()
                 social life?
               </p>
               <p className="text-gray-500 dark:text-gray-400 leading-relaxed">
-                NaijaImpact was born to change that — one all-in-one platform that respects how
+              Hubnovo was born to change that — one all-in-one platform that respects how
                 Nigerians actually live, save, and support each other.
               </p>
             </div>

@@ -74,7 +74,7 @@
 //                         <div className="flex items-center gap-2">
 //                             <span className="text-2xl">🌍</span>
 //                             <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#6ee7b7' }}>
-//                                 NaijaImpact Funding
+//                                  Funding
 //                             </span>
 //                         </div>
 //                         <h1 className="text-2xl sm:text-3xl font-bold leading-tight">
@@ -194,7 +194,7 @@ export default function FundingPage() {
                     <p className="mx-auto mt-5 max-w-md text-base leading-7 text-gray-500 dark:text-gray-400">
                         We&apos;re preparing something impactful.
                         Soon, you&apos;ll be able to discover, support,
-                        and fund great ideas and projects on NaijaImpact.
+                        and fund great ideas and projects on Hubnovo.
                     </p>
 
                     {/* Status */}

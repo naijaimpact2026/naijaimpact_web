@@ -85,9 +85,9 @@ export default function Sidebar({
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
                     <Link href="/app/feed" onClick={onClose} className="flex items-center gap-2">
-                        <Image src="/logo.png" alt="NaijaImpact" width={28} height={28} className="rounded-md" unoptimized />
+                        <Image src="/logo.png" alt="Hubnovo" width={28} height={28} className="rounded-md" unoptimized />
                         <div className="leading-none">
-                            <p className="font-bold text-sm text-white tracking-tight">NaijaImpact</p>
+                            <p className="font-bold text-sm text-white tracking-tight">Hubnovo</p>
                             <p className="text-[8px] font-medium" style={{ color: '#6ee7b7' }}>Empower. Equip. Elevate.</p>
                         </div>
                     </Link>

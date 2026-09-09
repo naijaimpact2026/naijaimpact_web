@@ -37,8 +37,8 @@ export default function Contact()
     {
       icon: Mail,
       label: 'Email us',
-      value: 'hello@naijaimpact.com',
-      href: 'mailto:hello@naijaimpact.com',
+      value: 'hello@hubnovo.com',
+      href: 'mailto:hello@hubnovo.com',
       gradient: 'from-blue-400 to-indigo-500',
     },
     {

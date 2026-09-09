@@ -86,7 +86,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // 6. Generate signed upload params
   // Note: resource_type must NOT be included in the signature — Cloudinary excludes it
   const { signature, timestamp, apiKey } = signUpload({
-    folder: 'naijaimpact',
+    folder: 'hubnovo',
   })
 
   // 7. Build upload FormData for Cloudinary
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   uploadForm.append('api_key', apiKey)
   uploadForm.append('timestamp', String(timestamp))
   uploadForm.append('signature', signature)
-  uploadForm.append('folder', 'naijaimpact')
+  uploadForm.append('folder', 'hubnovo')
   uploadForm.append('resource_type', resource_type)
 
   // 8. POST to Cloudinary

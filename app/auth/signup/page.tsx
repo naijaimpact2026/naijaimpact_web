@@ -97,8 +97,8 @@ export default function SignupPage()
     
                     <div>
                         <div className="flex items-center gap-2 mb-6 lg:hidden">
-                            <Image src="/logo.png" alt="NaijaImpact" width={36} height={36} className="rounded-lg" />
-                            <span className="font-bold text-lg text-gray-900 dark:text-white">NaijaImpact</span>
+                            <Image src="/logo.png" alt="Hubnovo" width={36} height={36} className="rounded-lg" />
+                            <span className="font-bold text-lg text-gray-900 dark:text-white">Hubnovo</span>
                         </div>
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create account</h1>
                         <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">

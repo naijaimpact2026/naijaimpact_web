@@ -2,16 +2,16 @@ import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 
 export const metadata = {
-    title: 'Delete Your Account — NaijaImpact',
-    description: 'Learn how to delete your NaijaImpact account and request data removal.',
+    title: 'Delete Your Account — Hubnovo',
+    description: 'Learn how to delete your Hubnovo account and request data removal.',
 }
 
 const steps = [
     {
         step: '01',
         icon: '📱',
-        title: 'Open the NaijaImpact App',
-        description: 'Launch the NaijaImpact mobile application or visit the website on your device. Ensure you are logged into the account you wish to delete.',
+        title: 'Open the Hubnovo App',
+        description: 'Launch the Hubnovo mobile application or visit the website on your device. Ensure you are logged into the account you wish to delete.',
     },
     {
         step: '02',
@@ -103,14 +103,14 @@ export default function DeleteAccountPage()
 
                 <div className="relative z-10 max-w-3xl mx-auto px-5 pt-10 pb-12 text-center">
                     <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-red-300 border border-red-800/50 bg-red-900/30 mb-6">
-                        🇳🇬 NaijaImpact
+                        🇳🇬 Hubnovo
                     </div>
                     <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-3xl mx-auto mb-5">
                         🗑️
                     </div>
                     <h1 className="text-4xl sm:text-5xl font-black text-white mb-4 leading-tight">Delete Your Account</h1>
                     <p className="text-red-200/80 text-base max-w-xl mx-auto leading-relaxed">
-                        We are sorry to see you go. Follow the steps below to permanently delete your NaijaImpact account and request data removal.
+                        We are sorry to see you go. Follow the steps below to permanently delete your Hubnovo account and request data removal.
                     </p>
                     <div className="mt-7 flex items-center justify-center gap-2 flex-wrap">
                         <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-white/10 text-red-200 border border-white/10">
@@ -227,7 +227,7 @@ export default function DeleteAccountPage()
                                 </div>
                             ))}
                         </div>
-                        <a href="mailto:support@naijaimpact.org?subject=Account%20Deletion%20Request"
+                        <a href="mailto:support@hubnovo.org?subject=Account%20Deletion%20Request"
                             className="inline-flex items-center gap-2 bg-red-600 text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-red-700 transition-colors">
                             ✉️ Send Deletion Request Email
                         </a>
@@ -266,7 +266,7 @@ export default function DeleteAccountPage()
                             Our support team is happy to help you resolve any issues that led you here.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                            <a href="mailto:support@naijaimpact.org"
+                            <a href="mailto:support@hubnovo.org"
                                 className="inline-flex items-center justify-center gap-2 bg-white text-emerald-900 font-bold text-sm px-6 py-3 rounded-xl hover:bg-emerald-50 transition-colors">
                                 💬 Contact Support
                             </a>
@@ -280,7 +280,7 @@ export default function DeleteAccountPage()
 
                 {/* Footer */}
                 <div className="text-center pt-2 pb-6">
-                    <p className="text-xs text-gray-400">© 2025 NaijaImpact. All rights reserved.</p>
+                    <p className="text-xs text-gray-400">© 2025 Hubnovo. All rights reserved.</p>
                     <div className="mt-2 flex items-center justify-center gap-4 text-xs text-gray-400">
                         <Link href="/privacy-policy" className="hover:text-emerald-700 transition-colors font-medium">Privacy Policy</Link>
                         <span>·</span>

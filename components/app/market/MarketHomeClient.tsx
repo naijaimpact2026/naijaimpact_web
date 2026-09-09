@@ -208,7 +208,7 @@ export default function MarketHomeClient({
                 <div className="relative z-10 px-4 pt-5 pb-6 max-w-6xl mx-auto">
                     <div className="flex items-center justify-between gap-3 mb-5">
                         <div>
-                            <p className="text-green-400 text-[10px] font-bold uppercase tracking-widest mb-0.5">NaijaImpact</p>
+                            <p className="text-green-400 text-[10px] font-bold uppercase tracking-widest mb-0.5">Hubnovo</p>
                             <h1 className="text-2xl font-black text-white leading-tight">NaijaMarket</h1>
                             <p className="text-xs text-green-300/60 mt-0.5">Buy · Sell · Get Paid · Grow</p>
                         </div>

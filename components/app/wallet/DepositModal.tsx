@@ -144,7 +144,7 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Deposit Funds</DialogTitle>
-                    <DialogDescription>Add money to your NaijaImpact wallet via Paystack</DialogDescription>
+                    <DialogDescription>Add money to your Hubnovo wallet via Paystack</DialogDescription>
                 </DialogHeader>
 
                 {success ? (

@@ -75,7 +75,7 @@ export default function Footer()
                   N
                 </div>
               </div>
-              <span className="font-bold text-xl text-white">NaijaImpact</span>
+              <span className="font-bold text-xl text-white">Hubnovo</span>
             </Link>
 
             <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
@@ -159,7 +159,7 @@ export default function Footer()
         {/* Bottom bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-slate-500 text-sm">
-            © {new Date().getFullYear()} NaijaImpact. All rights reserved.
+            © {new Date().getFullYear()} Hubnovo. All rights reserved.
           </p>
           <div className="flex items-center gap-5 text-sm text-slate-500">
             <Link href="#" className="hover:text-white transition-colors">

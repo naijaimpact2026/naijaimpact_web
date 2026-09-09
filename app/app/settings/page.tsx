@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import type { User } from '@/lib/types'
 import SettingsTabs from './_components/SettingsTabs'
 
-export const metadata = { title: 'Settings — NaijaImpact' }
+export const metadata = { title: 'Settings — Hubnovo' }
 
 export default async function SettingsPage()
 {

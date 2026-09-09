@@ -131,7 +131,7 @@ export default function CreateFundingPage()
                             {type === 'project' ? '🚀' : type === 'campaign' ? '📣' : '💡'}
                         </div>
                         <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-0.5">NaijaImpact Funding</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-0.5">Hubnovo Funding</p>
                             <h1 className="text-2xl font-black text-white leading-tight">
                                 {type === 'project' ? 'Create a Project' : type === 'campaign' ? 'Start a Campaign' : 'Create a Campaign'}
                             </h1>

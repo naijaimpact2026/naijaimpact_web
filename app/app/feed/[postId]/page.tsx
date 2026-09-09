@@ -184,7 +184,7 @@ export default async function PostDetailPage({ params }: PageProps)
                     <div className="rounded-2xl text-white p-4 shadow-sm relative overflow-hidden"
                         style={{ background: 'linear-gradient(135deg,#065f46 0%,#0f766e 100%)' }}>
                         <p className="text-[10px] font-medium opacity-70 mb-1">Sponsored</p>
-                        <h3 className="font-bold text-sm leading-tight mb-1">Grow with NaijaImpact</h3>
+                        <h3 className="font-bold text-sm leading-tight mb-1">Grow with Hubnovo</h3>
                         <p className="text-xs opacity-80 mb-3">Access funding, tools and a supportive community.</p>
                         <Link href="/app/funding">
                             <span className="inline-block bg-white text-xs font-bold px-4 py-1.5 rounded-full hover:opacity-90 transition-opacity cursor-pointer"

@@ -52,7 +52,7 @@ export default async function FeedRightSidebar()
             {/* Sponsored card */}
             <div className="rounded-2xl bg-gradient-to-br from-primary/90 to-emerald-700 text-white p-4 shadow-sm relative overflow-hidden">
                 <p className="text-[10px] font-medium opacity-70 mb-1">Sponsored</p>
-                <h3 className="font-bold text-base leading-tight mb-1">Grow Your Business with NaijaImpact</h3>
+                <h3 className="font-bold text-base leading-tight mb-1">Grow Your Business with Hubnovo</h3>
                 <p className="text-xs opacity-80 mb-3">Access funding, tools and a community that supports your hustle.</p>
                 <button className="bg-white text-primary text-xs font-bold px-4 py-1.5 rounded-full hover:bg-white/90 transition-colors">
                     Learn More
@@ -100,10 +100,10 @@ export default async function FeedRightSidebar()
                 </div>
             )}
 
-            {/* Explore NaijaImpact */}
+            {/* Explore Hubnovo */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-border p-4 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-bold text-sm text-foreground">Explore NaijaImpact</h3>
+                    <h3 className="font-bold text-sm text-foreground">Explore Hubnovo</h3>
                     <Link href="/app/fintech" className="text-xs text-primary font-medium hover:underline">View All</Link>
                 </div>
                 <div className="space-y-2">

@@ -548,7 +548,7 @@ export default function CreateServicePage()
             <div className="mb-6 space-y-1">
                 <h1 className="text-2xl font-bold text-gradient">List a Service</h1>
                 <p className="text-muted-foreground text-sm">
-                    Offer your skills to the NaijaImpact community.
+                    Offer your skills to the Hubnovo community.
                 </p>
             </div>
 
