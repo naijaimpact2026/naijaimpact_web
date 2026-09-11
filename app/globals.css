@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 html {
   scroll-behavior: smooth;
@@ -10,6 +11,10 @@ html {
   --color-foreground: hsl(220, 56%, 10%); /* near-black #0a1628     */
   --color-card: hsl(0, 0%, 100%); /* pure white cards       */
   --color-card-foreground: hsl(220, 56%, 10%);
+  --color-popover: hsl(0, 0%, 100%);
+  --color-popover-foreground: hsl(220, 56%, 10%);
+  --color-elevated: hsl(0, 0%, 100%); /* floating surfaces above card */
+  --color-elevated-foreground: hsl(220, 56%, 10%);
   --color-primary: hsl(148, 65%, 29%); /* forest green #1a7a4a   */
   --color-primary-foreground: hsl(0, 0%, 100%);
   --color-secondary: hsl(148, 55%, 22%); /* darker green #0f5c35   */
@@ -21,29 +26,40 @@ html {
   --color-border: hsl(140, 20%, 88%); /* mint-tinted border     */
   --color-input: hsl(140, 20%, 88%);
   --color-ring: hsl(148, 65%, 29%);
+  --color-destructive: hsl(0, 72%, 51%);
+  --color-destructive-foreground: hsl(0, 0%, 100%);
   --font-sans: "Poppins", system-ui, -apple-system, sans-serif;
 }
 
 /* ── Dark mode CSS variable overrides ─────────────────────────────────────────
    next-themes adds .dark on <html>; we override the Tailwind v4 CSS vars here.
    Must be plain CSS (not inside @theme) so they cascade correctly at runtime.
+
+   Surface hierarchy (darkest → lightest): background < card < popover/elevated.
+   Neutral slate family, independent of the green brand hue used for primary/accent.
 ────────────────────────────────────────────────────────────────────────────── */
 html.dark {
-  --color-background: hsl(148, 40%, 5%);
-  --color-foreground: hsl(140, 20%, 96%);
-  --color-card: hsl(148, 35%, 8%);
-  --color-card-foreground: hsl(140, 20%, 96%);
+  --color-background: #0b0f14;
+  --color-foreground: #e5e9ee;
+  --color-card: #111827;
+  --color-card-foreground: #e5e9ee;
+  --color-popover: #1f2937;
+  --color-popover-foreground: #e5e9ee;
+  --color-elevated: #1f2937;
+  --color-elevated-foreground: #e5e9ee;
   --color-primary: hsl(148, 60%, 42%);
-  --color-primary-foreground: hsl(148, 40%, 5%);
+  --color-primary-foreground: #0b0f14;
   --color-secondary: hsl(148, 55%, 32%);
   --color-secondary-foreground: hsl(148, 40%, 5%);
   --color-accent: hsl(148, 60%, 42%);
   --color-accent-foreground: hsl(148, 40%, 5%);
-  --color-muted: hsl(148, 25%, 13%);
-  --color-muted-foreground: hsl(148, 15%, 60%);
-  --color-border: hsl(148, 25%, 13%);
-  --color-input: hsl(148, 25%, 13%);
+  --color-muted: #161d27;
+  --color-muted-foreground: #8b96a5;
+  --color-border: #232c38;
+  --color-input: #232c38;
   --color-ring: hsl(148, 60%, 42%);
+  --color-destructive: hsl(0, 70%, 55%);
+  --color-destructive-foreground: #0b0f14;
 }
 
 @layer base {
@@ -130,157 +146,6 @@ html.dark {
   /* ── Shared page hero banner (dark green, used across fintech pages) ── */
   .page-hero-green {
     background: linear-gradient(150deg, #1a5c38 0%, #0f3d25 55%, #0a2d1c 100%);
-  }
-
-  /* ── App content area background — responds to dark mode ── */
-  .app-bg {
-    background-color: #eef7f1;
-  }
-
-  html.dark .app-bg {
-    background-color: hsl(148, 40%, 5%);
-  }
-
-  /* ── Stream Chat — suppress giant empty-state SVG icon ── */
-  .str-chat__channel-list-empty svg,
-  .str-chat__channel-list-empty--v2 svg,
-  [class*="str-chat__empty-channel-list"] svg {
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-  }
-  .str-chat__channel-list-empty,
-  .str-chat__channel-list-empty--v2 {
-    background-image: none !important;
-  }
-}
-
-@keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% center;
-  }
-  100% {
-    background-position: 200% center;
-  }
-}
-
-@keyframes orbit {
-  from {
-    transform: rotate(0deg) translateX(120px) rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg) translateX(120px) rotate(-360deg);
-  }
-}
-
-@keyframes gradient-shift {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-  }
-
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    @apply font-bold;
-  }
-
-  p {
-    @apply leading-relaxed;
-  }
-}
-
-@layer utilities {
-  .gradient-primary {
-    @apply bg-gradient-to-r from-primary via-accent to-secondary;
-  }
-
-  .glass-effect {
-    @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/20 dark:border-slate-700/30;
-  }
-
-  .container-gutter {
-    @apply px-4 sm:px-6 lg:px-8;
-  }
-
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary;
-  }
-
-  .noise-bg {
-    position: relative;
-  }
-
-  .noise-bg::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-    border-radius: inherit;
-  }
-
-  .bento-card {
-    @apply relative overflow-hidden rounded-2xl border border-gray-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900/60 backdrop-blur-sm transition-all duration-500;
-  }
-
-  .bento-card:hover {
-    @apply border-primary/40 shadow-2xl -translate-y-1;
-  }
-
-  .marquee-track {
-    display: flex;
-    width: max-content;
-    animation: marquee 28s linear infinite;
-  }
-
-  .marquee-track:hover {
-    animation-play-state: paused;
-  }
-
-  .scrollbar-none {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* ── Shared page hero banner (dark green, used across fintech pages) ── */
-  .page-hero-green {
-    background: linear-gradient(150deg, #1a5c38 0%, #0f3d25 55%, #0a2d1c 100%);
-  }
-
-  /* ── App content area background ── */
-  .app-bg {
-    background-color: #eef7f1;
   }
 
   /* ── Stream Chat — suppress giant empty-state SVG icon ── */

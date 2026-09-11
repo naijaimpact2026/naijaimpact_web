@@ -51,8 +51,53 @@ export type Enrollment = {
     user_id: string
     course_id: string
     status: string
+    progress: number
+    last_lesson_id: string | null
     created_at: string
     updated_at: string
+}
+
+// ─────────────────────────────────────────────
+// course_outline is stored as a Postgres text[] column, not jsonb — each
+// section is saved as an individually JSON-stringified array element, so it
+// has to be parsed back out here rather than used as-is.
+// ─────────────────────────────────────────────
+
+function parseCourseOutline(raw: unknown): CourseOutlineSection[] {
+    if (!Array.isArray(raw)) return []
+
+    const sections: CourseOutlineSection[] = []
+
+    for (const entry of raw) {
+        let section: any = entry
+
+        if (typeof entry === 'string') {
+            try {
+                section = JSON.parse(entry)
+            } catch {
+                continue // skip malformed/non-JSON entries
+            }
+        }
+
+        if (!section || typeof section !== 'object' || typeof section.title !== 'string') {
+            continue
+        }
+
+        sections.push({
+            title: section.title,
+            lessons: Array.isArray(section.lessons)
+                ? section.lessons
+                    .filter((l: any) => l && typeof l.title === 'string')
+                    .map((l: any) => ({
+                        title: l.title,
+                        video_url: l.video_url ?? null,
+                        duration_mins: l.duration_mins,
+                    }))
+                : [],
+        })
+    }
+
+    return sections
 }
 
 // ─────────────────────────────────────────────
@@ -238,11 +283,7 @@ export async function fetchCourses(
             video_url:
                 row.video_url ?? null,
             course_outline:
-                Array.isArray(
-                    row.course_outline
-                )
-                    ? row.course_outline
-                    : [],
+                parseCourseOutline(row.course_outline),
             created_at:
                 row.created_at,
             updated_at:
@@ -390,11 +431,7 @@ export async function fetchCourseById(
         row as any
 
     const outline =
-        Array.isArray(
-            courseRow.course_outline
-        )
-            ? courseRow.course_outline
-            : []
+        parseCourseOutline(courseRow.course_outline)
 
     return {
         course: {
@@ -746,11 +783,7 @@ export async function fetchLesson(
 
     const outline:
         CourseOutlineSection[] =
-        Array.isArray(
-            row.course_outline
-        )
-            ? row.course_outline
-            : []
+        parseCourseOutline(row.course_outline)
 
     const {
         lessons,
@@ -808,6 +841,7 @@ export async function fetchLesson(
     if (profile) {
         const {
             data: enrollmentData,
+            error: enrollmentError,
         } = await supabase
             .from(
                 'lms_courses_enrollment'
@@ -824,6 +858,10 @@ export async function fetchLesson(
                 courseId
             )
             .maybeSingle()
+
+        if (enrollmentError) {
+            console.error('fetchLesson enrollment lookup error:', enrollmentError)
+        }
 
         if (enrollmentData) {
             enrollment = {
@@ -909,11 +947,7 @@ export async function markLessonComplete(
 
     const outline:
         CourseOutlineSection[] =
-        Array.isArray(
-            row?.course_outline
-        )
-            ? row.course_outline
-            : []
+        parseCourseOutline(row?.course_outline)
 
     const {
         lessons,
@@ -940,6 +974,7 @@ export async function markLessonComplete(
 
     const {
         data: enrollment,
+        error: enrollmentError,
     } =
         await supabase
             .from(
@@ -957,6 +992,10 @@ export async function markLessonComplete(
                 courseId
             )
             .maybeSingle()
+
+    if (enrollmentError) {
+        console.error('markLessonComplete enrollment lookup error:', enrollmentError)
+    }
 
     if (!enrollment) {
         throw new Error(

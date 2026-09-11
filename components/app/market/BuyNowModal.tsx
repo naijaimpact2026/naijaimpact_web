@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { X, ShoppingCart, MapPin, Truck, Package } from 'lucide-react'
+import { X, ShoppingCart, MapPin, Truck, Package, Lock } from 'lucide-react'
 import { createOrder } from '@/lib/actions/marketplace'
 import type { ProductWithSeller } from '@/lib/types'
 
@@ -204,7 +204,7 @@ export default function BuyNowModal({ open, onOpenChange, product, userEmail, us
 
                     {/* Escrow note */}
                     <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-2xl">
-                        <span className="text-blue-500 text-lg shrink-0">🔒</span>
+                        <Lock className="h-5 w-5 text-blue-500 shrink-0" />
                         <p className="text-xs text-blue-700">
                             Payment is held in <strong>escrow</strong>. Funds are only released to the seller after you confirm delivery.
                         </p>

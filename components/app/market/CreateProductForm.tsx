@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { ChevronLeft, ChevronRight, Package, Plus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Package, Plus, X, CheckCircle2, Camera, Truck } from 'lucide-react'
 import { MediaUploader, type UploadedFile } from '@/components/app/MediaUploader'
 import { createProduct } from '@/lib/actions/marketplace'
 
@@ -323,15 +323,15 @@ export default function CreateProductForm({ storefronts }: Props)
 
                             <div className="bg-green-50 rounded-3xl p-5 border border-green-200">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <span className="text-xl">✅</span>
+                                    <CheckCircle2 className="h-5 w-5 text-green-600" />
                                     <p className="font-bold text-gray-900">Ready to Publish!</p>
                                 </div>
                                 <p className="text-sm text-gray-600">
                                     Your product will be visible to thousands of buyers across Nigeria with escrow-protected payments.
                                 </p>
                                 <div className="mt-3 flex items-center gap-3 text-xs text-gray-500">
-                                    <span>📸 {images.length} photo{images.length !== 1 ? 's' : ''}</span>
-                                    <span>🚚 {deliveryOptions.join(', ')}</span>
+                                    <span className="flex items-center gap-1"><Camera className="h-3.5 w-3.5" /> {images.length} photo{images.length !== 1 ? 's' : ''}</span>
+                                    <span className="flex items-center gap-1"><Truck className="h-3.5 w-3.5" /> {deliveryOptions.join(', ')}</span>
                                 </div>
                             </div>
 

@@ -7,17 +7,14 @@ import PostComposer from './PostComposer'
 import PostComposerBar from './PostComposerBar'
 import StoryRow from './StoryRow'
 import FeedTabs, { type FeedTab } from './FeedTabs'
-import { fetchPostsPage, fetchDiscoverPosts, fetchFollowingPosts, fetchRecentActiveUsers } from '@/lib/actions/posts'
+import SuggestedAccounts, { type SuggestedUser } from './SuggestedAccounts'
+import PromotedCarousel from './PromotedCarousel'
+import { fetchPostsPage, fetchDiscoverPosts, fetchFollowingPosts, fetchSuggestedUsers } from '@/lib/actions/posts'
+import { fetchPromotedContent, type PromotedItem } from '@/lib/actions/promoted'
 import type { PostWithAuthor, User } from '@/lib/types'
 import { Plus } from 'lucide-react'
 
-interface StoryUser
-{
-    id: string
-    username: string
-    display_name: string
-    avatar_url: string | null
-}
+const SUGGESTIONS_AFTER_POST = 5
 
 interface FeedInfiniteScrollProps
 {
@@ -42,18 +39,26 @@ export default function FeedInfiniteScroll({
     const [loading, setLoading] = useState(false)
     const [exhausted, setExhausted] = useState(initialCursor === null)
     const [isComposerOpen, setIsComposerOpen] = useState(false)
-    const [storyUsers, setStoryUsers] = useState<StoryUser[]>([])
     const [tabLoading, setTabLoading] = useState(false)
+    const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([])
+    const [suggestionsDismissed, setSuggestionsDismissed] = useState(false)
+    const [promotedItems, setPromotedItems] = useState<PromotedItem[]>([])
 
     const sentinelRef = useRef<HTMLDivElement>(null)
     const loadingRef = useRef(false)
 
-    // Fetch story users on mount
+    // Fetch suggested accounts on mount
     useEffect(() =>
     {
         if (!currentUserId) return
-        fetchRecentActiveUsers(currentUserId, 4).then(setStoryUsers).catch(() => { })
+        fetchSuggestedUsers(6).then(setSuggestedUsers).catch(() => { })
     }, [currentUserId])
+
+    // Fetch promoted Marketplace/Learn content on mount
+    useEffect(() =>
+    {
+        fetchPromotedContent(8).then(setPromotedItems).catch(() => { })
+    }, [])
 
     // Fetch function based on active tab
     const fetchForTab = useCallback(async (tab: FeedTab, cur: string | null) =>
@@ -153,13 +158,18 @@ export default function FeedInfiniteScroll({
 
     return (
         <div className="space-y-3">
-            {/* Story row */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm px-3 py-3">
-                <StoryRow user={user ?? null} recentUsers={storyUsers} />
-            </div>
+            {/* Promoted story circles */}
+            {promotedItems.length > 0 && (
+                <div className="bg-card rounded-2xl border border-border shadow-sm dark:shadow-none px-3 py-3">
+                    <StoryRow promotedItems={promotedItems.slice(0, 4)} />
+                </div>
+            )}
+
+            {/* Promoted carousel — real Marketplace listings and Learn courses */}
+            {activeTab === 'for-you' && <PromotedCarousel items={promotedItems} />}
 
             {/* Feed tabs */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm overflow-hidden">
+            <div className="bg-card rounded-2xl border border-border shadow-sm dark:shadow-none overflow-hidden">
                 <FeedTabs activeTab={activeTab} onTabChange={handleTabChange} />
             </div>
 
@@ -179,7 +189,7 @@ export default function FeedInfiniteScroll({
 
             {/* Empty state for unimplemented tabs */}
             {(activeTab === 'groups' || activeTab === 'saved') && !isLoading && (
-                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm text-muted-foreground">
+                <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border border-border shadow-sm dark:shadow-none text-muted-foreground">
                     <p className="text-lg font-semibold">
                         {activeTab === 'groups' ? 'Groups coming soon' : 'No saved posts yet'}
                     </p>
@@ -193,7 +203,7 @@ export default function FeedInfiniteScroll({
 
             {/* Feed posts */}
             {!isLoading && posts.length === 0 && activeTab !== 'groups' && activeTab !== 'saved' ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm text-muted-foreground">
+                <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border border-border shadow-sm dark:shadow-none text-muted-foreground">
                     <p className="text-lg font-semibold">
                         {activeTab === 'following' ? 'No posts from people you follow' : 'No posts yet'}
                     </p>
@@ -206,8 +216,24 @@ export default function FeedInfiniteScroll({
                     </p>
                 </div>
             ) : (
-                posts.map((post) => (
-                    <PostCard key={post.id} post={post} currentUserId={currentUserId} />
+                posts.map((post, index) => (
+                    <div key={post.id} className="space-y-3">
+                        <PostCard
+                            post={post}
+                            currentUserId={currentUserId}
+                            onHide={(postId) => setPosts((prev) => prev.filter((p) => p.id !== postId))}
+                        />
+
+                        {activeTab === 'for-you' &&
+                            !suggestionsDismissed &&
+                            index === SUGGESTIONS_AFTER_POST - 1 &&
+                            suggestedUsers.length > 0 && (
+                                <SuggestedAccounts
+                                    users={suggestedUsers}
+                                    onDismiss={() => setSuggestionsDismissed(true)}
+                                />
+                            )}
+                    </div>
                 ))
             )}
 

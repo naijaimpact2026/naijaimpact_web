@@ -639,3 +639,125 @@ export async function deleteAccount(): Promise<ActionResult> {
 
   redirect('/')
 }
+
+/**
+ * Block a user by targetId. Also removes any existing follow relationship
+ * in either direction so a blocked user can't keep showing up as a follower.
+ */
+export async function blockUser(targetId: string): Promise<ActionResult> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'You must be signed in to block users.' }
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    return { success: false, error: 'User profile not found.' }
+  }
+
+  if (profile.id === targetId) {
+    return { success: false, error: 'You cannot block yourself.' }
+  }
+
+  const { error: blockError } = await supabase
+    .from('blocked_users')
+    .insert({ blocker_id: profile.id, blocked_id: targetId })
+
+  if (blockError && blockError.code !== '23505') {
+    console.error('blockUser error:', blockError.message)
+    return { success: false, error: 'Failed to block user. Please try again.' }
+  }
+
+  // Clear any follow relationship between the two users, either direction
+  await supabase
+    .from('user_follows')
+    .delete()
+    .or(
+      `and(follower_id.eq.${profile.id},following_id.eq.${targetId}),and(follower_id.eq.${targetId},following_id.eq.${profile.id})`
+    )
+
+  revalidatePath('/app/feed')
+
+  return { success: true }
+}
+
+/**
+ * Unblock a previously-blocked user.
+ */
+export async function unblockUser(targetId: string): Promise<ActionResult> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'You must be signed in to unblock users.' }
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    return { success: false, error: 'User profile not found.' }
+  }
+
+  const { error: unblockError } = await supabase
+    .from('blocked_users')
+    .delete()
+    .eq('blocker_id', profile.id)
+    .eq('blocked_id', targetId)
+
+  if (unblockError) {
+    console.error('unblockUser error:', unblockError.message)
+    return { success: false, error: 'Failed to unblock user. Please try again.' }
+  }
+
+  revalidatePath('/app/feed')
+
+  return { success: true }
+}
+
+/**
+ * IDs of users the current user has blocked — used to filter them out of
+ * feeds, search, and suggestions.
+ */
+export async function fetchBlockedUserIds(): Promise<string[]> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return []
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (!profile) return []
+
+  const { data } = await supabase
+    .from('blocked_users')
+    .select('blocked_id')
+    .eq('blocker_id', profile.id)
+
+  return (data ?? []).map((row) => row.blocked_id)
+}

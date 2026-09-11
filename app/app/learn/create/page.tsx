@@ -10,7 +10,7 @@ import
 {
     Plus, Trash2, ChevronRight, ChevronLeft,
     GraduationCap, BookOpen, Eye, Video, Check,
-    Tag, FileText,
+    Tag, FileText, AlertTriangle,
 } from 'lucide-react'
 import { MediaUploader, type UploadedFile } from '@/components/app/MediaUploader'
 import { createCourse, fetchCategories } from '@/lib/actions/learn'
@@ -41,7 +41,7 @@ const STEPS = ['Basic Info', 'Curriculum', 'Review'] as const
 
 // ─── Field styles ─────────────────────────────────────────────────────────────
 
-const inputCls = "w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-colors"
+const inputCls = "w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-colors"
 const textareaCls = inputCls + " resize-none"
 
 function Field({ label, required, hint, error, children }: {
@@ -50,11 +50,11 @@ function Field({ label, required, hint, error, children }: {
 {
     return (
         <div className="space-y-1.5">
-            <label className="block text-sm font-semibold text-gray-800">
+            <label className="block text-sm font-semibold text-foreground">
                 {label}{required && <span className="text-rose-500 ml-0.5">*</span>}
             </label>
             {children}
-            {hint && !error && <p className="text-xs text-gray-400">{hint}</p>}
+            {hint && !error && <p className="text-xs text-muted-foreground">{hint}</p>}
             {error && <p className="text-xs text-rose-500 font-medium">{error}</p>}
         </div>
     )
@@ -71,15 +71,15 @@ function StepIndicator({ current }: { current: number })
                     <div className="flex items-center gap-2">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${idx < current ? 'bg-green-600 text-white' :
                             idx === current ? 'bg-green-700 text-white ring-4 ring-green-500/20' :
-                                'bg-gray-100 text-gray-400'
+                                'bg-muted text-muted-foreground'
                             }`}>
                             {idx < current ? <Check className="w-4 h-4" /> : idx + 1}
                         </div>
-                        <span className={`text-sm font-semibold hidden sm:block ${idx === current ? 'text-gray-900' : idx < current ? 'text-green-700' : 'text-gray-400'
+                        <span className={`text-sm font-semibold hidden sm:block ${idx === current ? 'text-foreground' : idx < current ? 'text-green-700' : 'text-muted-foreground'
                             }`}>{label}</span>
                     </div>
                     {idx < STEPS.length - 1 && (
-                        <div className={`h-0.5 w-10 sm:w-16 rounded-full ${idx < current ? 'bg-green-500' : 'bg-gray-200'}`} />
+                        <div className={`h-0.5 w-10 sm:w-16 rounded-full ${idx < current ? 'bg-green-500' : 'bg-border'}`} />
                     )}
                 </div>
             ))}
@@ -123,13 +123,13 @@ function Step1({ form, categories, onNext }: {
             <Field label="Category" required error={errors.category_id?.message}>
                 <div className="relative">
                     <select {...register('category_id')}
-                        className="w-full appearance-none px-4 py-2.5 pr-10 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-colors cursor-pointer">
-                        <option value="" className="text-gray-400">Select a category…</option>
+                        className="w-full appearance-none px-4 py-2.5 pr-10 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-colors cursor-pointer">
+                        <option value="" className="text-muted-foreground">Select a category…</option>
                         {categories.map(c => (
-                            <option key={c.id} value={c.id} className="text-gray-900 bg-white">{c.name}</option>
+                            <option key={c.id} value={c.id} className="text-foreground bg-card">{c.name}</option>
                         ))}
                     </select>
-                    <ChevronRight className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 rotate-90" />
+                    <ChevronRight className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground rotate-90" />
                 </div>
             </Field>
 
@@ -138,11 +138,11 @@ function Step1({ form, categories, onNext }: {
                 <Field label="Pricing" hint="Toggle free / paid">
                     <div className="flex items-center gap-3 mt-1">
                         <button type="button" onClick={() => setValue('is_free', true)}
-                            className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-all ${isFree ? 'bg-green-700 text-white border-green-700' : 'bg-white text-gray-600 border-gray-200'}`}>
+                            className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-all ${isFree ? 'bg-green-700 text-white border-green-700' : 'bg-card text-muted-foreground border-border'}`}>
                             Free
                         </button>
                         <button type="button" onClick={() => setValue('is_free', false)}
-                            className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-all ${!isFree ? 'bg-green-700 text-white border-green-700' : 'bg-white text-gray-600 border-gray-200'}`}>
+                            className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-all ${!isFree ? 'bg-green-700 text-white border-green-700' : 'bg-card text-muted-foreground border-border'}`}>
                             Paid
                         </button>
                     </div>
@@ -151,7 +151,7 @@ function Step1({ form, categories, onNext }: {
                 {!isFree && (
                     <Field label="Amount (₦)" error={errors.amount?.message}>
                         <div className="relative">
-                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">₦</span>
+                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">₦</span>
                             <input {...register('amount')} type="number" min={0} step={500}
                                 placeholder="5000" className={inputCls + " pl-8"} />
                         </div>
@@ -162,7 +162,7 @@ function Step1({ form, categories, onNext }: {
             {/* Thumbnail */}
             <Field label="Cover Image" hint="Recommended: 1280×720">
                 {cover ? (
-                    <div className="relative rounded-2xl overflow-hidden border border-gray-200">
+                    <div className="relative rounded-2xl overflow-hidden border border-border">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={cover} alt="Cover" className="w-full h-44 object-cover" />
                         <button type="button" onClick={() => setValue('cover_image_url', null)}
@@ -187,7 +187,7 @@ function Step1({ form, categories, onNext }: {
                             <Video className="w-3.5 h-3.5" /> Video uploaded
                         </span>
                         <button type="button" onClick={() => setValue('video_url', null)}
-                            className="text-xs text-gray-400 hover:text-rose-500 underline">Remove</button>
+                            className="text-xs text-muted-foreground hover:text-rose-500 underline">Remove</button>
                     </div>
                 ) : (
                     <MediaUploader maxImages={0} maxVideos={1}
@@ -223,7 +223,7 @@ function LessonRow({ sIdx, lIdx, form, onVideoUpload, canRemove, onRemove }: {
     const err = errors.sections?.[sIdx]?.lessons?.[lIdx]
 
     return (
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100">
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-muted border border-border">
             <div className="w-6 h-6 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold shrink-0 mt-1">
                 {lIdx + 1}
             </div>
@@ -237,7 +237,7 @@ function LessonRow({ sIdx, lIdx, form, onVideoUpload, canRemove, onRemove }: {
                             <Video className="w-3.5 h-3.5" /> Video uploaded
                         </span>
                         <button type="button" onClick={() => setValue(`sections.${sIdx}.lessons.${lIdx}.video_url`, null)}
-                            className="text-xs text-gray-400 hover:text-rose-500 underline">Remove</button>
+                            className="text-xs text-muted-foreground hover:text-rose-500 underline">Remove</button>
                     </div>
                 ) : (
                     <MediaUploader maxImages={0} maxVideos={1}
@@ -246,7 +246,7 @@ function LessonRow({ sIdx, lIdx, form, onVideoUpload, canRemove, onRemove }: {
             </div>
             {canRemove && (
                 <button type="button" onClick={onRemove}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-50 transition-colors shrink-0">
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-50 transition-colors shrink-0">
                     <Trash2 className="w-4 h-4" />
                 </button>
             )}
@@ -268,8 +268,8 @@ function SectionBlock({ sIdx, form, onVideoUpload, canRemove, onRemove }: {
     const sErr = errors.sections?.[sIdx]
 
     return (
-        <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
-            <div className={`px-5 py-4 border-b ${sErr?.title ? 'border-rose-200 bg-rose-50' : 'border-gray-50'}`}
+        <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+            <div className={`px-5 py-4 border-b ${sErr?.title ? 'border-rose-200 bg-rose-50' : 'border-border'}`}
                 style={!sErr?.title ? { background: 'linear-gradient(135deg,#e8f5ee,#d0ede0)' } : {}}>
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black text-white shrink-0"
@@ -280,18 +280,18 @@ function SectionBlock({ sIdx, form, onVideoUpload, canRemove, onRemove }: {
                         <input {...register(`sections.${sIdx}.title`)}
                             placeholder={`Enter section ${sIdx + 1} title (required)`}
                             className={`w-full text-sm font-bold focus:outline-none rounded-lg px-2 py-1 transition-colors ${sErr?.title
-                                    ? 'bg-white border border-rose-300 text-gray-900 placeholder:text-rose-400'
-                                    : 'bg-white/60 border border-transparent text-gray-900 placeholder:text-gray-500 focus:bg-white focus:border-green-400'
+                                    ? 'bg-card border border-rose-300 text-foreground placeholder:text-rose-400'
+                                    : 'bg-white/60 border border-transparent text-foreground placeholder:text-muted-foreground focus:bg-card focus:border-green-400'
                                 }`} />
                         {sErr?.title && (
                             <p className="text-xs text-rose-600 font-semibold mt-1 flex items-center gap-1">
-                                ⚠ {sErr.title.message}
+                                <AlertTriangle className="w-3 h-3" /> {sErr.title.message}
                             </p>
                         )}
                     </div>
                     {canRemove && (
                         <button type="button" onClick={onRemove}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-white/60 transition-colors shrink-0">
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-white/60 transition-colors shrink-0">
                             <Trash2 className="w-4 h-4" />
                         </button>
                     )}
@@ -332,7 +332,7 @@ function Step2({ form, onVideoUpload, onBack, onNext }: {
 
     return (
         <div className="space-y-5">
-            <p className="text-sm text-gray-500">Organise your course into sections and lessons.</p>
+            <p className="text-sm text-muted-foreground">Organise your course into sections and lessons.</p>
             {fields.map((f, sIdx) => (
                 <SectionBlock key={f.id} sIdx={sIdx} form={form} onVideoUpload={onVideoUpload}
                     canRemove={fields.length > 1} onRemove={() => remove(sIdx)} />
@@ -342,12 +342,12 @@ function Step2({ form, onVideoUpload, onBack, onNext }: {
             )}
             <button type="button"
                 onClick={() => append({ title: '', lessons: [{ title: '', video_url: null }] })}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-gray-200 text-sm font-semibold text-gray-500 hover:border-green-400 hover:text-green-700 transition-colors">
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-border text-sm font-semibold text-muted-foreground hover:border-green-400 hover:text-green-700 transition-colors">
                 <Plus className="w-4 h-4" /> Add Section
             </button>
             <div className="flex justify-between pt-2">
                 <button type="button" onClick={onBack}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-sm font-semibold text-foreground hover:bg-muted transition-colors">
                     <ChevronLeft className="w-4 h-4" /> Back
                 </button>
                 <button type="button" onClick={go}
@@ -375,7 +375,7 @@ function Step3({ values, categories, onBack, onPublish, isPublishing }: {
 
     return (
         <div className="space-y-5">
-            <div className="rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="rounded-2xl border border-border overflow-hidden">
                 {values.cover_image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={values.cover_image_url} alt="" className="w-full h-40 object-cover" />
@@ -387,14 +387,14 @@ function Step3({ values, categories, onBack, onPublish, isPublishing }: {
                 )}
                 <div className="p-5 space-y-3">
                     <div className="flex items-start justify-between gap-3">
-                        <h3 className="font-bold text-gray-900 text-lg leading-tight">{values.title}</h3>
+                        <h3 className="font-bold text-foreground text-lg leading-tight">{values.title}</h3>
                         <span className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold ${values.is_free ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
                             }`}>
                             {values.is_free ? 'Free' : `₦${Number(values.amount).toLocaleString('en-NG')}`}
                         </span>
                     </div>
-                    <p className="text-sm text-gray-500 line-clamp-2">{values.description}</p>
-                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                    <p className="text-sm text-muted-foreground line-clamp-2">{values.description}</p>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1"><Tag className="w-3.5 h-3.5" /> {catName}</span>
                         <span>·</span>
                         <span>{values.sections.length} section{values.sections.length !== 1 ? 's' : ''}</span>
@@ -404,24 +404,24 @@ function Step3({ values, categories, onBack, onPublish, isPublishing }: {
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+            <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                <div className="px-5 py-4 border-b border-border flex items-center gap-2">
                     <BookOpen className="w-4 h-4 text-green-700" />
-                    <span className="font-bold text-gray-900 text-sm">Curriculum</span>
+                    <span className="font-bold text-foreground text-sm">Curriculum</span>
                 </div>
-                <div className="divide-y divide-gray-50">
+                <div className="divide-y divide-border">
                     {values.sections.map((sec, si) => (
                         <div key={si} className="px-5 py-3">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
                                 Section {si + 1} · {sec.title}
                             </p>
                             <div className="space-y-1.5">
                                 {sec.lessons.map((l, li) => (
-                                    <div key={li} className="flex items-center gap-2 text-sm text-gray-700">
-                                        <span className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500 shrink-0">
+                                    <div key={li} className="flex items-center gap-2 text-sm text-foreground">
+                                        <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">
                                             {li + 1}
                                         </span>
-                                        <span className="flex-1 truncate">{l.title || <span className="italic text-gray-400">Untitled</span>}</span>
+                                        <span className="flex-1 truncate">{l.title || <span className="italic text-muted-foreground">Untitled</span>}</span>
                                         {l.video_url && <Video className="w-3.5 h-3.5 text-green-600 shrink-0" />}
                                     </div>
                                 ))}
@@ -443,7 +443,7 @@ function Step3({ values, categories, onBack, onPublish, isPublishing }: {
 
             <div className="flex justify-between pt-2">
                 <button type="button" onClick={onBack} disabled={isPublishing}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-50">
                     <ChevronLeft className="w-4 h-4" /> Back
                 </button>
                 <button type="button" onClick={onPublish} disabled={isPublishing}
@@ -527,7 +527,7 @@ export default function CreateCoursePage()
     }
 
     return (
-        <div className="min-h-screen bg-[#f0f2f5]">
+        <div className="min-h-screen bg-background">
             {/* Hero header */}
             <div className="relative overflow-hidden py-8 px-5"
                 style={{ background: 'linear-gradient(150deg,#1a5c38 0%,#0f3d25 55%,#0a2d1c 100%)' }}>
@@ -545,7 +545,7 @@ export default function CreateCoursePage()
             </div>
 
             <div className="max-w-2xl mx-auto px-4 py-6">
-                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+                <div className="bg-card rounded-3xl shadow-sm border border-border p-6">
                     <StepIndicator current={step} />
                     {step === 0 && (
                         <Step1 form={form} categories={categories} onNext={() => setStep(1)} />

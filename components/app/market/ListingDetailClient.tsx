@@ -9,7 +9,7 @@ import
     {
         ChevronLeft, ChevronRight, Share2, MapPin, Star, Shield,
         Package, MessageCircle, ShoppingCart, RotateCcw, Truck,
-        BadgeCheck, Heart, HeartOff,
+        BadgeCheck, Heart, HeartOff, CheckCircle2,
     } from 'lucide-react'
 import { toggleSavedListing } from '@/lib/actions/marketplace'
 import type { NmListingDetail, NmReview, NmSellerProfile } from '@/lib/types'
@@ -161,7 +161,9 @@ export default function ListingDetailClient({
 
                         <p className="text-3xl font-black text-gray-900">{fmt(listing.price)}</p>
                         {listing.negotiable && (
-                            <p className="text-xs text-green-700 font-bold mt-1">✓ Price negotiable</p>
+                            <p className="flex items-center gap-1 text-xs text-green-700 font-bold mt-1">
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Price negotiable
+                            </p>
                         )}
                         {listing.delivery_fee > 0 && (
                             <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">

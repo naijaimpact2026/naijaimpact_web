@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, Shield } from 'lucide-react'
+import { Loader2, Shield, CheckCircle2 } from 'lucide-react'
 import
     {
         Dialog,
@@ -144,7 +144,7 @@ export default function PurchasePolicyModal({
 
                 {successMessage ? (
                     <div className="py-8 text-center space-y-2">
-                        <div className="text-4xl">🎉</div>
+                        <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
                         <p className="font-semibold text-emerald-600">{successMessage}</p>
                         <p className="text-sm text-muted-foreground">Your policy is now active.</p>
                     </div>

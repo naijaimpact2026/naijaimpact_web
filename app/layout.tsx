@@ -16,12 +16,12 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Hubnovo - Community | Simplified | Technology Solution',
+  title: 'HubNovo - Community | Simplified | Technology Solution',
   description: 'Empowering Nigerian communities through technology-driven solutions. Building a simplified ecosystem for community development and impact.',
   keywords: 'Nigeria, Community, Technology, Impact, Development, Solutions',
   generator: 'v0.app',
   openGraph: {
-    title: 'Hubnovo',
+    title: 'HubNovo',
     description: 'Empowering Nigerian communities through technology-driven solutions',
     url: 'https://hubnovo.com',
     type: 'website',

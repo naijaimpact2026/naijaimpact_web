@@ -11,7 +11,7 @@ const testimonials = [
     initials: 'CO',
     hue: 340,
     quote:
-      'Hubnovo replaced three apps I was using. The ajo feature alone saved our group so many arguments — everything is tracked and transparent now.',
+      'HubNovo replaced three apps I was using. The ajo feature alone saved our group so many arguments — everything is tracked and transparent now.',
     rating: 5,
   },
   {
@@ -71,7 +71,7 @@ const testimonials = [
     initials: 'AM',
     hue: 15,
     quote:
-      'My ajo group switched from paper records to Hubnovo. No more arguments about who paid and who did not. Everything is on the app.',
+      'My ajo group switched from paper records to HubNovo. No more arguments about who paid and who did not. Everything is on the app.',
     rating: 5,
   },
   {
@@ -81,7 +81,7 @@ const testimonials = [
     initials: 'TA',
     hue: 130,
     quote:
-      'I published my first online course on Hubnovo and earned ₦180,000 in the first month. The platform makes creators feel valued.',
+      'I published my first online course on HubNovo and earned ₦180,000 in the first month. The platform makes creators feel valued.',
     rating: 5,
   },
 ]

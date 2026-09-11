@@ -5,7 +5,7 @@ import PostCard from '@/components/app/feed/PostCard'
 import PostDetailComments from '@/components/app/feed/PostDetailComments'
 import PostDetailActions from '@/components/app/feed/PostDetailActions'
 import type { PostWithAuthor } from '@/lib/types'
-import { ArrowLeft, Clock } from 'lucide-react'
+import { ArrowLeft, Clock, ImageIcon, Rocket } from 'lucide-react'
 import { fetchRecentPostsPreviews } from '@/lib/actions/posts'
 
 export const dynamic = 'force-dynamic'
@@ -71,14 +71,15 @@ async function getComments(postId: string)
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('post_comments')
-        .select(`id, comment, created_at,
+        .select(`id, comment, created_at, parent_comment_id,
             author:users!post_comments_user_id_fkey (username, display_name, avatar_url)`)
-        .eq('post_id', postId).order('created_at', { ascending: false }).limit(30)
+        .eq('post_id', postId).order('created_at', { ascending: false }).limit(100)
 
     if (error || !data) return []
     return (data as any[]).map(c => ({
         id: c.id, body: c.comment ?? '',
         created_at: c.created_at,
+        parent_comment_id: c.parent_comment_id ?? null,
         author: { username: c.author?.username ?? '', display_name: c.author?.display_name ?? '', avatar_url: c.author?.avatar_url ?? null },
     }))
 }
@@ -127,7 +128,7 @@ export default async function PostDetailPage({ params }: PageProps)
                     </div>
 
                     {/* Comments section */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm p-4">
+                    <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
                         <PostDetailComments
                             postId={postId}
                             initialComments={initialComments}
@@ -151,7 +152,7 @@ export default async function PostDetailPage({ params }: PageProps)
 
                     {/* Recent Posts */}
                     {otherRecentPosts.length > 0 && (
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm p-4">
+                        <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
                             <div className="flex items-center justify-between mb-3">
                                 <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
                                     <Clock className="w-3.5 h-3.5 text-primary" />
@@ -168,7 +169,7 @@ export default async function PostDetailPage({ params }: PageProps)
                                         <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-relaxed">
                                             {rp.caption
                                                 ? (rp.caption.length > 65 ? `${rp.caption.slice(0, 65)}…` : rp.caption)
-                                                : '📷 Media post'}
+                                                : <span className="inline-flex items-center gap-1"><ImageIcon className="w-3 h-3" /> Media post</span>}
                                         </p>
                                         <div className="flex items-center justify-between mt-1">
                                             <span className="text-[10px] text-muted-foreground font-medium truncate">{rp.author_name}</span>
@@ -184,7 +185,7 @@ export default async function PostDetailPage({ params }: PageProps)
                     <div className="rounded-2xl text-white p-4 shadow-sm relative overflow-hidden"
                         style={{ background: 'linear-gradient(135deg,#065f46 0%,#0f766e 100%)' }}>
                         <p className="text-[10px] font-medium opacity-70 mb-1">Sponsored</p>
-                        <h3 className="font-bold text-sm leading-tight mb-1">Grow with Hubnovo</h3>
+                        <h3 className="font-bold text-sm leading-tight mb-1">Grow with HubNovo</h3>
                         <p className="text-xs opacity-80 mb-3">Access funding, tools and a supportive community.</p>
                         <Link href="/app/funding">
                             <span className="inline-block bg-white text-xs font-bold px-4 py-1.5 rounded-full hover:opacity-90 transition-opacity cursor-pointer"
@@ -192,14 +193,14 @@ export default async function PostDetailPage({ params }: PageProps)
                                 Learn More
                             </span>
                         </Link>
-                        <span className="absolute right-3 bottom-2 text-3xl opacity-20 pointer-events-none">🚀</span>
+                        <Rocket className="absolute right-3 bottom-2 w-8 h-8 opacity-20 pointer-events-none" />
                     </div>
                 </aside>
             </div>
 
             {/* Mobile: Recent Posts below comments */}
             {otherRecentPosts.length > 0 && (
-                <div className="xl:hidden mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm p-4">
+                <div className="xl:hidden mt-4 bg-card rounded-2xl border border-border shadow-sm p-4">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
                             <Clock className="w-3.5 h-3.5 text-primary" />
@@ -214,7 +215,7 @@ export default async function PostDetailPage({ params }: PageProps)
                                 <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
                                     {rp.caption
                                         ? (rp.caption.length > 55 ? `${rp.caption.slice(0, 55)}…` : rp.caption)
-                                        : '📷 Media post'}
+                                        : <span className="inline-flex items-center gap-1"><ImageIcon className="w-3 h-3" /> Media post</span>}
                                 </p>
                                 <div className="flex items-center justify-between mt-1">
                                     <span className="text-[10px] text-muted-foreground truncate">{rp.author_name}</span>

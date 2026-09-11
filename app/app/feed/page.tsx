@@ -35,8 +35,8 @@ export default async function FeedPage()
     const { posts: initialPosts, nextCursor: initialCursor } = await fetchPostsPage(null, 10)
 
     return (
-        <div className="w-full max-w-6xl mx-auto px-3 py-4 overflow-x-hidden">
-            <div className="flex gap-4 items-start">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-5 overflow-x-hidden">
+            <div className="flex gap-6 items-start justify-center">
                 {/* Main feed column — full width on mobile, constrained on xl */}
                 <div className="w-full min-w-0 xl:flex-1 max-w-2xl mx-auto xl:mx-0">
                     <FeedInfiniteScroll

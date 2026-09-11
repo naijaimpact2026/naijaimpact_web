@@ -30,7 +30,7 @@ export default function PostDetailActions({
         const url = `${window.location.origin}/app/feed/${postId}`
         if (navigator.share)
         {
-            try { await navigator.share({ title: caption.slice(0, 60) || 'Hubnovo post', url }) }
+            try { await navigator.share({ title: caption.slice(0, 60) || 'HubNovo post', url }) }
             catch { /* cancelled */ }
         } else
         {

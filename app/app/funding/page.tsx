@@ -194,7 +194,7 @@ export default function FundingPage() {
                     <p className="mx-auto mt-5 max-w-md text-base leading-7 text-gray-500 dark:text-gray-400">
                         We&apos;re preparing something impactful.
                         Soon, you&apos;ll be able to discover, support,
-                        and fund great ideas and projects on Hubnovo.
+                        and fund great ideas and projects on HubNovo.
                     </p>
 
                     {/* Status */}

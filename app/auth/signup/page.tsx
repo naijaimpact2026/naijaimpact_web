@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Mail } from 'lucide-react'
 import Image from 'next/image'
 import { signUp } from '@/lib/actions/auth'
 import SignupSlideshow from '../signup-slideshow/signupSlideshow'
@@ -61,10 +61,10 @@ export default function SignupPage()
     if (successEmail)
     {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950 p-6">
+            <div className="min-h-screen flex items-center justify-center bg-background p-6">
                 <div className="text-center space-y-4 max-w-sm">
                     <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto">
-                        <span className="text-3xl">📧</span>
+                        <Mail className="w-7 h-7 text-emerald-600" />
                     </div>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">Check your email</h2>
                     <p className="text-gray-500 dark:text-gray-400 text-sm">
@@ -97,8 +97,8 @@ export default function SignupPage()
     
                     <div>
                         <div className="flex items-center gap-2 mb-6 lg:hidden">
-                            <Image src="/logo.png" alt="Hubnovo" width={36} height={36} className="rounded-lg" />
-                            <span className="font-bold text-lg text-gray-900 dark:text-white">Hubnovo</span>
+                            <Image src="/logo.png" alt="HubNovo" width={36} height={36} className="rounded-lg" />
+                            <span className="font-bold text-lg text-gray-900 dark:text-white">HubNovo</span>
                         </div>
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create account</h1>
                         <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">

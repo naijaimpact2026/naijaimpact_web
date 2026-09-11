@@ -58,7 +58,7 @@ function IdleState()
                 <Search className="w-8 h-8 text-white" />
             </div>
             <div>
-                <p className="font-bold text-foreground text-lg">Discover Hubnovo</p>
+                <p className="font-bold text-foreground text-lg">Discover HubNovo</p>
                 <p className="text-sm text-muted-foreground mt-1">Search for people, posts, and courses</p>
             </div>
             <div className="flex flex-wrap gap-2 justify-center">
@@ -134,7 +134,7 @@ function CourseCard({ course }: { course: CourseResult })
             <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-border">
                 {thumb
                     ? <img src={thumb} alt={course.title} className="w-full h-full object-cover" />
-                    : <div className="w-full h-full flex items-center justify-center text-xl" style={{ background: 'linear-gradient(135deg,#065f46,#0f766e)' }}>📚</div>
+                    : <div className="w-full h-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#065f46,#0f766e)' }}><BookOpen className="w-6 h-6 text-white/80" /></div>
                 }
             </div>
             <div className="flex-1 min-w-0">
@@ -235,7 +235,7 @@ export default function SearchPage()
                     <input
                         ref={inputRef}
                         type="search"
-                        placeholder="Search Hubnovo…"
+                        placeholder="Search HubNovo…"
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                         className="w-full pl-11 pr-4 py-3 rounded-xl text-sm font-medium placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all"
@@ -274,7 +274,7 @@ export default function SearchPage()
                                 {tab === 'all' && users.length > 3 && (
                                     <button onClick={() => setTab('people')}
                                         className="w-full py-2 text-xs font-semibold text-primary hover:underline text-center">
-                                        See all {users.length} people →
+                                        <span className="inline-flex items-center gap-1">See all {users.length} people <ArrowRight className="w-3 h-3" /></span>
                                     </button>
                                 )}
                             </div>
@@ -290,7 +290,7 @@ export default function SearchPage()
                                 {tab === 'all' && posts.length > 3 && (
                                     <button onClick={() => setTab('posts')}
                                         className="w-full py-2 text-xs font-semibold text-primary hover:underline text-center">
-                                        See all {posts.length} posts →
+                                        <span className="inline-flex items-center gap-1">See all {posts.length} posts <ArrowRight className="w-3 h-3" /></span>
                                     </button>
                                 )}
                             </div>
@@ -306,7 +306,7 @@ export default function SearchPage()
                                 {tab === 'all' && courses.length > 3 && (
                                     <button onClick={() => setTab('courses')}
                                         className="w-full py-2 text-xs font-semibold text-primary hover:underline text-center">
-                                        See all {courses.length} courses →
+                                        <span className="inline-flex items-center gap-1">See all {courses.length} courses <ArrowRight className="w-3 h-3" /></span>
                                     </button>
                                 )}
                             </div>

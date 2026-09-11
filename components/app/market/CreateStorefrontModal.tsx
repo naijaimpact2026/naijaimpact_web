@@ -199,7 +199,7 @@ export default function CreateStorefrontModal({ open, onOpenChange }: Props)
                         style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
                         {submitting
                             ? <><span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Creating…</>
-                            : '🏪 Open My Store'}
+                            : <><Store className="w-4 h-4" /> Open My Store</>}
                     </button>
                 </form>
             </div>

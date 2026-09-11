@@ -173,7 +173,7 @@ export default function LessonPlayer({
                         max-w-[240px]
                         truncate
                         font-medium
-                        text-slate-500
+                        text-muted-foreground
                         transition-colors
                         hover:text-emerald-700
                     "
@@ -185,14 +185,14 @@ export default function LessonPlayer({
                     className="
                         h-4 w-4
                         shrink-0
-                        text-slate-300
+                        text-muted-foreground
                     "
                 />
 
                 <span className="
                     truncate
                     font-semibold
-                    text-slate-900
+                    text-foreground
                 ">
                     {lesson.title}
                 </span>
@@ -223,7 +223,7 @@ export default function LessonPlayer({
                             items-center justify-center
                             rounded-full
                             border border-emerald-100
-                            bg-white
+                            bg-card
                             shadow-sm
                         ">
                             <Trophy
@@ -237,9 +237,9 @@ export default function LessonPlayer({
                         <h2 className="
                             text-xl
                             font-bold
-                            text-slate-900
+                            text-foreground
                         ">
-                            Course Completed! 🎉
+                            Course Completed!
                         </h2>
 
                         <p className="
@@ -247,7 +247,7 @@ export default function LessonPlayer({
                             max-w-md
                             text-sm
                             leading-relaxed
-                            text-slate-600
+                            text-muted-foreground
                         ">
                             Congratulations! You&apos;ve
                             completed{' '}
@@ -392,8 +392,8 @@ export default function LessonPlayer({
 
             <div className="
                 rounded-xl
-                border border-slate-200
-                bg-white
+                border border-border
+                bg-card
                 p-5
                 sm:p-6
             ">
@@ -424,7 +424,7 @@ export default function LessonPlayer({
                             text-xl
                             font-bold
                             leading-tight
-                            text-slate-900
+                            text-foreground
                             sm:text-2xl
                         ">
                             {lesson.title}
@@ -434,7 +434,7 @@ export default function LessonPlayer({
                             <p className="
                                 mt-2
                                 text-sm
-                                text-slate-500
+                                text-muted-foreground
                             ">
                                 {Math.ceil(
                                     lesson.duration_s / 60
@@ -454,7 +454,7 @@ export default function LessonPlayer({
                             <p className="
                                 text-xl
                                 font-bold
-                                text-slate-900
+                                text-foreground
                             ">
                                 {Math.round(
                                     currentProgress
@@ -463,7 +463,7 @@ export default function LessonPlayer({
 
                             <p className="
                                 text-xs
-                                text-slate-500
+                                text-muted-foreground
                             ">
                                 Course progress
                             </p>
@@ -480,7 +480,7 @@ export default function LessonPlayer({
                             w-full
                             overflow-hidden
                             rounded-full
-                            bg-slate-100
+                            bg-muted
                         ">
                             <div
                                 className="
@@ -516,8 +516,8 @@ export default function LessonPlayer({
                 flex-col
                 gap-3
                 rounded-xl
-                border border-slate-200
-                bg-white
+                border border-border
+                bg-card
                 p-4
                 sm:flex-row
                 sm:items-center
@@ -539,9 +539,9 @@ export default function LessonPlayer({
                     disabled={!prevLesson}
                     className="
                         gap-1.5
-                        border-slate-200
-                        text-slate-700
-                        hover:border-slate-300
+                        border-border
+                        text-foreground
+                        hover:border-muted-foreground/40
                     "
                 >
                     <ChevronLeft className="h-4 w-4" />
@@ -633,9 +633,9 @@ export default function LessonPlayer({
                     disabled={!nextLesson}
                     className="
                         gap-1.5
-                        border-slate-200
-                        text-slate-700
-                        hover:border-slate-300
+                        border-border
+                        text-foreground
+                        hover:border-muted-foreground/40
                     "
                 >
                     Next
@@ -652,7 +652,7 @@ export default function LessonPlayer({
                 <div className="
                     text-center
                     text-xs
-                    text-slate-400
+                    text-muted-foreground
                     lg:hidden
                 ">
                     {totalLessons > 0

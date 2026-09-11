@@ -76,14 +76,14 @@ export default function SignupSlideshow() {
                 <div className="flex items-center gap-3">
                     <Image
                         src="/logo.png"
-                        alt="Hubnovo"
+                        alt="HubNovo"
                         width={52}
                         height={52}
                         className="rounded-xl"
                     />
 
                     <span className="text-white font-bold text-2xl">
-                        Hubnovo
+                        HubNovo
                     </span>
                 </div>
 

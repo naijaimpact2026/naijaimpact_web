@@ -107,7 +107,7 @@ function ContributeModal({
             const newTotal = goal.current_amount + values.amount
             if (newTotal >= goal.target_amount)
             {
-                toast.success(`🎉 Goal achieved! "${goal.name}" is complete!`)
+                toast.success(`Goal achieved! "${goal.name}" is complete!`)
             } else
             {
                 toast.success(`₦${values.amount.toLocaleString()} added to "${goal.name}"`)
@@ -283,9 +283,9 @@ export default function GoalsTab({ goals }: GoalsTabProps)
                                         value={pct}
                                         className={`h-2.5 ${isAchieved ? '[&>div]:bg-emerald-500' : '[&>div]:gradient-primary'}`}
                                     />
-                                    <p className="text-xs text-muted-foreground">
+                                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
                                         {isAchieved
-                                            ? 'Goal completed 🎉'
+                                            ? <><Trophy className="w-3.5 h-3.5 text-emerald-500" /> Goal completed</>
                                             : `₦${(goal.target_amount - goal.current_amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })} remaining`}
                                     </p>
                                 </div>

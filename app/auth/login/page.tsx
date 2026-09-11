@@ -60,8 +60,8 @@ export default function LoginPage()
                 />
                 <div className="relative z-10 text-center space-y-6">
                     <div className="flex items-center justify-center gap-3 mb-8">
-                        <Image src="/logo.png" alt="Hubnovo" width={52} height={52} className="rounded-xl" />
-                        <span className="text-white font-bold text-2xl">Hubnovo</span>
+                        <Image src="/logo.png" alt="HubNovo" width={52} height={52} className="rounded-xl" />
+                        <span className="text-white font-bold text-2xl">HubNovo</span>
                     </div>
                     <h2 className="text-4xl font-bold text-white leading-tight">
                         Connect. Build.
@@ -91,8 +91,8 @@ export default function LoginPage()
                 <div className="w-full max-w-sm space-y-8">
                     <div>
                         <div className="flex items-center gap-2 mb-6 lg:hidden">
-                            <Image src="/logo.png" alt="Hubnovo" width={36} height={36} className="rounded-lg" />
-                            <span className="font-bold text-lg text-gray-900 dark:text-white">Hubnovo</span>
+                            <Image src="/logo.png" alt="HubNovo" width={36} height={36} className="rounded-lg" />
+                            <span className="font-bold text-lg text-gray-900 dark:text-white">HubNovo</span>
                         </div>
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h1>
                         <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">Sign in to your account</p>

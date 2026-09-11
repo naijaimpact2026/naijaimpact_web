@@ -1,45 +1,48 @@
 import Link from 'next/link'
-import { ChevronRight } from 'lucide-react'
+import {
+    ChevronRight, ArrowLeft, Trash2, AlertTriangle, Mail, FolderOpen, Heart, MessageCircle, FileText,
+    Smartphone, User, Settings, CheckCircle2, ClipboardList, DollarSign, GraduationCap, BarChart3, Clock,
+} from 'lucide-react'
 
 export const metadata = {
-    title: 'Delete Your Account — Hubnovo',
-    description: 'Learn how to delete your Hubnovo account and request data removal.',
+    title: 'Delete Your Account — HubNovo',
+    description: 'Learn how to delete your HubNovo account and request data removal.',
 }
 
 const steps = [
     {
         step: '01',
-        icon: '📱',
-        title: 'Open the Hubnovo App',
-        description: 'Launch the Hubnovo mobile application or visit the website on your device. Ensure you are logged into the account you wish to delete.',
+        icon: Smartphone,
+        title: 'Open the HubNovo App',
+        description: 'Launch the HubNovo mobile application or visit the website on your device. Ensure you are logged into the account you wish to delete.',
     },
     {
         step: '02',
-        icon: '👤',
+        icon: User,
         title: 'Go to Your Profile',
         description: 'Tap your profile icon or avatar at the top of the screen. Select "My Profile" or "Account Settings" from the menu.',
     },
     {
         step: '03',
-        icon: '⚙️',
+        icon: Settings,
         title: 'Open Account Settings',
         description: 'Scroll down within your profile or settings page to find the "Account" section. Look for "Privacy & Security" or "Account Management".',
     },
     {
         step: '04',
-        icon: '🗑️',
+        icon: Trash2,
         title: 'Select "Delete Account"',
         description: 'Tap on "Delete Account" or "Close Account". Read the information provided about what will happen to your data and memberships.',
     },
     {
         step: '05',
-        icon: '✅',
+        icon: CheckCircle2,
         title: 'Verify Your Identity',
         description: 'For your security, you may be asked to confirm your password, enter a verification code sent to your phone or email, or answer security questions.',
     },
     {
         step: '06',
-        icon: '📋',
+        icon: ClipboardList,
         title: 'Confirm Deletion',
         description: 'Review the final confirmation screen. This is irreversible — once confirmed, your account and associated data will be scheduled for deletion. Tap "Confirm Delete" to proceed.',
     },
@@ -47,22 +50,22 @@ const steps = [
 
 const warnings = [
     {
-        icon: '💰',
+        icon: DollarSign,
         title: 'Cooperative Savings',
         desc: 'Outstanding cooperative savings or loans may need to be settled before account deletion is processed.',
     },
     {
-        icon: '🎓',
+        icon: GraduationCap,
         title: 'Scholarships & Grants',
         desc: 'Active scholarship or grant enrollments may be cancelled. Contact support to discuss alternatives.',
     },
     {
-        icon: '📊',
+        icon: BarChart3,
         title: 'Transaction Records',
         desc: 'Financial records required for legal compliance may be retained even after account deletion.',
     },
     {
-        icon: '⏳',
+        icon: Clock,
         title: 'Processing Time',
         desc: 'Account deletion may take up to 30 days to fully process across all systems.',
     },
@@ -103,14 +106,14 @@ export default function DeleteAccountPage()
 
                 <div className="relative z-10 max-w-3xl mx-auto px-5 pt-10 pb-12 text-center">
                     <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-red-300 border border-red-800/50 bg-red-900/30 mb-6">
-                        🇳🇬 Hubnovo
+                        HubNovo
                     </div>
-                    <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-3xl mx-auto mb-5">
-                        🗑️
+                    <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mx-auto mb-5">
+                        <Trash2 className="w-7 h-7 text-white" />
                     </div>
                     <h1 className="text-4xl sm:text-5xl font-black text-white mb-4 leading-tight">Delete Your Account</h1>
                     <p className="text-red-200/80 text-base max-w-xl mx-auto leading-relaxed">
-                        We are sorry to see you go. Follow the steps below to permanently delete your Hubnovo account and request data removal.
+                        We are sorry to see you go. Follow the steps below to permanently delete your HubNovo account and request data removal.
                     </p>
                     <div className="mt-7 flex items-center justify-center gap-2 flex-wrap">
                         <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-white/10 text-red-200 border border-white/10">
@@ -129,13 +132,13 @@ export default function DeleteAccountPage()
                 <div className="max-w-3xl mx-auto px-5 py-3 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
-                            <span className="text-[11px]">🗑️</span>
+                            <Trash2 className="w-3 h-3 text-red-700" />
                         </div>
                         <span className="text-sm font-bold text-gray-800">Account Deletion</span>
                     </div>
                     <Link href="/privacy-policy"
                         className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 border border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50 rounded-full px-3 py-1.5 transition-colors">
-                        ← Privacy Policy
+                        <ArrowLeft className="w-3 h-3" /> Privacy Policy
                     </Link>
                 </div>
             </div>
@@ -146,7 +149,7 @@ export default function DeleteAccountPage()
                 <div className="bg-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-2 px-5 py-3 border-b border-amber-100"
                         style={{ background: 'linear-gradient(135deg,#fffbeb,#ffffff)' }}>
-                        <span className="text-xl">⚠️</span>
+                        <AlertTriangle className="w-4 h-4 text-amber-600" />
                         <span className="text-sm font-black text-amber-800">Important Warning</span>
                     </div>
                     <div className="px-5 py-4">
@@ -160,7 +163,7 @@ export default function DeleteAccountPage()
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                         style={{ background: 'linear-gradient(135deg,#fff1f2,#ffffff)' }}>
-                        <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center text-lg shrink-0">🗑️</div>
+                        <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center shrink-0"><Trash2 className="w-4 h-4 text-red-600" /></div>
                         <h2 className="text-sm font-black text-gray-900">How to Delete Your Account</h2>
                     </div>
                     <div className="px-5 py-5 space-y-1">
@@ -168,8 +171,8 @@ export default function DeleteAccountPage()
                             <div key={s.step} className="flex items-start gap-4">
                                 {/* Timeline */}
                                 <div className="flex flex-col items-center shrink-0">
-                                    <div className="w-10 h-10 rounded-xl bg-red-50 border-2 border-red-100 flex items-center justify-center text-lg">
-                                        {s.icon}
+                                    <div className="w-10 h-10 rounded-xl bg-red-50 border-2 border-red-100 flex items-center justify-center">
+                                        <s.icon className="w-4 h-4 text-red-600" />
                                     </div>
                                     {i < steps.length - 1 && (
                                         <div className="w-0.5 h-5 bg-gray-100 mt-1" />
@@ -192,13 +195,13 @@ export default function DeleteAccountPage()
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                         style={{ background: 'linear-gradient(135deg,#f0fdf4,#ffffff)' }}>
-                        <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center text-lg shrink-0">⚠️</div>
+                        <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0"><AlertTriangle className="w-4 h-4 text-amber-600" /></div>
                         <h2 className="text-sm font-black text-gray-900">What Happens When You Delete</h2>
                     </div>
                     <div className="p-5 grid sm:grid-cols-2 gap-3">
                         {warnings.map((w, i) => (
                             <div key={i} className="rounded-xl p-4 border border-gray-100 bg-gray-50">
-                                <div className="text-2xl mb-2">{w.icon}</div>
+                                <w.icon className="w-5 h-5 mb-2 text-gray-500" />
                                 <h3 className="text-xs font-bold text-gray-800 mb-1">{w.title}</h3>
                                 <p className="text-xs text-gray-500 leading-relaxed">{w.desc}</p>
                             </div>
@@ -210,7 +213,7 @@ export default function DeleteAccountPage()
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                         style={{ background: 'linear-gradient(135deg,#f0fdf4,#ffffff)' }}>
-                        <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-lg shrink-0">✉️</div>
+                        <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0"><Mail className="w-4 h-4 text-emerald-700" /></div>
                         <h2 className="text-sm font-black text-gray-900">Prefer to Request via Email?</h2>
                     </div>
                     <div className="px-5 py-5">
@@ -229,7 +232,7 @@ export default function DeleteAccountPage()
                         </div>
                         <a href="mailto:support@hubnovo.org?subject=Account%20Deletion%20Request"
                             className="inline-flex items-center gap-2 bg-red-600 text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-red-700 transition-colors">
-                            ✉️ Send Deletion Request Email
+                            <Mail className="w-4 h-4" /> Send Deletion Request Email
                         </a>
                     </div>
                 </div>
@@ -238,7 +241,7 @@ export default function DeleteAccountPage()
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                         style={{ background: 'linear-gradient(135deg,#f0fdf4,#ffffff)' }}>
-                        <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center text-lg shrink-0">🗂️</div>
+                        <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center shrink-0"><FolderOpen className="w-4 h-4 text-blue-600" /></div>
                         <h2 className="text-sm font-black text-gray-900">Data Retention After Deletion</h2>
                     </div>
                     <div className="px-5 py-5">
@@ -260,7 +263,7 @@ export default function DeleteAccountPage()
                 <div className="rounded-3xl overflow-hidden shadow-sm"
                     style={{ background: 'linear-gradient(150deg,#1a5c38 0%,#0f3d25 55%,#0a2d1c 100%)' }}>
                     <div className="px-6 py-8 text-center">
-                        <div className="text-4xl mb-3">💚</div>
+                        <Heart className="w-9 h-9 mb-3 mx-auto text-white/80" />
                         <h3 className="text-xl font-black text-white mb-2">Changed your mind?</h3>
                         <p className="text-green-300/70 text-sm mb-6 max-w-md mx-auto">
                             Our support team is happy to help you resolve any issues that led you here.
@@ -268,11 +271,11 @@ export default function DeleteAccountPage()
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <a href="mailto:support@hubnovo.org"
                                 className="inline-flex items-center justify-center gap-2 bg-white text-emerald-900 font-bold text-sm px-6 py-3 rounded-xl hover:bg-emerald-50 transition-colors">
-                                💬 Contact Support
+                                <MessageCircle className="w-4 h-4" /> Contact Support
                             </a>
                             <Link href="/privacy-policy"
                                 className="inline-flex items-center justify-center gap-2 bg-white/10 border border-white/20 text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-white/20 transition-colors">
-                                📄 Read Privacy Policy
+                                <FileText className="w-4 h-4" /> Read Privacy Policy
                             </Link>
                         </div>
                     </div>
@@ -280,7 +283,7 @@ export default function DeleteAccountPage()
 
                 {/* Footer */}
                 <div className="text-center pt-2 pb-6">
-                    <p className="text-xs text-gray-400">© 2025 Hubnovo. All rights reserved.</p>
+                    <p className="text-xs text-gray-400">© 2025 HubNovo. All rights reserved.</p>
                     <div className="mt-2 flex items-center justify-center gap-4 text-xs text-gray-400">
                         <Link href="/privacy-policy" className="hover:text-emerald-700 transition-colors font-medium">Privacy Policy</Link>
                         <span>·</span>

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Package, Truck, CheckCircle2, Clock, XCircle, AlertCircle, ChevronRight } from 'lucide-react'
+import { Package, Truck, CheckCircle2, Clock, XCircle, AlertCircle, ChevronRight, Check, Star } from 'lucide-react'
 import { confirmDelivery, updateOrderStatus, raiseDispute } from '@/lib/actions/marketplace'
 import type { NmOrder } from '@/lib/types'
 
@@ -118,8 +118,8 @@ function OrderCard({ order, role }: { order: NmOrder; role: 'buyer' | 'seller' }
                 {role === 'buyer' && order.status === 'delivered' && (
                     <button disabled={!!loading}
                         onClick={() => handle('confirm')}
-                        className="px-4 py-2 rounded-xl text-xs font-bold bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 transition-colors">
-                        {loading === 'confirm' ? '…' : '✓ Confirm Delivery'}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 transition-colors">
+                        {loading === 'confirm' ? '…' : <><Check className="h-3.5 w-3.5" /> Confirm Delivery</>}
                     </button>
                 )}
 
@@ -135,8 +135,8 @@ function OrderCard({ order, role }: { order: NmOrder; role: 'buyer' | 'seller' }
                 {/* Leave review (buyer, confirmed) */}
                 {role === 'buyer' && order.status === 'confirmed' && (
                     <Link href={`/app/market/${order.product_id}?review=1`}
-                        className="px-4 py-2 rounded-xl text-xs font-bold border border-yellow-300 text-yellow-700 hover:bg-yellow-50 transition-colors">
-                        ⭐ Leave Review
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border border-yellow-300 text-yellow-700 hover:bg-yellow-50 transition-colors">
+                        <Star className="h-3.5 w-3.5" /> Leave Review
                     </Link>
                 )}
             </div>

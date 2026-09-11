@@ -43,12 +43,12 @@ const products = [
         name: 'TradeCred',
         tagline: 'Alternative Credit Score',
         description:
-            'Your Hubnovo activity builds your credit score (0–1000). Savings, transactions, cooperative history — all count toward better loan access.',
+            'Your HubNovo activity builds your credit score (0–1000). Savings, transactions, cooperative history — all count toward better loan access.',
         color: 'from-violet-500 to-purple-500',
         bg: 'bg-violet-500/10 dark:bg-violet-500/10',
         border: 'border-violet-500/20',
         text: 'text-violet-600 dark:text-violet-400',
-        perks: ['Starter → Platinum tiers', '6-category score breakdown', 'Personalised improvement tips'],
+        perks: ['Starter to Platinum tiers', '6-category score breakdown', 'Personalised improvement tips'],
     },
     {
         icon: CreditCard,
@@ -120,7 +120,7 @@ export default function FintechSection()
                     </h2>
                     <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed">
                         Five integrated fintech products that help you save smarter, build credit, access loans,
-                        and protect what matters — all without leaving Hubnovo.
+                        and protect what matters — all without leaving HubNovo.
                     </p>
                 </div>
 
@@ -182,7 +182,7 @@ export default function FintechSection()
                                 Ready to take control of your finances?
                             </h3>
                             <p className="text-gray-500 dark:text-gray-400 text-sm">
-                                All five fintech products are included in your free Hubnovo account.
+                                All five fintech products are included in your free HubNovo account.
                             </p>
                         </div>
                         <Link

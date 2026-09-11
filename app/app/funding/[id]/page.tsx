@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { fetchCampaignById } from '@/lib/actions/funding'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Calendar, Users, Target } from 'lucide-react'
+import { ArrowLeft, Calendar, Users, Target, Globe, BadgeCheck } from 'lucide-react'
 import FundingDetailClient from '@/components/app/funding/FundingDetailClient'
 import EditCampaignButton from '@/components/app/funding/EditCampaignButton'
 
@@ -98,7 +98,7 @@ export default async function CampaignDetailPage({ params }: CampaignDetailPageP
                         />
                     ) : (
                         <div className="absolute inset-0 gradient-primary opacity-60 flex items-center justify-center">
-                            <span className="text-white/80 text-6xl">🌍</span>
+                            <Globe className="h-16 w-16 text-white/80" />
                         </div>
                     )}
 
@@ -111,8 +111,8 @@ export default async function CampaignDetailPage({ params }: CampaignDetailPageP
 
                     {goalReached && (
                         <div className="absolute top-4 right-4">
-                            <Badge className="bg-green-500 text-white border-0 font-semibold text-sm px-3 py-1">
-                                🎯 Goal Reached!
+                            <Badge className="gap-1 bg-green-500 text-white border-0 font-semibold text-sm px-3 py-1">
+                                <Target className="h-3.5 w-3.5" /> Goal Reached!
                             </Badge>
                         </div>
                     )}
@@ -165,8 +165,8 @@ export default async function CampaignDetailPage({ params }: CampaignDetailPageP
                                             {campaign.creator_display_name}
                                         </Link>
                                         {campaign.creator_verified && (
-                                            <Badge className="bg-primary/10 text-primary border-0 text-xs px-2 py-0">
-                                                ✓ Verified
+                                            <Badge className="gap-1 bg-primary/10 text-primary border-0 text-xs px-2 py-0">
+                                                <BadgeCheck className="h-3 w-3" /> Verified
                                             </Badge>
                                         )}
                                     </div>

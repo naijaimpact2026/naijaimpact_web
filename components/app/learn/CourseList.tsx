@@ -129,8 +129,8 @@ export default function CourseList({
                 flex flex-col items-center
                 justify-center
                 rounded-2xl
-                border border-dashed border-slate-200
-                bg-slate-50/50
+                border border-dashed border-border
+                bg-muted/50
                 px-6 py-20
                 text-center
             ">
@@ -148,7 +148,7 @@ export default function CourseList({
                 <h3 className="
                     mt-5
                     text-lg font-bold
-                    text-slate-900
+                    text-foreground
                 ">
                     No courses found
                 </h3>
@@ -156,7 +156,7 @@ export default function CourseList({
                 <p className="
                     mt-1 max-w-sm
                     text-sm leading-relaxed
-                    text-slate-500
+                    text-muted-foreground
                 ">
                     There aren't any courses in this category yet.
                     Check another category or create the first course.
@@ -228,15 +228,15 @@ export default function CourseList({
                 ">
                     <div className="
                         flex items-center gap-3
-                        text-sm text-slate-400
+                        text-sm text-muted-foreground
                     ">
-                        <div className="h-px w-12 bg-slate-200" />
+                        <div className="h-px w-12 bg-border" />
 
                         <span>
                             You&apos;ve seen all courses
                         </span>
 
-                        <div className="h-px w-12 bg-slate-200" />
+                        <div className="h-px w-12 bg-border" />
                     </div>
                 </div>
             )}

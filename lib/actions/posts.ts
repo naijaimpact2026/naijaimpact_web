@@ -6,6 +6,47 @@ import type { PostWithAuthor } from '@/lib/types'
 const DEFAULT_LIMIT = 10
 
 /**
+ * Batch-fetch comment counts, reaction counts, and the current viewer's own
+ * reactions for a set of posts — shared by every feed-listing query so like
+ * and comment counts are never silently left at zero.
+ */
+async function fetchEngagementMaps(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  postIds: string[],
+  currentUserId: string | null
+): Promise<{
+  commentCountMap: Record<string, number>
+  reactionCountMap: Record<string, number>
+  userReactedSet: Set<string>
+}> {
+  if (postIds.length === 0) {
+    return { commentCountMap: {}, reactionCountMap: {}, userReactedSet: new Set() }
+  }
+
+  const [{ data: commentRows }, { data: reactionRows }, { data: userReactionRows }] = await Promise.all([
+    supabase.from('post_comments').select('post_id').in('post_id', postIds),
+    supabase.from('post_reactions').select('post_id').in('post_id', postIds),
+    currentUserId
+      ? supabase.from('post_reactions').select('post_id').eq('user_id', currentUserId).in('post_id', postIds)
+      : Promise.resolve({ data: [] as { post_id: string }[] }),
+  ])
+
+  const commentCountMap: Record<string, number> = {}
+  for (const c of commentRows ?? []) {
+    commentCountMap[c.post_id] = (commentCountMap[c.post_id] ?? 0) + 1
+  }
+
+  const reactionCountMap: Record<string, number> = {}
+  for (const r of reactionRows ?? []) {
+    reactionCountMap[r.post_id] = (reactionCountMap[r.post_id] ?? 0) + 1
+  }
+
+  const userReactedSet = new Set((userReactionRows ?? []).map((r) => r.post_id))
+
+  return { commentCountMap, reactionCountMap, userReactedSet }
+}
+
+/**
  * Fetch a page of posts using cursor-based pagination.
  * Posts are ordered by created_at DESC.
  * If cursor is provided, only posts with created_at < cursor are returned.
@@ -34,6 +75,19 @@ export async function fetchPostsPage(
     .single()
 
   const currentUserId = profile?.id ?? null
+
+  // Exclude posts from users the viewer has blocked (either direction)
+  const { data: blockedRows } = currentUserId
+    ? await supabase
+        .from('blocked_users')
+        .select('blocker_id, blocked_id')
+        .or(`blocker_id.eq.${currentUserId},blocked_id.eq.${currentUserId}`)
+    : { data: [] }
+
+  const blockedUserIds = new Set(
+    (blockedRows ?? []).flatMap((r: any) => [r.blocker_id, r.blocked_id])
+  )
+  blockedUserIds.delete(currentUserId ?? '')
 
   // Build the base query using actual DB column names:
   // posts.user_id (not author_id), posts.content (not caption), posts.post_type (not type)
@@ -65,6 +119,16 @@ export async function fetchPostsPage(
     .order('created_at', { ascending: false })
     .limit(limit + 1)
 
+  // The main feed is for discovering other people's posts — like every other
+  // platform, your own posts belong on your profile, not mixed into your own feed.
+  if (currentUserId) {
+    query = query.neq('user_id', currentUserId)
+  }
+
+  if (blockedUserIds.size > 0) {
+    query = query.not('user_id', 'in', `(${[...blockedUserIds].join(',')})`)
+  }
+
   if (cursor) {
     query = query.lt('created_at', cursor)
   }
@@ -77,24 +141,47 @@ export async function fetchPostsPage(
   }
 
   const hasMore = postsData.length > limit
-  const pagePosts = hasMore ? postsData.slice(0, limit) : postsData
+  const chronologicalPage = hasMore ? postsData.slice(0, limit) : postsData
 
-  if (pagePosts.length === 0) {
+  if (chronologicalPage.length === 0) {
     return { posts: [], nextCursor: null }
+  }
+
+  // Cursor pagination must stay anchored to the real chronological order,
+  // so compute it before shuffling the display order below.
+  const nextCursor = hasMore ? chronologicalPage[chronologicalPage.length - 1].created_at : null
+
+  // Reshuffle the display order each time this is called (page load, refresh,
+  // pull-to-refresh) so the feed doesn't render identically every visit —
+  // similar to how Instagram's feed never looks the same way twice.
+  const pagePosts = [...chronologicalPage]
+  for (let i = pagePosts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pagePosts[i], pagePosts[j]] = [pagePosts[j], pagePosts[i]]
   }
 
   const postIds = pagePosts.map((p) => p.id)
 
-  // Fetch comment counts (post_reactions table may not exist yet — handle gracefully)
-  const { data: commentCounts } = await supabase
-    .from('post_comments')
-    .select('post_id')
-    .in('post_id', postIds)
+  const { commentCountMap, reactionCountMap, userReactedSet } = await fetchEngagementMaps(
+    supabase,
+    postIds,
+    currentUserId
+  )
 
-  const commentCountMap: Record<string, number> = {}
-  for (const c of commentCounts ?? []) {
-    commentCountMap[c.post_id] = (commentCountMap[c.post_id] ?? 0) + 1
-  }
+  // Which of these authors does the viewer already follow?
+  const authorIds = [
+    ...new Set(pagePosts.map((p: any) => p.user_id).filter(Boolean)),
+  ]
+
+  const { data: followingRows } = currentUserId && authorIds.length > 0
+    ? await supabase
+        .from('user_follows')
+        .select('following_id')
+        .eq('follower_id', currentUserId)
+        .in('following_id', authorIds)
+    : { data: [] }
+
+  const followingSet = new Set((followingRows ?? []).map((r: any) => r.following_id))
 
   // Assemble PostWithAuthor objects — map real columns to app type shape
   const posts: PostWithAuthor[] = pagePosts.map((p: any) => ({
@@ -123,12 +210,11 @@ export async function fetchPostsPage(
       position: idx,
       created_at: m.created_at ?? p.created_at,
     })),
-    reaction_count: 0,
+    reaction_count: reactionCountMap[p.id] ?? 0,
     comment_count: commentCountMap[p.id] ?? 0,
-    user_reacted: false,
+    user_reacted: userReactedSet.has(p.id),
+    is_following_author: followingSet.has(p.user_id),
   }))
-
-  const nextCursor = hasMore ? pagePosts[pagePosts.length - 1].created_at : null
 
   return { posts, nextCursor }
 }
@@ -250,15 +336,18 @@ export async function createPost(
 }
 
 /**
- * Add a comment to a post.
+ * Add a comment to a post, or a reply to an existing comment when
+ * parentCommentId is provided.
  */
 export async function addComment(
   postId: string,
-  body: string
+  body: string,
+  parentCommentId: string | null = null
 ): Promise<{
   id: string
   body: string
   created_at: string
+  parent_comment_id: string | null
   author: { username: string; display_name: string; avatar_url: string | null }
 }> {
   const supabase = await createClient()
@@ -289,6 +378,7 @@ export async function addComment(
       post_id: postId,
       user_id: profile.id,
       comment: trimmed,
+      parent_comment_id: parentCommentId,
     })
     .select()
     .single()
@@ -298,22 +388,43 @@ export async function addComment(
     throw new Error('Failed to add comment')
   }
 
-  // Send notification to post author — silent on failure
+  // Notify the post author, and the parent comment's author when replying —
+  // silent on failure so a broken notification never blocks the comment itself.
   try {
+    const notifyTargets = new Set<string>()
+
     const { data: postRow } = await supabase
       .from('posts')
-      .select('author_id')
+      .select('user_id')
       .eq('id', postId)
       .single()
 
-    if (postRow && postRow.author_id !== profile.id) {
-      await supabase.from('notifications').insert({
-        recipient_id: postRow.author_id,
-        actor_id: profile.id,
-        type: 'comment',
-        reference_id: postId,
-        read: false,
-      })
+    if (postRow && postRow.user_id !== profile.id) {
+      notifyTargets.add(postRow.user_id)
+    }
+
+    if (parentCommentId) {
+      const { data: parentRow } = await supabase
+        .from('post_comments')
+        .select('user_id')
+        .eq('id', parentCommentId)
+        .single()
+
+      if (parentRow && parentRow.user_id !== profile.id) {
+        notifyTargets.add(parentRow.user_id)
+      }
+    }
+
+    if (notifyTargets.size > 0) {
+      await supabase.from('notifications').insert(
+        [...notifyTargets].map((recipientId) => ({
+          recipient_id: recipientId,
+          actor_id: profile.id,
+          type: 'comment',
+          reference_id: postId,
+          read: false,
+        }))
+      )
     }
   } catch (err) {
     console.error('addComment notification error:', err)
@@ -326,6 +437,7 @@ export async function addComment(
     id: comment.id,
     body: comment.comment,
     created_at: comment.created_at,
+    parent_comment_id: comment.parent_comment_id ?? null,
     author: {
       username: profile.username,
       display_name: profile.display_name,
@@ -414,13 +526,12 @@ export async function fetchUserPostsPage(
     .select(
       `
       id,
-      author_id,
-      type,
-      caption,
-      hashtags,
+      user_id,
+      post_type,
+      content,
       created_at,
       updated_at,
-      author:users (
+      author:users!posts_user_id_fkey (
         id,
         username,
         display_name,
@@ -430,16 +541,13 @@ export async function fetchUserPostsPage(
       medias:post_medias (
         id,
         post_id,
-        url,
+        media_url,
         media_type,
-        width,
-        height,
-        duration_s,
-        position
+        created_at
       )
     `
     )
-    .eq('author_id', authorId)
+    .eq('user_id', authorId)
     .order('created_at', { ascending: false })
     .limit(limit + 1)
 
@@ -498,10 +606,10 @@ export async function fetchUserPostsPage(
 
   const posts: PostWithAuthor[] = pagePosts.map((p: any) => ({
     id: p.id,
-    author_id: p.author_id,
-    type: p.type,
-    caption: p.caption,
-    hashtags: p.hashtags ?? [],
+    author_id: p.user_id,
+    type: (p.post_type as 'text' | 'image' | 'video') ?? 'text',
+    caption: p.content ?? null,
+    hashtags: [],
     created_at: p.created_at,
     updated_at: p.updated_at,
     author: {
@@ -511,15 +619,15 @@ export async function fetchUserPostsPage(
       avatar_url: p.author?.avatar_url ?? null,
       verified: p.author?.verified ?? false,
     },
-    medias: (p.medias ?? []).sort((a: any, b: any) => a.position - b.position).map((m: any) => ({
+    medias: (p.medias ?? []).map((m: any, idx: number) => ({
       id: m.id,
       post_id: m.post_id,
-      url: m.url,
-      media_type: m.media_type,
-      width: m.width,
-      height: m.height,
-      duration_s: m.duration_s,
-      position: m.position,
+      url: m.media_url,
+      media_type: (m.media_type as 'image' | 'video') ?? 'image',
+      width: null,
+      height: null,
+      duration_s: null,
+      position: idx,
       created_at: m.created_at ?? p.created_at,
     })),
     reaction_count: reactionCountMap[p.id] ?? 0,
@@ -583,6 +691,12 @@ export async function fetchDiscoverPosts(
   const hasMore = data.length > limit
   const page = hasMore ? data.slice(0, limit) : data
 
+  const { commentCountMap, reactionCountMap, userReactedSet } = await fetchEngagementMaps(
+    supabase,
+    page.map((p: any) => p.id),
+    profile.id
+  )
+
   const posts: PostWithAuthor[] = page.map((p: any, idx: number) => ({
     id: p.id,
     author_id: p.user_id,
@@ -607,9 +721,9 @@ export async function fetchDiscoverPosts(
       position: i,
       created_at: m.created_at ?? p.created_at,
     })),
-    reaction_count: 0,
-    comment_count: 0,
-    user_reacted: false,
+    reaction_count: reactionCountMap[p.id] ?? 0,
+    comment_count: commentCountMap[p.id] ?? 0,
+    user_reacted: userReactedSet.has(p.id),
   }))
 
   return {
@@ -665,6 +779,12 @@ export async function fetchFollowingPosts(
   const hasMore = data.length > limit
   const page = hasMore ? data.slice(0, limit) : data
 
+  const { commentCountMap, reactionCountMap, userReactedSet } = await fetchEngagementMaps(
+    supabase,
+    page.map((p: any) => p.id),
+    profile.id
+  )
+
   const posts: PostWithAuthor[] = page.map((p: any) => ({
     id: p.id,
     author_id: p.user_id,
@@ -689,9 +809,11 @@ export async function fetchFollowingPosts(
       position: i,
       created_at: m.created_at ?? p.created_at,
     })),
-    reaction_count: 0,
-    comment_count: 0,
-    user_reacted: false,
+    reaction_count: reactionCountMap[p.id] ?? 0,
+    comment_count: commentCountMap[p.id] ?? 0,
+    user_reacted: userReactedSet.has(p.id),
+    // This whole tab is posts from people the viewer follows, by definition.
+    is_following_author: true,
   }))
 
   return {
@@ -735,6 +857,65 @@ export async function fetchRecentActiveUsers(
   }
 
   return users
+}
+
+/**
+ * Suggested accounts to follow — excludes the viewer, anyone already
+ * followed, and anyone blocked in either direction.
+ */
+export async function fetchSuggestedUsers(
+  limit: number = 6
+): Promise<{ id: string; username: string; display_name: string; avatar_url: string | null; verified: boolean; profession: string | null }[]> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return []
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (!profile) return []
+
+  const [{ data: follows }, { data: blocked }] = await Promise.all([
+    supabase.from('user_follows').select('following_id').eq('follower_id', profile.id),
+    supabase
+      .from('blocked_users')
+      .select('blocker_id, blocked_id')
+      .or(`blocker_id.eq.${profile.id},blocked_id.eq.${profile.id}`),
+  ])
+
+  const excludeIds = new Set<string>([profile.id])
+  for (const f of follows ?? []) excludeIds.add(f.following_id)
+  for (const b of blocked ?? []) {
+    excludeIds.add(b.blocker_id)
+    excludeIds.add(b.blocked_id)
+  }
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, username, display_name, avatar_url, verified, profession')
+    .order('created_at', { ascending: false })
+    .limit(limit + excludeIds.size)
+
+  if (error || !data) return []
+
+  return (data as any[])
+    .filter((u) => !excludeIds.has(u.id))
+    .slice(0, limit)
+    .map((u) => ({
+      id: u.id,
+      username: u.username ?? '',
+      display_name: u.display_name ?? '',
+      avatar_url: u.avatar_url ?? null,
+      verified: u.verified ?? false,
+      profession: u.profession ?? null,
+    }))
 }
 
 /**

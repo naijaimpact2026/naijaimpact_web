@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { Wrench } from 'lucide-react'
 import type { ServiceWithProvider } from '@/lib/types'
 
 interface ServiceCardProps
@@ -41,7 +42,7 @@ export default function ServiceCard({ service }: ServiceCardProps)
                         />
                     ) : (
                         <div className="absolute inset-0 gradient-primary opacity-60 flex items-center justify-center">
-                            <span className="text-white/80 text-4xl">🛠️</span>
+                            <Wrench className="h-10 w-10 text-white/80" />
                         </div>
                     )}
 

@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { X, Users } from 'lucide-react'
+import { X, Users, Check } from 'lucide-react'
 import { MediaUploader, type UploadedFile } from '@/components/app/MediaUploader'
 import { createOrUpdateArtisanProfile } from '@/lib/actions/marketplace'
 import type { ArtisanCategory } from '@/lib/types'
@@ -210,7 +210,7 @@ export default function ArtisanProfileModal({ open, onOpenChange, existing }: Pr
                         style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
                         {submitting
                             ? <><span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Saving…</>
-                            : existing ? '✓ Update Profile' : '✓ Create Profile'}
+                            : <><Check className="w-4 h-4" /> {existing ? 'Update Profile' : 'Create Profile'}</>}
                     </button>
                 </form>
             </div>

@@ -77,23 +77,27 @@ export default function Sidebar({
 
     return (
         <>
-            {/* Sidebar drawer */}
+            {/* Sidebar — overlay drawer below lg, persistent sticky rail from lg up.
+                Compact (icon-only) at lg, full width with labels at xl+. */}
             <aside
-                style={{ transform: isOpen ? 'translateX(0)' : 'translateX(-100%)', background: 'linear-gradient(160deg, #0a2d1c 0%, #0f3d25 50%, #0a2d1c 100%)' }}
-                className="fixed top-0 left-0 h-full w-64 z-40 flex flex-col shadow-2xl transition-transform duration-300 ease-in-out"
+                style={{ background: 'linear-gradient(160deg, #0a2d1c 0%, #0f3d25 50%, #0a2d1c 100%)' }}
+                className={`fixed top-0 left-0 h-full w-64 z-40 flex flex-col shadow-2xl transition-transform duration-300 ease-in-out
+                    lg:sticky lg:top-14 lg:z-0 lg:h-[calc(100vh-3.5rem)] lg:w-20 lg:shrink-0 lg:shadow-none lg:translate-x-0
+                    xl:w-64
+                    ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+                <div className="flex items-center justify-between px-4 py-4 border-b lg:justify-center xl:justify-between" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
                     <Link href="/app/feed" onClick={onClose} className="flex items-center gap-2">
-                        <Image src="/logo.png" alt="Hubnovo" width={28} height={28} className="rounded-md" unoptimized />
-                        <div className="leading-none">
-                            <p className="font-bold text-sm text-white tracking-tight">Hubnovo</p>
+                        <Image src="/logo.png" alt="HubNovo" width={28} height={28} className="rounded-md shrink-0" unoptimized />
+                        <div className="leading-none lg:hidden xl:block">
+                            <p className="font-bold text-sm text-white tracking-tight">HubNovo</p>
                             <p className="text-[8px] font-medium" style={{ color: '#6ee7b7' }}>Empower. Equip. Elevate.</p>
                         </div>
                     </Link>
                     <button
                         onClick={onClose}
-                        className="p-1.5 rounded-full transition-colors"
+                        className="p-1.5 rounded-full transition-colors lg:hidden"
                         style={{ color: '#6ee7b7' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -104,7 +108,7 @@ export default function Sidebar({
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
+                <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
                     {navItems.map(({ icon: Icon, label, href, badgeProp }) =>
                     {
                         const active = isActive(href, label)
@@ -114,7 +118,8 @@ export default function Sidebar({
                                 key={href + label}
                                 href={href}
                                 onClick={onClose}
-                                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${active
+                                title={label}
+                                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all lg:justify-center xl:justify-start ${active
                                     ? 'text-primary'
                                     : 'text-green-100/70 hover:text-white'
                                     }`}
@@ -122,10 +127,17 @@ export default function Sidebar({
                                 onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
                                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = '' }}
                             >
-                                <Icon className={`w-5 h-5 shrink-0 ${active ? 'text-primary' : ''}`} />
-                                <span className="flex-1">{label}</span>
+                                <span className="relative shrink-0">
+                                    <Icon className={`w-5 h-5 ${active ? 'text-primary' : ''}`} />
+                                    {count > 0 && (
+                                        <span className="lg:flex xl:hidden absolute -top-1.5 -right-2 items-center justify-center min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold leading-none">
+                                            {count > 99 ? '99+' : count}
+                                        </span>
+                                    )}
+                                </span>
+                                <span className="flex-1 lg:hidden xl:inline">{label}</span>
                                 {count > 0 && (
-                                    <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none shrink-0">
+                                    <span className="hidden xl:flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none shrink-0">
                                         {count > 99 ? '99+' : count}
                                     </span>
                                 )}
@@ -136,27 +148,29 @@ export default function Sidebar({
                     <Link
                         href={profileHref}
                         onClick={onClose}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${pathname.startsWith('/app/profile')
+                        title="Profile"
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all lg:justify-center xl:justify-start ${pathname.startsWith('/app/profile')
                             ? 'text-primary'
                             : 'text-green-100/70 hover:text-white'
                             }`}
                         style={pathname.startsWith('/app/profile') ? { background: 'rgba(110,231,183,0.15)' } : {}}
                     >
                         <User className="w-5 h-5 shrink-0" />
-                        <span>Profile</span>
+                        <span className="lg:hidden xl:inline">Profile</span>
                     </Link>
 
                     <Link
                         href="/app/settings"
                         onClick={onClose}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${pathname.startsWith('/app/settings')
+                        title="Settings"
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all lg:justify-center xl:justify-start ${pathname.startsWith('/app/settings')
                             ? 'text-primary'
                             : 'text-green-100/70 hover:text-white'
                             }`}
                         style={pathname.startsWith('/app/settings') ? { background: 'rgba(110,231,183,0.15)' } : {}}
                     >
                         <Settings className="w-5 h-5 shrink-0" />
-                        <span>Settings</span>
+                        <span className="lg:hidden xl:inline">Settings</span>
                     </Link>
                 </nav>
 
@@ -165,7 +179,8 @@ export default function Sidebar({
                     <Link
                         href={profileHref}
                         onClick={onClose}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors"
+                        title={user?.display_name ?? 'User'}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors lg:justify-center xl:justify-start"
                         style={{ color: 'inherit' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -176,7 +191,7 @@ export default function Sidebar({
                                 {getInitials(user?.display_name)}
                             </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 lg:hidden xl:block">
                             <p className="text-xs font-semibold text-white truncate">{user?.display_name ?? 'User'}</p>
                             <p className="text-[10px] truncate" style={{ color: '#6ee7b7' }}>@{user?.username ?? 'username'}</p>
                         </div>
@@ -184,13 +199,14 @@ export default function Sidebar({
 
                     <button
                         onClick={() => { onClose(); onSignOut() }}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+                        title="Sign out"
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all lg:justify-center xl:justify-start"
                         style={{ color: '#fca5a5' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.15)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                     >
                         <LogOut className="w-4 h-4 shrink-0" />
-                        Sign out
+                        <span className="lg:hidden xl:inline">Sign out</span>
                     </button>
                 </div>
             </aside>

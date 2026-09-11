@@ -16,6 +16,7 @@ import
         Tag,
         Eye,
         Loader2,
+        Check,
     } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -94,7 +95,7 @@ function StepIndicator({ current }: { current: number })
                                         : 'bg-muted text-muted-foreground'
                                 }`}
                         >
-                            {idx < current ? '✓' : idx + 1}
+                            {idx < current ? <Check className="h-3.5 w-3.5" /> : idx + 1}
                         </div>
                         <span
                             className={`text-sm font-medium hidden sm:block ${idx === current ? 'text-foreground' : 'text-muted-foreground'
@@ -418,8 +419,8 @@ function Step3Review({ values, onBack, onSubmit, isSubmitting }: Step3Props)
                         </p>
                         <p className="mt-0.5">
                             {values.cover_url ? (
-                                <Badge variant="outline" className="text-primary border-primary/30">
-                                    ✓ Uploaded
+                                <Badge variant="outline" className="text-primary border-primary/30 gap-1">
+                                    <Check className="h-3 w-3" /> Uploaded
                                 </Badge>
                             ) : (
                                 <span className="text-muted-foreground text-xs">None</span>
@@ -548,7 +549,7 @@ export default function CreateServicePage()
             <div className="mb-6 space-y-1">
                 <h1 className="text-2xl font-bold text-gradient">List a Service</h1>
                 <p className="text-muted-foreground text-sm">
-                    Offer your skills to the Hubnovo community.
+                    Offer your skills to the HubNovo community.
                 </p>
             </div>
 

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, ArrowLeft } from 'lucide-react'
+import { Loader2, ArrowLeft, Mail, ArrowRight } from 'lucide-react'
 import Image from 'next/image'
 import { requestPasswordReset } from '@/lib/actions/auth'
 
@@ -39,10 +39,10 @@ export default function ForgotPasswordPage()
     if (submittedEmail)
     {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950 p-6">
+            <div className="min-h-screen flex items-center justify-center bg-background p-6">
                 <div className="text-center space-y-5 max-w-sm">
                     <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto">
-                        <span className="text-3xl">✉️</span>
+                        <Mail className="w-7 h-7 text-emerald-600" />
                     </div>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">Check your email</h2>
                     <p className="text-gray-500 dark:text-gray-400 text-sm">
@@ -56,9 +56,9 @@ export default function ForgotPasswordPage()
                                 `/auth/reset-password?email=${encodeURIComponent(submittedEmail)}`
                             )
                         }
-                        className="w-full py-3 bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-xl text-sm hover:shadow-lg hover:shadow-primary/30 transition-all"
+                        className="w-full py-3 flex items-center justify-center gap-1.5 bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-xl text-sm hover:shadow-lg hover:shadow-primary/30 transition-all"
                     >
-                        Enter reset code →
+                        Enter reset code <ArrowRight className="w-4 h-4" />
                     </button>
                     <Link
                         href="/auth/login"
@@ -77,8 +77,8 @@ export default function ForgotPasswordPage()
             <div className="w-full max-w-sm space-y-8">
                 {/* Logo */}
                 <div className="flex items-center gap-2">
-                    <Image src="/logo.png" alt="Hubnovo" width={36} height={36} className="rounded-lg" />
-                    <span className="font-bold text-lg text-gray-900 dark:text-white">Hubnovo</span>
+                    <Image src="/logo.png" alt="HubNovo" width={36} height={36} className="rounded-lg" />
+                    <span className="font-bold text-lg text-gray-900 dark:text-white">HubNovo</span>
                 </div>
 
                 <div>

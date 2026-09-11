@@ -271,8 +271,8 @@ function CourseCard({
                 overflow-hidden
                 rounded-xl
                 border
-                border-slate-200
-                bg-white
+                border-border
+                bg-card
                 shadow-sm
                 transition-all
                 duration-200
@@ -283,7 +283,7 @@ function CourseCard({
         >
             {/* Cover */}
 
-            <div className="relative aspect-video overflow-hidden bg-slate-100">
+            <div className="relative aspect-video overflow-hidden bg-muted">
                 {imageUrl ? (
                     <Image
                         src={imageUrl}
@@ -310,11 +310,11 @@ function CourseCard({
                             items-center
                             justify-center
                             bg-gradient-to-br
-                            from-emerald-50
-                            to-slate-100
+                            from-emerald-500/10
+                            to-muted
                         "
                     >
-                        <GraduationCap className="h-12 w-12 text-emerald-300" />
+                        <GraduationCap className="h-12 w-12 text-emerald-500/40" />
                     </div>
                 )}
 
@@ -324,12 +324,12 @@ function CourseCard({
                     <span
                         className="
                             rounded-md
-                            bg-white/95
+                            bg-card/95
                             px-2
                             py-1
                             text-xs
                             font-bold
-                            text-slate-900
+                            text-foreground
                             shadow-sm
                             backdrop-blur
                         "
@@ -388,7 +388,7 @@ function CourseCard({
                             items-center
                             justify-center
                             rounded-full
-                            bg-white
+                            bg-card
                             opacity-0
                             shadow-lg
                             transition-all
@@ -447,7 +447,7 @@ function CourseCard({
                         text-sm
                         font-bold
                         leading-5
-                        text-slate-900
+                        text-foreground
                         transition-colors
                         group-hover:text-emerald-700
                     "
@@ -462,7 +462,7 @@ function CourseCard({
                             line-clamp-2
                             text-xs
                             leading-5
-                            text-slate-500
+                            text-muted-foreground
                         "
                     >
                         {course.description}
@@ -481,15 +481,15 @@ function CourseCard({
                                     items-center
                                     justify-center
                                     rounded-full
-                                    bg-slate-100
+                                    bg-muted
                                 "
                             >
-                                <Users className="h-3.5 w-3.5 text-slate-500" />
+                                <Users className="h-3.5 w-3.5 text-muted-foreground" />
                             </div>
 
-                            <span className="truncate text-xs text-slate-500">
+                            <span className="truncate text-xs text-muted-foreground">
                                 {course.instructor?.display_name ??
-                                    'Hubnovo Instructor'}
+                                    'HubNovo Instructor'}
                             </span>
                         </div>
 
@@ -498,7 +498,7 @@ function CourseCard({
                                 h-4
                                 w-4
                                 shrink-0
-                                text-slate-300
+                                text-muted-foreground
                                 transition-transform
                                 group-hover:translate-x-0.5
                                 group-hover:text-emerald-600
@@ -518,17 +518,17 @@ function SkeletonCard() {
                 overflow-hidden
                 rounded-xl
                 border
-                border-slate-200
-                bg-white
+                border-border
+                bg-card
             "
         >
-            <div className="aspect-video animate-pulse bg-slate-100" />
+            <div className="aspect-video animate-pulse bg-muted" />
 
             <div className="space-y-3 p-4">
-                <div className="h-3 w-20 animate-pulse rounded bg-slate-100" />
-                <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
-                <div className="h-4 w-3/4 animate-pulse rounded bg-slate-100" />
-                <div className="h-3 w-1/2 animate-pulse rounded bg-slate-100" />
+                <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-full animate-pulse rounded bg-muted" />
+                <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
             </div>
         </div>
     )
@@ -646,13 +646,13 @@ export default function LearnHubHome({
     }
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen bg-background">
 
             {/* ─────────────────────────────────────────────────────
                 TOP LEARNING NAV
             ───────────────────────────────────────────────────── */}
 
-            <div className="border-b border-slate-200 bg-white">
+            <div className="border-b border-border bg-card">
                 <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
                     <div
                         className="
@@ -683,8 +683,8 @@ export default function LearnHubHome({
                             </div>
 
                             <div className="hidden sm:block">
-                                <p className="text-sm font-extrabold text-slate-900">
-                                    Hubnovo
+                                <p className="text-sm font-extrabold text-foreground">
+                                    HubNovo
                                 </p>
 
                                 <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600">
@@ -702,7 +702,7 @@ export default function LearnHubHome({
                                 gap-1.5
                                 text-sm
                                 font-semibold
-                                text-slate-600
+                                text-muted-foreground
                                 hover:text-emerald-700
                                 lg:flex
                             "
@@ -729,7 +729,7 @@ export default function LearnHubHome({
                                     h-4
                                     w-4
                                     -translate-y-1/2
-                                    text-slate-400
+                                    text-muted-foreground
                                 "
                             />
 
@@ -744,17 +744,17 @@ export default function LearnHubHome({
                                     w-full
                                     rounded-lg
                                     border
-                                    border-slate-200
-                                    bg-slate-50
+                                    border-border
+                                    bg-muted
                                     pl-9
                                     pr-4
                                     text-sm
-                                    text-slate-900
+                                    text-foreground
                                     outline-none
                                     transition
-                                    placeholder:text-slate-400
+                                    placeholder:text-muted-foreground
                                     focus:border-emerald-400
-                                    focus:bg-white
+                                    focus:bg-card
                                     focus:ring-2
                                     focus:ring-emerald-100
                                 "
@@ -768,7 +768,7 @@ export default function LearnHubHome({
                                 className="
                                     text-sm
                                     font-semibold
-                                    text-slate-600
+                                    text-muted-foreground
                                     hover:text-emerald-700
                                 "
                             >
@@ -781,7 +781,7 @@ export default function LearnHubHome({
                                 className="
                                     text-sm
                                     font-semibold
-                                    text-slate-600
+                                    text-muted-foreground
                                     hover:text-emerald-700
                                 "
                             >
@@ -801,8 +801,8 @@ export default function LearnHubHome({
                                     py-2
                                     text-sm
                                     font-semibold
-                                    text-slate-600
-                                    hover:bg-slate-50
+                                    text-muted-foreground
+                                    hover:bg-muted
                                     hover:text-emerald-700
                                     sm:flex
                                 "
@@ -870,7 +870,7 @@ export default function LearnHubHome({
                 HERO
             ───────────────────────────────────────────────────── */}
 
-            <section className="border-b border-slate-200 bg-white">
+            <section className="border-b border-border bg-card">
                 <div
                     className="
                         mx-auto
@@ -915,7 +915,7 @@ export default function LearnHubHome({
                                     text-2xl
                                     font-black
                                     tracking-tight
-                                    text-slate-950
+                                    text-foreground
                                     sm:text-4xl
                                     lg:text-5xl
                                 "
@@ -933,7 +933,7 @@ export default function LearnHubHome({
                                     max-w-2xl
                                     text-base
                                     leading-7
-                                    text-slate-600
+                                    text-muted-foreground
                                     sm:text-lg
                                 "
                             >
@@ -983,13 +983,13 @@ export default function LearnHubHome({
                                         gap-2
                                         rounded-lg
                                         border
-                                        border-slate-200
-                                        bg-white
+                                        border-border
+                                        bg-card
                                         px-5
                                         py-3
                                         text-sm
                                         font-bold
-                                        text-slate-700
+                                        text-foreground
                                         hover:border-emerald-200
                                         hover:text-emerald-700
                                         sm:w-auto
@@ -1016,8 +1016,8 @@ export default function LearnHubHome({
                                 className="
                                     rounded-xl
                                     border
-                                    border-slate-200
-                                    bg-white
+                                    border-border
+                                    bg-card
                                     p-4
                                     text-left
                                     shadow-sm
@@ -1029,11 +1029,11 @@ export default function LearnHubHome({
                             >
                                 <BookOpen className="h-5 w-5 text-emerald-600" />
 
-                                <p className="mt-4 text-2xl font-black text-slate-900">
+                                <p className="mt-4 text-2xl font-black text-foreground">
                                     {enrolledCount}
                                 </p>
 
-                                <p className="text-xs font-medium text-slate-500">
+                                <p className="text-xs font-medium text-muted-foreground">
                                     Courses enrolled
                                 </p>
                             </button>
@@ -1046,8 +1046,8 @@ export default function LearnHubHome({
                                 className="
                                     rounded-xl
                                     border
-                                    border-slate-200
-                                    bg-white
+                                    border-border
+                                    bg-card
                                     p-4
                                     text-left
                                     shadow-sm
@@ -1059,11 +1059,11 @@ export default function LearnHubHome({
                             >
                                 <Award className="h-5 w-5 text-amber-500" />
 
-                                <p className="mt-4 text-2xl font-black text-slate-900">
+                                <p className="mt-4 text-2xl font-black text-foreground">
                                     {completedCount}
                                 </p>
 
-                                <p className="text-xs font-medium text-slate-500">
+                                <p className="text-xs font-medium text-muted-foreground">
                                     Certificates earned
                                 </p>
                             </button>
@@ -1073,8 +1073,8 @@ export default function LearnHubHome({
                                     col-span-2
                                     rounded-xl
                                     border
-                                    border-slate-200
-                                    bg-slate-50
+                                    border-border
+                                    bg-muted
                                     p-4
                                 "
                             >
@@ -1082,7 +1082,7 @@ export default function LearnHubHome({
                                     <div className="flex items-center gap-2">
                                         <Target className="h-4 w-4 text-emerald-600" />
 
-                                        <span className="text-xs font-bold text-slate-700">
+                                        <span className="text-xs font-bold text-foreground">
                                             Keep your learning momentum
                                         </span>
                                     </div>
@@ -1114,7 +1114,7 @@ export default function LearnHubHome({
                         gap-1
                         overflow-x-auto
                         border-b
-                        border-slate-200
+                        border-border
                     "
                 >
                     {[
@@ -1145,7 +1145,7 @@ export default function LearnHubHome({
                                 ${
                                     activeView === id
                                         ? 'border-emerald-600 text-emerald-700'
-                                        : 'border-transparent text-slate-500 hover:text-slate-900'
+                                        : 'border-transparent text-muted-foreground hover:text-foreground'
                                 }
                             `}
                         >
@@ -1167,16 +1167,16 @@ export default function LearnHubHome({
                                         Learning marketplace
                                     </p>
 
-                                    <h2 className="mt-1 text-2xl font-black text-slate-950">
+                                    <h2 className="mt-1 text-2xl font-black text-foreground">
                                         Explore courses
                                     </h2>
 
-                                    <p className="mt-1 text-sm text-slate-500">
+                                    <p className="mt-1 text-sm text-muted-foreground">
                                         Learn practical skills from experienced instructors.
                                     </p>
                                 </div>
 
-                                <span className="hidden text-sm text-slate-400 sm:block">
+                                <span className="hidden text-sm text-muted-foreground sm:block">
                                     {filteredCourses.length} courses
                                 </span>
                             </div>
@@ -1200,7 +1200,7 @@ export default function LearnHubHome({
                                     ${
                                         !activeTrack
                                             ? 'border-emerald-600 bg-emerald-600 text-white'
-                                            : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700'
+                                            : 'border-border bg-card text-muted-foreground hover:border-emerald-300 hover:text-emerald-700'
                                     }
                                 `}
                             >
@@ -1218,13 +1218,13 @@ export default function LearnHubHome({
                                         shrink-0
                                         rounded-full
                                         border
-                                        border-slate-200
-                                        bg-white
+                                        border-border
+                                        bg-card
                                         px-4
                                         py-2
                                         text-xs
                                         font-bold
-                                        text-slate-600
+                                        text-muted-foreground
                                         transition
                                         hover:border-emerald-300
                                         hover:text-emerald-700
@@ -1267,20 +1267,20 @@ export default function LearnHubHome({
                                     rounded-2xl
                                     border
                                     border-dashed
-                                    border-slate-300
-                                    bg-white
+                                    border-border
+                                    bg-card
                                     px-6
                                     py-16
                                     text-center
                                 "
                             >
-                                <Search className="mx-auto h-8 w-8 text-slate-300" />
+                                <Search className="mx-auto h-8 w-8 text-muted-foreground" />
 
-                                <h3 className="mt-4 text-base font-bold text-slate-900">
+                                <h3 className="mt-4 text-base font-bold text-foreground">
                                     No courses found
                                 </h3>
 
-                                <p className="mt-1 text-sm text-slate-500">
+                                <p className="mt-1 text-sm text-muted-foreground">
                                     Try another search or explore a different learning track.
                                 </p>
 
@@ -1315,13 +1315,13 @@ export default function LearnHubHome({
                                         gap-2
                                         rounded-lg
                                         border
-                                        border-slate-200
-                                        bg-white
+                                        border-border
+                                        bg-card
                                         px-5
                                         py-2.5
                                         text-sm
                                         font-bold
-                                        text-slate-700
+                                        text-foreground
                                         shadow-sm
                                         hover:border-emerald-200
                                         hover:text-emerald-700
@@ -1345,7 +1345,7 @@ export default function LearnHubHome({
                                 rounded-2xl
                                 border
                                 border-emerald-100
-                                bg-white
+                                bg-card
                             "
                         >
                             <div
@@ -1364,7 +1364,7 @@ export default function LearnHubHome({
                                     </h2>
 
                                     <p className="mt-4 max-w-lg text-sm leading-6 text-emerald-50">
-                                    Hubnovo connects practical learning
+                                    HubNovo connects practical learning
                                         with recognition, skills development and
                                         real-world impact.
                                     </p>
@@ -1406,7 +1406,7 @@ export default function LearnHubHome({
                                                 key={item.step}
                                                 className="
                                                     border-b
-                                                    border-slate-100
+                                                    border-border
                                                     p-5
                                                     last:border-b-0
                                                     sm:border-r
@@ -1417,16 +1417,16 @@ export default function LearnHubHome({
                                                 <div className="flex items-center justify-between">
                                                     <Icon className="h-5 w-5 text-emerald-600" />
 
-                                                    <span className="text-xs font-black text-slate-300">
+                                                    <span className="text-xs font-black text-muted-foreground">
                                                         {item.step}
                                                     </span>
                                                 </div>
 
-                                                <h3 className="mt-5 text-sm font-black text-slate-900">
+                                                <h3 className="mt-5 text-sm font-black text-foreground">
                                                     {item.title}
                                                 </h3>
 
-                                                <p className="mt-2 text-xs leading-5 text-slate-500">
+                                                <p className="mt-2 text-xs leading-5 text-muted-foreground">
                                                     {item.description}
                                                 </p>
                                             </div>
@@ -1449,11 +1449,11 @@ export default function LearnHubHome({
                                 Your learning
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-slate-950">
+                            <h2 className="mt-1 text-2xl font-black text-foreground">
                                 My Courses
                             </h2>
 
-                            <p className="mt-1 text-sm text-slate-500">
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 Continue where you left off.
                             </p>
                         </div>
@@ -1483,14 +1483,14 @@ export default function LearnHubHome({
                                 ))}
                             </div>
                         ) : (
-                            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-                                <BookOpen className="mx-auto h-8 w-8 text-slate-300" />
+                            <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
+                                <BookOpen className="mx-auto h-8 w-8 text-muted-foreground" />
 
-                                <h3 className="mt-4 text-base font-bold text-slate-900">
+                                <h3 className="mt-4 text-base font-bold text-foreground">
                                     Your learning list is empty
                                 </h3>
 
-                                <p className="mt-1 text-sm text-slate-500">
+                                <p className="mt-1 text-sm text-muted-foreground">
                                     Enrol in a course to start building your skills.
                                 </p>
 
@@ -1519,11 +1519,11 @@ export default function LearnHubHome({
                                 Guided learning
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-slate-950">
+                            <h2 className="mt-1 text-2xl font-black text-foreground">
                                 Career Tracks
                             </h2>
 
-                            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
                                 Follow a focused path based on the skills you
                                 want to build.
                             </p>
@@ -1545,8 +1545,8 @@ export default function LearnHubHome({
                                             group
                                             rounded-2xl
                                             border
-                                            border-slate-200
-                                            bg-white
+                                            border-border
+                                            bg-card
                                             p-6
                                             text-left
                                             shadow-sm
@@ -1570,11 +1570,11 @@ export default function LearnHubHome({
                                             <Icon className="h-5 w-5 text-emerald-600" />
                                         </div>
 
-                                        <h3 className="mt-5 text-base font-black text-slate-900 group-hover:text-emerald-700">
+                                        <h3 className="mt-5 text-base font-black text-foreground group-hover:text-emerald-700">
                                             {track.title}
                                         </h3>
 
-                                        <p className="mt-2 text-sm leading-6 text-slate-500">
+                                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
                                             {track.description}
                                         </p>
 
@@ -1600,7 +1600,7 @@ export default function LearnHubHome({
                                 Browse
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-slate-950">
+                            <h2 className="mt-1 text-2xl font-black text-foreground">
                                 Course Categories
                             </h2>
                         </div>
@@ -1616,8 +1616,8 @@ export default function LearnHubHome({
                                     className="
                                         rounded-xl
                                         border
-                                        border-slate-200
-                                        bg-white
+                                        border-border
+                                        bg-card
                                         p-5
                                         text-left
                                         shadow-sm
@@ -1631,15 +1631,15 @@ export default function LearnHubHome({
                                             <BookOpen className="h-5 w-5 text-emerald-600" />
                                         </div>
 
-                                        <ChevronRight className="h-4 w-4 text-slate-300" />
+                                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                     </div>
 
-                                    <h3 className="mt-4 text-sm font-bold text-slate-900">
+                                    <h3 className="mt-4 text-sm font-bold text-foreground">
                                         {category.name}
                                     </h3>
 
                                     {category.description && (
-                                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+                                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
                                             {category.description}
                                         </p>
                                     )}
@@ -1660,7 +1660,7 @@ export default function LearnHubHome({
                                 Achievements
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-slate-950">
+                            <h2 className="mt-1 text-2xl font-black text-foreground">
                                 My Certificates
                             </h2>
                         </div>
@@ -1674,7 +1674,7 @@ export default function LearnHubHome({
                                             rounded-2xl
                                             border
                                             border-emerald-100
-                                            bg-white
+                                            bg-card
                                             p-6
                                             shadow-sm
                                         "
@@ -1687,11 +1687,11 @@ export default function LearnHubHome({
                                             <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                                         </div>
 
-                                        <h3 className="mt-5 text-base font-black text-slate-900">
+                                        <h3 className="mt-5 text-base font-black text-foreground">
                                             {course.title}
                                         </h3>
 
-                                        <p className="mt-1 text-xs text-slate-500">
+                                        <p className="mt-1 text-xs text-muted-foreground">
                                             Course completion certificate
                                         </p>
 
@@ -1714,14 +1714,14 @@ export default function LearnHubHome({
                                 ))}
                             </div>
                         ) : (
-                            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-                                <Award className="mx-auto h-8 w-8 text-slate-300" />
+                            <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
+                                <Award className="mx-auto h-8 w-8 text-muted-foreground" />
 
-                                <h3 className="mt-4 text-base font-bold text-slate-900">
+                                <h3 className="mt-4 text-base font-bold text-foreground">
                                     No certificates yet
                                 </h3>
 
-                                <p className="mt-1 text-sm text-slate-500">
+                                <p className="mt-1 text-sm text-muted-foreground">
                                     Complete a course to earn your first certificate.
                                 </p>
 
@@ -1750,22 +1750,22 @@ export default function LearnHubHome({
                                 Learn from practitioners
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-slate-950">
+                            <h2 className="mt-1 text-2xl font-black text-foreground">
                                 Our Instructors
                             </h2>
                         </div>
 
-                        <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-                            <Users className="mx-auto h-8 w-8 text-slate-300" />
+                        <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
+                            <Users className="mx-auto h-8 w-8 text-muted-foreground" />
 
-                            <h3 className="mt-4 text-base font-bold text-slate-900">
+                            <h3 className="mt-4 text-base font-bold text-foreground">
                                 Instructor profiles coming soon
                             </h3>
 
-                            <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-500">
+                            <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-muted-foreground">
                                 Discover experienced professionals and
                                 practitioners teaching practical skills on
-                                Hubnovo.
+                                HubNovo.
                             </p>
                         </div>
                     </section>
@@ -1782,59 +1782,59 @@ export default function LearnHubHome({
                                 Learning momentum
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-slate-950">
+                            <h2 className="mt-1 text-2xl font-black text-foreground">
                                 Your Learning Streak
                             </h2>
                         </div>
 
                         <div className="grid gap-5 md:grid-cols-3">
-                            <div className="rounded-2xl border border-orange-100 bg-white p-7 shadow-sm">
+                            <div className="rounded-2xl border border-orange-100 bg-card p-7 shadow-sm">
                                 <Flame className="h-7 w-7 text-orange-500" />
 
-                                <p className="mt-5 text-3xl font-black text-slate-900">
+                                <p className="mt-5 text-3xl font-black text-foreground">
                                     0
                                 </p>
 
-                                <p className="text-sm text-slate-500">
+                                <p className="text-sm text-muted-foreground">
                                     Current streak
                                 </p>
                             </div>
 
-                            <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+                            <div className="rounded-2xl border border-border bg-card p-7 shadow-sm">
                                 <Target className="h-7 w-7 text-emerald-600" />
 
-                                <p className="mt-5 text-3xl font-black text-slate-900">
+                                <p className="mt-5 text-3xl font-black text-foreground">
                                     {completedCount}
                                 </p>
 
-                                <p className="text-sm text-slate-500">
+                                <p className="text-sm text-muted-foreground">
                                     Courses completed
                                 </p>
                             </div>
 
-                            <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+                            <div className="rounded-2xl border border-border bg-card p-7 shadow-sm">
                                 <BarChart2 className="h-7 w-7 text-blue-600" />
 
-                                <p className="mt-5 text-3xl font-black text-slate-900">
+                                <p className="mt-5 text-3xl font-black text-foreground">
                                     {enrolledCount}
                                 </p>
 
-                                <p className="text-sm text-slate-500">
+                                <p className="text-sm text-muted-foreground">
                                     Learning goals started
                                 </p>
                             </div>
                         </div>
 
-                        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-7">
+                        <div className="mt-6 rounded-2xl border border-border bg-card p-7">
                             <div className="flex items-center gap-3">
-                                <Clock className="h-5 w-5 text-slate-400" />
+                                <Clock className="h-5 w-5 text-muted-foreground" />
 
                                 <div>
-                                    <h3 className="text-sm font-bold text-slate-900">
+                                    <h3 className="text-sm font-bold text-foreground">
                                         Build the habit
                                     </h3>
 
-                                    <p className="mt-1 text-xs text-slate-500">
+                                    <p className="mt-1 text-xs text-muted-foreground">
                                         Even a few minutes of learning each day
                                         compounds over time.
                                     </p>

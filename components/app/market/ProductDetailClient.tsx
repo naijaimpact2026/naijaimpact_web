@@ -119,7 +119,9 @@ export default function ProductDetailClient({ product, reviews, trustScore, curr
 
                         <p className="text-3xl font-black text-gray-900">{fmt(product.price)}</p>
                         {product.negotiable && (
-                            <p className="text-xs text-green-700 font-bold mt-1">✓ Price negotiable</p>
+                            <p className="flex items-center gap-1 text-xs text-green-700 font-bold mt-1">
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Price negotiable
+                            </p>
                         )}
 
                         <div className="flex flex-wrap gap-2 mt-3">

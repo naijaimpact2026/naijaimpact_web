@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { fetchServiceById } from '@/lib/actions/services'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ArrowLeft, CheckCircle2, BadgeCheck, Tag, Users, Star, MessageCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, BadgeCheck, Tag, Users, Star, MessageCircle, Wrench, Lock } from 'lucide-react'
 import ServiceDetailClient from '@/components/app/services/ServiceDetailClient'
 
 export const dynamic = 'force-dynamic'
@@ -70,7 +70,7 @@ export default async function ServiceDetailPage({ params }: ServiceDetailPagePro
                         ) : (
                             <div className="absolute inset-0 flex items-center justify-center"
                                 style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
-                                <span className="text-7xl opacity-30">🛠️</span>
+                                <Wrench className="h-20 w-20 text-white/30" />
                             </div>
                         )}
                         {/* Category badge overlay */}
@@ -244,8 +244,8 @@ export default async function ServiceDetailPage({ params }: ServiceDetailPagePro
                             </div>
 
                             {/* Trust note */}
-                            <p className="text-[11px] text-gray-400 text-center leading-relaxed">
-                                🔒 Secure messaging · Verified listings · Community-backed
+                            <p className="flex items-center justify-center gap-1 text-[11px] text-gray-400 text-center leading-relaxed">
+                                <Lock className="h-3 w-3 shrink-0" /> Secure messaging · Verified listings · Community-backed
                             </p>
                         </div>
                     </div>

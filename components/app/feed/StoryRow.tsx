@@ -1,108 +1,82 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
-import { Plus, MoreHorizontal } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import type { User } from '@/lib/types'
-
-interface StoryUser
-{
-    id: string
-    username: string
-    display_name: string
-    avatar_url: string | null
-}
+import { GraduationCap, ShoppingBag } from 'lucide-react'
+import type { PromotedItem } from '@/lib/actions/promoted'
+import StoryViewer from './StoryViewer'
 
 interface StoryRowProps
 {
-    user: User | null
-    recentUsers?: StoryUser[]
+    promotedItems?: PromotedItem[]
 }
 
-const CATEGORY_CIRCLES = [
-    { label: 'Philanthropists', emoji: '💚', gradient: 'from-green-400 to-emerald-600', live: true },
-    { label: 'Entrepreneurs', emoji: '💼', gradient: 'from-purple-400 to-violet-600', live: false },
-    { label: 'Donors Hub', emoji: '🤝', gradient: 'from-red-400 to-rose-600', live: false },
-    { label: 'Impact Stories', emoji: '⭐', gradient: 'from-amber-400 to-orange-500', live: false },
-]
+const KIND_RING = {
+    market: 'from-blue-400 to-blue-600',
+    learn: 'from-primary to-secondary',
+} as const
 
-function getInitials(name: string | null | undefined): string
-{
-    if (!name) return 'U'
-    return name.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2)
-}
+const KIND_ICON = {
+    market: ShoppingBag,
+    learn: GraduationCap,
+} as const
 
-export default function StoryRow({ user, recentUsers = [] }: StoryRowProps)
+export default function StoryRow({ promotedItems = [] }: StoryRowProps)
 {
+    const [viewerIndex, setViewerIndex] = useState<number | null>(null)
+
+    if (promotedItems.length === 0) return null
+
     return (
         <div className="flex items-start gap-3 overflow-x-auto scrollbar-none pb-1">
 
-            {/* My Story — current user's real avatar */}
-            <div className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group">
-                <div className="relative">
-                    <Avatar className="h-14 w-14 border-[2.5px] border-white dark:border-slate-800 shadow group-hover:scale-105 transition-transform">
-                        <AvatarImage src={user?.avatar_url ?? undefined} alt={user?.display_name ?? 'Me'} />
-                        <AvatarFallback className="bg-primary/20 text-primary font-bold text-lg">
-                            {getInitials(user?.display_name)}
-                        </AvatarFallback>
-                    </Avatar>
-                    <span className="absolute bottom-0 right-0 flex items-center justify-center w-5 h-5 rounded-full bg-primary border-[2px] border-white dark:border-slate-900 shadow">
-                        <Plus className="w-3 h-3 text-white" strokeWidth={3} />
-                    </span>
-                </div>
-                <span className="text-[10px] font-medium text-foreground text-center w-14 truncate leading-tight">
-                    My Story
-                </span>
-            </div>
-
-            {/* Recent active users from DB (real avatars) */}
-            {recentUsers.map((u) => (
-                <div key={u.id} className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group">
-                    <div className="relative">
-                        {/* Green gradient ring */}
-                        <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary to-secondary p-0.5 group-hover:scale-105 transition-transform shadow">
-                            <Avatar className="h-full w-full border-[2px] border-white dark:border-slate-900">
-                                <AvatarImage src={u.avatar_url ?? undefined} alt={u.display_name} />
-                                <AvatarFallback className="bg-slate-200 dark:bg-slate-700 text-foreground text-xs font-bold">
-                                    {getInitials(u.display_name)}
-                                </AvatarFallback>
-                            </Avatar>
-                        </div>
-                    </div>
-                    <span className="text-[10px] font-medium text-foreground text-center w-14 truncate leading-tight">
-                        {u.display_name.split(' ')[0]}
-                    </span>
-                </div>
-            ))}
-
-            {/* Category circles */}
-            {CATEGORY_CIRCLES.map((circle) => (
-                <div key={circle.label} className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group">
-                    <div className="relative">
-                        <div className={`h-14 w-14 rounded-full bg-gradient-to-br ${circle.gradient} p-0.5 group-hover:scale-105 transition-transform shadow`}>
-                            <div className="h-full w-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center text-xl">
-                                {circle.emoji}
+            {/* Promoted — real Marketplace listings and Learn courses.
+                Tapping opens a full-screen story viewer; the redirect only
+                happens from the CTA button inside it. */}
+            {promotedItems.map((item, i) => {
+                const Icon = KIND_ICON[item.kind]
+                return (
+                    <button
+                        key={item.id}
+                        onClick={() => setViewerIndex(i)}
+                        className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group"
+                    >
+                        <div className="relative">
+                            <div className={`h-14 w-14 rounded-full bg-gradient-to-br ${KIND_RING[item.kind]} p-0.5 group-hover:scale-105 transition-transform shadow`}>
+                                <div className="relative h-full w-full overflow-hidden rounded-full border-[2px] border-card bg-muted">
+                                    {item.image_url && (
+                                        <Image
+                                            src={item.image_url}
+                                            alt={item.title}
+                                            fill
+                                            unoptimized
+                                            className="object-cover"
+                                            sizes="56px"
+                                        />
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                        {circle.live && (
-                            <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 flex items-center justify-center px-1.5 h-3.5 rounded-full bg-red-500 border border-white dark:border-slate-900">
-                                <span className="text-white text-[7px] font-bold tracking-wider">LIVE</span>
+                            <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 flex items-center gap-0.5 rounded-full border border-card bg-primary px-1.5 py-0.5 text-white shadow">
+                                <Icon className="h-2 w-2" />
+                                <span className="text-[7px] font-bold uppercase tracking-wide">
+                                    {item.kind === 'learn' ? 'Learn' : 'Market'}
+                                </span>
                             </span>
-                        )}
-                    </div>
-                    <span className="text-[10px] font-medium text-foreground text-center w-14 truncate leading-tight">
-                        {circle.label}
-                    </span>
-                </div>
-            ))}
+                        </div>
+                        <span className="text-[10px] font-medium text-foreground text-center w-14 truncate leading-tight">
+                            {item.title}
+                        </span>
+                    </button>
+                )
+            })}
 
-            {/* More */}
-            <div className="flex flex-col items-center gap-1 shrink-0 cursor-pointer group">
-                <div className="h-14 w-14 rounded-full bg-muted border-2 border-border flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
-                </div>
-                <span className="text-[10px] font-medium text-muted-foreground text-center w-14">More</span>
-            </div>
+            {viewerIndex !== null && (
+                <StoryViewer
+                    items={promotedItems}
+                    startIndex={viewerIndex}
+                    onClose={() => setViewerIndex(null)}
+                />
+            )}
         </div>
     )
 }

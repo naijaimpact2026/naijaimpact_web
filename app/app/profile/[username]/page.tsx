@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { fetchUserPostsPage } from '@/lib/actions/posts'
 import ProfileHeader from '@/components/app/profile/ProfileHeader'
-import ProfileTabs, { type MediaItem } from '@/components/app/profile/ProfileTabs'
-import type { PostMedia } from '@/lib/types'
+import ProfileTabs from '@/components/app/profile/ProfileTabs'
 import { UserX } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -77,7 +76,7 @@ export default async function ProfilePage({ params }: ProfilePageProps)
         supabase
             .from('posts')
             .select('*', { count: 'exact', head: true })
-            .eq('author_id', profile.id),
+            .eq('user_id', profile.id),
     ])
 
     // ── Is following? ─────────────────────────────────────────────────────────
@@ -102,31 +101,6 @@ export default async function ProfilePage({ params }: ProfilePageProps)
         12
     )
 
-    // ── All media for Media tab ───────────────────────────────────────────────
-    // Fetch all post IDs for this user, then get their medias
-    const { data: postRows } = await supabase
-        .from('posts')
-        .select('id')
-        .eq('author_id', profile.id)
-        .order('created_at', { ascending: false })
-
-    const postIds = (postRows ?? []).map((p) => p.id)
-
-    let allMedia: MediaItem[] = []
-    if (postIds.length > 0)
-    {
-        const { data: mediaRows } = await supabase
-            .from('post_medias')
-            .select('*')
-            .in('post_id', postIds)
-            .order('created_at', { ascending: false })
-
-        allMedia = (mediaRows ?? []).map((m: PostMedia) => ({
-            media: m,
-            postId: m.post_id,
-        }))
-    }
-
     return (
         <main className="max-w-xl mx-auto px-4 py-6 space-y-4">
             {/* 6.3: Profile header with avatar, stats, follow button */}
@@ -140,13 +114,12 @@ export default async function ProfilePage({ params }: ProfilePageProps)
                 isOwnProfile={isOwnProfile}
             />
 
-            {/* 6.4–6.6: Posts and Media tabs */}
+            {/* 6.4–6.6: Posts and Saved tabs */}
             <ProfileTabs
                 authorId={profile.id}
                 currentUserId={currentUserId}
                 initialPosts={initialPosts}
                 initialCursor={initialCursor}
-                allMedia={allMedia}
             />
         </main>
     )

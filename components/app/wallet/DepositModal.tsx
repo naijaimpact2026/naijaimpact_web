@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2 } from 'lucide-react'
+import { Loader2, CheckCircle2 } from 'lucide-react'
 import
     {
         Dialog,
@@ -144,12 +144,12 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Deposit Funds</DialogTitle>
-                    <DialogDescription>Add money to your Hubnovo wallet via Paystack</DialogDescription>
+                    <DialogDescription>Add money to your HubNovo wallet via Paystack</DialogDescription>
                 </DialogHeader>
 
                 {success ? (
                     <div className="py-10 text-center space-y-2">
-                        <div className="text-5xl">🎉</div>
+                        <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
                         <p className="font-semibold text-emerald-600">Deposit initiated!</p>
                         <p className="text-sm text-muted-foreground">
                             Your balance will be updated shortly after payment confirmation.

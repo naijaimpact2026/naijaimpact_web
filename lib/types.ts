@@ -1,6 +1,6 @@
 // ============================================================
 // lib/types.ts
-// Hubnovo – TypeScript types matching the Supabase DB schema
+// HubNovo – TypeScript types matching the Supabase DB schema
 // Column names are snake_case to match the SQL definitions exactly.
 // ============================================================
 
@@ -664,6 +664,7 @@ export type PostWithAuthor = Post & {
   reaction_count: number
   comment_count: number
   user_reacted: boolean
+  is_following_author?: boolean
 }
 
 export type CampaignWithCreator = Campaign & {

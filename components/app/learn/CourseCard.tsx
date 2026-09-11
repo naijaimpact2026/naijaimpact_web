@@ -29,7 +29,7 @@ export default function CourseCard({ course }: { course: Course })
     const coverUrl = toPublicStorageUrl(course.cover_image_url)
 
     const instructorName =
-        course.instructor?.display_name?.trim() || 'Hubnovo Instructor'
+        course.instructor?.display_name?.trim() || 'HubNovo Instructor'
 
     const instructorInitial =
         instructorName.charAt(0).toUpperCase()
@@ -41,17 +41,17 @@ export default function CourseCard({ course }: { course: Course })
         >
             <article className="
                 flex h-full flex-col overflow-hidden
-                rounded-xl border border-slate-200 bg-white
+                rounded-xl border border-border bg-card
                 transition-all duration-200
                 hover:-translate-y-0.5
-                hover:border-slate-300
+                hover:border-muted-foreground/30
                 hover:shadow-lg
             ">
                 {/* -------------------------------------------------- */}
                 {/* Thumbnail */}
                 {/* -------------------------------------------------- */}
 
-                <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
+                <div className="relative aspect-video w-full overflow-hidden bg-muted">
                     {coverUrl ? (
                         <Image
                             src={coverUrl}
@@ -95,7 +95,7 @@ export default function CourseCard({ course }: { course: Course })
                             ${
                                 course.is_free
                                     ? 'bg-emerald-500 text-white'
-                                    : 'bg-white text-slate-900'
+                                    : 'bg-card text-foreground'
                             }
                         `}>
                             {course.is_free
@@ -132,7 +132,7 @@ export default function CourseCard({ course }: { course: Course })
                         <span className="
                             mb-2 w-fit
                             text-[11px] font-semibold uppercase
-                            tracking-wide text-emerald-700
+                            tracking-wide text-emerald-600
                         ">
                             {course.category_name}
                         </span>
@@ -142,9 +142,9 @@ export default function CourseCard({ course }: { course: Course })
                     <h3 className="
                         line-clamp-2
                         text-[15px] font-bold leading-[1.35]
-                        text-slate-900
+                        text-foreground
                         transition-colors
-                        group-hover:text-emerald-700
+                        group-hover:text-emerald-600
                     ">
                         {course.title}
                     </h3>
@@ -154,7 +154,7 @@ export default function CourseCard({ course }: { course: Course })
                         <p className="
                             mt-2 line-clamp-2
                             text-xs leading-relaxed
-                            text-slate-500
+                            text-muted-foreground
                         ">
                             {course.description}
                         </p>
@@ -163,7 +163,7 @@ export default function CourseCard({ course }: { course: Course })
                     {/* Course metadata */}
                     <div className="
                         mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5
-                        text-[11px] text-slate-500
+                        text-[11px] text-muted-foreground
                     ">
                         {totalLessons > 0 && (
                             <span className="inline-flex items-center gap-1">
@@ -184,7 +184,7 @@ export default function CourseCard({ course }: { course: Course })
                     <div className="
                         mt-auto flex items-center
                         justify-between gap-3
-                        border-t border-slate-100
+                        border-t border-border
                         pt-4 mt-4
                     ">
                         <div className="flex min-w-0 items-center gap-2">
@@ -197,9 +197,9 @@ export default function CourseCard({ course }: { course: Course })
                                 />
 
                                 <AvatarFallback className="
-                                    bg-emerald-50
+                                    bg-emerald-500/15
                                     text-[10px] font-bold
-                                    text-emerald-700
+                                    text-emerald-600
                                 ">
                                     {instructorInitial}
                                 </AvatarFallback>
@@ -208,7 +208,7 @@ export default function CourseCard({ course }: { course: Course })
                             <span className="
                                 truncate
                                 text-xs font-medium
-                                text-slate-600
+                                text-muted-foreground
                             ">
                                 {instructorName}
                             </span>
@@ -217,7 +217,7 @@ export default function CourseCard({ course }: { course: Course })
                         {/* Arrow appears on hover */}
                         <ArrowRight className="
                             h-4 w-4 shrink-0
-                            text-slate-300
+                            text-muted-foreground
                             transition-all duration-200
                             group-hover:translate-x-0.5
                             group-hover:text-emerald-600

@@ -1,241 +1,88 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import Image from 'next/image'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
-import PostCard from '@/components/app/feed/PostCard'
-import PostCardSkeleton from '@/components/app/feed/PostCardSkeleton'
 import { fetchUserPostsPage } from '@/lib/actions/posts'
-import type { PostWithAuthor, PostMedia } from '@/lib/types'
-import { Grid3X3, LayoutList, X, ChevronLeft, ChevronRight, Play } from 'lucide-react'
+import type { PostWithAuthor } from '@/lib/types'
+import { Grid3X3, Bookmark, Heart, MessageCircle, Copy, Play, FileText } from 'lucide-react'
 
-// ─── Lightbox ─────────────────────────────────────────────────────────────────
+// ─── Post grid tile ────────────────────────────────────────────────────────────
 
-interface LightboxProps
+function PostTile({ post }: { post: PostWithAuthor })
 {
-    medias: PostMedia[]
-    initialIndex: number
-    onClose: () => void
-}
-
-function Lightbox({ medias, initialIndex, onClose }: LightboxProps)
-{
-    const [index, setIndex] = useState(initialIndex)
-    const current = medias[index]
-
-    // Close on Escape
-    useEffect(() =>
-    {
-        function onKey(e: KeyboardEvent)
-        {
-            if (e.key === 'Escape') onClose()
-            if (e.key === 'ArrowLeft') setIndex((i) => Math.max(0, i - 1))
-            if (e.key === 'ArrowRight') setIndex((i) => Math.min(medias.length - 1, i + 1))
-        }
-        document.addEventListener('keydown', onKey)
-        return () => document.removeEventListener('keydown', onKey)
-    }, [medias.length, onClose])
-
-    // Prevent background scroll
-    useEffect(() =>
-    {
-        document.body.style.overflow = 'hidden'
-        return () =>
-        {
-            document.body.style.overflow = ''
-        }
-    }, [])
-
-    if (!current) return null
+    const cover = post.medias?.[0] ?? null
+    const hasMultiple = (post.medias?.length ?? 0) > 1
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Media lightbox"
-            onClick={onClose}
+        <Link
+            href={`/app/feed/${post.id}`}
+            className="group relative aspect-square overflow-hidden bg-muted"
         >
-            {/* Close button */}
-            <button
-                className="absolute top-4 right-4 z-10 text-white/80 hover:text-white p-2 rounded-full bg-black/30 hover:bg-black/60 transition-colors"
-                onClick={onClose}
-                aria-label="Close lightbox"
-            >
-                <X className="h-6 w-6" />
-            </button>
-
-            {/* Prev */}
-            {index > 0 && (
-                <button
-                    className="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-white/80 hover:text-white p-2 rounded-full bg-black/30 hover:bg-black/60 transition-colors"
-                    onClick={(e) => { e.stopPropagation(); setIndex((i) => i - 1) }}
-                    aria-label="Previous media"
-                >
-                    <ChevronLeft className="h-7 w-7" />
-                </button>
-            )}
-
-            {/* Next */}
-            {index < medias.length - 1 && (
-                <button
-                    className="absolute right-4 top-1/2 -translate-y-1/2 z-10 text-white/80 hover:text-white p-2 rounded-full bg-black/30 hover:bg-black/60 transition-colors"
-                    onClick={(e) => { e.stopPropagation(); setIndex((i) => i + 1) }}
-                    aria-label="Next media"
-                >
-                    <ChevronRight className="h-7 w-7" />
-                </button>
-            )}
-
-            {/* Media */}
-            <div
-                className="relative max-w-[90vw] max-h-[90vh] w-full h-full flex items-center justify-center"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {current.media_type === 'video' ? (
+            {cover ? (
+                cover.media_type === 'video' ? (
                     <video
-                        src={current.url}
-                        controls
-                        autoPlay
-                        className="max-w-full max-h-[90vh] rounded-lg"
-                        aria-label="Video"
+                        src={cover.url}
+                        className="h-full w-full object-cover"
+                        muted
+                        playsInline
+                        preload="metadata"
+                        aria-hidden="true"
                     />
                 ) : (
-                    <div className="relative w-full h-full flex items-center justify-center">
-                        <Image
-                            src={current.url}
-                            alt={`Media ${index + 1}`}
-                            width={current.width ?? 1200}
-                            height={current.height ?? 800}
-                            className="max-w-full max-h-[90vh] object-contain rounded-lg"
-                            priority
-                        />
-                    </div>
-                )}
-            </div>
-
-            {/* Dot indicators */}
-            {medias.length > 1 && (
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5">
-                    {medias.map((_, i) => (
-                        <button
-                            key={i}
-                            className={`h-1.5 w-1.5 rounded-full transition-colors ${i === index ? 'bg-white' : 'bg-white/40'
-                                }`}
-                            onClick={(e) => { e.stopPropagation(); setIndex(i) }}
-                            aria-label={`Go to media ${i + 1}`}
-                        />
-                    ))}
+                    <Image
+                        src={cover.url}
+                        alt={post.caption ?? 'Post'}
+                        fill
+                        unoptimized
+                        className="object-cover"
+                        sizes="(max-width: 640px) 33vw, 300px"
+                    />
+                )
+            ) : (
+                <div className="flex h-full w-full items-center justify-center p-3 bg-gradient-to-br from-muted to-card">
+                    <p className="line-clamp-4 text-center text-xs leading-relaxed text-foreground/80">
+                        {post.caption || <FileText className="mx-auto h-6 w-6 text-muted-foreground" />}
+                    </p>
                 </div>
             )}
-        </div>
-    )
-}
 
-// ─── Media Grid ───────────────────────────────────────────────────────────────
-
-interface MediaItem
-{
-    media: PostMedia
-    postId: string
-}
-
-interface MediaGridProps
-{
-    allMedia: MediaItem[]
-}
-
-function MediaGrid({ allMedia }: MediaGridProps)
-{
-    const [lightboxOpen, setLightboxOpen] = useState(false)
-    const [lightboxIndex, setLightboxIndex] = useState(0)
-
-    const flatMedias = allMedia.map((m) => m.media)
-
-    function openLightbox(index: number)
-    {
-        setLightboxIndex(index)
-        setLightboxOpen(true)
-    }
-
-    if (allMedia.length === 0)
-    {
-        return (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                <Grid3X3 className="h-12 w-12 mb-3 opacity-30" />
-                <p className="text-sm font-medium">No media yet</p>
-            </div>
-        )
-    }
-
-    return (
-        <>
-            <div
-                className="grid grid-cols-3 gap-0.5"
-                role="list"
-                aria-label="Media gallery"
-            >
-                {allMedia.map(({ media }, i) => (
-                    <button
-                        key={media.id}
-                        role="listitem"
-                        className="relative aspect-square overflow-hidden bg-muted hover:opacity-80 active:opacity-60 transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
-                        onClick={() => openLightbox(i)}
-                        aria-label={`Open media ${i + 1}`}
-                    >
-                        {media.media_type === 'video' ? (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black">
-                                <video
-                                    src={media.url}
-                                    className="h-full w-full object-cover opacity-70"
-                                    muted
-                                    preload="metadata"
-                                    aria-hidden="true"
-                                />
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <Play className="h-8 w-8 text-white drop-shadow" fill="white" />
-                                </div>
-                            </div>
-                        ) : (
-                            <Image
-                                src={media.url}
-                                alt={`Media ${i + 1}`}
-                                fill
-                                className="object-cover"
-                                sizes="(max-width: 768px) 33vw, 200px"
-                            />
-                        )}
-                    </button>
-                ))}
-            </div>
-
-            {lightboxOpen && (
-                <Lightbox
-                    medias={flatMedias}
-                    initialIndex={lightboxIndex}
-                    onClose={() => setLightboxOpen(false)}
-                />
+            {/* Media-type indicator */}
+            {cover?.media_type === 'video' && (
+                <Play className="absolute right-1.5 top-1.5 h-4 w-4 text-white drop-shadow" fill="white" />
             )}
-        </>
+            {hasMultiple && (
+                <Copy className="absolute right-1.5 top-1.5 h-4 w-4 text-white drop-shadow" />
+            )}
+
+            {/* Hover overlay — engagement counts (desktop) */}
+            <div className="absolute inset-0 hidden items-center justify-center gap-4 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 sm:flex">
+                <span className="flex items-center gap-1.5 text-sm font-bold text-white">
+                    <Heart className="h-4 w-4 fill-white" />
+                    {post.reaction_count}
+                </span>
+                <span className="flex items-center gap-1.5 text-sm font-bold text-white">
+                    <MessageCircle className="h-4 w-4 fill-white" />
+                    {post.comment_count}
+                </span>
+            </div>
+        </Link>
     )
 }
 
-// ─── Profile Posts (infinite scroll) ─────────────────────────────────────────
+// ─── Profile Posts (infinite scroll grid) ─────────────────────────────────────
 
-const SKELETON_COUNT = 3
+const SKELETON_COUNT = 9
 
 interface ProfilePostsProps
 {
     authorId: string
-    currentUserId: string
     initialPosts: PostWithAuthor[]
     initialCursor: string | null
 }
 
 function ProfilePosts({
     authorId,
-    currentUserId,
     initialPosts,
     initialCursor,
 }: ProfilePostsProps)
@@ -296,25 +143,23 @@ function ProfilePosts({
     {
         return (
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                <LayoutList className="h-12 w-12 mb-3 opacity-30" />
+                <Grid3X3 className="h-12 w-12 mb-3 opacity-30" />
                 <p className="text-sm font-medium">No posts yet</p>
             </div>
         )
     }
 
     return (
-        <div className="space-y-4">
-            {posts.map((post) => (
-                <PostCard key={post.id} post={post} currentUserId={currentUserId} />
-            ))}
+        <div>
+            <div className="grid grid-cols-3 gap-0.5 sm:gap-1">
+                {posts.map((post) => (
+                    <PostTile key={post.id} post={post} />
+                ))}
 
-            {loading && (
-                <div className="space-y-4">
-                    {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-                        <PostCardSkeleton key={`skeleton-${i}`} />
-                    ))}
-                </div>
-            )}
+                {loading && Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+                    <div key={`skeleton-${i}`} className="aspect-square animate-pulse bg-muted" />
+                ))}
+            </div>
 
             {!exhausted && <div ref={sentinelRef} className="h-1" aria-hidden="true" />}
 
@@ -328,6 +173,9 @@ function ProfilePosts({
 }
 
 // ─── Main ProfileTabs component ───────────────────────────────────────────────
+// Instagram-style icon-only tab bar: Posts (grid) and Saved (bookmark).
+
+type ProfileTab = 'posts' | 'saved'
 
 interface ProfileTabsProps
 {
@@ -335,44 +183,59 @@ interface ProfileTabsProps
     currentUserId: string
     initialPosts: PostWithAuthor[]
     initialCursor: string | null
-    allMedia: MediaItem[]
 }
 
 export default function ProfileTabs({
     authorId,
-    currentUserId,
     initialPosts,
     initialCursor,
-    allMedia,
 }: ProfileTabsProps)
 {
+    const [activeTab, setActiveTab] = useState<ProfileTab>('posts')
+
     return (
-        <Tabs defaultValue="posts" className="w-full">
-            <TabsList className="w-full grid grid-cols-2 mb-4">
-                <TabsTrigger value="posts" className="gap-1.5">
-                    <LayoutList className="h-4 w-4" />
-                    Posts
-                </TabsTrigger>
-                <TabsTrigger value="media" className="gap-1.5">
-                    <Grid3X3 className="h-4 w-4" />
-                    Media
-                </TabsTrigger>
-            </TabsList>
+        <div className="w-full">
+            <div role="tablist" aria-label="Profile content" className="flex items-center border-t border-border">
+                <button
+                    role="tab"
+                    aria-selected={activeTab === 'posts'}
+                    aria-label="Posts"
+                    onClick={() => setActiveTab('posts')}
+                    className={`flex-1 flex items-center justify-center py-3 border-t-2 -mt-px transition-colors ${activeTab === 'posts'
+                        ? 'border-foreground text-foreground'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                        }`}
+                >
+                    <Grid3X3 className="h-5 w-5" strokeWidth={activeTab === 'posts' ? 2.25 : 1.75} />
+                </button>
+                <button
+                    role="tab"
+                    aria-selected={activeTab === 'saved'}
+                    aria-label="Saved"
+                    onClick={() => setActiveTab('saved')}
+                    className={`flex-1 flex items-center justify-center py-3 border-t-2 -mt-px transition-colors ${activeTab === 'saved'
+                        ? 'border-foreground text-foreground'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                        }`}
+                >
+                    <Bookmark className="h-5 w-5" strokeWidth={activeTab === 'saved' ? 2.25 : 1.75} />
+                </button>
+            </div>
 
-            <TabsContent value="posts" className="mt-0">
-                <ProfilePosts
-                    authorId={authorId}
-                    currentUserId={currentUserId}
-                    initialPosts={initialPosts}
-                    initialCursor={initialCursor}
-                />
-            </TabsContent>
-
-            <TabsContent value="media" className="mt-0">
-                <MediaGrid allMedia={allMedia} />
-            </TabsContent>
-        </Tabs>
+            <div role="tabpanel" className="mt-0.5 sm:mt-1">
+                {activeTab === 'posts' ? (
+                    <ProfilePosts
+                        authorId={authorId}
+                        initialPosts={initialPosts}
+                        initialCursor={initialCursor}
+                    />
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                        <Bookmark className="h-12 w-12 mb-3 opacity-30" />
+                        <p className="text-sm font-medium">No saved posts yet</p>
+                    </div>
+                )}
+            </div>
+        </div>
     )
 }
-
-export type { MediaItem }

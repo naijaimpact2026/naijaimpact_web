@@ -567,14 +567,35 @@ export async function updateBookingStatus(
 
 export async function fetchListingReviews(listingId: string): Promise<NmReview[]> {
   const supabase = await createClient()
-  const { data } = await supabase
+  const { data: reviews, error } = await supabase
     .from('nm_reviews')
-    .select(`*,
-      reviewer:users!nm_reviews_reviewer_id_fkey(id, fullname, username, profile_image_url)`)
+    .select('*')
     .eq('listing_id', listingId)
     .order('created_at', { ascending: false })
     .limit(50)
-  return (data ?? []) as NmReview[]
+
+  if (error || !reviews || reviews.length === 0) return []
+
+  // nm_reviews.reviewer_id is a FK into auth.users, not public.users, so it can't be
+  // resolved with a PostgREST embed — look reviewer profiles up separately by auth_id.
+  const reviewerIds = [...new Set(reviews.map((r) => r.reviewer_id))]
+
+  const { data: reviewers } = await supabase
+    .from('users')
+    .select('id, auth_id, fullname, username, profile_image_url')
+    .in('auth_id', reviewerIds)
+
+  const reviewerMap = new Map(
+    (reviewers ?? []).map((u) => [
+      u.auth_id,
+      { id: u.id, fullname: u.fullname, username: u.username, profile_image_url: u.profile_image_url },
+    ])
+  )
+
+  return reviews.map((r) => ({
+    ...r,
+    reviewer: reviewerMap.get(r.reviewer_id) ?? null,
+  })) as NmReview[]
 }
 
 export async function submitReview(data: {

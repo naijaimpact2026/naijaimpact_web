@@ -7,18 +7,23 @@ import type { ServiceWithProvider } from '@/lib/types'
 import type { ServiceCategory } from '@/lib/actions/services'
 import ServiceCard from './ServiceCard'
 import ServiceCardSkeleton from './ServiceCardSkeleton'
+import
+    {
+        LayoutGrid, Laptop, Palette, PenLine, Megaphone,
+        DollarSign, HeartPulse, BookOpen, Scale, Wrench,
+    } from 'lucide-react'
 
-const CATEGORY_OPTIONS: { value: ServiceCategory; label: string }[] = [
-    { value: 'all', label: 'All' },
-    { value: 'Tech', label: '💻 Tech' },
-    { value: 'Design', label: '🎨 Design' },
-    { value: 'Writing', label: '✍️ Writing' },
-    { value: 'Marketing', label: '📣 Marketing' },
-    { value: 'Finance', label: '💰 Finance' },
-    { value: 'Health', label: '🏥 Health' },
-    { value: 'Education', label: '📚 Education' },
-    { value: 'Legal', label: '⚖️ Legal' },
-    { value: 'Other', label: '🔧 Other' },
+const CATEGORY_OPTIONS: { value: ServiceCategory; label: string; icon: typeof LayoutGrid }[] = [
+    { value: 'all', label: 'All', icon: LayoutGrid },
+    { value: 'Tech', label: 'Tech', icon: Laptop },
+    { value: 'Design', label: 'Design', icon: Palette },
+    { value: 'Writing', label: 'Writing', icon: PenLine },
+    { value: 'Marketing', label: 'Marketing', icon: Megaphone },
+    { value: 'Finance', label: 'Finance', icon: DollarSign },
+    { value: 'Health', label: 'Health', icon: HeartPulse },
+    { value: 'Education', label: 'Education', icon: BookOpen },
+    { value: 'Legal', label: 'Legal', icon: Scale },
+    { value: 'Other', label: 'Other', icon: Wrench },
 ]
 
 interface ServicesListProps
@@ -117,7 +122,7 @@ export default function ServicesList({
         <div className="space-y-6">
             {/* Category filter chips */}
             <div className="flex items-center gap-2 flex-wrap">
-                {CATEGORY_OPTIONS.map(({ value, label }) =>
+                {CATEGORY_OPTIONS.map(({ value, label, icon: Icon }) =>
                 {
                     const isActive = activeCategory === value
                     return (
@@ -125,11 +130,12 @@ export default function ServicesList({
                             key={value}
                             type="button"
                             onClick={() => handleCategoryChange(value)}
-                            className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${isActive
+                            className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-all border ${isActive
                                     ? 'bg-primary text-primary-foreground border-primary'
                                     : 'bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground'
                                 }`}
                         >
+                            <Icon className="h-3.5 w-3.5" />
                             {label}
                         </button>
                     )
@@ -139,7 +145,7 @@ export default function ServicesList({
             {/* Services grid */}
             {services.length === 0 && !loading ? (
                 <div className="text-center py-20 text-muted-foreground">
-                    <p className="text-4xl mb-3">🛠️</p>
+                    <Wrench className="mx-auto h-10 w-10 mb-3 opacity-40" />
                     <p className="font-medium">No services found</p>
                     <p className="text-sm mt-1">Be the first to list your services!</p>
                 </div>

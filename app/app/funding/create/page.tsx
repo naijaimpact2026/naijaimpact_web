@@ -12,6 +12,7 @@ import
     ArrowLeft, ArrowRight, Megaphone, FolderKanban,
     CheckCircle2, Loader2, Target, Calendar, FileText,
     ImageIcon, Eye, Rocket, TrendingUp, Users, Zap,
+    Lightbulb, Pin, PenLine, AlertTriangle, Check,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,7 +42,6 @@ const TYPE_OPTIONS = [
     {
         val: 'campaign' as const,
         icon: Megaphone,
-        emoji: '📣',
         title: 'Campaign',
         subtitle: 'Personal or Social Impact',
         desc: 'Raise funds for a personal cause, emergency, or social impact initiative.',
@@ -54,7 +54,6 @@ const TYPE_OPTIONS = [
     {
         val: 'project' as const,
         icon: Rocket,
-        emoji: '🚀',
         title: 'Project',
         subtitle: 'Community or Business',
         desc: 'Fund a community initiative, business idea, or creative project with clear deliverables.',
@@ -127,11 +126,11 @@ export default function CreateFundingPage()
                         <ArrowLeft className="w-3.5 h-3.5" /> Back to Funding
                     </Link>
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-2xl shrink-0">
-                            {type === 'project' ? '🚀' : type === 'campaign' ? '📣' : '💡'}
+                        <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
+                            {type === 'project' ? <Rocket className="w-6 h-6 text-white" /> : type === 'campaign' ? <Megaphone className="w-6 h-6 text-white" /> : <Lightbulb className="w-6 h-6 text-white" />}
                         </div>
                         <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-0.5">Hubnovo Funding</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-0.5">HubNovo Funding</p>
                             <h1 className="text-2xl font-black text-white leading-tight">
                                 {type === 'project' ? 'Create a Project' : type === 'campaign' ? 'Start a Campaign' : 'Create a Campaign'}
                             </h1>
@@ -188,9 +187,9 @@ export default function CreateFundingPage()
                                                 style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px)', backgroundSize: '20px 20px' }} />
                                         )}
                                         <div className="flex items-start justify-between mb-3 relative z-10">
-                                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                                            <div className="w-12 h-12 rounded-xl flex items-center justify-center"
                                                 style={{ background: type === opt.val ? 'rgba(255,255,255,0.2)' : 'white', border: type === opt.val ? '1px solid rgba(255,255,255,0.3)' : '1px solid #e5e7eb' }}>
-                                                {opt.emoji}
+                                                <opt.icon className="w-6 h-6" style={{ color: type === opt.val ? 'white' : opt.accentColor }} />
                                             </div>
                                             {type === opt.val && (
                                                 <div className="w-7 h-7 rounded-full bg-white/20 border border-white/30 flex items-center justify-center">
@@ -230,9 +229,9 @@ export default function CreateFundingPage()
                         <div className="px-5 py-4 border-b border-gray-50"
                             style={{ background: 'linear-gradient(135deg,#f0fdf4,#ffffff)' }}>
                             <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base shrink-0"
+                                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                                     style={{ background: selectedType?.gradient ?? 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
-                                    <span>{selectedType?.emoji ?? '📣'}</span>
+                                    {(() => { const TypeIcon = selectedType?.icon ?? Megaphone; return <TypeIcon className="w-5 h-5 text-white" /> })()}
                                 </div>
                                 <div>
                                     <h2 className="text-sm font-black text-gray-900">Campaign Details</h2>
@@ -255,7 +254,7 @@ export default function CreateFundingPage()
                                 <Input id="title" placeholder="Give your campaign a clear, compelling title"
                                     {...register('title')}
                                     className={cn('rounded-xl border-gray-200 focus:border-emerald-400 text-black text-sm', errors.title ? 'border-red-300 bg-red-50' : '')} />
-                                {errors.title && <p className="text-xs text-red-500 flex items-center gap-1">⚠ {errors.title.message}</p>}
+                                {errors.title && <p className="text-xs text-red-500 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> {errors.title.message}</p>}
                             </div>
 
                             {/* Description */}
@@ -282,7 +281,7 @@ export default function CreateFundingPage()
                                             className={cn('pl-8 rounded-xl border-gray-200 focus:border-emerald-400 text-black font-bold', errors.goal_amount ? 'border-red-300 bg-red-50' : '')}
                                             {...register('goal_amount', { valueAsNumber: true })} />
                                     </div>
-                                    {errors.goal_amount && <p className="text-xs text-red-500">⚠ {errors.goal_amount.message}</p>}
+                                    {errors.goal_amount && <p className="flex items-center gap-1 text-xs text-red-500"><AlertTriangle className="w-3 h-3" /> {errors.goal_amount.message}</p>}
                                     <p className="text-[11px] text-gray-400">Minimum ₦1,000</p>
                                 </div>
                                 <div className="space-y-1.5">
@@ -293,7 +292,7 @@ export default function CreateFundingPage()
                                         min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
                                         className={cn('rounded-xl border-gray-200 focus:border-emerald-400 text-black', errors.deadline ? 'border-red-300 bg-red-50' : '')}
                                         {...register('deadline')} />
-                                    {errors.deadline && <p className="text-xs text-red-500">⚠ {errors.deadline.message}</p>}
+                                    {errors.deadline && <p className="flex items-center gap-1 text-xs text-red-500"><AlertTriangle className="w-3 h-3" /> {errors.deadline.message}</p>}
                                 </div>
                             </div>
                         </div>
@@ -325,7 +324,7 @@ export default function CreateFundingPage()
                                             sizes="(max-width: 768px) 100vw, 672px" />
                                         <div className="absolute inset-0 flex items-end p-3"
                                             style={{ background: 'linear-gradient(to top,rgba(0,0,0,0.5),transparent)' }}>
-                                            <span className="text-white text-xs font-bold">✓ Cover uploaded</span>
+                                            <span className="flex items-center gap-1 text-white text-xs font-bold"><Check className="w-3.5 h-3.5" /> Cover uploaded</span>
                                         </div>
                                     </div>
                                     <button onClick={() => setCoverFile(null)}
@@ -340,7 +339,7 @@ export default function CreateFundingPage()
                                 </div>
                             )}
                             <div className="flex items-center gap-2 text-xs text-gray-400 text-black rounded-xl px-4 py-3">
-                                <span>💡</span>
+                                <Lightbulb className="w-4 h-4 shrink-0" />
                                 <span>Recommended size: 1200×630px. You can skip this and add a cover later.</span>
                             </div>
                         </div>
@@ -381,15 +380,15 @@ export default function CreateFundingPage()
                             </div>
                             <div className="divide-y divide-gray-50">
                                 {[
-                                    { label: 'Type', icon: '📌', value: <span className={cn('text-[11px] font-black px-2.5 py-1 rounded-full uppercase', selectedType?.badgeColor ?? 'bg-emerald-100 text-emerald-700')}>{type}</span> },
-                                    { label: 'Title', icon: '✏️', value: <span className="font-bold text-gray-900 text-sm">{form.getValues('title')}</span> },
-                                    { label: 'Description', icon: '📝', value: form.getValues('description') ? <span className="text-gray-600 text-sm line-clamp-3">{form.getValues('description')}</span> : <span className="text-gray-400 text-sm italic">Not provided</span> },
-                                    { label: 'Goal', icon: '🎯', value: <span className="font-black text-emerald-700 text-base">₦{form.getValues('goal_amount')?.toLocaleString('en-NG')}</span> },
-                                    { label: 'Deadline', icon: '📅', value: <span className="font-bold text-gray-800 text-sm">{form.getValues('deadline') ? new Date(form.getValues('deadline')).toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</span> },
-                                    { label: 'Cover', icon: '🖼️', value: coverFile ? <span className="text-emerald-700 font-bold text-sm">✓ Image uploaded</span> : <span className="text-gray-400 text-sm">No cover image</span> },
+                                    { label: 'Type', icon: Pin, value: <span className={cn('text-[11px] font-black px-2.5 py-1 rounded-full uppercase', selectedType?.badgeColor ?? 'bg-emerald-100 text-emerald-700')}>{type}</span> },
+                                    { label: 'Title', icon: PenLine, value: <span className="font-bold text-gray-900 text-sm">{form.getValues('title')}</span> },
+                                    { label: 'Description', icon: FileText, value: form.getValues('description') ? <span className="text-gray-600 text-sm line-clamp-3">{form.getValues('description')}</span> : <span className="text-gray-400 text-sm italic">Not provided</span> },
+                                    { label: 'Goal', icon: Target, value: <span className="font-black text-emerald-700 text-base">₦{form.getValues('goal_amount')?.toLocaleString('en-NG')}</span> },
+                                    { label: 'Deadline', icon: Calendar, value: <span className="font-bold text-gray-800 text-sm">{form.getValues('deadline') ? new Date(form.getValues('deadline')).toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</span> },
+                                    { label: 'Cover', icon: ImageIcon, value: coverFile ? <span className="flex items-center gap-1 text-emerald-700 font-bold text-sm"><Check className="w-3.5 h-3.5" /> Image uploaded</span> : <span className="text-gray-400 text-sm">No cover image</span> },
                                 ].map(row => (
                                     <div key={row.label} className="flex items-start gap-3 px-5 py-3.5">
-                                        <span className="text-base shrink-0 mt-0.5">{row.icon}</span>
+                                        <row.icon className="w-4 h-4 shrink-0 mt-0.5 text-gray-400" />
                                         <span className="text-xs font-bold text-gray-400 w-24 shrink-0 pt-0.5">{row.label}</span>
                                         <div className="flex-1">{row.value}</div>
                                     </div>
@@ -399,7 +398,7 @@ export default function CreateFundingPage()
 
                         {/* Launch note */}
                         <div className="flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-emerald-50 border border-emerald-200">
-                            <span className="text-lg shrink-0">🚀</span>
+                            <Rocket className="w-5 h-5 shrink-0 text-emerald-600" />
                             <p className="text-xs text-emerald-700 leading-relaxed">
                                 Your campaign will go live immediately after submission. Share it with your network to start receiving donations!
                             </p>

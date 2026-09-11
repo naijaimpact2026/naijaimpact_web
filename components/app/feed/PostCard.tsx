@@ -10,8 +10,20 @@ import
         DropdownMenu,
         DropdownMenuContent,
         DropdownMenuItem,
+        DropdownMenuSeparator,
         DropdownMenuTrigger,
     } from '@/components/ui/dropdown-menu'
+import
+    {
+        AlertDialog,
+        AlertDialogAction,
+        AlertDialogCancel,
+        AlertDialogContent,
+        AlertDialogDescription,
+        AlertDialogFooter,
+        AlertDialogHeader,
+        AlertDialogTitle,
+    } from '@/components/ui/alert-dialog'
 import
     {
         ThumbsUp,
@@ -23,6 +35,7 @@ import
         Link2,
         UserPlus,
         UserCheck,
+        UserX,
     } from 'lucide-react'
 import MediaDisplay from './MediaDisplay'
 import type { PostWithAuthor } from '@/lib/types'
@@ -71,9 +84,10 @@ interface PostCardProps
     post: PostWithAuthor
     currentUserId: string
     onReactionToggle?: (postId: string, reacted: boolean, delta: number) => void
+    onHide?: (postId: string) => void
 }
 
-export default function PostCard({ post, currentUserId, onReactionToggle }: PostCardProps)
+export default function PostCard({ post, currentUserId, onReactionToggle, onHide }: PostCardProps)
 {
     const router = useRouter()
     const [reacted, setReacted] = useState(post.user_reacted)
@@ -81,8 +95,10 @@ export default function PostCard({ post, currentUserId, onReactionToggle }: Post
     const [reactionPending, setReactionPending] = useState(false)
     const [saved, setSaved] = useState(false)
     const [expanded, setExpanded] = useState(false)
-    const [following, setFollowing] = useState(false)
+    const [following, setFollowing] = useState(post.is_following_author ?? false)
     const [followPending, setFollowPending] = useState(false)
+    const [blockDialogOpen, setBlockDialogOpen] = useState(false)
+    const [blocking, setBlocking] = useState(false)
 
     const { author, medias, comment_count } = post
     const authorInitials = author.display_name
@@ -148,23 +164,95 @@ export default function PostCard({ post, currentUserId, onReactionToggle }: Post
         }
     }
 
+    async function handleBlock()
+    {
+        if (blocking) return
+        setBlocking(true)
+
+        try
+        {
+            const { blockUser } = await import('@/lib/actions/profile')
+            const result = await blockUser(author.id)
+
+            if (result.success)
+            {
+                setBlockDialogOpen(false)
+                onHide?.(post.id)
+                router.refresh()
+            }
+        }
+        finally
+        {
+            setBlocking(false)
+        }
+    }
+
+    async function copyToClipboard(text: string): Promise<boolean>
+    {
+        try
+        {
+            if (navigator.clipboard?.writeText)
+            {
+                await navigator.clipboard.writeText(text)
+                return true
+            }
+        }
+        catch { /* fall through to legacy fallback below */ }
+
+        // Fallback for browsers/contexts without the async Clipboard API
+        // (e.g. non-HTTPS, older Safari)
+        try
+        {
+            const textarea = document.createElement('textarea')
+            textarea.value = text
+            textarea.style.position = 'fixed'
+            textarea.style.opacity = '0'
+            document.body.appendChild(textarea)
+            textarea.select()
+            const ok = document.execCommand('copy')
+            document.body.removeChild(textarea)
+            return ok
+        }
+        catch
+        {
+            return false
+        }
+    }
+
+    async function handleCopyLink()
+    {
+        const url = `${window.location.origin}/app/feed/${post.id}`
+        const { toast } = await import('sonner')
+        const ok = await copyToClipboard(url)
+        if (ok) toast.success('Link copied to clipboard')
+        else toast.error('Could not copy link')
+    }
+
     async function handleShare()
     {
         const url = `${window.location.origin}/app/feed/${post.id}`
+
         if (navigator.share)
         {
-            try { await navigator.share({ title: 'Hubnovo post', url }) } catch { /* cancelled */ }
-        } else
-        {
-            await navigator.clipboard.writeText(url)
+            try
+            {
+                await navigator.share({ title: 'HubNovo post', url })
+            }
+            catch
+            {
+                /* user cancelled the share sheet — not an error */
+            }
+            return
         }
+
+        await handleCopyLink()
     }
 
     const captionText = post.caption ?? ''
     const captionNodes = parseCaption(captionText)
 
     return (
-        <article className="bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm overflow-hidden">
+        <article className="bg-card rounded-2xl border border-border shadow-sm dark:shadow-none overflow-hidden">
             {/* ── Header ─────────────────────────────────────────────────────── */}
             <div className="flex items-center gap-3 px-4 pt-4 pb-2">
                 <Link href={`/app/profile/${author.username}`} className="shrink-0">
@@ -223,16 +311,49 @@ export default function PostCard({ post, currentUserId, onReactionToggle }: Post
                             <span className="sr-only">Post options</span>
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={handleShare}>
+                    <DropdownMenuContent align="end" sideOffset={6} className="w-48">
+                        <DropdownMenuItem onClick={handleCopyLink}>
                             <Link2 className="h-4 w-4 mr-2" /> Copy link
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => router.push(`/app/feed/${post.id}`)}>
                             <MessageCircle className="h-4 w-4 mr-2" /> View post
                         </DropdownMenuItem>
+                        {currentUserId !== author.id && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    variant="destructive"
+                                    onClick={() => setBlockDialogOpen(true)}
+                                >
+                                    <UserX className="h-4 w-4 mr-2" /> Block @{author.username}
+                                </DropdownMenuItem>
+                            </>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
+
+            <AlertDialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Block @{author.username}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            You won&apos;t see posts or comments from {author.display_name} anymore, and they won&apos;t
+                            be able to follow you. You can unblock them later from Settings.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={blocking}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => { e.preventDefault(); handleBlock() }}
+                            disabled={blocking}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {blocking ? 'Blocking…' : 'Block'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* ── Caption ─────────────────────────────────────────────────────── */}
             {captionText.length > 0 && (
@@ -256,33 +377,10 @@ export default function PostCard({ post, currentUserId, onReactionToggle }: Post
                 </div>
             )}
 
-            {/* ── Reaction counts ─────────────────────────────────────────────── */}
-            {(reactionCount > 0 || comment_count > 0) && (
-                <div className="flex items-center justify-between px-4 py-2 text-xs text-muted-foreground">
-                    {reactionCount > 0 && (
-                        <div className="flex items-center gap-1">
-                            {/* Emoji reaction pills */}
-                            <span className="flex items-center">
-                                <span className="text-sm">❤️</span>
-                                {reactionCount > 1 && <span className="text-sm ml-0.5">😊</span>}
-                                {reactionCount > 2 && <span className="text-sm ml-0.5">👍</span>}
-                            </span>
-                            <span className="ml-1">{reactionCount}</span>
-                        </div>
-                    )}
-                    {comment_count > 0 && (
-                        <button onClick={() => router.push(`/app/feed/${post.id}`)}
-                            className="hover:underline ml-auto">
-                            {comment_count} Comment{comment_count !== 1 ? 's' : ''}
-                        </button>
-                    )}
-                </div>
-            )}
-
             {/* Divider */}
             <div className="h-px bg-border mx-4" />
 
-            {/* ── Action bar ──────────────────────────────────────────────────── */}
+            {/* ── Action bar — counts shown as badges on their icon ─────────────── */}
             <div className="flex items-center justify-around px-2 py-1">
                 {/* Like */}
                 <button
@@ -293,7 +391,14 @@ export default function PostCard({ post, currentUserId, onReactionToggle }: Post
                     className={`flex items-center gap-1.5 flex-1 justify-center py-2 rounded-xl text-sm font-medium transition-colors hover:bg-muted ${reacted ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                         }`}
                 >
-                    <ThumbsUp className={`h-4 w-4 ${reacted ? 'fill-primary' : ''}`} />
+                    <span className="relative">
+                        <ThumbsUp className={`h-4 w-4 ${reacted ? 'fill-primary' : ''}`} />
+                        {reactionCount > 0 && (
+                            <span className="absolute -top-2 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground">
+                                {reactionCount > 99 ? '99+' : reactionCount}
+                            </span>
+                        )}
+                    </span>
                     <span>Like</span>
                 </button>
 
@@ -303,7 +408,14 @@ export default function PostCard({ post, currentUserId, onReactionToggle }: Post
                     aria-label="Comment"
                     className="flex items-center gap-1.5 flex-1 justify-center py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 >
-                    <MessageCircle className="h-4 w-4" />
+                    <span className="relative">
+                        <MessageCircle className="h-4 w-4" />
+                        {comment_count > 0 && (
+                            <span className="absolute -top-2 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground">
+                                {comment_count > 99 ? '99+' : comment_count}
+                            </span>
+                        )}
+                    </span>
                     <span>Comment</span>
                 </button>
 

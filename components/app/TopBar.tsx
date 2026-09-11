@@ -28,10 +28,10 @@ export default function TopBar({ user, notificationCount = 0, onMenuToggle }: To
     return (
         <header className="fixed top-0 left-0 right-0 z-50 border-b h-14 flex items-center px-3 gap-2 shadow-sm"
             style={{ background: 'linear-gradient(90deg, #0a2d1c 0%, #0f3d25 60%, #065f46 100%)', borderColor: 'rgba(255,255,255,0.08)' }}>
-            {/* Hamburger menu toggle */}
+            {/* Hamburger menu toggle — hidden on lg+ where the sidebar is a persistent rail */}
             <button
                 onClick={onMenuToggle}
-                className="p-2 rounded-full transition-colors shrink-0"
+                className="p-2 rounded-full transition-colors shrink-0 lg:hidden"
                 style={{ color: 'rgba(255,255,255,0.8)' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -42,9 +42,9 @@ export default function TopBar({ user, notificationCount = 0, onMenuToggle }: To
 
             {/* Logo */}
             <Link href="/app/feed" className="flex items-center gap-1.5 shrink-0">
-                <Image src="/logo.png" alt="Hubnovo" width={28} height={28} className="rounded-md" unoptimized />
+                <Image src="/logo.png" alt="HubNovo" width={28} height={28} className="rounded-md" unoptimized />
                 <div className="leading-none hidden sm:block">
-                    <p className="font-bold text-sm text-white tracking-tight">Hubnovo</p>
+                    <p className="font-bold text-sm text-white tracking-tight">HubNovo</p>
                     <p className="text-[8px] font-medium" style={{ color: '#6ee7b7' }}>Empower. Equip. Elevate.</p>
                 </div>
             </Link>

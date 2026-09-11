@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, X, CheckCircle2, Camera, Tag } from 'lucide-react'
 import { MediaUploader, type UploadedFile } from '@/components/app/MediaUploader'
 import { createListing } from '@/lib/actions/marketplace'
 import type { NmListingType, NmListingCondition, NmDeliveryOption, ServiceCategory } from '@/lib/types'
@@ -386,15 +386,15 @@ export default function CreateListingForm({ categories }: Props)
 
                             <div className="bg-green-50 rounded-3xl p-5 border border-green-200">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <span className="text-xl">✅</span>
+                                    <CheckCircle2 className="h-5 w-5 text-green-600" />
                                     <p className="font-bold text-gray-900">Ready to Publish!</p>
                                 </div>
                                 <p className="text-sm text-gray-600">
                                     Your listing will be visible to buyers across Nigeria with escrow-protected payments.
                                 </p>
                                 <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
-                                    <span>📸 {images.length} photo{images.length !== 1 ? 's' : ''}</span>
-                                    <span>🏷️ {tags.length} tag{tags.length !== 1 ? 's' : ''}</span>
+                                    <span className="flex items-center gap-1"><Camera className="h-3.5 w-3.5" /> {images.length} photo{images.length !== 1 ? 's' : ''}</span>
+                                    <span className="flex items-center gap-1"><Tag className="h-3.5 w-3.5" /> {tags.length} tag{tags.length !== 1 ? 's' : ''}</span>
                                 </div>
                             </div>
 

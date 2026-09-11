@@ -15,6 +15,8 @@ interface EnrolButtonProps
     amount: number
     isFree: boolean
     alreadyEnrolled: boolean
+    hasStarted: boolean
+    resumeLessonId: string | null
 }
 
 export default function EnrolButton({
@@ -22,6 +24,8 @@ export default function EnrolButton({
     amount,
     isFree,
     alreadyEnrolled,
+    hasStarted,
+    resumeLessonId,
 }: EnrolButtonProps)
 {
     const router = useRouter()
@@ -30,14 +34,19 @@ export default function EnrolButton({
     const [error, setError] = useState<string | null>(null)
 
     /*
-     * Already enrolled
+     * Already enrolled — resume at the last-watched lesson, or the first
+     * lesson if the learner hasn't started yet.
      */
     if (alreadyEnrolled)
     {
+        const continueHref = resumeLessonId
+            ? `/app/learn/${courseId}/${resumeLessonId}`
+            : `/app/learn/${courseId}`
+
         return (
             <button
                 type="button"
-                onClick={() => router.push('/app/learn')}
+                onClick={() => router.push(continueHref)}
                 className="
                     flex w-full items-center
                     justify-center gap-2
@@ -54,7 +63,7 @@ export default function EnrolButton({
                 "
             >
                 <PlayCircle className="h-4 w-4" />
-                Continue learning
+                {hasStarted ? 'Continue learning' : 'Start learning'}
             </button>
         )
     }
@@ -162,7 +171,7 @@ export default function EnrolButton({
                 <p className="
                     text-center
                     text-[11px]
-                    text-slate-400
+                    text-muted-foreground
                 ">
                     {isFree
                         ? 'Start learning immediately'

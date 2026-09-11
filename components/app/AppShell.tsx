@@ -31,7 +31,7 @@ function AppShellInner({ children, user }: AppShellInnerProps)
     }
 
     return (
-        <div className="flex min-h-screen bg-[#f0f4f2] text-foreground app-bg">
+        <div className="flex min-h-screen bg-background text-foreground">
             {/* Fixed top header */}
             <TopBar
                 user={user}
@@ -39,7 +39,7 @@ function AppShellInner({ children, user }: AppShellInnerProps)
                 onMenuToggle={() => setSidebarOpen((v) => !v)}
             />
 
-            {/* Sidebar drawer — controlled by inline transform so Tailwind purging can't break it */}
+            {/* Sidebar — overlay drawer on mobile/tablet, persistent rail on lg+ */}
             <Sidebar
                 user={user}
                 onSignOut={handleSignOut}
@@ -49,10 +49,10 @@ function AppShellInner({ children, user }: AppShellInnerProps)
                 onClose={() => setSidebarOpen(false)}
             />
 
-            {/* Backdrop for sidebar */}
+            {/* Backdrop for sidebar — mobile/tablet only, sidebar is persistent on lg+ */}
             {sidebarOpen && (
                 <div
-                    className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm"
+                    className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden"
                     onClick={() => setSidebarOpen(false)}
                     aria-hidden="true"
                 />

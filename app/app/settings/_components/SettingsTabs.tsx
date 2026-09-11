@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { Loader2, Upload, User, Eye, EyeOff, AlertTriangle, Trash2, Sun, Moon, Monitor } from 'lucide-react'
+import { Loader2, Upload, User, Eye, EyeOff, AlertTriangle, Trash2, Sun, Moon, Monitor, Smartphone, Settings, CheckCircle2, ClipboardList, DollarSign, GraduationCap, BarChart3, Clock, FolderOpen, Mail, type LucideIcon } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
@@ -649,7 +649,7 @@ function AppearanceTab()
                 <div>
                     <h2 className="font-semibold text-lg">Appearance</h2>
                     <p className="text-muted-foreground text-sm mt-1">
-                        Choose how Hubnovo looks to you
+                        Choose how HubNovo looks to you
                     </p>
                 </div>
 
@@ -712,20 +712,20 @@ function AppearanceTab()
 
 // ─── Danger Zone Tab ──────────────────────────────────────────────────────────
 
-const DELETE_STEPS = [
-    { step: '01', icon: '📱', title: 'Open the Hubnovo App', description: 'Launch the Hubnovo mobile application or visit the website on your device. Ensure you are logged into the account you wish to delete.' },
-    { step: '02', icon: '👤', title: 'Go to Your Profile', description: 'Tap your profile icon or avatar at the top of the screen. Select "My Profile" or "Account Settings" from the menu.' },
-    { step: '03', icon: '⚙️', title: 'Open Account Settings', description: 'Scroll down within your profile or settings page to find the "Account" section. Look for "Privacy & Security" or "Account Management".' },
-    { step: '04', icon: '🗑️', title: 'Select "Delete Account"', description: 'Tap on "Delete Account" or "Close Account". Read the information provided about what will happen to your data and memberships.' },
-    { step: '05', icon: '✅', title: 'Verify Your Identity', description: 'For your security, you may be asked to confirm your password, enter a verification code sent to your phone or email, or answer security questions.' },
-    { step: '06', icon: '📋', title: 'Confirm Deletion', description: 'Review the final confirmation screen. This is irreversible — once confirmed, your account and associated data will be scheduled for deletion.' },
+const DELETE_STEPS: { step: string; icon: LucideIcon; title: string; description: string }[] = [
+    { step: '01', icon: Smartphone, title: 'Open the HubNovo App', description: 'Launch the HubNovo mobile application or visit the website on your device. Ensure you are logged into the account you wish to delete.' },
+    { step: '02', icon: User, title: 'Go to Your Profile', description: 'Tap your profile icon or avatar at the top of the screen. Select "My Profile" or "Account Settings" from the menu.' },
+    { step: '03', icon: Settings, title: 'Open Account Settings', description: 'Scroll down within your profile or settings page to find the "Account" section. Look for "Privacy & Security" or "Account Management".' },
+    { step: '04', icon: Trash2, title: 'Select "Delete Account"', description: 'Tap on "Delete Account" or "Close Account". Read the information provided about what will happen to your data and memberships.' },
+    { step: '05', icon: CheckCircle2, title: 'Verify Your Identity', description: 'For your security, you may be asked to confirm your password, enter a verification code sent to your phone or email, or answer security questions.' },
+    { step: '06', icon: ClipboardList, title: 'Confirm Deletion', description: 'Review the final confirmation screen. This is irreversible — once confirmed, your account and associated data will be scheduled for deletion.' },
 ]
 
-const DELETE_WARNINGS = [
-    { icon: '💰', title: 'Cooperative Savings', desc: 'Outstanding cooperative savings or loans may need to be settled before account deletion is processed.' },
-    { icon: '🎓', title: 'Scholarships & Grants', desc: 'Active scholarship or grant enrollments may be cancelled. Contact support to discuss alternatives.' },
-    { icon: '📊', title: 'Transaction Records', desc: 'Financial records required for legal compliance may be retained even after account deletion.' },
-    { icon: '⏳', title: 'Processing Time', desc: 'Account deletion may take up to 30 days to fully process across all systems.' },
+const DELETE_WARNINGS: { icon: LucideIcon; title: string; desc: string }[] = [
+    { icon: DollarSign, title: 'Cooperative Savings', desc: 'Outstanding cooperative savings or loans may need to be settled before account deletion is processed.' },
+    { icon: GraduationCap, title: 'Scholarships & Grants', desc: 'Active scholarship or grant enrollments may be cancelled. Contact support to discuss alternatives.' },
+    { icon: BarChart3, title: 'Transaction Records', desc: 'Financial records required for legal compliance may be retained even after account deletion.' },
+    { icon: Clock, title: 'Processing Time', desc: 'Account deletion may take up to 30 days to fully process across all systems.' },
 ]
 
 const RETENTION_ITEMS = [
@@ -795,15 +795,15 @@ function DangerZoneTab({ user }: { user: AppUser })
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                     style={{ background: 'linear-gradient(135deg,#fff1f2,#ffffff)' }}>
-                    <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center text-base shrink-0">🗑️</div>
+                    <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center shrink-0"><Trash2 className="w-4 h-4 text-red-600" /></div>
                     <h3 className="text-sm font-black text-gray-900">How to Delete Your Account</h3>
                 </div>
                 <div className="px-5 py-5 space-y-1">
                     {DELETE_STEPS.map((s, i) => (
                         <div key={s.step} className="flex items-start gap-4">
                             <div className="flex flex-col items-center shrink-0">
-                                <div className="w-9 h-9 rounded-xl bg-red-50 border-2 border-red-100 flex items-center justify-center text-base">
-                                    {s.icon}
+                                <div className="w-9 h-9 rounded-xl bg-red-50 border-2 border-red-100 flex items-center justify-center">
+                                    <s.icon className="w-4 h-4 text-red-600" />
                                 </div>
                                 {i < DELETE_STEPS.length - 1 && (
                                     <div className="w-0.5 h-4 bg-gray-100 mt-1" />
@@ -827,13 +827,13 @@ function DangerZoneTab({ user }: { user: AppUser })
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                     style={{ background: 'linear-gradient(135deg,#fffbeb,#ffffff)' }}>
-                    <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-base shrink-0">⚠️</div>
+                    <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0"><AlertTriangle className="w-4 h-4 text-amber-600" /></div>
                     <h3 className="text-sm font-black text-gray-900">What Happens When You Delete</h3>
                 </div>
                 <div className="p-5 grid grid-cols-2 gap-3">
                     {DELETE_WARNINGS.map((w, i) => (
                         <div key={i} className="rounded-xl p-4 border border-gray-100 bg-gray-50">
-                            <div className="text-xl mb-1.5">{w.icon}</div>
+                            <w.icon className="w-5 h-5 mb-1.5 text-gray-500" />
                             <p className="text-xs font-bold text-gray-800 mb-1">{w.title}</p>
                             <p className="text-xs text-gray-500 leading-relaxed">{w.desc}</p>
                         </div>
@@ -845,7 +845,7 @@ function DangerZoneTab({ user }: { user: AppUser })
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                     style={{ background: 'linear-gradient(135deg,#eff6ff,#ffffff)' }}>
-                    <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center text-base shrink-0">🗂️</div>
+                    <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center shrink-0"><FolderOpen className="w-4 h-4 text-blue-600" /></div>
                     <h3 className="text-sm font-black text-gray-900">Data Retained After Deletion</h3>
                 </div>
                 <div className="px-5 py-4">
@@ -867,7 +867,7 @@ function DangerZoneTab({ user }: { user: AppUser })
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                     style={{ background: 'linear-gradient(135deg,#f0fdf4,#ffffff)' }}>
-                    <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-base shrink-0">✉️</div>
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0"><Mail className="w-4 h-4 text-emerald-600" /></div>
                     <h3 className="text-sm font-black text-gray-900">Prefer to Request via Email?</h3>
                 </div>
                 <div className="px-5 py-4">
@@ -876,7 +876,7 @@ function DangerZoneTab({ user }: { user: AppUser })
                     </p>
                     <a href="mailto:support@Hubnovo.org?subject=Account%20Deletion%20Request"
                         className="inline-flex items-center gap-2 bg-emerald-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-emerald-700 transition-colors">
-                        ✉️ Send Deletion Request Email
+                        <Mail className="w-3.5 h-3.5" /> Send Deletion Request Email
                     </a>
                 </div>
             </div>
@@ -982,8 +982,8 @@ function DangerZoneTab({ user }: { user: AppUser })
             {/* ── Privacy policy link ── */}
             <div className="text-center pb-2">
                 <Link href="/privacy-policy"
-                    className="text-xs text-gray-400 hover:text-emerald-700 transition-colors font-medium">
-                    📄 Read our Privacy Policy
+                    className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-emerald-700 transition-colors font-medium">
+                    <FolderOpen className="w-3 h-3" /> Read our Privacy Policy
                 </Link>
             </div>
         </div>

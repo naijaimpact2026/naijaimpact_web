@@ -27,7 +27,7 @@ const ACTIONS = [
 export default function PostComposerBar({ user, onOpen }: PostComposerBarProps)
 {
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="bg-card rounded-2xl border border-border shadow-sm dark:shadow-none overflow-hidden">
             {/* Top: avatar + prompt */}
             <div
                 className="flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/40 transition-colors"

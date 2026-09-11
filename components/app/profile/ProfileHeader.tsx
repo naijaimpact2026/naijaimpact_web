@@ -4,8 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { CheckCircle2, UserCheck, UserPlus } from 'lucide-react'
+import { BadgeCheck, UserCheck, UserPlus, Calendar, Pencil } from 'lucide-react'
 import { followUser, unfollowUser } from '@/lib/actions/profile'
 import FollowersModal from './FollowersModal'
 import type { User } from '@/lib/types'
@@ -19,6 +18,11 @@ interface ProfileHeaderProps
     postCount: number
     isFollowing: boolean
     isOwnProfile: boolean
+}
+
+function formatJoinDate(dateStr: string): string
+{
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 }
 
 export default function ProfileHeader({
@@ -75,89 +79,113 @@ export default function ProfileHeader({
     }
 
     return (
-        <div className="bento-card noise-bg p-5 space-y-4">
-            {/* Avatar + action row */}
-            <div className="flex items-start justify-between gap-4">
-                <Avatar className="h-20 w-20 shrink-0 ring-2 ring-primary/20">
-                    <AvatarImage src={profile.avatar_url ?? undefined} alt={profile.display_name} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
-                        {initials}
-                    </AvatarFallback>
-                </Avatar>
+        <div className="noise-bg rounded-2xl border border-border bg-card overflow-hidden">
+            {/* Banner */}
+            <div
+                className="h-24 sm:h-28"
+                style={{ background: 'linear-gradient(135deg, #1a5c38 0%, #14532d 45%, #0a2d1c 100%)' }}
+            />
 
-                {/* Action buttons */}
-                <div className="flex items-center gap-2 pt-1">
-                    {isOwnProfile ? (
-                        <Button variant="outline" size="sm" asChild>
-                            <Link href="/app/settings">Edit Profile</Link>
-                        </Button>
-                    ) : (
-                        <Button
-                            size="sm"
-                            variant={isFollowing ? 'outline' : 'default'}
-                            onClick={handleFollowToggle}
-                            disabled={pending}
-                            className="gap-1.5"
-                            aria-label={isFollowing ? `Unfollow ${profile.username}` : `Follow ${profile.username}`}
-                        >
-                            {isFollowing ? (
-                                <>
-                                    <UserCheck className="h-4 w-4" />
-                                    Following
-                                </>
-                            ) : (
-                                <>
-                                    <UserPlus className="h-4 w-4" />
-                                    Follow
-                                </>
-                            )}
-                        </Button>
+            <div className="px-5 pb-5">
+                {/* Avatar overlapping the banner + action row */}
+                <div className="flex items-end justify-between gap-4 -mt-10 sm:-mt-12">
+                    <Avatar className="h-20 w-20 sm:h-24 sm:w-24 shrink-0 ring-4 ring-card">
+                        <AvatarImage src={profile.avatar_url ?? undefined} alt={profile.display_name} />
+                        <AvatarFallback className="bg-primary/15 text-primary text-2xl font-bold">
+                            {initials}
+                        </AvatarFallback>
+                    </Avatar>
+
+                    <div className="flex items-center gap-2 pb-1">
+                        {isOwnProfile ? (
+                            <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                                <Link href="/app/settings">
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    Edit Profile
+                                </Link>
+                            </Button>
+                        ) : (
+                            <Button
+                                size="sm"
+                                variant={isFollowing ? 'outline' : 'default'}
+                                onClick={handleFollowToggle}
+                                disabled={pending}
+                                className="gap-1.5 rounded-full px-4"
+                                aria-label={isFollowing ? `Unfollow ${profile.username}` : `Follow ${profile.username}`}
+                            >
+                                {isFollowing ? (
+                                    <>
+                                        <UserCheck className="h-3.5 w-3.5" />
+                                        Following
+                                    </>
+                                ) : (
+                                    <>
+                                        <UserPlus className="h-3.5 w-3.5" />
+                                        Follow
+                                    </>
+                                )}
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Name + username + verified */}
+                <div className="mt-3 space-y-0.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                        <h1 className="text-xl font-bold leading-tight text-foreground">{profile.display_name}</h1>
+                        {profile.verified && (
+                            <BadgeCheck
+                                className="h-5 w-5 text-primary shrink-0 fill-primary/15"
+                                aria-label="Verified account"
+                            />
+                        )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">@{profile.username}</p>
+                    {profile.profession && (
+                        <p className="text-sm text-foreground/80 font-medium">{profile.profession}</p>
                     )}
                 </div>
-            </div>
 
-            {/* Name + username + verified */}
-            <div className="space-y-0.5">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                    <h1 className="text-xl font-bold leading-tight">{profile.display_name}</h1>
-                    {profile.verified && (
-                        <CheckCircle2
-                            className="h-5 w-5 text-primary shrink-0"
-                            aria-label="Verified account"
-                        />
-                    )}
-                </div>
-                <p className="text-sm text-muted-foreground">@{profile.username}</p>
-                {profile.profession && (
-                    <p className="text-sm text-muted-foreground font-medium">{profile.profession}</p>
+                {/* Bio */}
+                {profile.bio && (
+                    <p className="mt-3 text-sm leading-relaxed text-foreground whitespace-pre-line">{profile.bio}</p>
                 )}
-            </div>
 
-            {/* Bio */}
-            {profile.bio && (
-                <p className="text-sm leading-relaxed whitespace-pre-line">{profile.bio}</p>
-            )}
-
-            {/* Stats row */}
-            <div className="flex items-center gap-6 pt-1">
-                <div className="text-center">
-                    <p className="text-lg font-bold leading-none">{postCount}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Posts</p>
+                {/* Joined date */}
+                <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Calendar className="h-3.5 w-3.5" />
+                    Joined {formatJoinDate(profile.created_at)}
                 </div>
 
-                <FollowersModal
-                    userId={profile.id}
-                    type="followers"
-                    count={followerCount}
-                    label="Followers"
-                />
+                {/* Stats row */}
+                <div className="mt-4 flex items-center gap-2 border-t border-border pt-4">
+                    <div className="flex-1 rounded-xl py-2 text-center">
+                        <p className="text-base font-bold leading-none text-foreground">{postCount}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Posts</p>
+                    </div>
 
-                <FollowersModal
-                    userId={profile.id}
-                    type="following"
-                    count={followingCount}
-                    label="Following"
-                />
+                    <div className="h-8 w-px bg-border" />
+
+                    <div className="flex-1 flex justify-center">
+                        <FollowersModal
+                            userId={profile.id}
+                            type="followers"
+                            count={followerCount}
+                            label="Followers"
+                        />
+                    </div>
+
+                    <div className="h-8 w-px bg-border" />
+
+                    <div className="flex-1 flex justify-center">
+                        <FollowersModal
+                            userId={profile.id}
+                            type="following"
+                            count={followingCount}
+                            label="Following"
+                        />
+                    </div>
+                </div>
             </div>
         </div>
     )

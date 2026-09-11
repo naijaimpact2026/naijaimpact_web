@@ -145,7 +145,9 @@ export default function ArtisanDetailClient({ listing, reviews, currentUserId, u
                                     <p className="text-2xl font-black text-gray-900">From {fmt(listing.price)}</p>
                                 )}
                                 {listing.negotiable && (
-                                    <p className="text-xs text-green-600 font-semibold mt-0.5">✓ Price negotiable</p>
+                                    <p className="flex items-center gap-1 text-xs text-green-600 font-semibold mt-0.5">
+                                        <CheckCircle2 className="h-3.5 w-3.5" /> Price negotiable
+                                    </p>
                                 )}
                             </div>
                             {reviewCount > 0 && (
