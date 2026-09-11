@@ -1,285 +1,46 @@
-import { notFound } from 'next/navigation'
-import Image from 'next/image'
+'use client'
+
 import Link from 'next/link'
-import Script from 'next/script'
-import { createClient } from '@/lib/supabase/server'
-import { fetchCampaignById } from '@/lib/actions/funding'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Calendar, Users, Target, Globe, BadgeCheck } from 'lucide-react'
-import FundingDetailClient from '@/components/app/funding/FundingDetailClient'
-import EditCampaignButton from '@/components/app/funding/EditCampaignButton'
+import { ArrowLeft, Hourglass } from 'lucide-react'
 
-export const dynamic = 'force-dynamic'
-
-interface CampaignDetailPageProps
-{
-    params: Promise<{ id: string }>
-}
-
-function formatNGN(amount: number): string
-{
-    return `₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-}
-
-function getDeadlineLabel(deadline: string): { label: string; isEnded: boolean }
-{
-    const deadlineDate = new Date(deadline)
-    const now = new Date()
-    const diffMs = deadlineDate.getTime() - now.getTime()
-    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
-    if (diffDays <= 0) return { label: 'Ended', isEnded: true }
-    if (diffDays === 1) return { label: '1 day left', isEnded: false }
-    return { label: `${diffDays} days left`, isEnded: false }
-}
-
-export default async function CampaignDetailPage({ params }: CampaignDetailPageProps)
-{
-    const { id } = await params
-    const campaign = await fetchCampaignById(id)
-
-    if (!campaign) notFound()
-
-    const supabase = await createClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-
-    let userEmail = ''
-    let isCreator = false
-
-    if (authUser)
-    {
-        userEmail = authUser.email ?? ''
-        // Fetch the profile id to compare with campaign.creator_id
-        const { data: profile } = await supabase
-            .from('users')
-            .select('id')
-            .eq('auth_id', authUser.id)
-            .single()
-        isCreator = profile?.id === campaign.creator_id
-    }
-
-    const progressPct = Math.min(
-        100,
-        campaign.goal_amount > 0 ? (campaign.amount_raised / campaign.goal_amount) * 100 : 0
-    )
-    const goalReached = campaign.amount_raised >= campaign.goal_amount
-    const { label: deadlineLabel, isEnded } = getDeadlineLabel(campaign.deadline)
-    const deadlineFormatted = new Date(campaign.deadline).toLocaleDateString('en-NG', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-    })
-
+export default function FundingDetailPage() {
     return (
-        <>
-            {/* Paystack inline JS */}
-            <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
+        <main className="min-h-screen bg-white dark:bg-slate-950">
+            <div className="flex min-h-screen items-center justify-center px-6">
+                <div className="w-full max-w-lg text-center">
 
-            <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-                {/* Back link */}
-                <Link
-                    href="/app/funding"
-                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Funding
-                </Link>
-
-                {/* Hero cover image */}
-                <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-muted">
-                    {campaign.cover_url ? (
-                        <Image
-                            src={campaign.cover_url}
-                            alt={campaign.title}
-                            fill
-                            priority
-                            className="object-cover"
-                            sizes="(max-width: 1024px) 100vw, 896px"
+                    <div className="mx-auto mb-8 flex h-28 w-28 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950">
+                        <Hourglass
+                            className="h-14 w-14 text-emerald-600 dark:text-emerald-400"
+                            strokeWidth={1.5}
                         />
-                    ) : (
-                        <div className="absolute inset-0 gradient-primary opacity-60 flex items-center justify-center">
-                            <Globe className="h-16 w-16 text-white/80" />
-                        </div>
-                    )}
-
-                    {/* Type badge */}
-                    <div className="absolute top-4 left-4">
-                        <Badge className="capitalize bg-black/50 text-white border-0 backdrop-blur-sm">
-                            {campaign.type}
-                        </Badge>
                     </div>
 
-                    {goalReached && (
-                        <div className="absolute top-4 right-4">
-                            <Badge className="gap-1 bg-green-500 text-white border-0 font-semibold text-sm px-3 py-1">
-                                <Target className="h-3.5 w-3.5" /> Goal Reached!
-                            </Badge>
-                        </div>
-                    )}
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
+                        Funding is Coming Soon
+                    </h1>
+
+                    <p className="mx-auto mt-5 max-w-md text-base leading-7 text-gray-500 dark:text-gray-400">
+                        We&apos;re preparing something impactful.
+                        Soon, you&apos;ll be able to discover, support,
+                        and fund great ideas and projects on HubNovo.
+                    </p>
+
+                    <div className="mt-8 inline-flex items-center gap-2 rounded-full bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-600 dark:bg-slate-800 dark:text-gray-300">
+                        <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-500" />
+                        Coming Soon
+                    </div>
+
+                    <Link
+                        href="/app/funding"
+                        className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to Funding
+                    </Link>
+
                 </div>
-
-                {/* Main content grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left: title + description */}
-                    <div className="lg:col-span-2 space-y-6">
-                        <div className="space-y-2">
-                            <h1 className="text-2xl font-bold leading-tight">{campaign.title}</h1>
-                            <p className="text-sm text-muted-foreground">
-                                by{' '}
-                                <Link
-                                    href={`/app/profile/${campaign.creator.username}`}
-                                    className="text-primary hover:underline font-medium"
-                                >
-                                    @{campaign.creator.username}
-                                </Link>
-                            </p>
-                        </div>
-
-                        {campaign.description && (
-                            <div className="bento-card noise-bg p-5">
-                                <h2 className="font-semibold mb-3 relative z-10">About this campaign</h2>
-                                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap relative z-10">
-                                    {campaign.description}
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Creator info card */}
-                        <div className="bento-card noise-bg p-5">
-                            <h2 className="font-semibold mb-4 relative z-10">About the creator</h2>
-                            <div className="flex items-start gap-4 relative z-10">
-                                <Link href={`/app/profile/${campaign.creator.username}`}>
-                                    <Avatar className="h-14 w-14 border-2 border-border">
-                                        <AvatarImage src={campaign.creator.avatar_url ?? undefined} />
-                                        <AvatarFallback className="bg-primary/20 text-primary font-bold text-lg">
-                                            {campaign.creator.username.charAt(0).toUpperCase()}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </Link>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <Link
-                                            href={`/app/profile/${campaign.creator.username}`}
-                                            className="font-semibold hover:text-primary transition-colors"
-                                        >
-                                            {campaign.creator_display_name}
-                                        </Link>
-                                        {campaign.creator_verified && (
-                                            <Badge className="gap-1 bg-primary/10 text-primary border-0 text-xs px-2 py-0">
-                                                <BadgeCheck className="h-3 w-3" /> Verified
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    <p className="text-sm text-muted-foreground">
-                                        @{campaign.creator.username}
-                                    </p>
-                                    {campaign.creator_profession && (
-                                        <p className="text-sm text-muted-foreground mt-0.5">
-                                            {campaign.creator_profession}
-                                        </p>
-                                    )}
-                                    {campaign.creator_bio && (
-                                        <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
-                                            {campaign.creator_bio}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right: funding stats + donate */}
-                    <div className="space-y-4">
-                        <div className="bento-card noise-bg p-5 space-y-5 sticky top-6">
-                            {/* Progress */}
-                            <div className="space-y-2 relative z-10">
-                                <div className="flex items-end justify-between gap-2">
-                                    <div>
-                                        <p className="text-2xl font-bold">
-                                            {formatNGN(campaign.amount_raised)}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            raised of {formatNGN(campaign.goal_amount)} goal
-                                        </p>
-                                    </div>
-                                    {goalReached && (
-                                        <Badge className="bg-green-100 text-green-700 border-green-200">
-                                            100%
-                                        </Badge>
-                                    )}
-                                </div>
-
-                                <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
-                                    <div
-                                        className={`h-full rounded-full transition-all duration-700 ${goalReached
-                                            ? 'bg-green-500'
-                                            : 'bg-gradient-to-r from-primary to-secondary'
-                                            }`}
-                                        style={{ width: `${progressPct}%` }}
-                                    />
-                                </div>
-
-                                <p className="text-sm font-medium text-right text-muted-foreground">
-                                    {progressPct.toFixed(1)}% funded
-                                </p>
-                            </div>
-
-                            {/* Stats */}
-                            <div className="grid grid-cols-1 gap-3 relative z-10">
-                                <div className="flex items-center gap-3 text-sm">
-                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                        <Users className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold">{campaign.donor_count.toLocaleString()}</p>
-                                        <p className="text-xs text-muted-foreground">donors</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-3 text-sm">
-                                    <div className="h-8 w-8 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0">
-                                        <Target className="h-4 w-4 text-secondary" />
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold">{formatNGN(campaign.goal_amount)}</p>
-                                        <p className="text-xs text-muted-foreground">goal amount</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-3 text-sm">
-                                    <div
-                                        className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${isEnded ? 'bg-destructive/10' : 'bg-orange-500/10'
-                                            }`}
-                                    >
-                                        <Calendar
-                                            className={`h-4 w-4 ${isEnded ? 'text-destructive' : 'text-orange-500'}`}
-                                        />
-                                    </div>
-                                    <div>
-                                        <p className={`font-semibold ${isEnded ? 'text-destructive' : ''}`}>
-                                            {deadlineLabel}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">{deadlineFormatted}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Donate button — client component to manage modal */}
-                            <div className="relative z-10 space-y-2">
-                                {isCreator && (
-                                    <EditCampaignButton campaignId={campaign.id} />
-                                )}
-                                <FundingDetailClient
-                                    campaignId={campaign.id}
-                                    campaignTitle={campaign.title}
-                                    userEmail={userEmail}
-                                    isEnded={isEnded}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </main>
-        </>
+            </div>
+        </main>
     )
 }

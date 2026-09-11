@@ -1,61 +1,46 @@
-import { notFound, redirect } from 'next/navigation'
+'use client'
+
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
-import { fetchCampaignById } from '@/lib/actions/funding'
-import { ArrowLeft } from 'lucide-react'
-import FundingEditForm from '@/components/app/funding/FundingEditForm'
+import { ArrowLeft, Hourglass } from 'lucide-react'
 
-export const dynamic = 'force-dynamic'
-
-interface EditCampaignPageProps
-{
-    params: Promise<{ id: string }>
-}
-
-export default async function EditCampaignPage({ params }: EditCampaignPageProps)
-{
-    const { id } = await params
-    const campaign = await fetchCampaignById(id)
-
-    if (!campaign) notFound()
-
-    const supabase = await createClient()
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
-
-    if (!authUser) redirect(`/auth/login`)
-
-    const { data: profile } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_id', authUser.id)
-        .single()
-
-    // Guard: only the creator can edit
-    if (!profile || profile.id !== campaign.creator_id)
-    {
-        redirect(`/app/funding/${id}`)
-    }
-
+export default function EditFundingPage() {
     return (
-        <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-            <Link
-                href={`/app/funding/${id}`}
-                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-                <ArrowLeft className="h-4 w-4" />
-                Back to campaign
-            </Link>
+        <main className="min-h-screen bg-white dark:bg-slate-950">
+            <div className="flex min-h-screen items-center justify-center px-6">
+                <div className="w-full max-w-lg text-center">
 
-            <div>
-                <h1 className="text-2xl font-bold">Edit Campaign</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                    Update the details of your campaign
-                </p>
+                    <div className="mx-auto mb-8 flex h-28 w-28 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950">
+                        <Hourglass
+                            className="h-14 w-14 text-emerald-600 dark:text-emerald-400"
+                            strokeWidth={1.5}
+                        />
+                    </div>
+
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
+                        Funding is Coming Soon
+                    </h1>
+
+                    <p className="mx-auto mt-5 max-w-md text-base leading-7 text-gray-500 dark:text-gray-400">
+                        We&apos;re preparing something impactful.
+                        Campaign editing will be available once
+                        Funding launches on HubNovo.
+                    </p>
+
+                    <div className="mt-8 inline-flex items-center gap-2 rounded-full bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-600 dark:bg-slate-800 dark:text-gray-300">
+                        <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-500" />
+                        Coming Soon
+                    </div>
+
+                    <Link
+                        href="/app/funding"
+                        className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to Funding
+                    </Link>
+
+                </div>
             </div>
-
-            <FundingEditForm campaign={campaign} />
         </main>
     )
 }
