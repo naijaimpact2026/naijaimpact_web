@@ -236,7 +236,7 @@ export async function POST(request: NextRequest) {
 
         // 4. Notify seller
         await supabase.from('notifications').insert({
-          recipient_id: order.seller_id,
+          user_id: order.seller_id,
           actor_id: order.buyer_id,
           type: 'marketplace_order',
           reference_id: referenceId,

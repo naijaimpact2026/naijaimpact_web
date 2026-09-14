@@ -230,7 +230,7 @@ export type NotificationType =
 
 export type Notification = {
   id: string
-  recipient_id: string
+  user_id: string
   actor_id: string | null
   type: NotificationType
   reference_id: string | null

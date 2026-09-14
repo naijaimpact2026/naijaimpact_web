@@ -4,6 +4,7 @@ import {
     fetchCourses,
     fetchCategories,
 } from '@/lib/actions/learn'
+import { fetchFeaturedFunding } from '@/lib/actions/funding-ads'
 import LearnHubHome from '@/components/app/learn/LearnHubHome'
 
 export const dynamic = 'force-dynamic'
@@ -124,6 +125,47 @@ export default async function LearnPage({
         .map(enrollment => enrollment.course_id)
 
     // ─────────────────────────────────────────────────────────────
+    // CONTINUE LEARNING — real progress ring, not fabricated.
+    // Picks the in-progress enrollment with the most progress made.
+    // ─────────────────────────────────────────────────────────────
+
+    const mostAdvanced = allEnrollments
+        .filter(e => e.status === 'enrolled' && (e.progress ?? 0) > 0)
+        .sort((a, b) => (b.progress ?? 0) - (a.progress ?? 0))[0]
+
+    let continueLearning: {
+        courseId: string
+        title: string
+        coverImageUrl: string | null
+        progress: number
+    } | null = null
+
+    if (mostAdvanced)
+    {
+        const { data: courseRow } = await supabase
+            .from('lms_courses')
+            .select('id, title, cover_image_url')
+            .eq('id', mostAdvanced.course_id)
+            .maybeSingle()
+
+        if (courseRow)
+        {
+            continueLearning = {
+                courseId: courseRow.id,
+                title: courseRow.title,
+                coverImageUrl: courseRow.cover_image_url,
+                progress: mostAdvanced.progress ?? 0,
+            }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // FUNDING OPPORTUNITY ADS — real campaigns from the `funding` table.
+    // ─────────────────────────────────────────────────────────────
+
+    const featuredFunding = await fetchFeaturedFunding(3)
+
+    // ─────────────────────────────────────────────────────────────
     // LEARN HUB
     // ─────────────────────────────────────────────────────────────
 
@@ -147,6 +189,8 @@ export default async function LearnPage({
             completedCourseIds={
                 completedCourseIds
             }
+            continueLearning={continueLearning}
+            featuredFunding={featuredFunding}
             view={params.view ?? null}
         />
     )

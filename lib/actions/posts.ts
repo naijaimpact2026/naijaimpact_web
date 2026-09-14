@@ -418,7 +418,7 @@ export async function addComment(
     if (notifyTargets.size > 0) {
       await supabase.from('notifications').insert(
         [...notifyTargets].map((recipientId) => ({
-          recipient_id: recipientId,
+          user_id: recipientId,
           actor_id: profile.id,
           type: 'comment',
           reference_id: postId,

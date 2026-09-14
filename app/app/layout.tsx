@@ -30,7 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             const { count } = await supabase
                 .from('notifications')
                 .select('id', { count: 'exact', head: true })
-                .eq('recipient_id', userProfile.id)
+                .eq('user_id', userProfile.id)
                 .eq('read', false)
 
             initialNotificationCount = count ?? 0

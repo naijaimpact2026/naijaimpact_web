@@ -26,7 +26,7 @@ export async function markNotificationsRead(): Promise<{ success: boolean }> {
     const { error } = await supabase
       .from('notifications')
       .update({ read: true })
-      .eq('recipient_id', profile.id)
+      .eq('user_id', profile.id)
       .eq('read', false)
 
     if (error) {
@@ -70,20 +70,20 @@ export async function fetchNotificationsPage(
     .select(
       `
       id,
-      recipient_id,
+      user_id,
       actor_id,
       type,
       reference_id,
       read,
       created_at,
-      actor:users (
+      actor:users!notifications_actor_id_fkey (
         username,
         display_name,
         avatar_url
       )
     `,
     )
-    .eq('recipient_id', profile.id)
+    .eq('user_id', profile.id)
     .order('created_at', { ascending: false })
     .limit(limit + 1)
 
@@ -105,7 +105,7 @@ export async function fetchNotificationsPage(
 
   const notifications: NotificationWithActor[] = page.map((row) => ({
     id: row.id,
-    recipient_id: row.recipient_id,
+    user_id: row.user_id,
     actor_id: row.actor_id,
     type: row.type,
     reference_id: row.reference_id,
@@ -138,7 +138,7 @@ export async function getUnreadNotificationCount(): Promise<number> {
     const { count } = await supabase
       .from('notifications')
       .select('id', { count: 'exact', head: true })
-      .eq('recipient_id', profile.id)
+      .eq('user_id', profile.id)
       .eq('read', false)
 
     return count ?? 0

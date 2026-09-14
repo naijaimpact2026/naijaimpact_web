@@ -471,7 +471,7 @@ export async function followUser(targetId: string): Promise<ActionResult> {
   // Insert notification — silent on failure
   try {
     await supabase.from('notifications').insert({
-      recipient_id: targetId,
+      user_id: targetId,
       actor_id: profile.id,
       type: 'follow',
       reference_id: profile.id,
@@ -554,7 +554,7 @@ export async function fetchFollowList(
     // people who follow userId
     let query = supabase
       .from('user_follows')
-      .select('follower:users(id, username, display_name, avatar_url), created_at')
+      .select('follower:users!user_follows_follower_id_fkey(id, username, display_name, avatar_url), created_at')
       .eq('following_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit + 1)
@@ -575,7 +575,7 @@ export async function fetchFollowList(
     // people userId follows
     let query = supabase
       .from('user_follows')
-      .select('following:users(id, username, display_name, avatar_url), created_at')
+      .select('following:users!user_follows_following_id_fkey(id, username, display_name, avatar_url), created_at')
       .eq('follower_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit + 1)
