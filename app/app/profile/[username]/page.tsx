@@ -2,7 +2,13 @@ import { createClient } from '@/lib/supabase/server'
 import { fetchUserPostsPage } from '@/lib/actions/posts'
 import ProfileHeader from '@/components/app/profile/ProfileHeader'
 import ProfileTabs from '@/components/app/profile/ProfileTabs'
+import ProfileAboutCard from '@/components/app/profile/ProfileAboutCard'
+import ProfileImpactStats from '@/components/app/profile/ProfileImpactStats'
+import ProfileBadges from '@/components/app/profile/ProfileBadges'
+import ProfileFeaturedLink from '@/components/app/profile/ProfileFeaturedLink'
+import ProfileQuote from '@/components/app/profile/ProfileQuote'
 import { UserX } from 'lucide-react'
+import type { User } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -102,10 +108,10 @@ export default async function ProfilePage({ params }: ProfilePageProps)
     )
 
     return (
-        <main className="max-w-xl mx-auto px-4 py-6 space-y-4">
-            {/* 6.3: Profile header with avatar, stats, follow button */}
+        <main className="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+            {/* Profile header with cover, avatar, stats, follow button */}
             <ProfileHeader
-                profile={profile}
+                profile={profile as User}
                 currentUserId={currentUserId}
                 followerCount={followerCount ?? 0}
                 followingCount={followingCount ?? 0}
@@ -114,13 +120,31 @@ export default async function ProfilePage({ params }: ProfilePageProps)
                 isOwnProfile={isOwnProfile}
             />
 
-            {/* 6.4–6.6: Posts and Saved tabs */}
-            <ProfileTabs
-                authorId={profile.id}
-                currentUserId={currentUserId}
-                initialPosts={initialPosts}
-                initialCursor={initialCursor}
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_280px] gap-5 items-start">
+                {/* Left rail — persistent About Me / Skills (desktop only; reachable via the About tab on mobile) */}
+                <div className="hidden lg:flex flex-col gap-4">
+                    <ProfileAboutCard profile={profile as User} />
+                </div>
+
+                {/* Center — tabs + content */}
+                <div className="min-w-0 rounded-2xl border border-border bg-card overflow-hidden">
+                    <ProfileTabs
+                        profile={profile as User}
+                        authorId={profile.id}
+                        currentUserId={currentUserId}
+                        initialPosts={initialPosts}
+                        initialCursor={initialCursor}
+                    />
+                </div>
+
+                {/* Right rail — impact, badges, featured link, quote */}
+                <div className="flex flex-col gap-4">
+                    <ProfileImpactStats profile={profile as User} isOwnProfile={isOwnProfile} />
+                    <ProfileBadges userId={profile.id} />
+                    <ProfileFeaturedLink profile={profile as User} />
+                    <ProfileQuote profile={profile as User} />
+                </div>
+            </div>
         </main>
     )
 }

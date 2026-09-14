@@ -76,10 +76,10 @@ export default function ForgotPasswordPage()
         <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950 p-6">
             <div className="w-full max-w-sm space-y-8">
                 {/* Logo */}
-                <div className="flex items-center gap-2">
-                    <Image src="/logo.png" alt="HubNovo" width={36} height={36} className="rounded-lg" />
-                    <span className="font-bold text-lg text-gray-900 dark:text-white">HubNovo</span>
-                </div>
+                <Link href="/" className="flex items-center gap-2">
+                    <Image src="/logo.png" alt="Hubnovo" width={36} height={36} className="rounded-lg" />
+                    <Image src="/logo-wordmark.png" alt="Hubnovo" width={108} height={36} className="h-9 w-auto" />
+                </Link>
 
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Forgot password?</h1>

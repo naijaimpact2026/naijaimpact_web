@@ -32,14 +32,14 @@ function AppShellInner({ children, user }: AppShellInnerProps)
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
-            {/* Fixed top header */}
             <TopBar
                 user={user}
                 notificationCount={notificationCount}
+                messageCount={messageCount}
                 onMenuToggle={() => setSidebarOpen((v) => !v)}
             />
 
-            {/* Sidebar — overlay drawer on mobile/tablet, persistent rail on lg+ */}
+            {/* Sidebar — persistent rail on lg+ (sits below the top bar), overlay drawer below lg */}
             <Sidebar
                 user={user}
                 onSignOut={handleSignOut}
@@ -59,12 +59,16 @@ function AppShellInner({ children, user }: AppShellInnerProps)
             )}
 
             {/* Main content — full width, no left margin offset */}
-            <main className="flex-1 min-h-screen pt-14 pb-16 lg:pb-4 overflow-x-hidden">
+            <main className="flex-1 min-h-screen pt-16 pb-16 lg:pb-0 overflow-x-hidden">
                 {children}
             </main>
 
-            {/* Mobile bottom nav */}
-            <BottomNav messageCount={messageCount} notificationCount={notificationCount} />
+            {/* Mobile bottom nav — Menu tab opens the same sidebar drawer */}
+            <BottomNav
+                messageCount={messageCount}
+                notificationCount={notificationCount}
+                onMenuToggle={() => setSidebarOpen((v) => !v)}
+            />
         </div>
     )
 }

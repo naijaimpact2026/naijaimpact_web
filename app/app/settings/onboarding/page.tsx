@@ -73,9 +73,11 @@ function useUsernameCheck(username: string)
 
             try
             {
+                const { data: { user: authUser } } = await supabase.auth.getUser()
+
                 const { data, error } = await supabase
                     .from('users')
-                    .select('id')
+                    .select('id, auth_id')
                     .eq('username', username)
                     .maybeSingle()
 
@@ -86,7 +88,11 @@ function useUsernameCheck(username: string)
                 }
                 else
                 {
-                    setStatus(data ? 'taken' : 'available')
+                    // A row matching your OWN auth account isn't "taken" — it's
+                    // just your current username. Mirrors the server-side check
+                    // in completeOnboarding, which already excludes self.
+                    const takenByOther = !!data && data.auth_id !== authUser?.id
+                    setStatus(takenByOther ? 'taken' : 'available')
                 }
             }
             catch (error)

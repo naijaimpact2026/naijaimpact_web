@@ -1,15 +1,15 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import PostCard from './PostCard'
 import PostCardSkeleton from './PostCardSkeleton'
-import PostComposer from './PostComposer'
 import PostComposerBar from './PostComposerBar'
 import StoryRow from './StoryRow'
 import FeedTabs, { type FeedTab } from './FeedTabs'
 import SuggestedAccounts, { type SuggestedUser } from './SuggestedAccounts'
 import PromotedCarousel from './PromotedCarousel'
-import { fetchPostsPage, fetchDiscoverPosts, fetchFollowingPosts, fetchSuggestedUsers } from '@/lib/actions/posts'
+import { fetchPostsPage, fetchFollowingPosts, fetchSuggestedUsers } from '@/lib/actions/posts'
 import { fetchPromotedContent, type PromotedItem } from '@/lib/actions/promoted'
 import type { PostWithAuthor, User } from '@/lib/types'
 import { Plus } from 'lucide-react'
@@ -33,12 +33,12 @@ export default function FeedInfiniteScroll({
     user,
 }: FeedInfiniteScrollProps)
 {
+    const router = useRouter()
     const [activeTab, setActiveTab] = useState<FeedTab>('for-you')
     const [posts, setPosts] = useState<PostWithAuthor[]>(initialPosts)
     const [cursor, setCursor] = useState<string | null>(initialCursor)
     const [loading, setLoading] = useState(false)
     const [exhausted, setExhausted] = useState(initialCursor === null)
-    const [isComposerOpen, setIsComposerOpen] = useState(false)
     const [tabLoading, setTabLoading] = useState(false)
     const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([])
     const [suggestionsDismissed, setSuggestionsDismissed] = useState(false)
@@ -65,11 +65,12 @@ export default function FeedInfiniteScroll({
     {
         switch (tab)
         {
-            case 'discover': return fetchDiscoverPosts(cur)
             case 'following': return fetchFollowingPosts(cur)
             default: return fetchPostsPage(cur)
         }
     }, [])
+
+    const UNBACKED_TABS: FeedTab[] = ['groups', 'opportunities', 'events', 'saved']
 
     // Switch tabs — reset posts and fetch fresh
     async function handleTabChange(tab: FeedTab)
@@ -81,8 +82,8 @@ export default function FeedInfiniteScroll({
         setCursor(null)
         setExhausted(false)
 
-        // Unsupported tabs show empty state
-        if (tab === 'groups' || tab === 'saved')
+        // Not backed by real data yet — show an honest "coming soon" state
+        if (UNBACKED_TABS.includes(tab))
         {
             setTabLoading(false)
             setExhausted(true)
@@ -141,19 +142,6 @@ export default function FeedInfiniteScroll({
         return () => observer.disconnect()
     }, [loadMore])
 
-    function handlePostCreated(post: PostWithAuthor)
-    {
-        if (activeTab === 'for-you')
-        {
-            setPosts((prev) =>
-            {
-                if (prev.some((p) => p.id === post.id)) return prev
-                return [post, ...prev]
-            })
-        }
-        setIsComposerOpen(false)
-    }
-
     const isLoading = loading || tabLoading
 
     return (
@@ -173,36 +161,31 @@ export default function FeedInfiniteScroll({
                 <FeedTabs activeTab={activeTab} onTabChange={handleTabChange} />
             </div>
 
-            {/* Post composer bar — only on For You tab */}
+            {/* Post composer bar — only on For You tab; opens the dedicated Create Post page */}
             {activeTab === 'for-you' && (
-                <PostComposerBar user={user ?? null} onOpen={() => setIsComposerOpen(true)} />
+                <PostComposerBar user={user ?? null} onOpen={() => router.push('/app/feed/create')} />
             )}
 
-            {/* Post composer modal */}
-            {isComposerOpen && (
-                <PostComposer
-                    currentUserId={currentUserId}
-                    onSuccess={handlePostCreated}
-                    onClose={() => setIsComposerOpen(false)}
-                />
-            )}
-
-            {/* Empty state for unimplemented tabs */}
-            {(activeTab === 'groups' || activeTab === 'saved') && !isLoading && (
+            {/* Empty state for tabs with no real data source yet */}
+            {UNBACKED_TABS.includes(activeTab) && !isLoading && (
                 <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border border-border shadow-sm dark:shadow-none text-muted-foreground">
                     <p className="text-lg font-semibold">
-                        {activeTab === 'groups' ? 'Groups coming soon' : 'No saved posts yet'}
+                        {activeTab === 'groups' && 'Groups coming soon'}
+                        {activeTab === 'opportunities' && 'Opportunities coming soon'}
+                        {activeTab === 'events' && 'Events coming soon'}
+                        {activeTab === 'saved' && 'No saved posts yet'}
                     </p>
                     <p className="text-sm mt-1 text-center px-4">
-                        {activeTab === 'groups'
-                            ? 'Join community groups to see their posts here.'
-                            : 'Save posts to read them later.'}
+                        {activeTab === 'groups' && 'Join community groups to see their posts here.'}
+                        {activeTab === 'opportunities' && 'Jobs, grants and partnerships will show up here.'}
+                        {activeTab === 'events' && 'Community events will show up here.'}
+                        {activeTab === 'saved' && 'Save posts to read them later.'}
                     </p>
                 </div>
             )}
 
             {/* Feed posts */}
-            {!isLoading && posts.length === 0 && activeTab !== 'groups' && activeTab !== 'saved' ? (
+            {!isLoading && posts.length === 0 && !UNBACKED_TABS.includes(activeTab) ? (
                 <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border border-border shadow-sm dark:shadow-none text-muted-foreground">
                     <p className="text-lg font-semibold">
                         {activeTab === 'following' ? 'No posts from people you follow' : 'No posts yet'}
@@ -210,9 +193,7 @@ export default function FeedInfiniteScroll({
                     <p className="text-sm mt-1 text-center px-4">
                         {activeTab === 'following'
                             ? 'Follow people to see their posts here.'
-                            : activeTab === 'discover'
-                                ? 'New content will appear here soon.'
-                                : 'Be the first to share something!'}
+                            : 'Be the first to share something!'}
                     </p>
                 </div>
             ) : (
@@ -256,7 +237,7 @@ export default function FeedInfiniteScroll({
 
             {/* FAB — mobile only */}
             <button
-                onClick={() => setIsComposerOpen(true)}
+                onClick={() => router.push('/app/feed/create')}
                 aria-label="Create post"
                 className="xl:hidden fixed bottom-20 right-4 z-30 flex items-center justify-center w-14 h-14 rounded-full bg-primary shadow-lg hover:bg-primary/90 transition-all active:scale-95"
             >

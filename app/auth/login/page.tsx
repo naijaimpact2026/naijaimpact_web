@@ -42,7 +42,7 @@ export default function LoginPage()
         {
             // Use client-side navigation — server-action redirect() is unreliable
             // on iOS Safari/Chrome due to how it handles cookies + redirects.
-            router.push('/app/feed')
+            router.push('/app')
             router.refresh()
         }
     }
@@ -50,19 +50,22 @@ export default function LoginPage()
     return (
         <div className="min-h-screen flex">
             {/* Left — brand panel */}
-            <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 relative overflow-hidden flex-col items-center justify-center p-12">
+            <div
+                className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col items-center justify-center p-12"
+                style={{ background: 'linear-gradient(150deg, #0A1E33 0%, #102A43 55%, #00688A 100%)' }}
+            >
                 <div
                     className="absolute inset-0 opacity-20"
                     style={{
                         backgroundImage:
-                            'radial-gradient(circle at 30% 40%, hsl(166,76%,40%) 0%, transparent 50%), radial-gradient(circle at 70% 70%, hsl(199,100%,43%) 0%, transparent 50%)',
+                            'radial-gradient(circle at 30% 40%, #00A86B 0%, transparent 50%), radial-gradient(circle at 70% 70%, #00B8D9 0%, transparent 50%)',
                     }}
                 />
                 <div className="relative z-10 text-center space-y-6">
-                    <div className="flex items-center justify-center gap-3 mb-8">
-                        <Image src="/logo.png" alt="HubNovo" width={52} height={52} className="rounded-xl" />
-                        <span className="text-white font-bold text-2xl">HubNovo</span>
-                    </div>
+                    <Link href="/" className="flex items-center justify-center gap-3 mb-8">
+                        <Image src="/logo.png" alt="Hubnovo" width={52} height={52} className="rounded-xl" />
+                        <Image src="/logo-wordmark.png" alt="Hubnovo" width={156} height={52} className="h-12 w-auto" />
+                    </Link>
                     <h2 className="text-4xl font-bold text-white leading-tight">
                         Connect. Build.
                         <br />
@@ -90,10 +93,10 @@ export default function LoginPage()
             <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-white dark:bg-slate-950">
                 <div className="w-full max-w-sm space-y-8">
                     <div>
-                        <div className="flex items-center gap-2 mb-6 lg:hidden">
-                            <Image src="/logo.png" alt="HubNovo" width={36} height={36} className="rounded-lg" />
-                            <span className="font-bold text-lg text-gray-900 dark:text-white">HubNovo</span>
-                        </div>
+                        <Link href="/" className="flex items-center gap-2 mb-6 lg:hidden">
+                            <Image src="/logo.png" alt="Hubnovo" width={36} height={36} className="rounded-lg" />
+                            <Image src="/logo-wordmark.png" alt="Hubnovo" width={108} height={36} className="h-9 w-auto" />
+                        </Link>
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h1>
                         <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">Sign in to your account</p>
                     </div>

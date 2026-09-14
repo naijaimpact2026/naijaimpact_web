@@ -222,12 +222,13 @@ export type ActionResult<T = void> =
   }
 
   // 8. Revalidate pages that display the profile
+  revalidatePath('/app')
   revalidatePath('/app/feed')
   revalidatePath('/app/profile')
   revalidatePath('/app/settings')
 
   // 9. Redirect
-  redirect('/app/feed')
+  redirect('/app')
 }
 /**
  * Updates display_name, bio, profession, and avatar_url for the current user.

@@ -55,7 +55,7 @@ export async function updateSession(request: NextRequest) {
       return supabaseResponse
     }
     const url = request.nextUrl.clone()
-    url.pathname = '/app/feed'
+    url.pathname = '/app'
     return NextResponse.redirect(url)
   }
 

@@ -1,12 +1,13 @@
 'use client'
 
-export type FeedTab = 'for-you' | 'following' | 'discover' | 'groups' | 'saved'
+export type FeedTab = 'for-you' | 'following' | 'groups' | 'opportunities' | 'events' | 'saved'
 
 const TABS: { id: FeedTab; label: string }[] = [
     { id: 'for-you', label: 'For You' },
     { id: 'following', label: 'Following' },
-    { id: 'discover', label: 'Discover' },
     { id: 'groups', label: 'Groups' },
+    { id: 'opportunities', label: 'Opportunities' },
+    { id: 'events', label: 'Events' },
     { id: 'saved', label: 'Saved' },
 ]
 

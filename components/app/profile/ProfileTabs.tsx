@@ -4,85 +4,34 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { fetchUserPostsPage } from '@/lib/actions/posts'
-import type { PostWithAuthor } from '@/lib/types'
-import { Grid3X3, Bookmark, Heart, MessageCircle, Copy, Play, FileText } from 'lucide-react'
-
-// ─── Post grid tile ────────────────────────────────────────────────────────────
-
-function PostTile({ post }: { post: PostWithAuthor })
+import PostCard from '@/components/app/feed/PostCard'
+import type { PostWithAuthor, User } from '@/lib/types'
+import
 {
-    const cover = post.medias?.[0] ?? null
-    const hasMultiple = (post.medias?.length ?? 0) > 1
+    Grid3X3,
+    Bookmark,
+    Image as ImageIcon,
+    Video,
+    Users,
+    Trophy,
+} from 'lucide-react'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 
-    return (
-        <Link
-            href={`/app/feed/${post.id}`}
-            className="group relative aspect-square overflow-hidden bg-muted"
-        >
-            {cover ? (
-                cover.media_type === 'video' ? (
-                    <video
-                        src={cover.url}
-                        className="h-full w-full object-cover"
-                        muted
-                        playsInline
-                        preload="metadata"
-                        aria-hidden="true"
-                    />
-                ) : (
-                    <Image
-                        src={cover.url}
-                        alt={post.caption ?? 'Post'}
-                        fill
-                        unoptimized
-                        className="object-cover"
-                        sizes="(max-width: 640px) 33vw, 300px"
-                    />
-                )
-            ) : (
-                <div className="flex h-full w-full items-center justify-center p-3 bg-gradient-to-br from-muted to-card">
-                    <p className="line-clamp-4 text-center text-xs leading-relaxed text-foreground/80">
-                        {post.caption || <FileText className="mx-auto h-6 w-6 text-muted-foreground" />}
-                    </p>
-                </div>
-            )}
+// ─── Profile Posts (infinite scroll feed — full post cards, matches the main feed) ──
 
-            {/* Media-type indicator */}
-            {cover?.media_type === 'video' && (
-                <Play className="absolute right-1.5 top-1.5 h-4 w-4 text-white drop-shadow" fill="white" />
-            )}
-            {hasMultiple && (
-                <Copy className="absolute right-1.5 top-1.5 h-4 w-4 text-white drop-shadow" />
-            )}
-
-            {/* Hover overlay — engagement counts (desktop) */}
-            <div className="absolute inset-0 hidden items-center justify-center gap-4 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 sm:flex">
-                <span className="flex items-center gap-1.5 text-sm font-bold text-white">
-                    <Heart className="h-4 w-4 fill-white" />
-                    {post.reaction_count}
-                </span>
-                <span className="flex items-center gap-1.5 text-sm font-bold text-white">
-                    <MessageCircle className="h-4 w-4 fill-white" />
-                    {post.comment_count}
-                </span>
-            </div>
-        </Link>
-    )
-}
-
-// ─── Profile Posts (infinite scroll grid) ─────────────────────────────────────
-
-const SKELETON_COUNT = 9
+const SKELETON_COUNT = 3
 
 interface ProfilePostsProps
 {
     authorId: string
+    currentUserId: string
     initialPosts: PostWithAuthor[]
     initialCursor: string | null
 }
 
 function ProfilePosts({
     authorId,
+    currentUserId,
     initialPosts,
     initialCursor,
 }: ProfilePostsProps)
@@ -142,24 +91,24 @@ function ProfilePosts({
     if (posts.length === 0 && !loading)
     {
         return (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                <Grid3X3 className="h-12 w-12 mb-3 opacity-30" />
-                <p className="text-sm font-medium">No posts yet</p>
-            </div>
+            <Empty className="py-16">
+                <EmptyHeader>
+                    <EmptyMedia variant="icon"><Grid3X3 /></EmptyMedia>
+                    <EmptyTitle>No posts yet</EmptyTitle>
+                </EmptyHeader>
+            </Empty>
         )
     }
 
     return (
-        <div>
-            <div className="grid grid-cols-3 gap-0.5 sm:gap-1">
-                {posts.map((post) => (
-                    <PostTile key={post.id} post={post} />
-                ))}
+        <div className="p-4 space-y-4 bg-muted/30">
+            {posts.map((post) => (
+                <PostCard key={post.id} post={post} currentUserId={currentUserId} />
+            ))}
 
-                {loading && Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-                    <div key={`skeleton-${i}`} className="aspect-square animate-pulse bg-muted" />
-                ))}
-            </div>
+            {loading && Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+                <div key={`skeleton-${i}`} className="h-64 rounded-2xl animate-pulse bg-muted" />
+            ))}
 
             {!exhausted && <div ref={sentinelRef} className="h-1" aria-hidden="true" />}
 
@@ -172,13 +121,108 @@ function ProfilePosts({
     )
 }
 
-// ─── Main ProfileTabs component ───────────────────────────────────────────────
-// Instagram-style icon-only tab bar: Posts (grid) and Saved (bookmark).
+// ─── Photos / Videos — filtered from already-loaded posts (no fabricated data) ──
 
-type ProfileTab = 'posts' | 'saved'
+function MediaGrid({ posts, type }: { posts: PostWithAuthor[]; type: 'image' | 'video' })
+{
+    const tiles = posts.flatMap((post) =>
+        (post.medias ?? [])
+            .filter((m) => m.media_type === type)
+            .map((m) => ({ media: m, post }))
+    )
+
+    if (tiles.length === 0)
+    {
+        return (
+            <Empty className="py-16">
+                <EmptyHeader>
+                    <EmptyMedia variant="icon">{type === 'image' ? <ImageIcon /> : <Video />}</EmptyMedia>
+                    <EmptyTitle>No {type === 'image' ? 'photos' : 'videos'} yet</EmptyTitle>
+                    <EmptyDescription>{type === 'image' ? 'Photos from posts' : 'Videos from posts'} will show up here.</EmptyDescription>
+                </EmptyHeader>
+            </Empty>
+        )
+    }
+
+    return (
+        <div className="grid grid-cols-3 gap-0.5 sm:gap-1">
+            {tiles.map(({ media, post }) => (
+                <Link
+                    key={media.id}
+                    href={`/app/feed/${post.id}`}
+                    className="relative aspect-square overflow-hidden bg-muted"
+                >
+                    {type === 'video' ? (
+                        <video src={media.url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                    ) : (
+                        <Image src={media.url} alt={post.caption ?? 'Post media'} fill unoptimized className="object-cover" sizes="(max-width: 640px) 33vw, 300px" />
+                    )}
+                </Link>
+            ))}
+        </div>
+    )
+}
+
+// ─── Simple "coming soon" style empty panel for tabs with no backing data yet ──
+
+function ComingSoonPanel({ icon: Icon, title, description }: { icon: typeof Users; title: string; description: string })
+{
+    return (
+        <Empty className="py-16">
+            <EmptyHeader>
+                <EmptyMedia variant="icon"><Icon /></EmptyMedia>
+                <EmptyTitle>{title}</EmptyTitle>
+                <EmptyDescription>{description}</EmptyDescription>
+            </EmptyHeader>
+        </Empty>
+    )
+}
+
+// ─── About panel ────────────────────────────────────────────────────────────────
+
+function AboutPanel({ profile }: { profile: User })
+{
+    return (
+        <div className="px-4 py-5 space-y-4">
+            <div>
+                <h3 className="text-sm font-bold text-foreground mb-1.5">About Me</h3>
+                <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line">
+                    {profile.bio || 'No bio added yet.'}
+                </p>
+            </div>
+            {profile.skills.length > 0 && (
+                <div>
+                    <h3 className="text-sm font-bold text-foreground mb-2">Skills</h3>
+                    <div className="flex flex-wrap gap-1.5">
+                        {profile.skills.map((skill) => (
+                            <span key={skill} className="text-xs font-medium bg-primary/10 text-primary px-2.5 py-1 rounded-full">
+                                {skill}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
+
+// ─── Main ProfileTabs component ───────────────────────────────────────────────
+
+const TABS = [
+    { key: 'posts', label: 'Posts' },
+    { key: 'about', label: 'About' },
+    { key: 'photos', label: 'Photos' },
+    { key: 'videos', label: 'Videos' },
+    { key: 'saved', label: 'Saved' },
+    { key: 'groups', label: 'Groups' },
+    { key: 'achievements', label: 'Achievements' },
+] as const
+
+type ProfileTab = typeof TABS[number]['key']
 
 interface ProfileTabsProps
 {
+    profile: User
     authorId: string
     currentUserId: string
     initialPosts: PostWithAuthor[]
@@ -186,7 +230,9 @@ interface ProfileTabsProps
 }
 
 export default function ProfileTabs({
+    profile,
     authorId,
+    currentUserId,
     initialPosts,
     initialCursor,
 }: ProfileTabsProps)
@@ -195,45 +241,43 @@ export default function ProfileTabs({
 
     return (
         <div className="w-full">
-            <div role="tablist" aria-label="Profile content" className="flex items-center border-t border-border">
-                <button
-                    role="tab"
-                    aria-selected={activeTab === 'posts'}
-                    aria-label="Posts"
-                    onClick={() => setActiveTab('posts')}
-                    className={`flex-1 flex items-center justify-center py-3 border-t-2 -mt-px transition-colors ${activeTab === 'posts'
-                        ? 'border-foreground text-foreground'
-                        : 'border-transparent text-muted-foreground hover:text-foreground'
-                        }`}
-                >
-                    <Grid3X3 className="h-5 w-5" strokeWidth={activeTab === 'posts' ? 2.25 : 1.75} />
-                </button>
-                <button
-                    role="tab"
-                    aria-selected={activeTab === 'saved'}
-                    aria-label="Saved"
-                    onClick={() => setActiveTab('saved')}
-                    className={`flex-1 flex items-center justify-center py-3 border-t-2 -mt-px transition-colors ${activeTab === 'saved'
-                        ? 'border-foreground text-foreground'
-                        : 'border-transparent text-muted-foreground hover:text-foreground'
-                        }`}
-                >
-                    <Bookmark className="h-5 w-5" strokeWidth={activeTab === 'saved' ? 2.25 : 1.75} />
-                </button>
+            <div role="tablist" aria-label="Profile content" className="flex items-center gap-1 border-b border-border overflow-x-auto scrollbar-none px-1">
+                {TABS.map((tab) => (
+                    <button
+                        key={tab.key}
+                        role="tab"
+                        aria-selected={activeTab === tab.key}
+                        onClick={() => setActiveTab(tab.key)}
+                        className={`shrink-0 px-3 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeTab === tab.key
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                            }`}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
             </div>
 
             <div role="tabpanel" className="mt-0.5 sm:mt-1">
-                {activeTab === 'posts' ? (
+                {activeTab === 'posts' && (
                     <ProfilePosts
                         authorId={authorId}
+                        currentUserId={currentUserId}
                         initialPosts={initialPosts}
                         initialCursor={initialCursor}
                     />
-                ) : (
-                    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                        <Bookmark className="h-12 w-12 mb-3 opacity-30" />
-                        <p className="text-sm font-medium">No saved posts yet</p>
-                    </div>
+                )}
+                {activeTab === 'about' && <AboutPanel profile={profile} />}
+                {activeTab === 'photos' && <MediaGrid posts={initialPosts} type="image" />}
+                {activeTab === 'videos' && <MediaGrid posts={initialPosts} type="video" />}
+                {activeTab === 'saved' && (
+                    <ComingSoonPanel icon={Bookmark} title="No saved posts yet" description="Posts you save will show up here." />
+                )}
+                {activeTab === 'groups' && (
+                    <ComingSoonPanel icon={Users} title="Groups coming soon" description="Community groups aren't live yet." />
+                )}
+                {activeTab === 'achievements' && (
+                    <ComingSoonPanel icon={Trophy} title="Achievements coming soon" description="Milestones and achievements aren't tracked yet." />
                 )}
             </div>
         </div>

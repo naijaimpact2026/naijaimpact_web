@@ -6,29 +6,51 @@ html {
 }
 
 @theme {
-  /* ── Hubnovo brand palette — forest green + mint ── */
-  --color-background: hsl(140, 40%, 97%); /* very light mint #f2faf5 */
-  --color-foreground: hsl(220, 56%, 10%); /* near-black #0a1628     */
+  /* ── Hubnovo brand palette — Emerald / Navy / Cyan / Lime ──
+     Primary   Hubnovo Emerald #00A86B
+     Secondary Novo Navy       #102A43
+     Accent    Novo Cyan       #00B8D9
+     Support   Growth Lime     #8BD450
+     Support   Cloud White     #F8FAFC
+     Support   Graphite        #1F2937
+  ── */
+  --color-background: hsl(210, 40%, 98%); /* Cloud White #f8fafc */
+  --color-foreground: hsl(217, 33%, 17%); /* Graphite #1f2937    */
   --color-card: hsl(0, 0%, 100%); /* pure white cards       */
-  --color-card-foreground: hsl(220, 56%, 10%);
+  --color-card-foreground: hsl(217, 33%, 17%);
   --color-popover: hsl(0, 0%, 100%);
-  --color-popover-foreground: hsl(220, 56%, 10%);
+  --color-popover-foreground: hsl(217, 33%, 17%);
   --color-elevated: hsl(0, 0%, 100%); /* floating surfaces above card */
-  --color-elevated-foreground: hsl(220, 56%, 10%);
-  --color-primary: hsl(148, 65%, 29%); /* forest green #1a7a4a   */
+  --color-elevated-foreground: hsl(217, 33%, 17%);
+  /* Interactive/UI-chrome color (links, active nav/tabs, buttons, checkmarks,
+     focus rings) — the reference design uses a BLUE for all of this, not the
+     brand-green. Derived from the Novo Navy hue, brightened to a usable blue. */
+  --color-primary: hsl(212, 88%, 46%); /* interactive blue */
   --color-primary-foreground: hsl(0, 0%, 100%);
-  --color-secondary: hsl(148, 55%, 22%); /* darker green #0f5c35   */
+  --color-secondary: hsl(209, 61%, 16%); /* Novo Navy #102a43       */
   --color-secondary-foreground: hsl(0, 0%, 100%);
-  --color-accent: hsl(148, 65%, 29%);
-  --color-accent-foreground: hsl(0, 0%, 100%);
-  --color-muted: hsl(140, 20%, 93%); /* light mint muted       */
-  --color-muted-foreground: hsl(220, 15%, 40%);
-  --color-border: hsl(140, 20%, 88%); /* mint-tinted border     */
-  --color-input: hsl(140, 20%, 88%);
-  --color-ring: hsl(148, 65%, 29%);
+  /* shadcn's structural "accent" token = neutral hover/selected highlight
+     (dropdowns, selects, menus) — kept subtle & primary-tinted, NOT a
+     vivid color, so we don't flash color across every menu app-wide. */
+  --color-accent: hsl(212, 45%, 95%);
+  --color-accent-foreground: hsl(209, 61%, 16%);
+  /* Hubnovo Emerald — reserved for specific brand/impact moments (logo
+     tagline, eco/impact accents), NOT the default interactive color. */
+  --color-emerald: hsl(156, 100%, 33%); /* #00a86b */
+  --color-emerald-foreground: hsl(0, 0%, 100%);
+  --color-lime: hsl(94, 61%, 61%); /* Growth Lime #8bd450       */
+  --color-lime-foreground: hsl(217, 33%, 17%);
+  --color-cyan: hsl(190, 100%, 43%); /* Novo Cyan #00b8d9 — illustrations/badges */
+  --color-cyan-foreground: hsl(0, 0%, 100%);
+  --color-muted: hsl(210, 30%, 95%); /* light Cloud White muted */
+  --color-muted-foreground: hsl(217, 19%, 35%);
+  --color-border: hsl(214, 24%, 89%);
+  --color-input: hsl(214, 24%, 89%);
+  --color-ring: hsl(212, 88%, 46%);
   --color-destructive: hsl(0, 72%, 51%);
   --color-destructive-foreground: hsl(0, 0%, 100%);
-  --font-sans: "Poppins", system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-manrope), system-ui, -apple-system, sans-serif;
 }
 
 /* ── Dark mode CSS variable overrides ─────────────────────────────────────────
@@ -39,27 +61,33 @@ html {
    Neutral slate family, independent of the green brand hue used for primary/accent.
 ────────────────────────────────────────────────────────────────────────────── */
 html.dark {
-  --color-background: #0b0f14;
-  --color-foreground: #e5e9ee;
-  --color-card: #111827;
-  --color-card-foreground: #e5e9ee;
-  --color-popover: #1f2937;
-  --color-popover-foreground: #e5e9ee;
-  --color-elevated: #1f2937;
-  --color-elevated-foreground: #e5e9ee;
-  --color-primary: hsl(148, 60%, 42%);
-  --color-primary-foreground: #0b0f14;
-  --color-secondary: hsl(148, 55%, 32%);
-  --color-secondary-foreground: hsl(148, 40%, 5%);
-  --color-accent: hsl(148, 60%, 42%);
-  --color-accent-foreground: hsl(148, 40%, 5%);
-  --color-muted: #161d27;
-  --color-muted-foreground: #8b96a5;
-  --color-border: #232c38;
-  --color-input: #232c38;
-  --color-ring: hsl(148, 60%, 42%);
-  --color-destructive: hsl(0, 70%, 55%);
-  --color-destructive-foreground: #0b0f14;
+  --color-background: #0a1420; /* near Novo Navy, darker */
+  --color-foreground: #e7ecf3;
+  --color-card: #102a43; /* Novo Navy */
+  --color-card-foreground: #e7ecf3;
+  --color-popover: #16324f;
+  --color-popover-foreground: #e7ecf3;
+  --color-elevated: #16324f;
+  --color-elevated-foreground: #e7ecf3;
+  --color-primary: hsl(212, 90%, 62%); /* brighter interactive blue for dark bg */
+  --color-primary-foreground: #06111c;
+  --color-secondary: hsl(209, 45%, 26%);
+  --color-secondary-foreground: #e7ecf3;
+  --color-accent: hsl(209, 30%, 22%);
+  --color-accent-foreground: #e7ecf3;
+  --color-emerald: hsl(156, 85%, 45%); /* brighter Emerald for dark bg */
+  --color-emerald-foreground: #06110c;
+  --color-lime: hsl(94, 55%, 58%);
+  --color-lime-foreground: #06110c;
+  --color-cyan: hsl(190, 90%, 52%); /* brighter Cyan for dark bg */
+  --color-cyan-foreground: #06110c;
+  --color-muted: #132840;
+  --color-muted-foreground: #93a4bb;
+  --color-border: #1e3a58;
+  --color-input: #1e3a58;
+  --color-ring: hsl(212, 90%, 62%);
+  --color-destructive: hsl(0, 70%, 58%);
+  --color-destructive-foreground: #06110c;
 }
 
 @layer base {
@@ -143,9 +171,29 @@ html.dark {
     display: none;
   }
 
-  /* ── Shared page hero banner (dark green, used across fintech pages) ── */
+  /* ── Shared page hero banner (Novo Navy → Emerald, used across app pages) ── */
   .page-hero-green {
-    background: linear-gradient(150deg, #1a5c38 0%, #0f3d25 55%, #0a2d1c 100%);
+    background: linear-gradient(150deg, #0a1e33 0%, #102a43 55%, #00688a 130%);
+  }
+
+  /* ── Animated blob used behind illustrations ── */
+  .blob-float {
+    animation: blobFloat 7s ease-in-out infinite;
+  }
+
+  .blob-float-delayed {
+    animation: blobFloat 7s ease-in-out infinite;
+    animation-delay: -3.5s;
+  }
+
+  /* ── Small illustration accents (nodes, chips, cards) ── */
+  .icon-float {
+    animation: iconFloat 3.2s ease-in-out infinite;
+  }
+
+  .icon-float-delayed {
+    animation: iconFloat 3.2s ease-in-out infinite;
+    animation-delay: -1.6s;
   }
 
   /* ── Stream Chat — suppress giant empty-state SVG icon ── */
@@ -196,5 +244,40 @@ html.dark {
   }
   50% {
     background-position: 100% 50%;
+  }
+}
+
+@keyframes blobFloat {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(6px, -10px) scale(1.04);
+  }
+  66% {
+    transform: translate(-6px, 6px) scale(0.97);
+  }
+}
+
+@keyframes iconFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes logoBreathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.85;
   }
 }

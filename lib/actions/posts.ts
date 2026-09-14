@@ -943,3 +943,36 @@ export async function fetchRecentPostsPreviews(
     created_at: p.created_at,
   }))
 }
+
+/**
+ * Real "trending" hashtags, computed from actual recent post content — there's
+ * no hashtags table, so this parses `#word` out of the most recent posts'
+ * captions and ranks by frequency. Bounded to a recent window so it stays cheap.
+ */
+export async function fetchTrendingHashtags(
+  limit: number = 5
+): Promise<{ tag: string; count: number }[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('posts')
+    .select('content')
+    .order('created_at', { ascending: false })
+    .limit(200)
+
+  if (error || !data) return []
+
+  const counts: Record<string, number> = {}
+  for (const row of data as { content: string | null }[]) {
+    const matches = row.content?.match(/#(\w+)/g) ?? []
+    for (const raw of matches) {
+      const tag = raw.slice(1).toLowerCase()
+      counts[tag] = (counts[tag] ?? 0) + 1
+    }
+  }
+
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([tag, count]) => ({ tag, count }))
+}

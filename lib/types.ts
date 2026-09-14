@@ -11,6 +11,8 @@
 export type User = {
   id: string
   auth_id: string
+  email: string
+  fullname: string
   username: string
   display_name: string
   bio: string | null
@@ -24,8 +26,28 @@ export type User = {
   notifications_comments: boolean
   notifications_mentions: boolean
   is_private: boolean
+  // ── Hubnovo redesign — profile fields (2026-09-12 migration) ──
+  cover_url: string | null
+  location: string | null
+  website_url: string | null
+  quote: string | null
+  skills: string[]
+  impact_points: number
+  people_reached: number
+  people_trained: number
+  jobs_created: number
+  communities_impacted: number
   created_at: string
   updated_at: string
+}
+
+export type UserBadge = {
+  id: string
+  user_id: string
+  badge_key: string
+  label: string
+  icon: string | null
+  awarded_at: string
 }
 
 export type Post = {

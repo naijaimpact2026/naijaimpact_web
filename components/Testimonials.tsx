@@ -89,7 +89,7 @@ const testimonials = [
 function TestimonialCard({ t }: { t: (typeof testimonials)[0] })
 {
   return (
-    <div className="flex-shrink-0 w-[320px] bento-card noise-bg p-6 mx-2">
+    <div className="shrink-0 w-[320px] rounded-2xl border border-border bg-white shadow-sm p-6 mx-2">
       <Quote className="w-6 h-6 text-primary/25 mb-4" />
 
       <div className="flex gap-0.5 mb-3">
@@ -98,11 +98,11 @@ function TestimonialCard({ t }: { t: (typeof testimonials)[0] })
         ))}
       </div>
 
-      <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-5">
+      <p className="text-gray-700 text-sm leading-relaxed mb-5">
         &ldquo;{t.quote}&rdquo;
       </p>
 
-      <div className="flex items-center gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
+      <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
         <div
           className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
           style={{ background: `hsl(${t.hue}, 70%, 52%)` }}
@@ -110,8 +110,8 @@ function TestimonialCard({ t }: { t: (typeof testimonials)[0] })
           {t.initials}
         </div>
         <div>
-          <p className="font-semibold text-gray-900 dark:text-white text-sm">{t.name}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="font-semibold text-secondary text-sm">{t.name}</p>
+          <p className="text-xs text-muted-foreground">
             {t.role} · {t.location}
           </p>
         </div>
@@ -126,7 +126,7 @@ export default function Testimonials()
 
   return (
     <section id="testimonials" className="relative py-24 md:py-36 overflow-hidden">
-      <div className="absolute inset-0 -z-10 bg-gray-50/90 dark:bg-slate-950/60" />
+      <div className="absolute inset-0 -z-10 bg-gray-50" />
 
       <div className="container-gutter mx-auto max-w-7xl mb-14">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -134,12 +134,12 @@ export default function Testimonials()
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider">
               Real Stories
             </div>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold">
-              <span className="text-gray-900 dark:text-white">Loved by</span>
+            <h2 className="font-display text-4xl md:text-5xl lg:text-6xl font-extrabold">
+              <span className="text-secondary">Loved by</span>
               <br />
               <span
                 style={{
-                  backgroundImage: 'linear-gradient(135deg, hsl(166,76%,40%), hsl(199,100%,43%))',
+                  backgroundImage: 'linear-gradient(120deg, #1569D6 0%, #00A86B 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
@@ -153,18 +153,18 @@ export default function Testimonials()
           {/* Rating summary */}
           <div className="flex items-center gap-5">
             <div className="text-center">
-              <div className="text-3xl font-bold text-gray-900 dark:text-white">4.9</div>
+              <div className="text-3xl font-bold text-secondary">4.9</div>
               <div className="flex gap-0.5 justify-center mt-1">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
                 ))}
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Avg rating</div>
+              <div className="text-xs text-muted-foreground mt-1">Avg rating</div>
             </div>
-            <div className="w-px h-12 bg-gray-200 dark:bg-slate-700" />
+            <div className="w-px h-12 bg-gray-200" />
             <div className="text-center">
-              <div className="text-3xl font-bold text-gray-900 dark:text-white">2K+</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Reviews</div>
+              <div className="text-3xl font-bold text-secondary">2K+</div>
+              <div className="text-xs text-muted-foreground mt-1">Reviews</div>
             </div>
           </div>
         </div>
@@ -172,8 +172,8 @@ export default function Testimonials()
 
       {/* Marquee row */}
       <div className="relative overflow-hidden">
-        <div className="absolute left-0 top-0 bottom-0 w-28 bg-gradient-to-r from-gray-50 dark:from-slate-950 to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-28 bg-gradient-to-l from-gray-50 dark:from-slate-950 to-transparent z-10 pointer-events-none" />
+        <div className="absolute left-0 top-0 bottom-0 w-28 bg-gradient-to-r from-gray-50 to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-28 bg-gradient-to-l from-gray-50 to-transparent z-10 pointer-events-none" />
         <div className="marquee-track py-2">
           {doubled.map((t, i) => (
             <TestimonialCard key={i} t={t} />

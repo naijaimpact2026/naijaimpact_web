@@ -25,44 +25,39 @@ export default function MediaDisplay({ medias, caption }: MediaDisplayProps)
         ? caption.replace(/[#@]\w+/g, '').trim().slice(0, 100) || 'Post image'
         : 'Post image'
 
-    // Single video
+    // Single video — fixed square frame, cropped to fill (matches the image frame
+    // below and the grid/carousel frames, so every post occupies the same footprint
+    // regardless of the source media's native dimensions — Facebook/Instagram-style).
     if (medias.length === 1 && medias[0].media_type === 'video')
     {
         return (
-            <div className="w-full overflow-hidden rounded-xl bg-black">
+            <div className="relative w-full aspect-square overflow-hidden rounded-xl bg-black">
                 <video
                     src={medias[0].url}
                     controls
                     poster={undefined}
-                    className="w-full max-h-[500px] object-contain"
+                    className="absolute inset-0 h-full w-full object-cover"
                     preload="metadata"
                 />
             </div>
         )
     }
 
-    // Single image
+    // Single image — same fixed square frame, cropped to fill.
     if (medias.length === 1 && medias[0].media_type === 'image')
     {
         const media = medias[0]
-        const aspectRatio =
-            media.width && media.height ? media.width / media.height : 1
 
         return (
-            <div className="w-full overflow-hidden rounded-xl">
-                <div
-                    className="relative w-full"
-                    style={{ paddingBottom: `${(1 / aspectRatio) * 100}%` }}
-                >
-                    <Image
-                        src={media.url}
-                        alt={altText}
-                        fill
-                        unoptimized
-                        className="object-cover"
-                        sizes="(max-width: 768px) 100vw, 600px"
-                    />
-                </div>
+            <div className="relative w-full aspect-square overflow-hidden rounded-xl">
+                <Image
+                    src={media.url}
+                    alt={altText}
+                    fill
+                    unoptimized
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 600px"
+                />
             </div>
         )
     }
@@ -75,11 +70,11 @@ export default function MediaDisplay({ medias, caption }: MediaDisplayProps)
                     {medias.map((media, index) => (
                         <CarouselItem key={media.id}>
                             {media.media_type === 'video' ? (
-                                <div className="bg-black rounded-xl overflow-hidden">
+                                <div className="relative w-full aspect-square overflow-hidden rounded-xl bg-black">
                                     <video
                                         src={media.url}
                                         controls
-                                        className="w-full max-h-[500px] object-contain"
+                                        className="absolute inset-0 h-full w-full object-cover"
                                         preload="metadata"
                                     />
                                 </div>

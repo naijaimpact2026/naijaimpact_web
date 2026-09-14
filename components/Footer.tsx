@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Facebook, Twitter, Linkedin, Instagram, ArrowUpRight, ArrowUp } from 'lucide-react'
 
 const socialLinks = [
@@ -58,7 +59,7 @@ export default function Footer()
       <div
         className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[300px] opacity-15 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse, hsl(166,76%,40%) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse, #00A86B 0%, transparent 70%)',
           filter: 'blur(70px)',
         }}
       />
@@ -69,13 +70,8 @@ export default function Footer()
           {/* Brand col — takes 2 cols on lg */}
           <div className="lg:col-span-2 space-y-5">
             <Link href="/" className="inline-flex items-center gap-2.5 group">
-              <div className="relative w-10 h-10">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-xl rotate-6 opacity-60 group-hover:rotate-12 transition-transform duration-300" />
-                <div className="relative w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center font-bold text-lg">
-                  N
-                </div>
-              </div>
-              <span className="font-bold text-xl text-white">HubNovo</span>
+              <Image src="/logo.png" alt="Hubnovo" width={40} height={40} className="rounded-xl" />
+              <Image src="/logo-wordmark.png" alt="Hubnovo" width={120} height={40} className="h-8 w-auto" />
             </Link>
 
             <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
@@ -87,7 +83,7 @@ export default function Footer()
             <div className="flex gap-3 pt-1">
               <Link
                 href="/auth/signup"
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-primary to-secondary text-white text-sm font-semibold rounded-xl hover:shadow-lg hover:shadow-primary/30 hover:scale-[1.03] transition-all duration-200"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors duration-200"
               >
                 Get Started
                 <ArrowUpRight className="w-3.5 h-3.5" />

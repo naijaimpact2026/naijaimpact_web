@@ -1,25 +1,24 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import Image from 'next/image'
+import CommunityIllustration from '@/components/illustrations/CommunityIllustration'
 
 const slides = [
     {
-        image: '/signup/slide1.png',
         title: 'Join the movement.',
         subtitle: 'Build Nigeria.',
         description:
             'Connect with people, discover opportunities, and be part of a movement creating real impact.',
     },
     {
-        image: '/signup/slide2.png',
         title: 'Fund great ideas.',
         subtitle: 'Create real impact.',
         description:
             'Support innovative ideas and projects that can make a difference in communities across Nigeria.',
     },
     {
-        image: '/signup/slide3.png',
         title: 'Connect and grow.',
         subtitle: 'Together we can.',
         description:
@@ -39,64 +38,49 @@ export default function SignupSlideshow() {
     }, [])
 
     return (
-        <div className="relative min-h-screen w-full overflow-hidden">
-
-            {/* Background slides */}
-            {slides.map((slide, index) => (
-                <div
-                    key={slide.image}
-                    className={`absolute inset-0 transition-opacity duration-1000 ${
-                        index === currentSlide
-                            ? 'opacity-100'
-                            : 'opacity-0'
-                    }`}
-                >
-                    <Image
-                        src={slide.image}
-                        alt={slide.title}
-                        fill
-                        sizes="50vw"
-                        loading={index === 0 ? 'eager' : 'lazy'}
-                        priority={index === 0}
-                        className="object-cover object-center scale-100"
-                    />
-
-                    {/* Dark overlay */}
-                    <div className="absolute inset-0 bg-black/60" />
-
-                    {/* Bottom gradient */}
-                    <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                </div>
-            ))}
+        <div
+            className="relative min-h-screen w-full overflow-hidden"
+            style={{ background: 'linear-gradient(150deg, #0A1E33 0%, #102A43 55%, #00688A 100%)' }}
+        >
+            {/* Soft glow accents — no stock photos */}
+            <div
+                className="absolute inset-0 opacity-20"
+                style={{
+                    backgroundImage:
+                        'radial-gradient(circle at 25% 30%, #00A86B 0%, transparent 50%), radial-gradient(circle at 75% 75%, #00B8D9 0%, transparent 50%)',
+                }}
+            />
 
             {/* Content */}
             <div className="relative z-10 flex min-h-screen flex-col justify-between p-12">
-
                 {/* Logo */}
-                <div className="flex items-center gap-3">
-                    <Image
-                        src="/logo.png"
-                        alt="HubNovo"
-                        width={52}
-                        height={52}
-                        className="rounded-xl"
-                    />
+                <Link href="/" className="flex items-center gap-3">
+                    <Image src="/logo.png" alt="Hubnovo" width={52} height={52} className="rounded-xl" />
+                    <Image src="/logo-wordmark.png" alt="Hubnovo" width={156} height={52} className="h-12 w-auto" />
+                </Link>
 
-                    <span className="text-white font-bold text-2xl">
-                        HubNovo
-                    </span>
+                {/* Illustration */}
+                <div className="flex-1 flex items-center justify-center max-h-72">
+                    {slides.map((slide, index) => (
+                        <div
+                            key={slide.title}
+                            className={`absolute transition-opacity duration-1000 ${index === currentSlide ? 'opacity-100' : 'opacity-0'
+                                }`}
+                        >
+                            <CommunityIllustration className="w-80 h-60" />
+                        </div>
+                    ))}
                 </div>
 
                 {/* Text */}
                 <div className="max-w-xl text-white pb-8">
-
-                    <h2 className="text-5xl font-bold leading-tight drop-shadow-lg">
+                    <h2 className="text-5xl font-bold leading-tight">
                         {slides[currentSlide].title}
                         <br />
                         {slides[currentSlide].subtitle}
                     </h2>
 
-                    <p className="mt-5 text-xl text-white leading-relaxed drop-shadow-lg max-w-lg">
+                    <p className="mt-5 text-xl text-white/80 leading-relaxed max-w-lg">
                         {slides[currentSlide].description}
                     </p>
 
@@ -108,15 +92,11 @@ export default function SignupSlideshow() {
                                 type="button"
                                 onClick={() => setCurrentSlide(index)}
                                 aria-label={`Go to slide ${index + 1}`}
-                                className={`h-2 rounded-full transition-all ${
-                                    index === currentSlide
-                                        ? 'w-8 bg-white'
-                                        : 'w-2 bg-white/50'
-                                }`}
+                                className={`h-2 rounded-full transition-all ${index === currentSlide ? 'w-8 bg-white' : 'w-2 bg-white/40'
+                                    }`}
                             />
                         ))}
                     </div>
-
                 </div>
             </div>
         </div>
