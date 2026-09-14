@@ -727,8 +727,9 @@ export default function LearnHubHome({
 
                             <h1
                                 className="
+                                    font-display
                                     text-2xl
-                                    font-black
+                                    font-extrabold
                                     tracking-tight
                                     text-foreground
                                     sm:text-4xl
@@ -994,7 +995,7 @@ export default function LearnHubHome({
                                         Learning marketplace
                                     </p>
 
-                                    <h2 className="mt-1 text-2xl font-black text-foreground">
+                                    <h2 className="mt-1 text-2xl font-display font-extrabold text-foreground">
                                         Explore courses
                                     </h2>
 
@@ -1185,7 +1186,7 @@ export default function LearnHubHome({
                                         Learn-to-Earn
                                     </span>
 
-                                    <h2 className="mt-4 text-2xl font-black sm:text-3xl">
+                                    <h2 className="mt-4 text-2xl font-display font-extrabold sm:text-3xl">
                                         Turn learning into opportunity.
                                     </h2>
 
@@ -1275,7 +1276,7 @@ export default function LearnHubHome({
                                 Your learning
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-foreground">
+                            <h2 className="mt-1 text-2xl font-display font-extrabold text-foreground">
                                 My Courses
                             </h2>
 
@@ -1345,7 +1346,7 @@ export default function LearnHubHome({
                                 Guided learning
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-foreground">
+                            <h2 className="mt-1 text-2xl font-display font-extrabold text-foreground">
                                 Career Tracks
                             </h2>
 
@@ -1422,7 +1423,7 @@ export default function LearnHubHome({
                                 Browse
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-foreground">
+                            <h2 className="mt-1 text-2xl font-display font-extrabold text-foreground">
                                 Course Categories
                             </h2>
                         </div>
@@ -1479,7 +1480,7 @@ export default function LearnHubHome({
                                 Achievements
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-foreground">
+                            <h2 className="mt-1 text-2xl font-display font-extrabold text-foreground">
                                 My Certificates
                             </h2>
                         </div>
@@ -1569,7 +1570,7 @@ export default function LearnHubHome({
                                 Learn from practitioners
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-foreground">
+                            <h2 className="mt-1 text-2xl font-display font-extrabold text-foreground">
                                 Our Instructors
                             </h2>
                         </div>
@@ -1601,7 +1602,7 @@ export default function LearnHubHome({
                                 Learning momentum
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-foreground">
+                            <h2 className="mt-1 text-2xl font-display font-extrabold text-foreground">
                                 Your Learning Streak
                             </h2>
                         </div>
