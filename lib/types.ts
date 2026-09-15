@@ -217,16 +217,76 @@ export type Service = {
 }
 
 export type NotificationType =
+  // Social — current database values
+  | 'post_reaction'
+  | 'post_comment'
+  | 'comment_reaction'
+  | 'new_follower'
+  | 'mention'
+  | 'post_share'
+
+  // Social — legacy application values kept for compatibility
   | 'follow'
   | 'reaction'
   | 'comment'
-  | 'mention'
+
+  // Funding
+  | 'funding_contribution'
+  | 'funding_milestone'
+  | 'funding_ended'
+
+  // Learning
+  | 'course_published'
+  | 'course_enrollment'
+  | 'course_completed'
+
+  // Services
+  | 'service_request'
+  | 'service_completed'
+  | 'service_review'
+
+  // Ajo / cooperative
   | 'ajo_contribution'
+  | 'ajo_payout'
+
+  // Loans
   | 'loan_approved'
   | 'loan_overdue'
+
+  // Savings
   | 'goal_achieved'
-  | 'ajo_payout'
+
+  // Disputes
   | 'dispute_raised'
+
+  // Wallet / Transactions
+  | 'wallet_deposit'
+  | 'wallet_withdrawal'
+  | 'transaction_received'
+  | 'transaction_sent'
+  | 'transaction_payment_success'
+  | 'transaction_payment_failed'
+  | 'transaction_pending'
+
+  // Opportunities
+  | 'opportunity_funding'
+  | 'opportunity_job'
+  | 'opportunity_scholarship'
+  | 'opportunity_grant'
+  | 'opportunity_business'
+  | 'opportunity_deadline'
+
+  // Platform updates
+  | 'update_platform'
+  | 'update_feature'
+  | 'update_maintenance'
+  | 'update_policy'
+  | 'update_announcement'
+
+  // System
+  | 'chat_message'
+  | 'system'
+  | 'welcome'
 
 export type Notification = {
   id: string
