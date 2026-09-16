@@ -94,36 +94,30 @@ export async function fetchPostsPage(
   let query = supabase
     .from('posts')
     .select(
-      `
-      id,
-      user_id,
-      post_type,
-      content,
-      created_at,
-      updated_at,
-      author:users!posts_user_id_fkey (
+        `
         id,
-        username,
-        display_name,
-        avatar_url
-      ),
-      medias:post_medias (
-        id,
-        post_id,
-        media_url,
-        media_type,
-        created_at
-      )
-    `
+        user_id,
+        post_type,
+        content,
+        created_at,
+        updated_at,
+        author:users!posts_user_id_fkey (
+            id,
+            username,
+            display_name,
+            avatar_url
+        ),
+        medias:post_medias (
+            id,
+            post_id,
+            media_url,
+            media_type,
+            created_at
+        )
+        `
     )
     .order('created_at', { ascending: false })
     .limit(limit + 1)
-
-  // The main feed is for discovering other people's posts — like every other
-  // platform, your own posts belong on your profile, not mixed into your own feed.
-  if (currentUserId) {
-    query = query.neq('user_id', currentUserId)
-  }
 
   if (blockedUserIds.size > 0) {
     query = query.not('user_id', 'in', `(${[...blockedUserIds].join(',')})`)
@@ -151,14 +145,9 @@ export async function fetchPostsPage(
   // so compute it before shuffling the display order below.
   const nextCursor = hasMore ? chronologicalPage[chronologicalPage.length - 1].created_at : null
 
-  // Reshuffle the display order each time this is called (page load, refresh,
-  // pull-to-refresh) so the feed doesn't render identically every visit —
-  // similar to how Instagram's feed never looks the same way twice.
-  const pagePosts = [...chronologicalPage]
-  for (let i = pagePosts.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pagePosts[i], pagePosts[j]] = [pagePosts[j], pagePosts[i]]
-  }
+  // Keep the feed strictly chronological:
+  // newest posts first, oldest posts last.
+  const pagePosts = chronologicalPage
 
   const postIds = pagePosts.map((p) => p.id)
 

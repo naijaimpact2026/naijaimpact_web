@@ -1,5 +1,5 @@
 -- ============================================================
--- NaijaMarket Migration
+-- Hubnovo Migration
 -- Run this in Supabase SQL Editor to set up marketplace tables.
 -- ============================================================
 
