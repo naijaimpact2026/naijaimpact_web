@@ -5,12 +5,13 @@ import Link from 'next/link'
 import Image from 'next/image'
 import
     {
-        Users, MapPin, Star, CheckCircle2, Plus, Search,
+        Users, MapPin, Star, Plus, Search,
         Scissors, Zap, Wrench, UtensilsCrossed, Camera, Hammer,
         HeartPulse, Palette, Tv, Package, LayoutGrid, Settings,
-        Building2, Car, Cpu, BookOpen, Truck, ChevronRight, BadgeCheck,
+        Building2, Car, Cpu, BookOpen, Truck, BadgeCheck,
     } from 'lucide-react'
 import ArtisanProfileModal from './ArtisanProfileModal'
+import type { ServiceCategory } from '@/lib/types'
 
 interface ArtisanItem
 {
@@ -51,12 +52,27 @@ interface ArtisanGroup
     categoryNames: string[]
 }
 
+interface ExistingArtisanProfile
+{
+    id: string
+    title: string
+    description?: string | null
+    category_id?: string | null
+    price?: number | null
+    state?: string | null
+    city?: string | null
+    tags?: string[] | null
+    is_active?: boolean
+    image_urls?: string[]
+}
+
 interface Props
 {
     initialArtisans: ArtisanItem[]
     initialNextCursor: string | null
     currentUserId: string
-    myArtisanProfile: { id: string; category: string; profession_title: string; available: boolean } | null
+    categories: ServiceCategory[]
+    myArtisanProfile: ExistingArtisanProfile | null
 }
 
 type CatStyle = { bg: string; iconColor: string; Icon: any }
@@ -109,8 +125,6 @@ const ARTISAN_CATS = [
 
 function fmt(n: number)
 {
-    if (n >= 1_000_000) return `₦${(n / 1_000_000).toFixed(1)}M`
-    if (n >= 1_000) return `₦${(n / 1_000).toFixed(0)}k`
     return `₦${n.toLocaleString('en-NG')}`
 }
 
@@ -166,70 +180,68 @@ function ArtisanCard({ group }: { group: ArtisanGroup })
 
     return (
         <Link href={`/app/market/artisans/profile/${group.artisanKey}`}
-            className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden hover:border-green-300 hover:shadow-lg transition-all group cursor-pointer">
+            className="group cursor-pointer overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:border-primary/40 hover:shadow-lg">
 
             {/* Image collage top */}
-            <div className="relative h-28 overflow-hidden bg-gradient-to-br from-green-50 to-green-100">
+            <div className="relative h-28 overflow-hidden bg-primary/5">
                 {previewImgs.length >= 3 ? (
                     <div className="absolute inset-0 grid grid-cols-3 gap-0.5">
                         {previewImgs.map((img, i) => (
                             <div key={i} className="relative overflow-hidden">
-                                <Image src={img} alt="" fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="100px" />
+                                <Image src={img} alt="" fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="100px" />
                             </div>
                         ))}
                     </div>
                 ) : previewImgs.length > 0 ? (
                     <Image src={previewImgs[0]} alt="" fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="300px" />
+                        className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="300px" />
                 ) : (
-                    <div className="absolute inset-0 flex items-center justify-center"
-                        style={{ background: 'linear-gradient(135deg,#d1fae5,#a7f3d0)' }}>
-                        <span className="text-5xl font-black text-green-600">
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/20">
+                        <span className="text-5xl font-black text-primary">
                             {group.displayName.charAt(0).toUpperCase()}
                         </span>
                     </div>
                 )}
                 {/* Service count badge */}
-                <span className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                <span className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white">
                     {group.services.length} service{group.services.length !== 1 ? 's' : ''}
                 </span>
             </div>
 
             {/* Avatar + info */}
-            <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-                <div className="w-11 h-11 rounded-2xl overflow-hidden border-2 border-white shadow-md shrink-0 bg-green-50">
+            <div className="flex items-center gap-3 px-4 pb-3 pt-4">
+                <div className="h-11 w-11 shrink-0 overflow-hidden rounded-2xl border-2 border-card bg-primary/10 shadow-md">
                     {group.avatarUrl ? (
                         <Image src={group.avatarUrl} alt={group.displayName} width={44} height={44}
-                            className="object-cover w-full h-full" />
+                            className="h-full w-full object-cover" />
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center text-green-700 font-black text-lg"
-                            style={{ background: 'linear-gradient(135deg,#d1fae5,#a7f3d0)' }}>
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/20 text-lg font-black text-primary">
                             {group.displayName.charAt(0).toUpperCase()}
                         </div>
                     )}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                        <p className="font-black text-gray-900 truncate text-sm">{group.displayName}</p>
-                        {group.isVerified && <BadgeCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />}
+                        <p className="truncate text-sm font-black text-foreground">{group.displayName}</p>
+                        {group.isVerified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-primary" />}
                     </div>
                     {group.location && (
-                        <p className="text-[10px] text-gray-400 flex items-center gap-0.5 truncate">
-                            <MapPin className="w-2.5 h-2.5 shrink-0" />{group.location}
+                        <p className="flex items-center gap-0.5 truncate text-[10px] text-muted-foreground">
+                            <MapPin className="h-2.5 w-2.5 shrink-0" />{group.location}
                         </p>
                     )}
                     {group.totalReviews > 0 && (
-                        <div className="flex items-center gap-0.5 mt-0.5">
-                            <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                            <span className="text-[10px] font-bold text-gray-700">{group.avgRating.toFixed(1)}</span>
-                            <span className="text-[10px] text-gray-400">({group.totalReviews})</span>
+                        <div className="mt-0.5 flex items-center gap-0.5">
+                            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                            <span className="text-[10px] font-bold text-foreground">{group.avgRating.toFixed(1)}</span>
+                            <span className="text-[10px] text-muted-foreground">({group.totalReviews})</span>
                         </div>
                     )}
                 </div>
                 {group.minPrice != null && (
                     <div className="shrink-0 text-right">
-                        <p className="text-[10px] text-gray-400">From</p>
-                        <p className="text-sm font-black text-green-700">{fmt(group.minPrice)}</p>
+                        <p className="text-[10px] text-muted-foreground">From</p>
+                        <p className="text-sm font-black text-primary">{fmt(group.minPrice)}</p>
                     </div>
                 )}
             </div>
@@ -238,12 +250,12 @@ function ArtisanCard({ group }: { group: ArtisanGroup })
             {group.categoryNames.length > 0 && (
                 <div className="flex flex-wrap gap-1 px-4 pb-4">
                     {group.categoryNames.slice(0, 3).map(cat => (
-                        <span key={cat} className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-700">
+                        <span key={cat} className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-semibold text-primary">
                             {cat}
                         </span>
                     ))}
                     {group.categoryNames.length > 3 && (
-                        <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-[9px] font-semibold text-muted-foreground">
                             +{group.categoryNames.length - 3}
                         </span>
                     )}
@@ -253,7 +265,7 @@ function ArtisanCard({ group }: { group: ArtisanGroup })
     )
 }
 
-export default function ArtisanMarketClient({ initialArtisans, initialNextCursor, currentUserId, myArtisanProfile }: Props)
+export default function ArtisanMarketClient({ initialArtisans, initialNextCursor, currentUserId, categories, myArtisanProfile }: Props)
 {
     const [artisans] = useState(initialArtisans)
     const [activeCat, setActiveCat] = useState('')
@@ -280,109 +292,97 @@ export default function ArtisanMarketClient({ initialArtisans, initialNextCursor
     }, [artisans, activeCat, search])
 
     return (
-        <div className="min-h-screen bg-[#f5f6fa]">
+        <div className="w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8">
             {/* Hero */}
-            <div className="relative overflow-hidden"
-                style={{ background: 'linear-gradient(150deg,#1a5c38 0%,#0f3d25 55%,#0a2d1c 100%)' }}>
-                <div className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-                    style={{ background: 'radial-gradient(circle,rgba(74,222,128,.18),transparent 70%)' }} />
-                <div className="pointer-events-none absolute inset-0 opacity-[0.03]"
-                    style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.3) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.3) 1px,transparent 1px)', backgroundSize: '32px 32px' }} />
-                <div className="relative z-10 px-5 pt-7 pb-8 max-w-6xl mx-auto">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-1">NaijaMarket</p>
-                    <h1 className="text-3xl font-black text-white">Artisan Marketplace</h1>
-                    <p className="text-sm text-green-300/60 mt-1">Find verified skilled professionals near you</p>
+            <section className="relative overflow-hidden rounded-3xl"
+                style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}>
+                <div className="px-6 py-8 sm:px-10 sm:py-10">
+                    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-cyan-200">Hubnovo Marketplace</p>
+                    <h1 className="font-display text-3xl font-black text-white">Artisan Marketplace</h1>
+                    <p className="mt-1 text-sm text-white/70">Find verified skilled professionals near you</p>
                     <button onClick={() => setProfileModalOpen(true)}
-                        className="mt-5 flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold text-green-900 bg-white hover:bg-green-50 transition-all shadow-lg">
-                        <Plus className="w-4 h-4" />
+                        className="mt-5 flex items-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-sm font-black text-secondary shadow-lg transition-colors hover:bg-white/90">
+                        <Plus className="h-4 w-4" />
                         {myArtisanProfile ? 'Update My Service' : 'List My Services'}
                     </button>
                 </div>
-            </div>
+            </section>
 
             {/* Search */}
-            <div className="bg-white border-b border-gray-100 px-4 py-3 sticky top-14 z-10 shadow-sm">
-                <div className="relative max-w-6xl mx-auto">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input type="text"
-                        placeholder="Search artisans — tailor, electrician, photographer…"
-                        className="w-full pl-11 pr-4 py-2.5 rounded-2xl border border-gray-200 bg-gray-50 text-sm focus:ring-2 focus:ring-green-500/30 focus:border-green-500 outline-none"
-                        value={search} onChange={e => setSearch(e.target.value)} />
-                </div>
+            <div className="relative">
+                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input type="text"
+                    placeholder="Search artisans: tailor, electrician, photographer"
+                    className="w-full rounded-2xl border border-border bg-card py-2.5 pl-11 pr-4 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
+                    value={search} onChange={e => setSearch(e.target.value)} />
             </div>
 
-            <div className="max-w-6xl mx-auto px-4 py-4 space-y-5">
-                {/* Category icon grid */}
-                <section className="bg-[#111e14] rounded-3xl p-4 shadow-sm">
-                    <p className="text-xs font-bold text-green-400 uppercase tracking-widest mb-3">Browse by Skill</p>
-                    <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-9 gap-2.5">
-                        <button onClick={() => setActiveCat('')}
-                            className={`flex flex-col items-center gap-2 py-3.5 px-1 rounded-2xl border-2 transition-all ${activeCat === '' ? 'border-green-500 shadow-md' : 'border-transparent hover:border-green-700/40'}`}
-                            style={activeCat === '' ? { background: 'linear-gradient(135deg,#1a5c38,#065f46)' } : { background: '#1e2e20' }}>
-                            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${activeCat === '' ? 'bg-white/20' : 'bg-white/10'}`}>
-                                <LayoutGrid className={`w-5 h-5 ${activeCat === '' ? 'text-white' : 'text-green-300'}`} strokeWidth={2} />
-                            </div>
-                            <span className={`text-[9px] font-bold text-center ${activeCat === '' ? 'text-white' : 'text-gray-300'}`}>All</span>
-                        </button>
-                        {ARTISAN_CATS.slice(1).map(cat =>
-                        {
-                            const style = getCatStyle(cat.value)
-                            const Icon = style.Icon
-                            const isActive = activeCat === cat.value
-                            return (
-                                <button key={cat.value} onClick={() => setActiveCat(isActive ? '' : cat.value)}
-                                    className={`flex flex-col items-center gap-2 py-3.5 px-1 rounded-2xl border-2 transition-all ${isActive ? 'border-green-500 shadow-md' : 'border-transparent hover:border-green-700/40'}`}
-                                    style={isActive ? { background: 'linear-gradient(135deg,#1a5c38,#065f46)' } : { background: '#1e2e20' }}>
-                                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center"
-                                        style={isActive ? { background: 'rgba(255,255,255,0.2)' } : { background: style.bg + '22' }}>
-                                        <Icon className="w-5 h-5" style={{ color: isActive ? '#fff' : style.iconColor }} strokeWidth={2} />
-                                    </div>
-                                    <span className="text-[9px] font-semibold text-center leading-tight line-clamp-2 w-full px-0.5"
-                                        style={{ color: isActive ? '#fff' : '#d1d5db' }}>{cat.label}</span>
-                                </button>
-                            )
-                        })}
-                    </div>
-                </section>
-
-                {/* Results heading */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h2 className="font-black text-gray-900 text-base">
-                            {activeCat ? (ARTISAN_CATS.find(c => c.value === activeCat)?.label ?? 'Artisans') : 'All Artisans'}
-                        </h2>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                            {groups.length} artisan{groups.length !== 1 ? 's' : ''} · {groups.reduce((s, g) => s + g.services.length, 0)} services
-                        </p>
-                    </div>
-                </div>
-
-                {/* Artisan GRID — 2 columns */}
-                {groups.length === 0 ? (
-                    <div className="bg-white rounded-3xl border border-gray-100 py-20 text-center">
-                        <div className="w-16 h-16 rounded-3xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
-                            <Users className="w-8 h-8 text-gray-200" />
+            {/* Category icon grid */}
+            <section className="rounded-2xl border border-border bg-card p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">Browse by Skill</p>
+                <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-6 lg:grid-cols-9">
+                    <button onClick={() => setActiveCat('')}
+                        className={`flex flex-col items-center gap-2 rounded-2xl py-3.5 transition-all ${activeCat === '' ? 'bg-primary' : 'bg-muted hover:bg-muted/70'}`}>
+                        <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${activeCat === '' ? 'bg-white/20' : 'bg-primary/10'}`}>
+                            <LayoutGrid className={`h-4 w-4 ${activeCat === '' ? 'text-white' : 'text-primary'}`} strokeWidth={2} />
                         </div>
-                        <p className="font-bold text-gray-700 text-lg">No artisans found</p>
-                        <p className="text-sm text-gray-400 mt-1 mb-5">
-                            {activeCat ? `No one listed under "${ARTISAN_CATS.find(c => c.value === activeCat)?.label}" yet` : 'Be the first to list your skills!'}
-                        </p>
-                        <button onClick={() => setProfileModalOpen(true)}
-                            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black text-white transition-all hover:opacity-90"
-                            style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
-                            <Plus className="w-4 h-4" /> List My Services
-                        </button>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {groups.map(group => <ArtisanCard key={group.artisanKey} group={group} />)}
-                    </div>
-                )}
+                        <span className={`text-center text-[9px] font-bold ${activeCat === '' ? 'text-white' : 'text-foreground'}`}>All</span>
+                    </button>
+                    {ARTISAN_CATS.slice(1).map(cat =>
+                    {
+                        const style = getCatStyle(cat.value)
+                        const Icon = style.Icon
+                        const isActive = activeCat === cat.value
+                        return (
+                            <button key={cat.value} onClick={() => setActiveCat(isActive ? '' : cat.value)}
+                                className={`flex flex-col items-center gap-2 rounded-2xl py-3.5 transition-all ${isActive ? 'bg-primary' : 'bg-muted hover:bg-muted/70'}`}>
+                                <div className="flex h-9 w-9 items-center justify-center rounded-xl"
+                                    style={{ background: isActive ? 'rgba(255,255,255,0.2)' : style.bg }}>
+                                    <Icon className="h-4 w-4" style={{ color: isActive ? '#fff' : style.iconColor }} strokeWidth={2} />
+                                </div>
+                                <span className={`line-clamp-2 w-full px-0.5 text-center text-[9px] font-semibold leading-tight ${isActive ? 'text-white' : 'text-foreground'}`}>
+                                    {cat.label}
+                                </span>
+                            </button>
+                        )
+                    })}
+                </div>
+            </section>
 
-                <div className="h-6" />
+            {/* Results heading */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="font-display text-base font-black text-foreground">
+                        {activeCat ? (ARTISAN_CATS.find(c => c.value === activeCat)?.label ?? 'Artisans') : 'All Artisans'}
+                    </h2>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                        {groups.length} artisan{groups.length !== 1 ? 's' : ''} · {groups.reduce((s, g) => s + g.services.length, 0)} services
+                    </p>
+                </div>
             </div>
 
-            <ArtisanProfileModal open={profileModalOpen} onOpenChange={setProfileModalOpen} existing={myArtisanProfile} />
+            {/* Artisan grid */}
+            {groups.length === 0 ? (
+                <div className="rounded-3xl border border-border bg-card py-20 text-center">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-muted">
+                        <Users className="h-8 w-8 text-muted-foreground/40" />
+                    </div>
+                    <p className="text-lg font-bold text-foreground">No artisans found</p>
+                    <p className="mb-5 mt-1 text-sm text-muted-foreground">
+                        {activeCat ? `No one listed under "${ARTISAN_CATS.find(c => c.value === activeCat)?.label}" yet` : 'Be the first to list your skills!'}
+                    </p>
+                    <button onClick={() => setProfileModalOpen(true)}
+                        className="inline-flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-black text-primary-foreground shadow-lg transition-colors hover:bg-primary/90">
+                        <Plus className="h-4 w-4" /> List My Services
+                    </button>
+                </div>
+            ) : (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                    {groups.map(group => <ArtisanCard key={group.artisanKey} group={group} />)}
+                </div>
+            )}
+
+            <ArtisanProfileModal open={profileModalOpen} onOpenChange={setProfileModalOpen} categories={categories} existing={myArtisanProfile} />
         </div>
     )
 }

@@ -175,7 +175,7 @@ export default function LessonPlayer({
                         font-medium
                         text-muted-foreground
                         transition-colors
-                        hover:text-emerald-700
+                        hover:text-primary
                     "
                 >
                     {courseTitle}
@@ -235,6 +235,7 @@ export default function LessonPlayer({
                         </div>
 
                         <h2 className="
+                            font-display
                             text-xl
                             font-bold
                             text-foreground
@@ -415,12 +416,13 @@ export default function LessonPlayer({
                             font-semibold
                             uppercase
                             tracking-wide
-                            text-emerald-700
+                            text-primary
                         ">
                             Lesson
                         </div>
 
                         <h1 className="
+                            font-display
                             text-xl
                             font-bold
                             leading-tight
@@ -486,7 +488,7 @@ export default function LessonPlayer({
                                 className="
                                     h-full
                                     rounded-full
-                                    bg-emerald-600
+                                    bg-primary
                                     transition-all
                                     duration-500
                                 "
@@ -562,11 +564,11 @@ export default function LessonPlayer({
                             className="
                                 min-w-[190px]
                                 gap-2
-                                bg-emerald-700
+                                bg-primary
                                 font-semibold
-                                text-white
+                                text-primary-foreground
                                 shadow-sm
-                                hover:bg-emerald-800
+                                hover:bg-primary/90
                             "
                         >
                             {marking ? (
@@ -600,12 +602,12 @@ export default function LessonPlayer({
                             <Badge className="
                                 gap-1.5
                                 border
-                                border-emerald-200
-                                bg-emerald-50
+                                border-primary/20
+                                bg-primary/10
                                 px-4 py-2
                                 text-sm
                                 font-semibold
-                                text-emerald-700
+                                text-primary
                             ">
                                 <CheckCircle
                                     className="
@@ -656,7 +658,7 @@ export default function LessonPlayer({
                     lg:hidden
                 ">
                     {totalLessons > 0
-                        ? `Keep going — you're ${Math.round(
+                        ? `Keep going, you're ${Math.round(
                             currentProgress
                         )}% through the course`
                         : 'Keep learning to complete this course'}

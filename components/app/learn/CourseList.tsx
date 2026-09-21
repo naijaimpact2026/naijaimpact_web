@@ -138,14 +138,15 @@ export default function CourseList({
                     flex h-16 w-16
                     items-center justify-center
                     rounded-2xl
-                    bg-emerald-50
+                    bg-primary/10
                 ">
                     <GraduationCap
-                        className="h-8 w-8 text-emerald-700"
+                        className="h-8 w-8 text-primary"
                     />
                 </div>
 
                 <h3 className="
+                    font-display
                     mt-5
                     text-lg font-bold
                     text-foreground
@@ -168,12 +169,12 @@ export default function CourseList({
                         mt-6
                         inline-flex items-center gap-2
                         rounded-lg
-                        bg-emerald-700
+                        bg-primary
                         px-5 py-2.5
                         text-sm font-semibold
-                        text-white
+                        text-primary-foreground
                         transition-colors
-                        hover:bg-emerald-800
+                        hover:bg-primary/90
                     "
                 >
                     <Plus className="h-4 w-4" />

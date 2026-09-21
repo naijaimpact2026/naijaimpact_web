@@ -509,7 +509,7 @@ function CourseCard({
 
                             <span className="truncate text-xs text-muted-foreground">
                                 {course.instructor?.display_name ??
-                                    'HubNovo Instructor'}
+                                    'Hubnovo Instructor'}
                             </span>
                         </div>
 
@@ -1585,7 +1585,7 @@ export default function LearnHubHome({
                             <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-muted-foreground">
                                 Discover experienced professionals and
                                 practitioners teaching practical skills on
-                                HubNovo.
+                                Hubnovo.
                             </p>
                         </div>
                     </section>

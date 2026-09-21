@@ -190,58 +190,67 @@ export async function POST(request: NextRequest) {
         },
         { onConflict: 'user_id,course_id', ignoreDuplicates: true }
       )
-    } else if (type === 'marketplace_purchase' && referenceId) {
-      // referenceId = marketplace_orders.id
-      const { data: order } = await supabase
-        .from('marketplace_orders')
-        .select('id,buyer_id,seller_id,total_amount,product_id,status,quantity')
-        .eq('id', referenceId)
-        .maybeSingle()
+    } else if (type === 'marketplace_purchase') {
+      // Cart checkout creates one real nm_orders/nm_escrow row per line item
+      // (see createEscrowOrder / nm_create_escrow_order RPC) before this single
+      // combined charge is made, then passes every order id through here.
+      // referenceId is kept as a fallback for the older single-order shape.
+      const orderIds: string[] = Array.isArray(metadata.orderIds)
+        ? (metadata.orderIds as unknown[]).filter((id): id is string => typeof id === 'string')
+        : referenceId ? [referenceId] : []
 
-      if (order && order.status === 'pending_payment') {
+      for (const orderId of orderIds) {
+        const { data: order } = await supabase
+          .from('nm_orders')
+          .select('id, buyer_id, seller_id, total_amount, status, seller_profile:nm_seller_profiles(user_id)')
+          .eq('id', orderId)
+          .maybeSingle()
+
+        // Skip silently: already processed, or not a real pending order —
+        // never blind-write an escrow/order row we can't confirm the shape of.
+        if (!order || order.status !== 'pending') continue
+
         // 1. Insert buyer transaction
         await supabase.from('transactions').insert({
           user_id: order.buyer_id,
           type: 'transfer_debit',
           amount: order.total_amount,
           status: 'success',
-          reference_id: referenceId,
+          reference_id: orderId,
           paystack_ref: paystackRef,
-          description: 'Marketplace purchase — escrow held',
+          description: 'Marketplace purchase, escrow held',
         })
 
-        // 2. Update order to paid (escrow held — funds NOT yet released to seller)
-        await supabase.from('marketplace_orders').update({
-          status: 'paid',
-          escrow_held: true,
-          paystack_ref: paystackRef,
-          updated_at: new Date().toISOString(),
-        }).eq('id', referenceId)
+        // 2. Confirm the order (paid — escrow held, not yet released to seller)
+        await supabase.from('nm_orders')
+          .update({ status: 'confirmed', updated_at: new Date().toISOString() })
+          .eq('id', orderId)
 
-        // 3. Decrement product stock
-        const { data: product } = await supabase
-          .from('marketplace_products')
-          .select('stock_quantity')
-          .eq('id', order.product_id)
+        // 3. Fund the matching escrow row
+        const { data: escrow } = await supabase
+          .from('nm_escrow')
+          .select('id')
+          .eq('order_id', orderId)
           .maybeSingle()
 
-        if (product) {
-          const newStock = Math.max(0, (product.stock_quantity ?? 0) - (order.quantity ?? 1))
-          await supabase.from('marketplace_products').update({
-            stock_quantity: newStock,
-            status: newStock === 0 ? 'sold' : 'active',
-            updated_at: new Date().toISOString(),
-          }).eq('id', order.product_id)
+        if (escrow) {
+          await supabase.from('nm_escrow')
+            .update({ status: 'funded', funded_at: new Date().toISOString() })
+            .eq('id', escrow.id)
         }
 
-        // 4. Notify seller
-        await supabase.from('notifications').insert({
-          user_id: order.seller_id,
-          actor_id: order.buyer_id,
-          type: 'marketplace_order',
-          reference_id: referenceId,
-          read: false,
-        }).then(() => {})
+        // 4. Notify the seller — nm_orders.seller_id is the seller PROFILE id,
+        // notifications.user_id needs the seller's actual auth uid.
+        const sellerUserId = (order as { seller_profile?: { user_id?: string } | null }).seller_profile?.user_id
+        if (sellerUserId) {
+          await supabase.from('notifications').insert({
+            user_id: sellerUserId,
+            actor_id: order.buyer_id,
+            type: 'marketplace_order',
+            reference_id: orderId,
+            read: false,
+          })
+        }
       }
     } else if (type === 'insurance_premium' && referenceId) {
       // Idempotency: skip if policy already exists for this paystack_ref

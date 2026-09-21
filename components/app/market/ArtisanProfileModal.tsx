@@ -9,13 +9,7 @@ import { toast } from 'sonner'
 import { X, Users, Check } from 'lucide-react'
 import { MediaUploader, type UploadedFile } from '@/components/app/MediaUploader'
 import { createOrUpdateArtisanProfile } from '@/lib/actions/marketplace'
-import type { ArtisanCategory } from '@/lib/types'
-
-const CATEGORIES: ArtisanCategory[] = [
-    'fashion', 'carpentry', 'electrical', 'plumbing', 'mechanics', 'painting',
-    'catering', 'events', 'photography', 'design', 'beauty', 'cleaning',
-    'solar', 'construction', 'technology', 'other',
-]
+import type { ServiceCategory } from '@/lib/types'
 
 const STATES = ['Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
     'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'FCT', 'Gombe', 'Imo',
@@ -23,48 +17,61 @@ const STATES = ['Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 
     'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara']
 
 const schema = z.object({
-    category: z.string().min(1, 'Select a category'),
-    profession_title: z.string().min(3, 'At least 3 characters').max(100),
-    bio: z.string().max(500).optional(),
-    pricing_from: z.coerce.number().min(0).optional(),
-    years_experience: z.coerce.number().min(0).max(60).optional(),
-    available: z.boolean().default(true),
-    response_time: z.string().optional(),
+    category_id: z.string().min(1, 'Select a category'),
+    title: z.string().min(3, 'At least 3 characters').max(100),
+    description: z.string().max(500).optional(),
+    price: z.coerce.number().min(0).optional(),
+    state: z.string().optional(),
+    city: z.string().optional(),
+    tags: z.string().optional(),
+    is_active: z.boolean().default(true),
 })
 
 type FormValues = z.infer<typeof schema>
 
-const inp = 'w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white text-sm focus:ring-2 focus:ring-green-500/30 focus:border-green-500 outline-none transition-colors'
+const inp = 'w-full rounded-2xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30'
+
+interface ExistingProfile
+{
+    id: string
+    title: string
+    description?: string | null
+    category_id?: string | null
+    price?: number | null
+    state?: string | null
+    city?: string | null
+    tags?: string[] | null
+    is_active?: boolean
+    image_urls?: string[]
+}
 
 interface Props
 {
     open: boolean
     onOpenChange: (v: boolean) => void
-    existing?: { id: string; category: string; profession_title: string; available: boolean } | null
+    categories: ServiceCategory[]
+    existing?: ExistingProfile | null
 }
 
-export default function ArtisanProfileModal({ open, onOpenChange, existing }: Props)
+export default function ArtisanProfileModal({ open, onOpenChange, categories, existing }: Props)
 {
     const router = useRouter()
-    const [portfolioImages, setPortfolioImages] = useState<string[]>([])
-    const [serviceAreas, setServiceAreas] = useState<string[]>([])
+    const [portfolioImages, setPortfolioImages] = useState<string[]>(existing?.image_urls ?? [])
     const [submitting, setSubmitting] = useState(false)
 
     const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
         resolver: zodResolver(schema),
         defaultValues: {
-            category: existing?.category ?? '',
-            profession_title: existing?.profession_title ?? '',
-            available: existing?.available ?? true,
+            category_id: existing?.category_id ?? '',
+            title: existing?.title ?? '',
+            description: existing?.description ?? '',
+            price: existing?.price ?? undefined,
+            state: existing?.state ?? '',
+            city: existing?.city ?? '',
+            tags: existing?.tags?.join(', ') ?? '',
+            is_active: existing?.is_active ?? true,
         },
     })
-
-    function toggleArea(state: string)
-    {
-        setServiceAreas(prev =>
-            prev.includes(state) ? prev.filter(s => s !== state) : [...prev, state]
-        )
-    }
 
     async function onSubmit(values: FormValues)
     {
@@ -72,15 +79,15 @@ export default function ArtisanProfileModal({ open, onOpenChange, existing }: Pr
         try
         {
             await createOrUpdateArtisanProfile({
-                category: values.category as ArtisanCategory,
-                profession_title: values.profession_title,
-                bio: values.bio,
-                portfolio_images: portfolioImages,
-                pricing_from: values.pricing_from,
-                available: values.available,
-                response_time: values.response_time,
-                years_experience: values.years_experience,
-                service_areas: serviceAreas,
+                title: values.title,
+                description: values.description,
+                category_id: values.category_id,
+                price: values.price,
+                state: values.state,
+                city: values.city,
+                tags: values.tags ? values.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+                is_active: values.is_active,
+                images: portfolioImages,
             })
             toast.success(existing ? 'Profile updated!' : 'Artisan profile created!')
             onOpenChange(false)
@@ -97,99 +104,91 @@ export default function ArtisanProfileModal({ open, onOpenChange, existing }: Pr
     if (!open) return null
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4"
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
             onClick={() => !submitting && onOpenChange(false)}>
-            <div className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
+            <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-card shadow-2xl"
                 onClick={e => e.stopPropagation()}>
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+                <div className="flex items-center justify-between border-b border-border px-6 py-5">
                     <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                            style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
-                            <Users className="w-4 h-4 text-white" />
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
+                            <Users className="h-4 w-4 text-primary-foreground" />
                         </div>
                         <div>
-                            <h2 className="font-black text-gray-900">{existing ? 'Edit Artisan Profile' : 'Create Artisan Profile'}</h2>
-                            <p className="text-xs text-gray-400">Get hired by clients across Nigeria</p>
+                            <h2 className="font-display font-black text-foreground">{existing ? 'Edit Artisan Profile' : 'Create Artisan Profile'}</h2>
+                            <p className="text-xs text-muted-foreground">Get hired by clients across Nigeria</p>
                         </div>
                     </div>
                     <button onClick={() => !submitting && onOpenChange(false)}
-                        className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
-                        <X className="w-5 h-5 text-gray-500" />
+                        className="rounded-xl p-2 transition-colors hover:bg-muted">
+                        <X className="h-5 w-5 text-muted-foreground" />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-5">
-                    {/* Category + Title */}
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 px-6 py-5">
+                    {/* Category + Price */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-sm font-semibold text-gray-800 mb-1.5 block">
+                            <label className="mb-1.5 block text-sm font-semibold text-foreground">
                                 Category <span className="text-rose-500">*</span>
                             </label>
-                            <select {...register('category')} className={inp + ' cursor-pointer capitalize'}>
+                            <select {...register('category_id')} className={inp + ' cursor-pointer'}>
                                 <option value="">Select…</option>
-                                {CATEGORIES.map(c => (
-                                    <option key={c} value={c} className="capitalize">{c}</option>
+                                {categories.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
                                 ))}
                             </select>
-                            {errors.category && <p className="text-xs text-rose-500 mt-1">{errors.category.message}</p>}
+                            {errors.category_id && <p className="mt-1 text-xs text-rose-500">{errors.category_id.message}</p>}
                         </div>
                         <div>
-                            <label className="text-sm font-semibold text-gray-800 mb-1.5 block">
-                                Experience (years)
-                            </label>
-                            <input {...register('years_experience')} type="number" min={0} max={60}
-                                placeholder="5" className={inp} />
+                            <label className="mb-1.5 block text-sm font-semibold text-foreground">Starting Price (₦)</label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">₦</span>
+                                <input {...register('price')} type="number" min={0}
+                                    placeholder="5000" className={inp + ' pl-8'} />
+                            </div>
                         </div>
                     </div>
 
                     <div>
-                        <label className="text-sm font-semibold text-gray-800 mb-1.5 block">
+                        <label className="mb-1.5 block text-sm font-semibold text-foreground">
                             Professional Title <span className="text-rose-500">*</span>
                         </label>
-                        <input {...register('profession_title')}
+                        <input {...register('title')}
                             placeholder="e.g. Professional Tailor & Fashion Designer" className={inp} />
-                        {errors.profession_title && <p className="text-xs text-rose-500 mt-1">{errors.profession_title.message}</p>}
+                        {errors.title && <p className="mt-1 text-xs text-rose-500">{errors.title.message}</p>}
                     </div>
 
                     <div>
-                        <label className="text-sm font-semibold text-gray-800 mb-1.5 block">Bio</label>
-                        <textarea {...register('bio')} rows={3}
+                        <label className="mb-1.5 block text-sm font-semibold text-foreground">Description</label>
+                        <textarea {...register('description')} rows={3}
                             placeholder="Describe your skills, experience, and what you offer…"
                             className={inp + ' resize-none'} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-sm font-semibold text-gray-800 mb-1.5 block">Starting Price (₦)</label>
-                            <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">₦</span>
-                                <input {...register('pricing_from')} type="number" min={0}
-                                    placeholder="5000" className={inp + ' pl-8'} />
-                            </div>
+                            <label className="mb-1.5 block text-sm font-semibold text-foreground">State</label>
+                            <select {...register('state')} className={inp + ' cursor-pointer'}>
+                                <option value="">Select…</option>
+                                {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
                         </div>
                         <div>
-                            <label className="text-sm font-semibold text-gray-800 mb-1.5 block">Response Time</label>
-                            <input {...register('response_time')} placeholder="e.g. Within 2 hours" className={inp} />
+                            <label className="mb-1.5 block text-sm font-semibold text-foreground">City</label>
+                            <input {...register('city')} placeholder="e.g. Ikeja" className={inp} />
                         </div>
                     </div>
 
-                    {/* Service areas */}
                     <div>
-                        <label className="text-sm font-semibold text-gray-800 mb-2 block">Service Areas (states)</label>
-                        <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                            {STATES.map(state => (
-                                <button key={state} type="button" onClick={() => toggleArea(state)}
-                                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${serviceAreas.includes(state) ? 'bg-green-700 text-white border-green-700' : 'bg-white text-gray-600 border-gray-200 hover:border-green-400'}`}>
-                                    {state}
-                                </button>
-                            ))}
-                        </div>
+                        <label className="mb-1.5 block text-sm font-semibold text-foreground">Skills / tags</label>
+                        <input {...register('tags')} placeholder="e.g. wedding gowns, alterations, embroidery" className={inp} />
+                        <p className="mt-1 text-xs text-muted-foreground">Comma-separated</p>
                     </div>
 
                     {/* Portfolio */}
                     <div>
-                        <label className="text-sm font-semibold text-gray-800 mb-1.5 block">
+                        <label className="mb-1.5 block text-sm font-semibold text-foreground">
                             Portfolio Photos (optional)
                         </label>
                         <MediaUploader maxImages={8} maxVideos={0}
@@ -200,17 +199,16 @@ export default function ArtisanProfileModal({ open, onOpenChange, existing }: Pr
                     </div>
 
                     {/* Available toggle */}
-                    <label className="flex items-center gap-3 cursor-pointer">
-                        <input {...register('available')} type="checkbox" className="w-5 h-5 accent-green-600 rounded" />
-                        <span className="text-sm font-semibold text-gray-800">Currently available for hire</span>
+                    <label className="flex cursor-pointer items-center gap-3">
+                        <input {...register('is_active')} type="checkbox" className="h-5 w-5 rounded accent-primary" />
+                        <span className="text-sm font-semibold text-foreground">Currently available for hire</span>
                     </label>
 
                     <button type="submit" disabled={submitting}
-                        className="w-full py-3 rounded-2xl text-sm font-black text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
-                        style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-black text-primary-foreground transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-60">
                         {submitting
-                            ? <><span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Saving…</>
-                            : <><Check className="w-4 h-4" /> {existing ? 'Update Profile' : 'Create Profile'}</>}
+                            ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> Saving…</>
+                            : <><Check className="h-4 w-4" /> {existing ? 'Update Profile' : 'Create Profile'}</>}
                     </button>
                 </form>
             </div>

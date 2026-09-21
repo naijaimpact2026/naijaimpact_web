@@ -29,7 +29,7 @@ export default function CourseCard({ course }: { course: Course })
     const coverUrl = toPublicStorageUrl(course.cover_image_url)
 
     const instructorName =
-        course.instructor?.display_name?.trim() || 'HubNovo Instructor'
+        course.instructor?.display_name?.trim() || 'Hubnovo Instructor'
 
     const instructorInitial =
         instructorName.charAt(0).toUpperCase()
@@ -73,8 +73,7 @@ export default function CourseCard({ course }: { course: Course })
                         <div className="
                             absolute inset-0
                             flex items-center justify-center
-                            bg-gradient-to-br from-[#14532d] to-[#0f3d25]
-                        ">
+                        " style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}>
                             <GraduationCap
                                 className="h-12 w-12 text-white/25"
                             />
@@ -94,7 +93,7 @@ export default function CourseCard({ course }: { course: Course })
                             text-xs font-bold shadow-sm
                             ${
                                 course.is_free
-                                    ? 'bg-emerald-500 text-white'
+                                    ? 'bg-emerald text-emerald-foreground'
                                     : 'bg-card text-foreground'
                             }
                         `}>
@@ -132,7 +131,7 @@ export default function CourseCard({ course }: { course: Course })
                         <span className="
                             mb-2 w-fit
                             text-[11px] font-semibold uppercase
-                            tracking-wide text-emerald-600
+                            tracking-wide text-primary
                         ">
                             {course.category_name}
                         </span>
@@ -144,7 +143,7 @@ export default function CourseCard({ course }: { course: Course })
                         text-[15px] font-bold leading-[1.35]
                         text-foreground
                         transition-colors
-                        group-hover:text-emerald-600
+                        group-hover:text-primary
                     ">
                         {course.title}
                     </h3>
@@ -197,9 +196,9 @@ export default function CourseCard({ course }: { course: Course })
                                 />
 
                                 <AvatarFallback className="
-                                    bg-emerald-500/15
+                                    bg-primary/10
                                     text-[10px] font-bold
-                                    text-emerald-600
+                                    text-primary
                                 ">
                                     {instructorInitial}
                                 </AvatarFallback>
@@ -220,7 +219,7 @@ export default function CourseCard({ course }: { course: Course })
                             text-muted-foreground
                             transition-all duration-200
                             group-hover:translate-x-0.5
-                            group-hover:text-emerald-600
+                            group-hover:text-primary
                         " />
                     </div>
                 </div>

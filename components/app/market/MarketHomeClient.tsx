@@ -2,30 +2,35 @@
 
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import { toast } from 'sonner'
 import
     {
-        Plus, Store, Package, ShoppingCart, Users, Search, Filter,
-        ChevronRight, MapPin, LayoutGrid, Leaf, Smartphone, Car,
+        Plus, Store, Package, ShoppingCart, Users, Search,
+        ChevronRight, LayoutGrid, Leaf, Smartphone, Car,
         Building2, Wrench, HeartPulse, BookOpen, Briefcase, Zap,
         Shirt, DollarSign, UtensilsCrossed, Armchair, Home, Truck,
         Baby, Tv, ShoppingBag, Globe, Hammer, Scissors, Camera,
-        Cpu, Settings, Wheat, Star,
+        Cpu, Settings, Heart, ArrowRight,
     } from 'lucide-react'
 import { fetchListings } from '@/lib/actions/marketplace'
-import type { NmListingDetail, ServiceCategory } from '@/lib/types'
+import CartPanel from './CartPanel'
+import TopStoresRail from './TopStoresRail'
+import ListingCard from './ListingCard'
+import MarketHeroIllustration from '@/components/illustrations/MarketHeroIllustration'
+import type { NmListingDetail, NmTopSeller, ServiceCategory } from '@/lib/types'
 
 interface Props
 {
     initialListings: NmListingDetail[]
     initialNextCursor: string | null
     categories: ServiceCategory[]
+    topSellers: NmTopSeller[]
     userId: string
+    userEmail: string
     displayName: string
 }
 
-// ─── Icon + color map — each keyword gets its own colour pair ─────────────────
-// { bg: icon background, icon: icon color, text: label color }
+// ─── Icon + color map — each category keyword gets its own colour pair ───────
 type IconStyle = { bg: string; icon: string; Icon: any }
 
 function getCategoryStyle(name: string): IconStyle
@@ -81,304 +86,284 @@ function getCategoryStyle(name: string): IconStyle
         return { bg: '#dbeafe', icon: '#1e40af', Icon: Cpu }
     if (n.includes('truck') || n.includes('logistic') || n.includes('transport'))
         return { bg: '#e0f2fe', icon: '#0284c7', Icon: Truck }
-    // Default
     return { bg: '#f3f4f6', icon: '#6b7280', Icon: ShoppingBag }
 }
 
-// ─── Format naira ─────────────────────────────────────────────────────────────
-function fmt(n: number)
-{
-    if (n >= 1_000_000) return `₦${(n / 1_000_000).toFixed(1)}M`
-    if (n >= 1_000) return `₦${(n / 1_000).toFixed(0)}k`
-    return `₦${n.toLocaleString('en-NG')}`
-}
-
-// ─── Listing card ─────────────────────────────────────────────────────────────
-function ListingCard({ listing }: { listing: NmListingDetail })
-{
-    const coverImg = listing.cover_image_url ?? listing.image_urls?.[0] ?? null
-
-    const conditionColors: Record<string, string> = {
-        new: 'bg-emerald-500 text-white',
-        fairly_used: 'bg-amber-400 text-white',
-        used: 'bg-gray-400 text-white',
-    }
-
-    return (
-        <Link href={`/app/market/${listing.id}`}
-            className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-green-300 hover:shadow-lg transition-all group cursor-pointer">
-            <div className="relative aspect-square bg-gray-50 overflow-hidden">
-                {coverImg ? (
-                    <Image src={coverImg} alt={listing.title} fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" />
-                ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-                        <Package className="w-10 h-10 text-gray-200" />
-                    </div>
-                )}
-                {/* Condition badge */}
-                {listing.condition && (
-                    <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold ${conditionColors[listing.condition] ?? 'bg-gray-400 text-white'}`}>
-                        {listing.condition === 'fairly_used' ? 'Fairly Used' : listing.condition === 'new' ? 'New' : 'Used'}
-                    </span>
-                )}
-                {/* Verified seller badge */}
-                {listing.seller_is_verified && (
-                    <span className="absolute top-2 right-2 w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center shadow-sm">
-                        <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                    </span>
-                )}
-                {/* Featured ribbon */}
-                {listing.is_featured && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-yellow-400/90 to-transparent py-1.5 px-3">
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-yellow-900">
-                            <Star className="h-3 w-3 fill-yellow-900" /> Featured
-                        </span>
-                    </div>
-                )}
-            </div>
-            <div className="p-3">
-                <p className="text-xs font-bold text-gray-800 line-clamp-2 leading-snug mb-1">{listing.title}</p>
-                <p className="text-base font-black text-gray-900">{fmt(listing.price)}</p>
-                {listing.negotiable && (
-                    <p className="text-[10px] text-green-600 font-semibold mt-0.5">Negotiable</p>
-                )}
-                {(listing.city || listing.state) && (
-                    <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-0.5 truncate">
-                        <MapPin className="w-2.5 h-2.5 shrink-0" />
-                        <span className="truncate">{[listing.city, listing.state].filter(Boolean).join(', ')}</span>
-                    </p>
-                )}
-            </div>
-        </Link>
-    )
-}
-
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Main component ────────────────────────────────────────────────────────
 export default function MarketHomeClient({
     initialListings,
     initialNextCursor,
     categories,
+    topSellers,
     userId,
-    displayName,
+    userEmail,
 }: Props)
 {
     const [listings, setListings] = useState(initialListings)
     const [nextCursor, setNextCursor] = useState(initialNextCursor)
     const [activeCategory, setActiveCategory] = useState<ServiceCategory | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
+    const [searchInput, setSearchInput] = useState('')
     const [loading, setLoading] = useState(false)
+    const [loadingMore, setLoadingMore] = useState(false)
 
-    const handleCategoryClick = useCallback(async (cat: ServiceCategory | null) =>
+    const runQuery = useCallback(async (opts: { category?: ServiceCategory | null; search?: string }) =>
     {
-        setActiveCategory(cat)
-        setSearchQuery('')
         setLoading(true)
         try
         {
-            const filters = cat ? { category_id: cat.id } : {}
+            const filters: { category_id?: string; search?: string } = {}
+            if (opts.category) filters.category_id = opts.category.id
+            if (opts.search) filters.search = opts.search
+
             const { listings: fresh, nextCursor: nc } = await fetchListings(filters, 24)
             setListings(fresh)
             setNextCursor(nc)
-        } catch (e)
+        }
+        catch (e)
         {
             console.error(e)
-        } finally
+            toast.error('Could not load listings')
+        }
+        finally
         {
             setLoading(false)
         }
     }, [])
 
-    const filtered = searchQuery
-        ? listings.filter(l => l.title.toLowerCase().includes(searchQuery.toLowerCase()))
-        : listings
+    async function handleCategoryClick(cat: ServiceCategory | null)
+    {
+        setActiveCategory(cat)
+        setSearchQuery('')
+        setSearchInput('')
+        await runQuery({ category: cat })
+    }
+
+    async function handleSearchSubmit(e: React.FormEvent)
+    {
+        e.preventDefault()
+        setSearchQuery(searchInput)
+        setActiveCategory(null)
+        await runQuery({ search: searchInput })
+    }
+
+    async function handleLoadMore()
+    {
+        if (!nextCursor || loadingMore) return
+        setLoadingMore(true)
+        try
+        {
+            const filters: { category_id?: string; search?: string; cursor?: string } = { cursor: nextCursor }
+            if (activeCategory) filters.category_id = activeCategory.id
+            if (searchQuery) filters.search = searchQuery
+
+            const { listings: more, nextCursor: nc } = await fetchListings(filters, 24)
+            setListings((prev) => [...prev, ...more])
+            setNextCursor(nc)
+        }
+        catch (e)
+        {
+            console.error(e)
+        }
+        finally
+        {
+            setLoadingMore(false)
+        }
+    }
 
     return (
-        <div className="min-h-screen bg-[#f5f6fa]">
+        <div className="w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8">
 
             {/* ══ HERO ══════════════════════════════════════════════════ */}
-            <div className="relative overflow-hidden"
-                style={{ background: 'linear-gradient(150deg,#1a5c38 0%,#0f3d25 55%,#0a2d1c 100%)' }}>
-                <div className="pointer-events-none absolute -top-20 -right-20 w-72 h-72 rounded-full opacity-20"
-                    style={{ background: 'radial-gradient(circle,#4ade80,transparent 70%)' }} />
-                <div className="pointer-events-none absolute inset-0 opacity-[0.04]"
-                    style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.3) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.3) 1px,transparent 1px)', backgroundSize: '28px 28px' }} />
+            <section className="relative overflow-hidden rounded-3xl"
+                style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}>
+                <div className="relative z-10 grid grid-cols-1 items-center gap-6 px-6 py-8 sm:px-10 sm:py-10 lg:grid-cols-[1.1fr_0.9fr]">
+                    <div>
+                        <p className="mb-1 text-xs font-bold uppercase tracking-widest text-cyan-200">Hubnovo Marketplace</p>
+                        <h1 className="font-display text-3xl font-black leading-tight text-white sm:text-4xl">
+                            Buy. Sell. Grow Together.
+                        </h1>
+                        <p className="mt-2 max-w-md text-sm text-white/70">
+                            Discover quality products, support local businesses, and unlock new opportunities.
+                        </p>
 
-                <div className="relative z-10 px-4 pt-5 pb-6 max-w-6xl mx-auto">
-                    <div className="flex items-center justify-between gap-3 mb-5">
-                        <div>
-                            <p className="text-green-400 text-[10px] font-bold uppercase tracking-widest mb-0.5">HubNovo</p>
-                            <h1 className="text-2xl font-black text-white leading-tight">NaijaMarket</h1>
-                            <p className="text-xs text-green-300/60 mt-0.5">Buy · Sell · Get Paid · Grow</p>
-                        </div>
+                        <form onSubmit={handleSearchSubmit} className="mt-5 flex max-w-lg gap-2">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                <input
+                                    type="text"
+                                    value={searchInput}
+                                    onChange={(e) => setSearchInput(e.target.value)}
+                                    placeholder="Search for products, brands or stores…"
+                                    className="w-full rounded-2xl border-0 bg-white py-3 pl-10 pr-4 text-sm text-gray-900 outline-none ring-0 focus:ring-2 focus:ring-cyan-300"
+                                />
+                            </div>
+                            <button type="submit"
+                                className="shrink-0 rounded-2xl bg-secondary px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-secondary/90">
+                                Search
+                            </button>
+                        </form>
+
                         <Link href="/app/market/create"
-                            className="shrink-0 flex items-center gap-1.5 px-5 py-2.5 rounded-2xl text-sm font-black text-green-900 bg-white hover:bg-green-50 transition-all active:scale-95 shadow-xl">
-                            <Plus className="w-4 h-4" /> List Item
+                            className="mt-4 inline-flex items-center gap-1.5 rounded-2xl bg-white px-5 py-2.5 text-sm font-black text-secondary shadow-lg transition-transform active:scale-95 hover:bg-white/90">
+                            <Plus className="h-4 w-4" /> List Item
                         </Link>
                     </div>
 
-                    {/* 4-col quick-nav tiles */}
-                    <div className="grid grid-cols-4 gap-2.5">
-                        {[
-                            { icon: Package, label: 'Browse', href: '/app/market', color: '#86efac' },
-                            { icon: Users, label: 'Artisans', href: '/app/market/artisans', color: '#fde68a' },
-                            { icon: Store, label: 'Stores', href: '/app/market/stores', color: '#a5f3fc' },
-                            { icon: ShoppingCart, label: 'My Orders', href: '/app/market/orders', color: '#fca5a5' },
-                        ].map(({ icon: Icon, label, href, color }) => (
-                            <Link key={href} href={href}
-                                className="flex flex-col items-center gap-2 py-4 px-1 rounded-2xl border border-white/20 hover:bg-white/10 transition-all group"
-                                style={{ background: 'rgba(255,255,255,0.08)' }}>
-                                <div className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg"
-                                    style={{ background: `${color}22` }}>
-                                    <Icon className="w-5 h-5" style={{ color }} strokeWidth={2} />
-                                </div>
-                                <span className="text-white text-[11px] font-semibold text-center">{label}</span>
-                            </Link>
-                        ))}
-                    </div>
+                    <MarketHeroIllustration className="hidden w-full max-w-sm justify-self-end sm:block" />
                 </div>
+            </section>
+
+            {/* ══ QUICK NAV ═════════════════════════════════════════════ */}
+            <div className="grid grid-cols-4 gap-2.5">
+                {[
+                    { icon: Heart, label: 'Saved', href: '/app/market/saved' },
+                    { icon: Users, label: 'Artisans', href: '/app/market/artisans' },
+                    { icon: Store, label: 'Stores', href: '/app/market/stores' },
+                    { icon: ShoppingCart, label: 'My Orders', href: '/app/market/orders' },
+                ].map(({ icon: Icon, label, href }) => (
+                    <Link key={href} href={href}
+                        className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card py-4 transition-colors hover:border-primary/40 hover:bg-primary/5">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+                            <Icon className="h-4 w-4 text-primary" strokeWidth={2} />
+                        </div>
+                        <span className="text-[11px] font-semibold text-foreground">{label}</span>
+                    </Link>
+                ))}
             </div>
 
-            {/* ══ SEARCH ════════════════════════════════════════════════ */}
-            <div className="bg-white border-b border-gray-100 px-4 py-3 sticky top-14 z-10 shadow-sm">
-                <div className="flex gap-2 max-w-6xl mx-auto">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Search NaijaMarket…"
-                            className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 bg-gray-50 text-sm focus:ring-2 focus:ring-green-500/30 focus:border-green-500 outline-none"
-                            value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                    <button className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-100 transition-colors shrink-0">
-                        <Filter className="w-4 h-4" /> Filters
+            {/* ══ CATEGORY STRIP ════════════════════════════════════════ */}
+            <section className="rounded-2xl border border-border bg-card p-3">
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                    <button
+                        onClick={() => handleCategoryClick(null)}
+                        className={`flex w-20 shrink-0 flex-col items-center gap-1.5 rounded-2xl px-2 py-2.5 transition-all ${!activeCategory ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                            }`}
+                    >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl"
+                            style={{ background: !activeCategory ? 'rgba(255,255,255,0.2)' : '#eef2ff' }}>
+                            <LayoutGrid className="h-4 w-4" style={{ color: !activeCategory ? '#fff' : '#4338ca' }} strokeWidth={2} />
+                        </div>
+                        <span className="text-center text-[9px] font-semibold leading-tight">All</span>
                     </button>
+
+                    {categories.map((cat) =>
+                    {
+                        const style = getCategoryStyle(cat.name)
+                        const Icon = style.Icon
+                        const isActive = activeCategory?.id === cat.id
+                        return (
+                            <button
+                                key={cat.id}
+                                onClick={() => handleCategoryClick(cat)}
+                                className={`flex w-20 shrink-0 flex-col items-center gap-1.5 rounded-2xl px-2 py-2.5 transition-all ${isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                                    }`}
+                            >
+                                <div className="flex h-9 w-9 items-center justify-center rounded-xl"
+                                    style={{ background: isActive ? 'rgba(255,255,255,0.2)' : style.bg }}>
+                                    <Icon className="h-4 w-4" style={{ color: isActive ? '#fff' : style.icon }} strokeWidth={2} />
+                                </div>
+                                <span className={`line-clamp-2 text-center text-[9px] font-semibold leading-tight ${isActive ? 'text-primary-foreground' : 'text-foreground'}`}>
+                                    {cat.name}
+                                </span>
+                            </button>
+                        )
+                    })}
                 </div>
-            </div>
+            </section>
 
             {/* ══ CONTENT ═══════════════════════════════════════════════ */}
-            <div className="max-w-6xl mx-auto px-4 py-4 space-y-5">
-
-                {/* ── Category grid — colourful tiles ── */}
-                <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Browse by Category</p>
-                    <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2.5">
-
-                        {/* All tile */}
-                        <button
-                            onClick={() => handleCategoryClick(null)}
-                            className={`flex flex-col items-center gap-2 py-3.5 px-1 rounded-2xl border-2 transition-all ${!activeCategory
-                                ? 'border-green-600 shadow-md shadow-green-100'
-                                : 'border-transparent hover:border-green-200 hover:shadow-sm'
-                                }`}
-                            style={!activeCategory ? { background: 'linear-gradient(135deg,#1a5c38,#065f46)' } : { background: '#f8fafc' }}>
-                            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${!activeCategory ? 'bg-white/20' : 'bg-green-100'}`}>
-                                <LayoutGrid className={`w-5 h-5 ${!activeCategory ? 'text-white' : 'text-green-700'}`} strokeWidth={2} />
-                            </div>
-                            <span className={`text-[10px] font-bold text-center ${!activeCategory ? 'text-white' : 'text-gray-700'}`}>
-                                All
-                            </span>
-                        </button>
-
-                        {/* Dynamic categories with vibrant per-category colours */}
-                        {categories.map(cat =>
-                        {
-                            const style = getCategoryStyle(cat.name)
-                            const Icon = style.Icon
-                            const isActive = activeCategory?.id === cat.id
-                            return (
-                                <button
-                                    key={cat.id}
-                                    onClick={() => handleCategoryClick(cat)}
-                                    className={`flex flex-col items-center gap-2 py-3.5 px-1 rounded-2xl border-2 transition-all ${isActive
-                                        ? 'border-green-600 shadow-md shadow-green-100'
-                                        : 'border-transparent hover:border-gray-200 hover:shadow-sm'
-                                        }`}
-                                    style={isActive
-                                        ? { background: 'linear-gradient(135deg,#1a5c38,#065f46)' }
-                                        : { background: '#f8fafc' }}>
-                                    <div
-                                        className="w-11 h-11 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110"
-                                        style={isActive ? { background: 'rgba(255,255,255,0.2)' } : { background: style.bg }}>
-                                        <Icon
-                                            className="w-5 h-5"
-                                            style={{ color: isActive ? '#fff' : style.icon }}
-                                            strokeWidth={2}
-                                        />
-                                    </div>
-                                    <span
-                                        className="text-[9px] font-semibold text-center leading-tight line-clamp-2 w-full px-0.5"
-                                        style={{ color: isActive ? '#fff' : '#374151' }}>
-                                        {cat.name}
-                                    </span>
-                                </button>
-                            )
-                        })}
-                    </div>
-                </section>
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_300px] lg:items-start">
 
                 {/* ── Listings ── */}
                 <section>
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="mb-3 flex items-center justify-between">
                         <div>
-                            <h2 className="font-black text-gray-900 text-base">
-                                {activeCategory ? activeCategory.name : 'All Listings'}
+                            <h2 className="font-display text-base font-black text-foreground">
+                                {searchQuery ? `Results for "${searchQuery}"` : activeCategory ? activeCategory.name : 'Featured Products'}
                             </h2>
                             {!loading && (
-                                <p className="text-xs text-gray-500 mt-0.5">{filtered.length} listing{filtered.length !== 1 ? 's' : ''}</p>
+                                <p className="mt-0.5 text-xs text-muted-foreground">{listings.length} listing{listings.length !== 1 ? 's' : ''}</p>
                             )}
                         </div>
-                        {!loading && filtered.length > 0 && nextCursor && (
-                            <button className="text-xs font-bold text-green-700 flex items-center gap-0.5 hover:text-green-800">
-                                Load more <ChevronRight className="w-3.5 h-3.5" />
-                            </button>
-                        )}
                     </div>
 
                     {loading ? (
-                        /* Skeleton grid */
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                            {Array.from({ length: 8 }).map((_, i) => (
-                                <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
-                                    <div className="aspect-square bg-gray-100" />
-                                    <div className="p-3 space-y-2">
-                                        <div className="h-3 bg-gray-100 rounded-full w-5/6" />
-                                        <div className="h-3 bg-gray-100 rounded-full w-3/6" />
-                                        <div className="h-4 bg-gray-100 rounded-full w-2/5" />
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                            {Array.from({ length: 10 }).map((_, i) => (
+                                <div key={i} className="overflow-hidden rounded-2xl border border-border bg-card">
+                                    <div className="aspect-square animate-pulse bg-muted" />
+                                    <div className="space-y-2 p-3">
+                                        <div className="h-3 w-5/6 animate-pulse rounded-full bg-muted" />
+                                        <div className="h-3 w-3/6 animate-pulse rounded-full bg-muted" />
+                                        <div className="h-4 w-2/5 animate-pulse rounded-full bg-muted" />
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    ) : filtered.length === 0 ? (
-                        <div className="bg-white rounded-3xl border border-gray-100 py-20 text-center">
-                            <div className="w-16 h-16 rounded-3xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
-                                <Package className="w-8 h-8 text-gray-200" />
+                    ) : listings.length === 0 ? (
+                        <div className="rounded-3xl border border-border bg-card py-16 text-center">
+                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-muted">
+                                <Package className="h-8 w-8 text-muted-foreground/40" />
                             </div>
-                            <p className="font-bold text-gray-700 text-lg">No listings found</p>
-                            <p className="text-sm text-gray-400 mt-1 mb-5">
-                                {activeCategory ? `Nothing in "${activeCategory.name}" yet` : 'Be the first to list something!'}
+                            <p className="text-lg font-bold text-foreground">No listings found</p>
+                            <p className="mb-5 mt-1 text-sm text-muted-foreground">
+                                {searchQuery ? `Nothing matched "${searchQuery}"` : activeCategory ? `Nothing in "${activeCategory.name}" yet` : 'Be the first to list something!'}
                             </p>
                             <Link href="/app/market/create"
-                                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black text-white transition-all hover:opacity-90 shadow-lg"
-                                style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
-                                <Plus className="w-4 h-4" /> Create Listing
+                                className="inline-flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-black text-primary-foreground shadow-lg transition-colors hover:bg-primary/90">
+                                <Plus className="h-4 w-4" /> Create Listing
                             </Link>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                            {filtered.map(listing => (
-                                <ListingCard key={listing.id} listing={listing} />
-                            ))}
-                        </div>
+                        <>
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                                {listings.map((listing) => (
+                                    <ListingCard key={listing.id} listing={listing} />
+                                ))}
+                            </div>
+
+                            {nextCursor && (
+                                <div className="mt-4 flex justify-center">
+                                    <button
+                                        onClick={handleLoadMore}
+                                        disabled={loadingMore}
+                                        className="flex items-center gap-1.5 rounded-2xl border border-border bg-card px-5 py-2.5 text-sm font-bold text-primary transition-colors hover:bg-primary/5 disabled:opacity-60"
+                                    >
+                                        {loadingMore ? 'Loading…' : 'Load more'} <ChevronRight className="h-3.5 w-3.5" />
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
                 </section>
 
-                <div className="h-6" />
+                {/* ── Right rail ── */}
+                <aside className="space-y-4 lg:sticky lg:top-20">
+                    <CartPanel userId={userId} userEmail={userEmail} />
+
+                    {/* Great Deals CTA */}
+                    <section className="overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-cyan-50 to-primary/5 p-4">
+                        <p className="font-display text-sm font-black text-foreground">Great Deals Every Day</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Quality products. Better prices. Happier you.</p>
+                        <Link href="/app/market"
+                            className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline">
+                            Shop Deals <ArrowRight className="h-3 w-3" />
+                        </Link>
+                    </section>
+
+                    <TopStoresRail sellers={topSellers} />
+
+                    {/* Entrepreneurs CTA */}
+                    <section className="overflow-hidden rounded-2xl bg-secondary p-4 text-white">
+                        <p className="font-display text-sm font-black">Empowering Entrepreneurs</p>
+                        <p className="mt-1 text-xs text-white/70">Join thousands of sellers growing their business on Hubnovo.</p>
+                        <Link href="/app/market/create"
+                            className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-emerald px-4 py-2 text-xs font-bold text-emerald-foreground transition-colors hover:opacity-90">
+                            Start Selling <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                    </section>
+                </aside>
             </div>
         </div>
     )
