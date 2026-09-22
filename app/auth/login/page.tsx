@@ -6,9 +6,21 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import {
+    Eye,
+    EyeOff,
+    Loader2,
+    Mail,
+    Lock,
+    ArrowRight,
+    HelpCircle,
+    Users,
+    FolderCheck,
+    MapPin,
+} from 'lucide-react'
 import Image from 'next/image'
 import { signIn } from '@/lib/actions/auth'
+import { createClient } from '@/lib/supabase/client'
 
 const loginSchema = z.object({
     email: z.string().email('Please enter a valid email address'),
@@ -17,11 +29,14 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>
 
-export default function LoginPage()
-{
+export default function LoginPage() {
     const router = useRouter()
     const [showPassword, setShowPassword] = useState(false)
     const [serverError, setServerError] = useState('')
+    const [googleLoading, setGoogleLoading] = useState(false)
+    const [helpOpen, setHelpOpen] = useState(false)
+
+    const supabase = createClient()
 
     const {
         register,
@@ -31,146 +46,573 @@ export default function LoginPage()
         resolver: zodResolver(loginSchema),
     })
 
-    const onSubmit = async (values: LoginFormValues) =>
-    {
+    const handleGoogleSignIn = async () => {
         setServerError('')
-        const result = await signIn({ email: values.email, password: values.password })
-        if (result?.error)
-        {
+        setGoogleLoading(true)
+
+        const redirectTo =
+            `${window.location.origin}/auth/callback?next=/app`
+
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo,
+            },
+        })
+
+        if (error) {
+            console.error('Google sign-in error:', error)
+            setServerError(error.message)
+            setGoogleLoading(false)
+        }
+    }
+
+    const onSubmit = async (values: LoginFormValues) => {
+        setServerError('')
+
+        const result = await signIn({
+            email: values.email,
+            password: values.password,
+        })
+
+        if (result?.error) {
             setServerError('Invalid email or password')
-        } else if (result?.success)
-        {
-            // Use client-side navigation — server-action redirect() is unreliable
-            // on iOS Safari/Chrome due to how it handles cookies + redirects.
+        } else if (result?.success) {
+            // Use client-side navigation — server-action redirect()
+            // is unreliable on iOS Safari/Chrome due to cookies + redirects.
             router.push('/app')
             router.refresh()
         }
     }
 
     return (
-        <div className="min-h-screen flex">
-            {/* Left — brand panel */}
+        <div className="min-h-screen flex bg-[#050F20]">
+
+            {/* =========================================================
+                LEFT — BRAND PANEL
+            ========================================================= */}
             <div
-                className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col items-center justify-center p-12"
-                style={{ background: 'linear-gradient(150deg, #0A1E33 0%, #102A43 55%, #00688A 100%)' }}
+                className="hidden lg:flex lg:w-[52%] relative overflow-hidden flex-col"
+                style={{
+                    background:
+                        'linear-gradient(135deg, #19B5E6 0%, #087FD0 45%, #064EB3 100%)',
+                }}
             >
-                <div
-                    className="absolute inset-0 opacity-20"
-                    style={{
-                        backgroundImage:
-                            'radial-gradient(circle at 30% 40%, #00A86B 0%, transparent 50%), radial-gradient(circle at 70% 70%, #00B8D9 0%, transparent 50%)',
-                    }}
-                />
-                <div className="relative z-10 text-center space-y-6">
-                    <Link href="/" className="flex items-center justify-center gap-3 mb-8">
-                        <Image src="/logo.png" alt="Hubnovo" width={52} height={52} className="rounded-xl" />
-                        <Image src="/logo-wordmark.png" alt="Hubnovo" width={156} height={52} className="h-12 w-auto" />
-                    </Link>
-                    <h2 className="text-4xl font-bold text-white leading-tight">
-                        Connect. Build.
-                        <br />
-                        Impact Nigeria.
-                    </h2>
-                    <p className="text-slate-300 text-lg max-w-sm">
-                        Join 50,000+ community builders, entrepreneurs, and change-makers on one platform.
-                    </p>
-                    <div className="flex justify-center gap-8 pt-6">
-                        {[
-                            { n: '50K+', l: 'Members' },
-                            { n: '100+', l: 'Projects' },
-                            { n: '36', l: 'States' },
-                        ].map((s, i) => (
-                            <div key={i} className="text-center">
-                                <div className="text-2xl font-bold text-emerald-400">{s.n}</div>
-                                <div className="text-slate-400 text-sm">{s.l}</div>
-                            </div>
-                        ))}
-                    </div>
+
+                {/* Background glow */}
+                <div className="absolute inset-0 pointer-events-none">
+
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            background: `
+                                radial-gradient(
+                                    circle at 15% 15%,
+                                    rgba(255,255,255,0.25) 0%,
+                                    transparent 30%
+                                ),
+                                radial-gradient(
+                                    circle at 85% 25%,
+                                    rgba(0,255,214,0.20) 0%,
+                                    transparent 30%
+                                ),
+                                radial-gradient(
+                                    circle at 45% 80%,
+                                    rgba(0,125,255,0.25) 0%,
+                                    transparent 45%
+                                )
+                            `,
+                        }}
+                    />
+
+                    {/* Decorative shapes */}
+                    <div className="absolute -right-32 -bottom-32 w-[480px] h-[480px] rounded-full border border-white/10" />
+
+                    <div className="absolute -right-20 -bottom-20 w-[350px] h-[350px] rounded-full bg-cyan-300/10 blur-sm" />
+
+                    <div className="absolute right-[-100px] bottom-[-120px] w-[320px] h-[320px] rounded-full bg-emerald-300/20" />
+
+                    <div className="absolute left-[-150px] top-[35%] w-[300px] h-[300px] rounded-full bg-white/5 blur-3xl" />
+
                 </div>
+
+
+                {/* =====================================================
+                    LOGO
+                ===================================================== */}
+                <div className="relative z-10 px-14 pt-12">
+
+                    <Link
+                        href="/"
+                        className="inline-flex items-center gap-3"
+                    >
+                        <Image
+                            src="/logo.png"
+                            alt="Hubnovo"
+                            width={64}
+                            height={64}
+                            className="rounded-2xl shadow-xl"
+                        />
+
+                        <Image
+                            src="/logo-wordmark.png"
+                            alt="Hubnovo"
+                            width={190}
+                            height={64}
+                            className="h-14 w-auto"
+                        />
+                    </Link>
+
+                </div>
+
+
+                {/* =====================================================
+                    MAIN BRAND CONTENT
+                ===================================================== */}
+                <div className="relative z-10 flex-1 flex items-center px-14">
+
+                    <div className="max-w-2xl">
+
+                        {/* Label */}
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-sm mb-7">
+
+                            <span className="w-2 h-2 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(110,255,190,0.9)]" />
+
+                            <span className="text-xs font-medium tracking-wide text-white/85">
+                                BUILT FOR NIGERIA
+                            </span>
+
+                        </div>
+
+
+                        {/* Heading */}
+                        <h2 className="text-5xl xl:text-[62px] font-bold leading-[1.03] tracking-[-0.035em] text-white">
+
+                            Connect.
+                            <br />
+
+                            Build.
+                            <br />
+
+                            <span
+                                style={{
+                                    backgroundImage:
+                                        'linear-gradient(100deg, #FFFFFF 0%, #D9FBFF 35%, #42F2C8 100%)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                    backgroundClip: 'text',
+                                }}
+                            >
+                                Impact Nigeria.
+                            </span>
+
+                        </h2>
+
+
+                        {/* Description */}
+                        <p className="mt-7 max-w-xl text-lg xl:text-xl leading-relaxed text-white/80">
+                            Join a growing community of builders,
+                            entrepreneurs, and change-makers creating
+                            opportunities and real impact across Nigeria.
+                        </p>
+
+
+                        {/* =================================================
+                            STATS
+                        ================================================= */}
+                        <div className="flex items-center mt-11">
+
+                            {/* Members */}
+                            <div className="flex items-center gap-3 pr-8">
+
+                                <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-white/10 border border-white/10">
+                                    <Users className="w-5 h-5 text-emerald-200" />
+                                </div>
+
+                                <div>
+                                    <div className="text-xl font-bold text-white">
+                                        50K+
+                                    </div>
+
+                                    <div className="text-xs text-white/60 mt-0.5">
+                                        Members
+                                    </div>
+                                </div>
+
+                            </div>
+
+
+                            <div className="w-px h-12 bg-white/20" />
+
+
+                            {/* Projects */}
+                            <div className="flex items-center gap-3 px-8">
+
+                                <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-white/10 border border-white/10">
+                                    <FolderCheck className="w-5 h-5 text-cyan-200" />
+                                </div>
+
+                                <div>
+                                    <div className="text-xl font-bold text-white">
+                                        100+
+                                    </div>
+
+                                    <div className="text-xs text-white/60 mt-0.5">
+                                        Projects
+                                    </div>
+                                </div>
+
+                            </div>
+
+
+                            <div className="w-px h-12 bg-white/20" />
+
+
+                            {/* States */}
+                            <div className="flex items-center gap-3 pl-8">
+
+                                <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-white/10 border border-white/10">
+                                    <MapPin className="w-5 h-5 text-emerald-200" />
+                                </div>
+
+                                <div>
+                                    <div className="text-xl font-bold text-white">
+                                        36
+                                    </div>
+
+                                    <div className="text-xs text-white/60 mt-0.5">
+                                        States
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                {/* =====================================================
+                    BOTTOM NAVIGATION
+                ===================================================== */}
+                <div className="relative z-10 px-14 pb-10">
+
+                    <div className="flex items-center gap-3 text-[10px] font-semibold tracking-[0.2em] text-white/55">
+
+                        <span>IDEAS</span>
+                        <span className="text-white/25">/</span>
+
+                        <span>SKILLS</span>
+                        <span className="text-white/25">/</span>
+
+                        <span>OPPORTUNITIES</span>
+                        <span className="text-white/25">/</span>
+
+                        <span>IMPACT</span>
+
+                    </div>
+
+                </div>
+
             </div>
 
-            {/* Right — form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-white dark:bg-slate-950">
-                <div className="w-full max-w-sm space-y-8">
-                    <div>
-                        <Link href="/" className="flex items-center gap-2 mb-6 lg:hidden">
-                            <Image src="/logo.png" alt="Hubnovo" width={36} height={36} className="rounded-lg" />
-                            <Image src="/logo-wordmark.png" alt="Hubnovo" width={108} height={36} className="h-9 w-auto" />
-                        </Link>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h1>
-                        <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">Sign in to your account</p>
+
+            {/* =========================================================
+                RIGHT — LOGIN PANEL
+            ========================================================= */}
+            <div className="w-full lg:w-[48%] relative flex items-center justify-center bg-[#050F20] px-6 py-12">
+
+                {/* Help */}
+                <div className="absolute top-9 right-10 hidden lg:block">
+                    <button
+                        type="button"
+                        onClick={() => setHelpOpen(!helpOpen)}
+                        className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
+                    >
+                        <span>Need help?</span>
+                        <HelpCircle className="w-[18px] h-[18px]" />
+                    </button>
+
+                    {helpOpen && (
+                        <div className="absolute right-0 top-8 w-72 rounded-2xl border border-[#294667] bg-[#0B1A31] shadow-2xl p-4 z-50">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <h3 className="text-sm font-semibold text-white">
+                                        Need help?
+                                    </h3>
+                                    <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                                        Having trouble signing in? Check your details
+                                        or contact the Hubnovo team.
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setHelpOpen(false)}
+                                    className="text-slate-500 hover:text-white text-lg leading-none"
+                                    aria-label="Close help"
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            <div className="mt-4 space-y-2">
+                                <Link
+                                    href="/auth/forgot-password"
+                                    className="block rounded-lg border border-[#3A5D87] px-3 py-2.5 text-xs font-medium text-slate-200 hover:bg-white/5 transition-colors"
+                                >
+                                    Reset your password
+                                </Link>
+
+                                <Link
+                                    href="/auth/signup"
+                                    className="block rounded-lg border border-[#3A5D87] px-3 py-2.5 text-xs font-medium text-slate-200 hover:bg-white/5 transition-colors"
+                                >
+                                    Create an account
+                                </Link>
+
+                                <Link
+                                    href="/#contact"
+                                    className="block rounded-lg bg-gradient-to-r from-[#168BFF] to-[#2CE69B] px-3 py-2.5 text-center text-xs font-semibold text-white hover:brightness-105 transition-all"
+                                >
+                                    Contact Hubnovo
+                                </Link>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="w-full max-w-[440px]">
+
+                    {/* Mobile logo */}
+                    <Link
+                        href="/"
+                        className="flex items-center gap-2 mb-10 lg:hidden"
+                    >
+                        <Image
+                            src="/logo.png"
+                            alt="Hubnovo"
+                            width={40}
+                            height={40}
+                            className="rounded-xl"
+                        />
+
+                        <Image
+                            src="/logo-wordmark.png"
+                            alt="Hubnovo"
+                            width={120}
+                            height={40}
+                            className="h-10 w-auto"
+                        />
+                    </Link>
+
+
+                    {/* =================================================
+                        HEADER
+                    ================================================= */}
+                    <div className="mb-9">
+
+                        <h1 className="text-[38px] leading-tight font-bold tracking-tight text-white">
+                            Welcome back
+                        </h1>
+
+                        <p className="mt-2 text-[15px] text-slate-400">
+                            Sign in to continue to Hubnovo
+                        </p>
+
                     </div>
 
+
+                    {/* Server error */}
                     {serverError && (
-                        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl px-4 py-3 text-sm">
+                        <div className="mb-6 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-400">
                             {serverError}
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+
+                    {/* =================================================
+                        LOGIN FORM
+                    ================================================= */}
+                    <form
+                        onSubmit={handleSubmit(onSubmit)}
+                        className="space-y-5"
+                    >
+
+                        {/* Email */}
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+
+                            <label className="block mb-2 text-sm font-medium text-slate-200">
                                 Email
                             </label>
-                            <input
-                                type="email"
-                                placeholder="you@example.com"
-                                {...register('email')}
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                            />
+
+                            <div className="relative">
+
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+
+                                <input
+                                    type="email"
+                                    placeholder="you@example.com"
+                                    {...register('email')}
+                                    className="w-full h-[56px] rounded-xl border border-[#3A5D87] bg-[#132541] pl-12 pr-4 text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10 hover:border-[#5278A5]"
+                                />
+
+                            </div>
+
                             {errors.email && (
-                                <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
+                                <p className="mt-1.5 text-xs text-red-400">
+                                    {errors.email.message}
+                                </p>
                             )}
+
                         </div>
 
+
+                        {/* Password */}
                         <div>
-                            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+
+                            <label className="block mb-2 text-sm font-medium text-slate-200">
                                 Password
                             </label>
+
                             <div className="relative">
+
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+
                                 <input
                                     type={showPassword ? 'text' : 'password'}
-                                    placeholder="••••••••"
+                                    placeholder="Enter your password"
                                     {...register('password')}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all pr-10"
+                                    className="w-full h-[56px] rounded-xl border border-[#3A5D87] bg-[#132541] pl-12 pr-12 text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10 hover:border-[#5278A5]"
                                 />
+
                                 <button
                                     type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                    onClick={() =>
+                                        setShowPassword(!showPassword)
+                                    }
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                                    aria-label={
+                                        showPassword
+                                            ? 'Hide password'
+                                            : 'Show password'
+                                    }
                                 >
-                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    {showPassword ? (
+                                        <EyeOff className="w-5 h-5" />
+                                    ) : (
+                                        <Eye className="w-5 h-5" />
+                                    )}
                                 </button>
+
                             </div>
+
                             {errors.password && (
-                                <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>
+                                <p className="mt-1.5 text-xs text-red-400">
+                                    {errors.password.message}
+                                </p>
                             )}
-                            <div className="text-right mt-1.5">
-                                <Link href="/auth/forgot-password" className="text-xs text-primary hover:underline">
+
+                            <div className="flex justify-end mt-2.5">
+
+                                <Link
+                                    href="/auth/forgot-password"
+                                    className="text-xs font-medium text-cyan-400 hover:text-cyan-300 transition-colors"
+                                >
                                     Forgot password?
                                 </Link>
+
                             </div>
+
                         </div>
 
+
+                        {/* =================================================
+                            SIGN IN BUTTON
+                        ================================================= */}
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="w-full py-3 bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all text-sm disabled:opacity-60 flex items-center justify-center gap-2"
+                            className="group w-full h-[56px] rounded-xl bg-gradient-to-r from-[#168BFF] via-[#12BCE0] to-[#2CE69B] text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-300 hover:shadow-[0_10px_35px_rgba(20,190,220,0.22)] hover:brightness-105 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                            {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                            {isSubmitting ? 'Signing in...' : 'Sign in'}
+
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    Signing in...
+                                </>
+                            ) : (
+                                <>
+                                    Sign in
+
+                                    <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+                                </>
+                            )}
+
                         </button>
+
                     </form>
 
-                    <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-                        {"Don't have an account? "}
-                        <Link href="/auth/signup" className="text-primary font-semibold hover:underline">
+
+                    {/* =================================================
+                        DIVIDER
+                    ================================================= */}
+                    <div className="flex items-center gap-4 my-7">
+
+                        <div className="flex-1 h-px bg-slate-800" />
+
+                        <span className="text-xs text-slate-500">
+                            or
+                        </span>
+
+                        <div className="flex-1 h-px bg-slate-800" />
+
+                    </div>
+
+
+                    {/* =================================================
+                        GOOGLE
+                    ================================================= */}
+                    <button
+                        type="button"
+                        onClick={handleGoogleSignIn}
+                        disabled={googleLoading}
+                        className="w-full h-[54px] rounded-xl border border-[#3A5D87] bg-transparent text-white font-medium text-sm flex items-center justify-center gap-3 transition-all hover:bg-white/[0.04] hover:border-[#5278A5] disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white text-sm font-bold">
+                            <span className="text-[#4285F4]">
+                                G
+                            </span>
+                        </span>
+
+                        {googleLoading ? 'Connecting to Google...' : 'Continue with Google'}
+
+                    </button>
+
+
+                    {/* =================================================
+                        SIGN UP
+                    ================================================= */}
+                    <p className="text-center text-sm text-slate-500 mt-9">
+
+                        Don't have an account?{' '}
+
+                        <Link
+                            href="/auth/signup"
+                            className="font-semibold text-cyan-400 hover:text-cyan-300 transition-colors"
+                        >
                             Sign up
                         </Link>
+
                     </p>
+
                 </div>
+
             </div>
+
         </div>
     )
 }

@@ -58,13 +58,13 @@ export default function Contact()
   ]
 
   const inputClass = (name: string) =>
-    `w-full px-4 py-3 rounded-xl border text-sm text-secondary placeholder-gray-400 bg-gray-50 transition-all duration-200 outline-none ${focused === name
+    `w-full px-4 py-3.5 rounded-xl border text-sm text-secondary placeholder-gray-400 bg-gray-50 transition-all duration-200 outline-none ${focused === name
       ? 'border-primary ring-2 ring-primary/20 bg-white'
       : 'border-gray-200 hover:border-gray-300'
     }`
 
   return (
-    <section id="contact" className="relative py-24 md:py-36 overflow-hidden">
+    <section id="contact" className="relative scroll-mt-24 py-16 md:py-20 overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-white" />
@@ -78,7 +78,7 @@ export default function Contact()
       </div>
 
       <div className="container-gutter mx-auto max-w-7xl">
-        <div className="grid lg:grid-cols-2 gap-16 items-start">
+        <div className="grid lg:grid-cols-2 gap-10 items-start">
           {/* Left */}
           <div className="space-y-10">
             <div className="space-y-5">
@@ -132,7 +132,7 @@ export default function Contact()
                   <a
                     key={index}
                     href={info.href}
-                    className="group flex items-center gap-4 p-4 rounded-2xl border border-gray-100 hover:border-primary/30 hover:bg-gray-50 transition-all duration-200"
+                    className="group flex items-center gap-4 p-4 rounded-2xl border border-gray-100 bg-white hover:border-primary/30 hover:bg-gray-50 hover:-translate-y-0.5 transition-all duration-200"
                   >
                     <div
                       className={`w-11 h-11 rounded-xl bg-gradient-to-br ${info.gradient} flex items-center justify-center text-white flex-shrink-0 group-hover:scale-110 transition-transform`}
@@ -155,11 +155,11 @@ export default function Contact()
           </div>
 
           {/* Right — Form */}
-          <div className="rounded-2xl border border-border bg-white shadow-sm p-8">
+          <div className="mt-16 lg:mt-[62px] rounded-[22px] border border-border bg-white shadow-[0_8px_30px_rgba(23,63,99,0.05)] p-8 md:p-9">
             <h3 className="text-lg font-bold text-secondary mb-6">
               Send a message
             </h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label
@@ -239,7 +239,7 @@ export default function Contact()
                   onFocus={() => setFocused('message')}
                   onBlur={() => setFocused(null)}
                   required
-                  rows={4}
+                  rows={5}
                   placeholder="Your message here..."
                   className={`${inputClass('message')} resize-none`}
                 />

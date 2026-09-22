@@ -79,7 +79,7 @@ const products = [
 export default function FintechSection()
 {
     return (
-        <section id="fintech" className="relative py-24 md:py-36 overflow-hidden">
+        <section id="fintech" className="relative scroll-mt-24 py-24 md:py-36 overflow-hidden">
             {/* Background */}
             <div className="absolute inset-0 -z-10">
                 <div className="absolute inset-0 bg-white" />
@@ -120,19 +120,25 @@ export default function FintechSection()
                     </h2>
                     <p className="text-muted-foreground text-lg leading-relaxed">
                         Five integrated fintech products that help you save smarter, build credit, access loans,
-                        and protect what matters — all without leaving HubNovo.
+                        and protect what matters, all without leaving HubNovo.
                     </p>
                 </div>
 
                 {/* Product cards — responsive grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-5 items-stretch">
                     {products.map((product, i) =>
                     {
                         const Icon = product.icon
                         return (
                             <div
                                 key={i}
-                                className={`group relative rounded-2xl border border-border bg-white shadow-sm hover:shadow-md transition-all p-7 ${i === 4 ? 'md:col-span-2 lg:col-span-1' : ''}`}
+                                className={`group relative h-full rounded-2xl border border-border bg-white shadow-sm hover:shadow-md transition-all p-6 ${
+                                    i < 2
+                                        ? 'lg:col-span-3'
+                                        : i === 2 || i === 3
+                                            ? 'lg:col-span-3'
+                                            : 'lg:col-span-6'
+                                }`}
                             >
                                 {/* Icon + badge */}
                                 <div className="flex items-start justify-between mb-5">
@@ -142,7 +148,7 @@ export default function FintechSection()
                                         <Icon className="w-6 h-6" />
                                     </div>
                                     <span
-                                        className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${product.bg} ${product.border} ${product.text}`}
+                                        className={`max-w-[190px] truncate text-right text-[10px] font-semibold px-2.5 py-1 rounded-full border ${product.bg} ${product.border} ${product.text}`}
                                     >
                                         {product.tagline}
                                     </span>

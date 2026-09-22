@@ -138,7 +138,7 @@ export default function Footer()
         </div>
 
         {/* Stats strip */}
-        <div className="flex items-center justify-center gap-10 mb-14 pb-14 border-b border-white/10">
+        <div className="grid grid-cols-2 md:grid-cols-4 items-center justify-center gap-8 md:gap-10 mb-14 pb-14 border-b border-white/10">
           {[
             { number: '50K+', label: 'Active members' },
             { number: '₦2B+', label: 'Transacted' },

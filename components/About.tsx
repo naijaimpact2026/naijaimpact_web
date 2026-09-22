@@ -41,14 +41,14 @@ const milestones = [
 export default function About()
 {
   return (
-    <section id="about" className="relative py-24 md:py-32 bg-white overflow-hidden">
+    <section id="about" className="relative scroll-mt-24 py-16 md:py-20 bg-white overflow-hidden">
       <div className="absolute left-0 top-0 bottom-0 w-1/2 bg-gray-50 -z-10 rounded-r-[80px] hidden lg:block" />
 
       <div className="container-gutter mx-auto max-w-7xl">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
+      <div className="grid lg:grid-cols-2 gap-10 xl:gap-14 items-start">
           {/* Left — visual stack */}
           <div className="relative space-y-4">
-            <div className="rounded-2xl border border-border bg-white shadow-sm p-8">
+            <div className="rounded-2xl border border-border bg-white shadow-sm p-7">
               <div className="flex items-center gap-3 mb-6">
                 <Image src="/logo.png" alt="Hubnovo" width={44} height={44} className="rounded-xl" />
                 <div>
@@ -56,7 +56,7 @@ export default function About()
                   <div className="text-xs text-muted-foreground">Est. 2020 · Lagos, Nigeria</div>
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {milestones.map((m, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
@@ -77,7 +77,7 @@ export default function About()
               </div>
             </div>
 
-            <div className="absolute -bottom-4 -right-4 bg-white px-4 py-3 rounded-2xl shadow-lg border border-border hidden md:block">
+            {/* <div className="absolute -bottom-4 -right-4 bg-white px-4 py-3 rounded-2xl shadow-lg border border-border hidden md:block">
               <div className="text-xs text-muted-foreground mb-1">Community Rating</div>
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((i) => (
@@ -85,7 +85,7 @@ export default function About()
                 ))}
                 <span className="text-sm font-bold text-secondary ml-1">5.0</span>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Right — content */}
@@ -115,7 +115,7 @@ export default function About()
                 social life?
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                Hubnovo was born to change that — one all-in-one platform that respects how
+                Hubnovo was born to change that one all-in-one platform that respects how
                 Nigerians actually live, save, and support each other.
               </p>
             </div>
