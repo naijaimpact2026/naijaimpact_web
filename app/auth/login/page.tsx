@@ -42,7 +42,7 @@ export default function LoginPage() {
 
     useEffect(() =>
     {
-        if (searchParams.get('error') === 'oauth_failed')
+        if (searchParams.get('error') === 'oauth')
         {
             setServerError('Google sign-in failed. Please try again.')
         }
@@ -63,16 +63,24 @@ export default function LoginPage() {
         const redirectTo =
             `${window.location.origin}/auth/callback?next=/app`
 
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo,
-            },
-        })
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo,
+                },
+            })
 
-        if (error) {
-            console.error('Google sign-in error:', error)
-            setServerError(error.message)
+            if (error) {
+                console.error('Google sign-in error:', error)
+                setServerError(error.message)
+                setGoogleLoading(false)
+            }
+            // On success the browser navigates away to Google, so googleLoading
+            // is intentionally left true — there's no "after" state to reset it in.
+        } catch (err) {
+            console.error('Google sign-in threw:', err)
+            setServerError('Google sign-in failed. Please try again.')
             setGoogleLoading(false)
         }
     }

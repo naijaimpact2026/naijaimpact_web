@@ -48,19 +48,27 @@ export default function SignupPage() {
             const handleGoogleSignIn = async () => {
                 setServerError('')
                 setGoogleLoading(true)
-            
+
                 const redirectTo = `${window.location.origin}/auth/callback?next=/app`
-            
-                const { error } = await supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                        redirectTo,
-                    },
-                })
-            
-                if (error) {
-                    console.error('Google sign-in error:', error)
-                    setServerError(error.message)
+
+                try {
+                    const { error } = await supabase.auth.signInWithOAuth({
+                        provider: 'google',
+                        options: {
+                            redirectTo,
+                        },
+                    })
+
+                    if (error) {
+                        console.error('Google sign-in error:', error)
+                        setServerError(error.message)
+                        setGoogleLoading(false)
+                    }
+                    // On success the browser navigates away to Google, so googleLoading
+                    // is intentionally left true — there's no "after" state to reset it in.
+                } catch (err) {
+                    console.error('Google sign-in threw:', err)
+                    setServerError('Google sign-in failed. Please try again.')
                     setGoogleLoading(false)
                 }
             }
