@@ -134,6 +134,7 @@ export default async function ProfilePage({ params }: ProfilePageProps)
                         currentUserId={currentUserId}
                         initialPosts={initialPosts}
                         initialCursor={initialCursor}
+                        isOwnProfile={isOwnProfile}
                     />
                 </div>
 

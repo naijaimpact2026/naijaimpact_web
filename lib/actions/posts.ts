@@ -18,16 +18,20 @@ async function fetchEngagementMaps(
   commentCountMap: Record<string, number>
   reactionCountMap: Record<string, number>
   userReactedSet: Set<string>
+  userSavedSet: Set<string>
 }> {
   if (postIds.length === 0) {
-    return { commentCountMap: {}, reactionCountMap: {}, userReactedSet: new Set() }
+    return { commentCountMap: {}, reactionCountMap: {}, userReactedSet: new Set(), userSavedSet: new Set() }
   }
 
-  const [{ data: commentRows }, { data: reactionRows }, { data: userReactionRows }] = await Promise.all([
+  const [{ data: commentRows }, { data: reactionRows }, { data: userReactionRows }, { data: userSavedRows }] = await Promise.all([
     supabase.from('post_comments').select('post_id').in('post_id', postIds),
     supabase.from('post_reactions').select('post_id').in('post_id', postIds),
     currentUserId
       ? supabase.from('post_reactions').select('post_id').eq('user_id', currentUserId).in('post_id', postIds)
+      : Promise.resolve({ data: [] as { post_id: string }[] }),
+    currentUserId
+      ? supabase.from('saved_posts').select('post_id').eq('user_id', currentUserId).in('post_id', postIds)
       : Promise.resolve({ data: [] as { post_id: string }[] }),
   ])
 
@@ -42,8 +46,9 @@ async function fetchEngagementMaps(
   }
 
   const userReactedSet = new Set((userReactionRows ?? []).map((r) => r.post_id))
+  const userSavedSet = new Set((userSavedRows ?? []).map((r) => r.post_id))
 
-  return { commentCountMap, reactionCountMap, userReactedSet }
+  return { commentCountMap, reactionCountMap, userReactedSet, userSavedSet }
 }
 
 /**
@@ -151,7 +156,7 @@ export async function fetchPostsPage(
 
   const postIds = pagePosts.map((p) => p.id)
 
-  const { commentCountMap, reactionCountMap, userReactedSet } = await fetchEngagementMaps(
+  const { commentCountMap, reactionCountMap, userReactedSet, userSavedSet } = await fetchEngagementMaps(
     supabase,
     postIds,
     currentUserId
@@ -202,6 +207,7 @@ export async function fetchPostsPage(
     reaction_count: reactionCountMap[p.id] ?? 0,
     comment_count: commentCountMap[p.id] ?? 0,
     user_reacted: userReactedSet.has(p.id),
+    user_saved: userSavedSet.has(p.id),
     is_following_author: followingSet.has(p.user_id),
   }))
 
@@ -321,6 +327,7 @@ export async function createPost(
     reaction_count: 0,
     comment_count: 0,
     user_reacted: false,
+    user_saved: false,
   }
 }
 
@@ -483,6 +490,183 @@ export async function toggleReaction(postId: string): Promise<void> {
 }
 
 /**
+ * Toggle whether the current user has saved a post for later.
+ * If a save row exists, remove it. Otherwise, insert one.
+ * Returns the new saved state so the caller doesn't have to guess.
+ */
+export async function toggleSavePost(postId: string): Promise<{ saved: boolean }> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) throw new Error('Unauthenticated')
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (!profile) throw new Error('User profile not found')
+
+  const { data: existing } = await supabase
+    .from('saved_posts')
+    .select('id')
+    .eq('post_id', postId)
+    .eq('user_id', profile.id)
+    .maybeSingle()
+
+  if (existing) {
+    const { error } = await supabase.from('saved_posts').delete().eq('id', existing.id)
+    if (error) {
+      console.error('toggleSavePost delete error:', error)
+      throw new Error('Failed to unsave post')
+    }
+    const { revalidatePath } = await import('next/cache')
+    revalidatePath('/app/profile')
+    return { saved: false }
+  }
+
+  const { error } = await supabase.from('saved_posts').insert({
+    post_id: postId,
+    user_id: profile.id,
+  })
+
+  if (error) {
+    console.error('toggleSavePost insert error:', error)
+    throw new Error('Failed to save post')
+  }
+
+  const { revalidatePath } = await import('next/cache')
+  revalidatePath('/app/profile')
+  return { saved: true }
+}
+
+/**
+ * Fetch a page of posts the current user has saved, newest save first.
+ * Cursor-paginated on saved_posts.created_at (when it was saved, not when
+ * the underlying post was created).
+ */
+export async function fetchSavedPostsPage(
+  cursor: string | null,
+  limit: number = DEFAULT_LIMIT
+): Promise<{ posts: PostWithAuthor[]; nextCursor: string | null }> {
+  const supabase = await createClient()
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return { posts: [], nextCursor: null }
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (!profile) return { posts: [], nextCursor: null }
+
+  let savedQuery = supabase
+    .from('saved_posts')
+    .select('post_id, created_at')
+    .eq('user_id', profile.id)
+    .order('created_at', { ascending: false })
+    .limit(limit + 1)
+
+  if (cursor) savedQuery = savedQuery.lt('created_at', cursor)
+
+  const { data: savedRows, error: savedError } = await savedQuery
+
+  if (savedError || !savedRows || savedRows.length === 0) {
+    return { posts: [], nextCursor: null }
+  }
+
+  const hasMore = savedRows.length > limit
+  const savedPage = hasMore ? savedRows.slice(0, limit) : savedRows
+  const nextCursor = hasMore ? savedPage[savedPage.length - 1].created_at : null
+
+  const postIds = savedPage.map((r) => r.post_id)
+
+  const { data: postsData, error: postsError } = await supabase
+    .from('posts')
+    .select(
+      `
+      id,
+      user_id,
+      post_type,
+      content,
+      created_at,
+      updated_at,
+      author:users!posts_user_id_fkey (
+        id,
+        username,
+        display_name,
+        avatar_url,
+        verified
+      ),
+      medias:post_medias (
+        id,
+        post_id,
+        media_url,
+        media_type,
+        created_at
+      )
+      `
+    )
+    .in('id', postIds)
+
+  if (postsError || !postsData) {
+    console.error('fetchSavedPostsPage posts error:', postsError)
+    return { posts: [], nextCursor: null }
+  }
+
+  // Keep save-order (most recently saved first), not posts' own created_at order.
+  const postsById = new Map((postsData as any[]).map((p) => [p.id, p]))
+  const orderedPosts = postIds.map((id) => postsById.get(id)).filter(Boolean)
+
+  const { commentCountMap, reactionCountMap, userReactedSet } = await fetchEngagementMaps(
+    supabase,
+    postIds,
+    profile.id
+  )
+
+  const posts: PostWithAuthor[] = orderedPosts.map((p: any) => ({
+    id: p.id,
+    author_id: p.user_id,
+    type: (p.post_type as 'text' | 'image' | 'video') ?? 'text',
+    caption: p.content ?? null,
+    hashtags: [],
+    created_at: p.created_at,
+    updated_at: p.updated_at,
+    author: {
+      id: p.author?.id ?? '',
+      username: p.author?.username ?? '',
+      display_name: p.author?.display_name ?? '',
+      avatar_url: p.author?.avatar_url ?? null,
+      verified: p.author?.verified ?? false,
+    },
+    medias: (p.medias ?? []).map((m: any, idx: number) => ({
+      id: m.id,
+      post_id: m.post_id,
+      url: m.media_url,
+      media_type: (m.media_type as 'image' | 'video') ?? 'image',
+      width: null,
+      height: null,
+      duration_s: null,
+      position: idx,
+      created_at: m.created_at ?? p.created_at,
+    })),
+    reaction_count: reactionCountMap[p.id] ?? 0,
+    comment_count: commentCountMap[p.id] ?? 0,
+    user_reacted: userReactedSet.has(p.id),
+    user_saved: true,
+  }))
+
+  return { posts, nextCursor }
+}
+
+/**
  * Fetch a page of posts by a specific author (for profile pages).
  * Uses cursor-based pagination on created_at DESC.
  * Requirements: 6.5
@@ -560,38 +744,11 @@ export async function fetchUserPostsPage(
 
   const postIds = pagePosts.map((p) => p.id)
 
-  // Fetch reaction counts
-  const { data: reactionCounts } = await supabase
-    .from('post_reactions')
-    .select('post_id')
-    .in('post_id', postIds)
-
-  // Fetch comment counts
-  const { data: commentCounts } = await supabase
-    .from('post_comments')
-    .select('post_id')
-    .in('post_id', postIds)
-
-  // Fetch current user's reactions
-  const { data: userReactions } = currentUserId
-    ? await supabase
-        .from('post_reactions')
-        .select('post_id')
-        .in('post_id', postIds)
-        .eq('user_id', currentUserId)
-    : { data: [] }
-
-  const reactionCountMap: Record<string, number> = {}
-  for (const r of reactionCounts ?? []) {
-    reactionCountMap[r.post_id] = (reactionCountMap[r.post_id] ?? 0) + 1
-  }
-
-  const commentCountMap: Record<string, number> = {}
-  for (const c of commentCounts ?? []) {
-    commentCountMap[c.post_id] = (commentCountMap[c.post_id] ?? 0) + 1
-  }
-
-  const userReactedSet = new Set((userReactions ?? []).map((r) => r.post_id))
+  const { commentCountMap, reactionCountMap, userReactedSet, userSavedSet } = await fetchEngagementMaps(
+    supabase,
+    postIds,
+    currentUserId
+  )
 
   const posts: PostWithAuthor[] = pagePosts.map((p: any) => ({
     id: p.id,
@@ -622,6 +779,7 @@ export async function fetchUserPostsPage(
     reaction_count: reactionCountMap[p.id] ?? 0,
     comment_count: commentCountMap[p.id] ?? 0,
     user_reacted: userReactedSet.has(p.id),
+    user_saved: userSavedSet.has(p.id),
   }))
 
   const nextCursor = hasMore ? pagePosts[pagePosts.length - 1].created_at : null
@@ -680,7 +838,7 @@ export async function fetchDiscoverPosts(
   const hasMore = data.length > limit
   const page = hasMore ? data.slice(0, limit) : data
 
-  const { commentCountMap, reactionCountMap, userReactedSet } = await fetchEngagementMaps(
+  const { commentCountMap, reactionCountMap, userReactedSet, userSavedSet } = await fetchEngagementMaps(
     supabase,
     page.map((p: any) => p.id),
     profile.id
@@ -713,6 +871,7 @@ export async function fetchDiscoverPosts(
     reaction_count: reactionCountMap[p.id] ?? 0,
     comment_count: commentCountMap[p.id] ?? 0,
     user_reacted: userReactedSet.has(p.id),
+    user_saved: userSavedSet.has(p.id),
   }))
 
   return {
@@ -768,7 +927,7 @@ export async function fetchFollowingPosts(
   const hasMore = data.length > limit
   const page = hasMore ? data.slice(0, limit) : data
 
-  const { commentCountMap, reactionCountMap, userReactedSet } = await fetchEngagementMaps(
+  const { commentCountMap, reactionCountMap, userReactedSet, userSavedSet } = await fetchEngagementMaps(
     supabase,
     page.map((p: any) => p.id),
     profile.id
@@ -801,6 +960,7 @@ export async function fetchFollowingPosts(
     reaction_count: reactionCountMap[p.id] ?? 0,
     comment_count: commentCountMap[p.id] ?? 0,
     user_reacted: userReactedSet.has(p.id),
+    user_saved: userSavedSet.has(p.id),
     // This whole tab is posts from people the viewer follows, by definition.
     is_following_author: true,
   }))

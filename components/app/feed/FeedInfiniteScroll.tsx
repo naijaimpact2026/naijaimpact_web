@@ -9,7 +9,7 @@ import StoryRow from './StoryRow'
 import FeedTabs, { type FeedTab } from './FeedTabs'
 import SuggestedAccounts, { type SuggestedUser } from './SuggestedAccounts'
 import PromotedCarousel from './PromotedCarousel'
-import { fetchPostsPage, fetchFollowingPosts, fetchSuggestedUsers } from '@/lib/actions/posts'
+import { fetchPostsPage, fetchFollowingPosts, fetchSavedPostsPage, fetchSuggestedUsers } from '@/lib/actions/posts'
 import { fetchPromotedContent, type PromotedItem } from '@/lib/actions/promoted'
 import type { PostWithAuthor, User } from '@/lib/types'
 import { Plus } from 'lucide-react'
@@ -66,11 +66,12 @@ export default function FeedInfiniteScroll({
         switch (tab)
         {
             case 'following': return fetchFollowingPosts(cur)
+            case 'saved': return fetchSavedPostsPage(cur)
             default: return fetchPostsPage(cur)
         }
     }, [])
 
-    const UNBACKED_TABS: FeedTab[] = ['groups', 'opportunities', 'events', 'saved']
+    const UNBACKED_TABS: FeedTab[] = ['groups', 'opportunities', 'events']
 
     // Switch tabs — reset posts and fetch fresh
     async function handleTabChange(tab: FeedTab)
@@ -188,12 +189,14 @@ export default function FeedInfiniteScroll({
             {!isLoading && posts.length === 0 && !UNBACKED_TABS.includes(activeTab) ? (
                 <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border border-border shadow-sm dark:shadow-none text-muted-foreground">
                     <p className="text-lg font-semibold">
-                        {activeTab === 'following' ? 'No posts from people you follow' : 'No posts yet'}
+                        {activeTab === 'following' && 'No posts from people you follow'}
+                        {activeTab === 'saved' && 'No saved posts yet'}
+                        {activeTab !== 'following' && activeTab !== 'saved' && 'No posts yet'}
                     </p>
                     <p className="text-sm mt-1 text-center px-4">
-                        {activeTab === 'following'
-                            ? 'Follow people to see their posts here.'
-                            : 'Be the first to share something!'}
+                        {activeTab === 'following' && 'Follow people to see their posts here.'}
+                        {activeTab === 'saved' && 'Tap the Save button on any post to read it later.'}
+                        {activeTab !== 'following' && activeTab !== 'saved' && 'Be the first to share something!'}
                     </p>
                 </div>
             ) : (

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -21,6 +21,7 @@ import {
 import Image from 'next/image'
 import { signIn } from '@/lib/actions/auth'
 import { createClient } from '@/lib/supabase/client'
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
 
 const loginSchema = z.object({
     email: z.string().email('Please enter a valid email address'),
@@ -31,12 +32,21 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [showPassword, setShowPassword] = useState(false)
     const [serverError, setServerError] = useState('')
     const [googleLoading, setGoogleLoading] = useState(false)
     const [helpOpen, setHelpOpen] = useState(false)
 
     const supabase = createClient()
+
+    useEffect(() =>
+    {
+        if (searchParams.get('error') === 'oauth_failed')
+        {
+            setServerError('Google sign-in failed. Please try again.')
+        }
+    }, [searchParams])
 
     const {
         register,
@@ -554,7 +564,6 @@ export default function LoginPage() {
                         </button>
 
                     </form>
-
 
                     {/* =================================================
                         DIVIDER

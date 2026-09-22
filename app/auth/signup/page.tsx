@@ -10,6 +10,7 @@ import Image from 'next/image'
 import { signUp } from '@/lib/actions/auth'
 import { createClient } from '@/lib/supabase/client'
 import SignupSlideshow from '../signup-slideshow/signupSlideshow'
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
 
 
 const signupSchema = z.object({
@@ -458,9 +459,11 @@ export default function SignupPage() {
                             </p>
             
                         </div>
+ 
             
                     </div>
             
-                </div>
+
+                    </div>
             )
         }

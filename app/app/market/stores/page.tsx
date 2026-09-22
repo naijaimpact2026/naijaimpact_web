@@ -22,7 +22,7 @@ export default async function StorefrontsPage()
 
     // Shape to match StorefrontsClient's myStorefront prop
     const myStorefront = mySellerProfile
-        ? { id: mySellerProfile.id, business_name: mySellerProfile.business_name ?? 'My Store', slug: mySellerProfile.id }
+        ? { id: mySellerProfile.id, business_name: mySellerProfile.business_name ?? 'My Store' }
         : null
 
     return (

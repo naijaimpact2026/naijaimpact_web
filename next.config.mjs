@@ -23,6 +23,12 @@ const nextConfig = {
         hostname: 'images.unsplash.com',
         pathname: '/**',
       },
+      // Picsum — seed placeholder images on nm_listing_images
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        pathname: '/**',
+      },
       // Supabase Storage — plain public object URL
       {
         protocol: 'https',

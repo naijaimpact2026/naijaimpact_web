@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { fetchUserPostsPage } from '@/lib/actions/posts'
+import { fetchUserPostsPage, fetchSavedPostsPage } from '@/lib/actions/posts'
 import PostCard from '@/components/app/feed/PostCard'
 import type { PostWithAuthor, User } from '@/lib/types'
 import
@@ -17,29 +17,41 @@ import
 } from 'lucide-react'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 
-// ─── Profile Posts (infinite scroll feed — full post cards, matches the main feed) ──
+// ─── Post feed list (infinite scroll — full post cards, matches the main feed) ──
+// Shared by the Posts tab (fetchUserPostsPage) and the Saved tab (fetchSavedPostsPage).
 
 const SKELETON_COUNT = 3
 
-interface ProfilePostsProps
+interface PostFeedListProps
 {
-    authorId: string
     currentUserId: string
-    initialPosts: PostWithAuthor[]
-    initialCursor: string | null
+    /** Server-fetched first page. Omit (along with initialCursor) to have this component fetch its own first page on mount — used for tabs with no server-side data loader, like Saved. */
+    initialPosts?: PostWithAuthor[]
+    initialCursor?: string | null
+    fetchPage: (cursor: string | null) => Promise<{ posts: PostWithAuthor[]; nextCursor: string | null }>
+    emptyIcon: typeof Grid3X3
+    emptyTitle: string
+    emptyDescription?: string
+    exhaustedLabel: string
 }
 
-function ProfilePosts({
-    authorId,
+function PostFeedList({
     currentUserId,
     initialPosts,
     initialCursor,
-}: ProfilePostsProps)
+    fetchPage,
+    emptyIcon: EmptyIcon,
+    emptyTitle,
+    emptyDescription,
+    exhaustedLabel,
+}: PostFeedListProps)
 {
-    const [posts, setPosts] = useState<PostWithAuthor[]>(initialPosts)
-    const [cursor, setCursor] = useState<string | null>(initialCursor)
-    const [loading, setLoading] = useState(false)
-    const [exhausted, setExhausted] = useState(initialCursor === null)
+    const bootstrap = initialPosts === undefined
+
+    const [posts, setPosts] = useState<PostWithAuthor[]>(initialPosts ?? [])
+    const [cursor, setCursor] = useState<string | null>(initialCursor ?? null)
+    const [loading, setLoading] = useState(bootstrap)
+    const [exhausted, setExhausted] = useState(!bootstrap && initialCursor === null)
 
     const sentinelRef = useRef<HTMLDivElement>(null)
     const loadingRef = useRef(false)
@@ -52,7 +64,7 @@ function ProfilePosts({
 
         try
         {
-            const { posts: newPosts, nextCursor } = await fetchUserPostsPage(authorId, cursor)
+            const { posts: newPosts, nextCursor } = await fetchPage(cursor)
             setPosts((prev) =>
             {
                 const existingIds = new Set(prev.map((p) => p.id))
@@ -63,13 +75,20 @@ function ProfilePosts({
             if (nextCursor === null) setExhausted(true)
         } catch (err)
         {
-            console.error('ProfilePosts loadMore error:', err)
+            console.error('PostFeedList loadMore error:', err)
         } finally
         {
             loadingRef.current = false
             setLoading(false)
         }
-    }, [authorId, cursor, exhausted])
+    }, [fetchPage, cursor, exhausted])
+
+    // No server-provided first page (e.g. Saved tab) — fetch it ourselves once, on mount.
+    useEffect(() =>
+    {
+        if (bootstrap) loadMore()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     useEffect(() =>
     {
@@ -93,8 +112,9 @@ function ProfilePosts({
         return (
             <Empty className="py-16">
                 <EmptyHeader>
-                    <EmptyMedia variant="icon"><Grid3X3 /></EmptyMedia>
-                    <EmptyTitle>No posts yet</EmptyTitle>
+                    <EmptyMedia variant="icon"><EmptyIcon /></EmptyMedia>
+                    <EmptyTitle>{emptyTitle}</EmptyTitle>
+                    {emptyDescription && <EmptyDescription>{emptyDescription}</EmptyDescription>}
                 </EmptyHeader>
             </Empty>
         )
@@ -114,7 +134,7 @@ function ProfilePosts({
 
             {exhausted && posts.length > 0 && (
                 <p className="text-center text-sm text-muted-foreground py-6">
-                    All posts loaded.
+                    {exhaustedLabel}
                 </p>
             )}
         </div>
@@ -208,7 +228,7 @@ function AboutPanel({ profile }: { profile: User })
 
 // ─── Main ProfileTabs component ───────────────────────────────────────────────
 
-const TABS = [
+const ALL_TABS = [
     { key: 'posts', label: 'Posts' },
     { key: 'about', label: 'About' },
     { key: 'photos', label: 'Photos' },
@@ -218,7 +238,7 @@ const TABS = [
     { key: 'achievements', label: 'Achievements' },
 ] as const
 
-type ProfileTab = typeof TABS[number]['key']
+type ProfileTab = typeof ALL_TABS[number]['key']
 
 interface ProfileTabsProps
 {
@@ -227,6 +247,7 @@ interface ProfileTabsProps
     currentUserId: string
     initialPosts: PostWithAuthor[]
     initialCursor: string | null
+    isOwnProfile: boolean
 }
 
 export default function ProfileTabs({
@@ -235,9 +256,13 @@ export default function ProfileTabs({
     currentUserId,
     initialPosts,
     initialCursor,
+    isOwnProfile,
 }: ProfileTabsProps)
 {
     const [activeTab, setActiveTab] = useState<ProfileTab>('posts')
+
+    // Saved posts are a private bookmark list — only the profile owner sees that tab.
+    const TABS = isOwnProfile ? ALL_TABS : ALL_TABS.filter((tab) => tab.key !== 'saved')
 
     return (
         <div className="w-full">
@@ -260,18 +285,28 @@ export default function ProfileTabs({
 
             <div role="tabpanel" className="mt-0.5 sm:mt-1">
                 {activeTab === 'posts' && (
-                    <ProfilePosts
-                        authorId={authorId}
+                    <PostFeedList
                         currentUserId={currentUserId}
                         initialPosts={initialPosts}
                         initialCursor={initialCursor}
+                        fetchPage={(cursor) => fetchUserPostsPage(authorId, cursor)}
+                        emptyIcon={Grid3X3}
+                        emptyTitle="No posts yet"
+                        exhaustedLabel="All posts loaded."
                     />
                 )}
                 {activeTab === 'about' && <AboutPanel profile={profile} />}
                 {activeTab === 'photos' && <MediaGrid posts={initialPosts} type="image" />}
                 {activeTab === 'videos' && <MediaGrid posts={initialPosts} type="video" />}
-                {activeTab === 'saved' && (
-                    <ComingSoonPanel icon={Bookmark} title="No saved posts yet" description="Posts you save will show up here." />
+                {activeTab === 'saved' && isOwnProfile && (
+                    <PostFeedList
+                        currentUserId={currentUserId}
+                        fetchPage={fetchSavedPostsPage}
+                        emptyIcon={Bookmark}
+                        emptyTitle="No saved posts yet"
+                        emptyDescription="Posts you save will show up here."
+                        exhaustedLabel="All saved posts loaded."
+                    />
                 )}
                 {activeTab === 'groups' && (
                     <ComingSoonPanel icon={Users} title="Groups coming soon" description="Community groups aren't live yet." />

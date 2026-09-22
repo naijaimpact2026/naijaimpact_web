@@ -17,14 +17,14 @@ interface Props
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; cls: string }> = {
     pending: { label: 'Pending', icon: Clock, cls: 'text-amber-600 bg-amber-50' },
-    confirmed: { label: 'Confirmed', icon: CheckCircle2, cls: 'text-emerald-600 bg-emerald-50' },
+    confirmed: { label: 'Confirmed', icon: CheckCircle2, cls: 'text-emerald bg-emerald/10' },
     packed: { label: 'Packed', icon: Package, cls: 'text-indigo-600 bg-indigo-50' },
-    shipped: { label: 'Shipped', icon: Truck, cls: 'text-purple-600 bg-purple-50' },
-    delivered: { label: 'Delivered', icon: CheckCircle2, cls: 'text-green-600 bg-green-50' },
+    shipped: { label: 'Shipped', icon: Truck, cls: 'text-primary bg-primary/10' },
+    delivered: { label: 'Delivered', icon: CheckCircle2, cls: 'text-emerald bg-emerald/10' },
     disputed: { label: 'Disputed', icon: AlertCircle, cls: 'text-rose-600 bg-rose-50' },
-    returned: { label: 'Returned', icon: XCircle, cls: 'text-gray-600 bg-gray-50' },
-    refunded: { label: 'Refunded', icon: XCircle, cls: 'text-gray-600 bg-gray-50' },
-    cancelled: { label: 'Cancelled', icon: XCircle, cls: 'text-gray-600 bg-gray-50' },
+    returned: { label: 'Returned', icon: XCircle, cls: 'text-muted-foreground bg-muted' },
+    refunded: { label: 'Refunded', icon: XCircle, cls: 'text-muted-foreground bg-muted' },
+    cancelled: { label: 'Cancelled', icon: XCircle, cls: 'text-muted-foreground bg-muted' },
 }
 
 function fmt(n: number)
@@ -45,10 +45,10 @@ function OrderCard({ order, role }: { order: NmOrder; role: 'buyer' | 'seller' }
     const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending
     const StatusIcon = cfg.icon
 
-    // Get cover image from joined listing_images
-    const coverImg = (order.listing_images ?? [])
+    // Get cover image from the listing's joined images
+    const coverImg = (order.listing?.listing_images ?? [])
         .sort((a: any, b: any) => a.sort_order - b.sort_order)[0]?.image_url ?? null
-    const listingTitle = (order.listing as any)?.title ?? 'Order'
+    const listingTitle = order.listing?.title ?? 'Order'
     const sellerName = (order.seller_profile as any)?.business_name ?? 'Seller'
     const buyerName = (order.buyer_profile as any)?.username ?? 'Buyer'
 
@@ -72,36 +72,36 @@ function OrderCard({ order, role }: { order: NmOrder; role: 'buyer' | 'seller' }
     }
 
     return (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-gray-50">
+        <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+            <div className="flex items-center gap-3 border-b border-border px-5 pb-3 pt-4">
                 {/* Product thumb */}
-                <div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shrink-0">
+                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-border bg-muted">
                     {coverImg
-                        ? <img src={coverImg} alt="" className="w-full h-full object-cover" />
-                        : <div className="w-full h-full flex items-center justify-center"><Package className="w-5 h-5 text-gray-300" /></div>}
+                        ? <img src={coverImg} alt="" className="h-full w-full object-cover" />
+                        : <div className="flex h-full w-full items-center justify-center"><Package className="h-5 w-5 text-muted-foreground/40" /></div>}
                 </div>
-                <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-900 text-sm truncate">{listingTitle}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-foreground">{listingTitle}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                         {role === 'buyer' ? `Seller: ${sellerName}` : `Buyer: @${buyerName}`}
                     </p>
-                    <p className="text-xs text-gray-400">{fmtDate(order.created_at)}</p>
+                    <p className="text-xs text-muted-foreground">{fmtDate(order.created_at)}</p>
                 </div>
-                <div className="text-right shrink-0">
-                    <p className="font-black text-gray-900">{fmt(order.total_amount)}</p>
-                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 ${cfg.cls}`}>
-                        <StatusIcon className="w-3 h-3" /> {cfg.label}
+                <div className="shrink-0 text-right">
+                    <p className="font-black text-foreground">{fmt(order.total_amount)}</p>
+                    <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${cfg.cls}`}>
+                        <StatusIcon className="h-3 w-3" /> {cfg.label}
                     </span>
                 </div>
             </div>
 
             {/* Actions */}
-            <div className="px-5 py-3 flex gap-2 flex-wrap">
+            <div className="flex flex-wrap gap-2 px-5 py-3">
                 {/* Seller: mark packed */}
                 {role === 'seller' && order.status === 'confirmed' && (
                     <button disabled={!!loading}
                         onClick={() => handle('packed')}
-                        className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 transition-colors">
+                        className="rounded-xl bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60">
                         {loading === 'packed' ? '…' : 'Mark Packed'}
                     </button>
                 )}
@@ -109,7 +109,7 @@ function OrderCard({ order, role }: { order: NmOrder; role: 'buyer' | 'seller' }
                 {role === 'seller' && order.status === 'packed' && (
                     <button disabled={!!loading}
                         onClick={() => handle('shipped')}
-                        className="px-4 py-2 rounded-xl text-xs font-bold bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-60 transition-colors">
+                        className="rounded-xl bg-secondary px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-secondary/90 disabled:opacity-60">
                         {loading === 'shipped' ? '…' : 'Mark Shipped'}
                     </button>
                 )}
@@ -118,7 +118,7 @@ function OrderCard({ order, role }: { order: NmOrder; role: 'buyer' | 'seller' }
                 {role === 'buyer' && order.status === 'delivered' && (
                     <button disabled={!!loading}
                         onClick={() => handle('confirm')}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 transition-colors">
+                        className="flex items-center gap-1.5 rounded-xl bg-emerald px-4 py-2 text-xs font-bold text-emerald-foreground transition-colors hover:opacity-90 disabled:opacity-60">
                         {loading === 'confirm' ? '…' : <><Check className="h-3.5 w-3.5" /> Confirm Delivery</>}
                     </button>
                 )}
@@ -126,7 +126,7 @@ function OrderCard({ order, role }: { order: NmOrder; role: 'buyer' | 'seller' }
                 {/* Raise dispute */}
                 {['delivered', 'shipped'].includes(order.status) && (
                     <button
-                        onClick={() => toast.info('Dispute form coming — contact support for now')}
+                        onClick={() => toast.info('Dispute form coming soon. Contact support for now')}
                         className="px-4 py-2 rounded-xl text-xs font-bold border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors">
                         Dispute
                     </button>
@@ -134,8 +134,8 @@ function OrderCard({ order, role }: { order: NmOrder; role: 'buyer' | 'seller' }
 
                 {/* Leave review (buyer, confirmed) */}
                 {role === 'buyer' && order.status === 'confirmed' && (
-                    <Link href={`/app/market/${order.product_id}?review=1`}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border border-yellow-300 text-yellow-700 hover:bg-yellow-50 transition-colors">
+                    <Link href={`/app/market/${order.listing_id}?review=1`}
+                        className="flex items-center gap-1.5 rounded-xl border border-amber-300 px-4 py-2 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-50">
                         <Star className="h-3.5 w-3.5" /> Leave Review
                     </Link>
                 )}
@@ -149,66 +149,57 @@ export default function OrdersClient({ buyingOrders, sellingOrders }: Props)
     const [tab, setTab] = useState<'buying' | 'selling'>('buying')
 
     return (
-        <div className="min-h-screen bg-[#f0f2f5]">
+        <div className="w-full space-y-4 px-4 py-6 sm:px-6 lg:px-8">
             {/* Hero */}
-            <div className="relative overflow-hidden"
-                style={{ background: 'linear-gradient(150deg,#1a5c38 0%,#0f3d25 55%,#0a2d1c 100%)' }}>
-                <div className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full"
-                    style={{ background: 'radial-gradient(circle,rgba(74,222,128,.18),transparent 70%)' }} />
-                <div className="relative z-10 px-5 pt-7 pb-8 max-w-4xl mx-auto">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-1">NaijaMarket</p>
-                    <h1 className="text-3xl font-black text-white">My Orders</h1>
-                    <p className="text-sm text-green-300/60 mt-1">Track and manage all your transactions</p>
-                    <div className="grid grid-cols-2 gap-3 pt-5 mt-5"
-                        style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <section className="relative overflow-hidden rounded-3xl"
+                style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}>
+                <div className="px-6 py-7 sm:px-8">
+                    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-cyan-200">Hubnovo Marketplace</p>
+                    <h1 className="font-display text-3xl font-black text-white">My Orders</h1>
+                    <p className="mt-1 text-sm text-white/70">Track and manage all your transactions</p>
+                    <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/10 pt-5">
                         <div>
                             <span className="text-3xl font-black text-white">{buyingOrders.length}</span>
-                            <span className="text-sm text-green-400 block">Purchases</span>
+                            <span className="block text-sm text-white/60">Purchases</span>
                         </div>
                         <div>
                             <span className="text-3xl font-black text-white">{sellingOrders.length}</span>
-                            <span className="text-sm text-green-400 block">Sales</span>
+                            <span className="block text-sm text-white/60">Sales</span>
                         </div>
                     </div>
                 </div>
+            </section>
+
+            {/* Tab selector */}
+            <div className="flex gap-2 rounded-2xl border border-border bg-card p-1.5 shadow-sm">
+                {(['buying', 'selling'] as const).map(t => (
+                    <button key={t} onClick={() => setTab(t)}
+                        className={`flex-1 rounded-xl py-2.5 text-sm font-bold capitalize transition-all ${tab === t
+                            ? 'bg-primary text-primary-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'}`}>
+                        {t === 'buying' ? `Buying (${buyingOrders.length})` : `Selling (${sellingOrders.length})`}
+                    </button>
+                ))}
             </div>
 
-            <div className="max-w-4xl mx-auto px-4 py-5 space-y-4">
-                {/* Tab selector */}
-                <div className="flex gap-2 bg-white rounded-2xl p-1.5 border border-gray-100 shadow-sm">
-                    {(['buying', 'selling'] as const).map(t => (
-                        <button key={t} onClick={() => setTab(t)}
-                            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all capitalize ${tab === t
-                                ? 'text-white shadow-sm'
-                                : 'text-gray-600 hover:text-gray-900'}`}
-                            style={tab === t ? { background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' } : {}}>
-                            {t === 'buying' ? `Buying (${buyingOrders.length})` : `Selling (${sellingOrders.length})`}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Orders list */}
-                <div className="space-y-3">
-                    {(tab === 'buying' ? buyingOrders : sellingOrders).length === 0 ? (
-                        <div className="bg-white rounded-3xl border border-gray-100 py-16 text-center">
-                            <Package className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                            <p className="font-semibold text-gray-600">
-                                {tab === 'buying' ? "You haven't made any purchases yet" : "No sales yet"}
-                            </p>
-                            <Link href="/app/market"
-                                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white mx-auto transition-all hover:opacity-90"
-                                style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
-                                Browse Marketplace <ChevronRight className="w-4 h-4" />
-                            </Link>
-                        </div>
-                    ) : (
-                        (tab === 'buying' ? buyingOrders : sellingOrders).map(order => (
-                            <OrderCard key={order.id} order={order} role={tab === 'buying' ? 'buyer' : 'seller'} />
-                        ))
-                    )}
-                </div>
-
-                <div className="h-4" />
+            {/* Orders list */}
+            <div className="space-y-3">
+                {(tab === 'buying' ? buyingOrders : sellingOrders).length === 0 ? (
+                    <div className="rounded-3xl border border-border bg-card py-16 text-center">
+                        <Package className="mx-auto mb-3 h-12 w-12 text-muted-foreground/30" />
+                        <p className="font-semibold text-muted-foreground">
+                            {tab === 'buying' ? "You haven't made any purchases yet" : "No sales yet"}
+                        </p>
+                        <Link href="/app/market"
+                            className="mx-auto mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90">
+                            Browse Marketplace <ChevronRight className="h-4 w-4" />
+                        </Link>
+                    </div>
+                ) : (
+                    (tab === 'buying' ? buyingOrders : sellingOrders).map(order => (
+                        <OrderCard key={order.id} order={order} role={tab === 'buying' ? 'buyer' : 'seller'} />
+                    ))
+                )}
             </div>
         </div>
     )

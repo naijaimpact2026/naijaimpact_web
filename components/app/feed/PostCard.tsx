@@ -93,7 +93,8 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onHide
     const [reacted, setReacted] = useState(post.user_reacted)
     const [reactionCount, setReactionCount] = useState(post.reaction_count)
     const [reactionPending, setReactionPending] = useState(false)
-    const [saved, setSaved] = useState(false)
+    const [saved, setSaved] = useState(post.user_saved)
+    const [savePending, setSavePending] = useState(false)
     const [expanded, setExpanded] = useState(false)
     const [following, setFollowing] = useState(post.is_following_author ?? false)
     const [followPending, setFollowPending] = useState(false)
@@ -161,6 +162,32 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onHide
         } finally
         {
             setReactionPending(false)
+        }
+    }
+
+    async function handleSaveToggle()
+    {
+        if (savePending) return
+        setSavePending(true)
+
+        const newSaved = !saved
+        setSaved(newSaved)
+
+        try
+        {
+            const { toggleSavePost } = await import('@/lib/actions/posts')
+            const result = await toggleSavePost(post.id)
+            setSaved(result.saved)
+        }
+        catch
+        {
+            setSaved(!newSaved)
+            const { toast } = await import('sonner')
+            toast.error(newSaved ? 'Could not save post' : 'Could not unsave post')
+        }
+        finally
+        {
+            setSavePending(false)
         }
     }
 
@@ -431,8 +458,10 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onHide
 
                 {/* Save */}
                 <button
-                    onClick={() => setSaved((s) => !s)}
+                    onClick={handleSaveToggle}
+                    disabled={savePending}
                     aria-label={saved ? 'Unsave' : 'Save'}
+                    aria-pressed={saved}
                     className={`flex items-center gap-1.5 flex-1 justify-center py-2 rounded-xl text-sm font-medium transition-colors hover:bg-muted ${saved ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                         }`}
                 >

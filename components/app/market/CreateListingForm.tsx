@@ -57,7 +57,7 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-const inp = 'w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white text-sm focus:ring-2 focus:ring-green-500/30 focus:border-green-500 outline-none transition-colors'
+const inp = 'w-full px-4 py-3 rounded-2xl border border-border bg-card text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-colors'
 
 interface Props
 {
@@ -142,22 +142,22 @@ export default function CreateListingForm({ categories }: Props)
     }
 
     return (
-        <div className="min-h-screen bg-[#f0f2f5]">
+        <div className="w-full">
             {/* Header */}
-            <div className="sticky top-14 z-20 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-4 py-3 flex items-center gap-3">
+            <div className="sticky top-14 z-20 bg-card/90 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center gap-3">
                 <button onClick={() => step > 1 ? setStep(s => s - 1) : router.back()}
-                    className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
-                    <ChevronLeft className="w-4 h-4 text-gray-700" />
+                    className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center hover:bg-muted/70 transition-colors">
+                    <ChevronLeft className="w-4 h-4 text-foreground" />
                 </button>
                 <div className="flex-1">
-                    <p className="text-sm font-black text-gray-900">Create Listing</p>
+                    <p className="text-sm font-black text-foreground">Create Listing</p>
                     <div className="flex gap-1.5 mt-1.5">
                         {[1, 2, 3].map(s => (
-                            <div key={s} className={`h-1 rounded-full flex-1 transition-colors ${s <= step ? 'bg-green-600' : 'bg-gray-200'}`} />
+                            <div key={s} className={`h-1 rounded-full flex-1 transition-colors ${s <= step ? 'bg-primary' : 'bg-muted'}`} />
                         ))}
                     </div>
                 </div>
-                <span className="text-xs font-bold text-gray-500">Step {step}/3</span>
+                <span className="text-xs font-bold text-muted-foreground">Step {step}/3</span>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)}>
@@ -167,16 +167,16 @@ export default function CreateListingForm({ categories }: Props)
                     {step === 1 && (
                         <>
                             {/* Photos */}
-                            <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
-                                <p className="font-bold text-gray-900 mb-1">Photos</p>
-                                <p className="text-xs text-gray-500 mb-4">Add up to 10 photos. First photo is the cover.</p>
+                            <div className="bg-card rounded-3xl p-5 shadow-sm border border-border">
+                                <p className="font-bold text-foreground mb-1">Photos</p>
+                                <p className="text-xs text-muted-foreground mb-4">Add up to 10 photos. First photo is the cover.</p>
                                 {images.length > 0 ? (
                                     <div>
                                         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none mb-3">
                                             {images.map((img, i) => (
-                                                <div key={i} className="shrink-0 relative w-20 h-20 rounded-2xl overflow-hidden border-2 border-gray-200">
+                                                <div key={i} className="shrink-0 relative w-20 h-20 rounded-2xl overflow-hidden border-2 border-border">
                                                     <img src={img} alt="" className="w-full h-full object-cover" />
-                                                    {i === 0 && <span className="absolute bottom-0.5 left-0.5 text-[9px] font-bold bg-green-600 text-white px-1 py-0.5 rounded">Cover</span>}
+                                                    {i === 0 && <span className="absolute bottom-0.5 left-0.5 text-[9px] font-bold bg-primary text-primary-foreground px-1 py-0.5 rounded">Cover</span>}
                                                     <button type="button" onClick={() => setImages(imgs => imgs.filter((_, j) => j !== i))}
                                                         className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center">
                                                         <X className="w-3 h-3" />
@@ -196,16 +196,16 @@ export default function CreateListingForm({ categories }: Props)
                             </div>
 
                             {/* Basic info */}
-                            <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-4">
-                                <p className="font-bold text-gray-900">Listing Details</p>
+                            <div className="bg-card rounded-3xl p-5 shadow-sm border border-border space-y-4">
+                                <p className="font-bold text-foreground">Listing Details</p>
 
                                 {/* Listing type */}
                                 <div>
-                                    <label className="text-sm font-semibold text-gray-800 mb-2 block">Listing Type <span className="text-rose-500">*</span></label>
+                                    <label className="text-sm font-semibold text-foreground mb-2 block">Listing Type <span className="text-rose-500">*</span></label>
                                     <div className="grid grid-cols-2 gap-2">
                                         {LISTING_TYPES.map(t => (
                                             <label key={t.value}
-                                                className={`flex items-center gap-2 py-2.5 px-3 rounded-xl border-2 text-sm font-semibold cursor-pointer transition-all ${listingType === t.value ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-200 text-gray-600'}`}>
+                                                className={`flex items-center gap-2 py-2.5 px-3 rounded-xl border-2 text-sm font-semibold cursor-pointer transition-all ${listingType === t.value ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}>
                                                 <input {...register('listing_type')} type="radio" value={t.value} className="sr-only" />
                                                 {t.label}
                                             </label>
@@ -214,7 +214,7 @@ export default function CreateListingForm({ categories }: Props)
                                 </div>
 
                                 <div>
-                                    <label className="text-sm font-semibold text-gray-800 mb-1.5 block">Title <span className="text-rose-500">*</span></label>
+                                    <label className="text-sm font-semibold text-foreground mb-1.5 block">Title <span className="text-rose-500">*</span></label>
                                     <input {...register('title')} placeholder="What are you selling?" className={inp} />
                                     {errors.title && <p className="text-xs text-rose-500 mt-1">{errors.title.message}</p>}
                                 </div>
@@ -222,7 +222,7 @@ export default function CreateListingForm({ categories }: Props)
                                 {/* Category + Condition */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-sm font-semibold text-gray-800 mb-1.5 block">Category</label>
+                                        <label className="text-sm font-semibold text-foreground mb-1.5 block">Category</label>
                                         <select {...register('category_id')} className={inp + ' cursor-pointer'}>
                                             <option value="">None</option>
                                             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -230,7 +230,7 @@ export default function CreateListingForm({ categories }: Props)
                                     </div>
                                     {listingType === 'product' && (
                                         <div>
-                                            <label className="text-sm font-semibold text-gray-800 mb-1.5 block">Condition</label>
+                                            <label className="text-sm font-semibold text-foreground mb-1.5 block">Condition</label>
                                             <select {...register('condition')} className={inp + ' cursor-pointer'}>
                                                 <option value="">Select…</option>
                                                 {CONDITIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
@@ -240,22 +240,21 @@ export default function CreateListingForm({ categories }: Props)
                                 </div>
 
                                 <div>
-                                    <label className="text-sm font-semibold text-gray-800 mb-1.5 block">Description <span className="text-rose-500">*</span></label>
+                                    <label className="text-sm font-semibold text-foreground mb-1.5 block">Description <span className="text-rose-500">*</span></label>
                                     <textarea {...register('description')} rows={4}
-                                        placeholder="Describe your item — specs, features, reason for selling…"
+                                        placeholder="Describe your item: specs, features, reason for selling"
                                         className={inp + ' resize-none'} />
                                     {errors.description && <p className="text-xs text-rose-500 mt-1">{errors.description.message}</p>}
                                 </div>
 
                                 <div>
-                                    <label className="text-sm font-semibold text-gray-800 mb-1.5 block">Brand (optional)</label>
+                                    <label className="text-sm font-semibold text-foreground mb-1.5 block">Brand (optional)</label>
                                     <input {...register('brand')} placeholder="e.g. Samsung, Nike, Toyota" className={inp} />
                                 </div>
                             </div>
 
                             <button type="button" onClick={() => setStep(2)}
-                                className="w-full py-4 rounded-2xl text-sm font-black text-white flex items-center justify-center gap-2 transition-all hover:opacity-90"
-                                style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
+                                className="w-full py-4 rounded-2xl text-sm font-black text-primary-foreground bg-primary flex items-center justify-center gap-2 transition-colors hover:bg-primary/90">
                                 Continue <ChevronRight className="w-4 h-4" />
                             </button>
                         </>
@@ -264,21 +263,21 @@ export default function CreateListingForm({ categories }: Props)
                     {/* ── Step 2: Pricing + Location ── */}
                     {step === 2 && (
                         <>
-                            <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-4">
-                                <p className="font-bold text-gray-900">Pricing</p>
+                            <div className="bg-card rounded-3xl p-5 shadow-sm border border-border space-y-4">
+                                <p className="font-bold text-foreground">Pricing</p>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-sm font-semibold text-gray-800 mb-1.5 block">Price (₦) <span className="text-rose-500">*</span></label>
+                                        <label className="text-sm font-semibold text-foreground mb-1.5 block">Price (₦) <span className="text-rose-500">*</span></label>
                                         <div className="relative">
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">₦</span>
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">₦</span>
                                             <input {...register('price')} type="number" min={100} step={100}
                                                 placeholder="25000" className={inp + ' pl-8'} />
                                         </div>
                                         {errors.price && <p className="text-xs text-rose-500 mt-1">{errors.price.message}</p>}
                                     </div>
                                     <div>
-                                        <label className="text-sm font-semibold text-gray-800 mb-1.5 block">
+                                        <label className="text-sm font-semibold text-foreground mb-1.5 block">
                                             {listingType === 'product' ? 'Quantity' : 'Slots available'}
                                         </label>
                                         <input {...register('stock')} type="number" min={1} className={inp} />
@@ -286,26 +285,26 @@ export default function CreateListingForm({ categories }: Props)
                                 </div>
 
                                 <label className="flex items-center gap-3 cursor-pointer">
-                                    <input {...register('negotiable')} type="checkbox" className="w-5 h-5 accent-green-600 rounded" />
-                                    <span className="text-sm font-semibold text-gray-800">Price is negotiable</span>
+                                    <input {...register('negotiable')} type="checkbox" className="w-5 h-5 accent-primary rounded" />
+                                    <span className="text-sm font-semibold text-foreground">Price is negotiable</span>
                                 </label>
 
                                 <label className="flex items-center gap-3 cursor-pointer">
-                                    <input {...register('escrow_enabled')} type="checkbox" className="w-5 h-5 accent-green-600 rounded" />
-                                    <span className="text-sm font-semibold text-gray-800">Enable escrow protection</span>
+                                    <input {...register('escrow_enabled')} type="checkbox" className="w-5 h-5 accent-primary rounded" />
+                                    <span className="text-sm font-semibold text-foreground">Enable escrow protection</span>
                                 </label>
                             </div>
 
-                            <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-4">
-                                <p className="font-bold text-gray-900">Location & Delivery</p>
+                            <div className="bg-card rounded-3xl p-5 shadow-sm border border-border space-y-4">
+                                <p className="font-bold text-foreground">Location & Delivery</p>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="text-sm font-semibold text-gray-800 mb-1.5 block">City</label>
+                                        <label className="text-sm font-semibold text-foreground mb-1.5 block">City</label>
                                         <input {...register('city')} placeholder="e.g. Ikeja" className={inp} />
                                     </div>
                                     <div>
-                                        <label className="text-sm font-semibold text-gray-800 mb-1.5 block">State</label>
+                                        <label className="text-sm font-semibold text-foreground mb-1.5 block">State</label>
                                         <select {...register('state')} className={inp + ' cursor-pointer'}>
                                             <option value="">Select…</option>
                                             {STATES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -314,11 +313,11 @@ export default function CreateListingForm({ categories }: Props)
                                 </div>
 
                                 <div>
-                                    <label className="text-sm font-semibold text-gray-800 mb-2 block">Delivery Option <span className="text-rose-500">*</span></label>
+                                    <label className="text-sm font-semibold text-foreground mb-2 block">Delivery Option <span className="text-rose-500">*</span></label>
                                     <div className="grid grid-cols-2 gap-2">
                                         {DELIVERY_OPTIONS.map(opt => (
                                             <label key={opt.value}
-                                                className={`flex items-center gap-2 py-2.5 px-3 rounded-xl border-2 text-xs font-semibold cursor-pointer transition-all ${deliveryOption === opt.value ? 'border-green-600 bg-green-50 text-green-700' : 'border-gray-200 text-gray-600'}`}>
+                                                className={`flex items-center gap-2 py-2.5 px-3 rounded-xl border-2 text-xs font-semibold cursor-pointer transition-all ${deliveryOption === opt.value ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}>
                                                 <input {...register('delivery_option')} type="radio" value={opt.value} className="sr-only" />
                                                 {opt.label}
                                             </label>
@@ -328,9 +327,9 @@ export default function CreateListingForm({ categories }: Props)
 
                                 {deliveryOption !== 'pickup' && deliveryOption !== 'none' && (
                                     <div>
-                                        <label className="text-sm font-semibold text-gray-800 mb-1.5 block">Delivery Fee (₦)</label>
+                                        <label className="text-sm font-semibold text-foreground mb-1.5 block">Delivery Fee (₦)</label>
                                         <div className="relative">
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-sm">₦</span>
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">₦</span>
                                             <input {...register('delivery_fee')} type="number" min={0} step={100} className={inp + ' pl-8'} />
                                         </div>
                                     </div>
@@ -338,8 +337,7 @@ export default function CreateListingForm({ categories }: Props)
                             </div>
 
                             <button type="button" onClick={() => setStep(3)}
-                                className="w-full py-4 rounded-2xl text-sm font-black text-white flex items-center justify-center gap-2 transition-all hover:opacity-90"
-                                style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
+                                className="w-full py-4 rounded-2xl text-sm font-black text-primary-foreground bg-primary flex items-center justify-center gap-2 transition-colors hover:bg-primary/90">
                                 Continue <ChevronRight className="w-4 h-4" />
                             </button>
                         </>
@@ -348,19 +346,19 @@ export default function CreateListingForm({ categories }: Props)
                     {/* ── Step 3: Tags + Warranty + Publish ── */}
                     {step === 3 && (
                         <>
-                            <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-4">
-                                <p className="font-bold text-gray-900">Final Details</p>
+                            <div className="bg-card rounded-3xl p-5 shadow-sm border border-border space-y-4">
+                                <p className="font-bold text-foreground">Final Details</p>
 
                                 {listingType === 'product' && (
                                     <div>
-                                        <label className="text-sm font-semibold text-gray-800 mb-1.5 block">Warranty Days</label>
+                                        <label className="text-sm font-semibold text-foreground mb-1.5 block">Warranty Days</label>
                                         <input {...register('warranty_days')} type="number" min={0}
                                             placeholder="e.g. 30, 90, 365 (0 = no warranty)" className={inp} />
                                     </div>
                                 )}
 
                                 <div>
-                                    <label className="text-sm font-semibold text-gray-800 mb-1.5 block">Tags (press Enter to add)</label>
+                                    <label className="text-sm font-semibold text-foreground mb-1.5 block">Tags (press Enter to add)</label>
                                     <input
                                         value={tagInput}
                                         onChange={e => setTagInput(e.target.value)}
@@ -372,7 +370,7 @@ export default function CreateListingForm({ categories }: Props)
                                         <div className="flex flex-wrap gap-1.5 mt-2">
                                             {tags.map(tag => (
                                                 <span key={tag}
-                                                    className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-green-100 text-green-700">
+                                                    className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary">
                                                     #{tag}
                                                     <button type="button" onClick={() => setTags(prev => prev.filter(t => t !== tag))}>
                                                         <X className="w-3 h-3" />
@@ -384,23 +382,22 @@ export default function CreateListingForm({ categories }: Props)
                                 </div>
                             </div>
 
-                            <div className="bg-green-50 rounded-3xl p-5 border border-green-200">
+                            <div className="bg-emerald/5 rounded-3xl p-5 border border-emerald/20">
                                 <div className="flex items-center gap-2 mb-3">
-                                    <CheckCircle2 className="h-5 w-5 text-green-600" />
-                                    <p className="font-bold text-gray-900">Ready to Publish!</p>
+                                    <CheckCircle2 className="h-5 w-5 text-emerald" />
+                                    <p className="font-bold text-foreground">Ready to Publish!</p>
                                 </div>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-sm text-muted-foreground">
                                     Your listing will be visible to buyers across Nigeria with escrow-protected payments.
                                 </p>
-                                <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
+                                <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
                                     <span className="flex items-center gap-1"><Camera className="h-3.5 w-3.5" /> {images.length} photo{images.length !== 1 ? 's' : ''}</span>
                                     <span className="flex items-center gap-1"><Tag className="h-3.5 w-3.5" /> {tags.length} tag{tags.length !== 1 ? 's' : ''}</span>
                                 </div>
                             </div>
 
                             <button type="submit" disabled={submitting}
-                                className="w-full py-4 rounded-2xl text-sm font-black text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-95 disabled:opacity-60"
-                                style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
+                                className="w-full py-4 rounded-2xl text-sm font-black text-primary-foreground bg-primary flex items-center justify-center gap-2 transition-colors hover:bg-primary/90 active:scale-95 disabled:opacity-60">
                                 {submitting
                                     ? <><span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Publishing…</>
                                     : <><Plus className="w-4 h-4" /> Publish Listing</>}

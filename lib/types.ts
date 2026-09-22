@@ -746,6 +746,7 @@ export type PostWithAuthor = Post & {
   reaction_count: number
   comment_count: number
   user_reacted: boolean
+  user_saved: boolean
   is_following_author?: boolean
 }
 
@@ -908,8 +909,7 @@ export type NmOrder = {
   created_at: string
   updated_at: string
   // Joined relations (when fetched with select)
-  listing?: { id: string; title: string } | null
-  listing_images?: NmListingImage[]
+  listing?: { id: string; title: string; listing_images?: NmListingImage[] } | null
   seller_profile?: Partial<NmSellerProfile> | null
   buyer_profile?: { id: string; fullname: string | null; username: string; profile_image_url: string | null } | null
 }
@@ -953,8 +953,7 @@ export type NmBooking = {
   created_at: string
   updated_at: string
   // Joined
-  listing?: { id: string; title: string } | null
-  listing_images?: NmListingImage[]
+  listing?: { id: string; title: string; listing_images?: NmListingImage[] } | null
 }
 
 // nm_reviews table
@@ -982,6 +981,21 @@ export type NmSavedListing = {
   user_id: string
   listing_id: string
   created_at: string
+}
+
+// nm_seller_follows table
+export type NmSellerFollow = {
+  id: string
+  seller_id: string
+  follower_id: string
+  created_at: string
+}
+
+// Top Stores rail — real nm_seller_profiles plus derived, non-fabricated stats
+export type NmTopSeller = NmSellerProfile & {
+  dominant_category_name: string | null
+  follower_count: number
+  is_following: boolean
 }
 
 // services_categories table (used for category filter grid)

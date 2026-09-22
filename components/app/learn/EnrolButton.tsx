@@ -51,13 +51,13 @@ export default function EnrolButton({
                     flex w-full items-center
                     justify-center gap-2
                     rounded-lg
-                    bg-emerald-700
+                    bg-primary
                     px-5 py-3
                     text-sm font-semibold
-                    text-white
+                    text-primary-foreground
                     shadow-sm
                     transition-all
-                    hover:bg-emerald-800
+                    hover:bg-primary/90
                     hover:shadow-md
                     active:scale-[0.99]
                 "
@@ -114,13 +114,13 @@ export default function EnrolButton({
                     flex w-full items-center
                     justify-center gap-2
                     rounded-lg
-                    bg-emerald-700
+                    bg-primary
                     px-5 py-3
                     text-sm font-semibold
-                    text-white
+                    text-primary-foreground
                     shadow-sm
                     transition-all
-                    hover:bg-emerald-800
+                    hover:bg-primary/90
                     hover:shadow-md
                     active:scale-[0.99]
                     disabled:cursor-not-allowed
@@ -143,7 +143,7 @@ export default function EnrolButton({
                 ) : (
                     <>
                         <LockKeyhole className="h-4 w-4" />
-                        Purchase — ₦
+                        Purchase for ₦
                         {amount.toLocaleString('en-NG')}
                     </>
                 )}

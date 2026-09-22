@@ -41,7 +41,7 @@ const STEPS = ['Basic Info', 'Curriculum', 'Review'] as const
 
 // ─── Field styles ─────────────────────────────────────────────────────────────
 
-const inputCls = "w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-colors"
+const inputCls = "w-full px-4 py-2.5 rounded-xl border border-border bg-card text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
 const textareaCls = inputCls + " resize-none"
 
 function Field({ label, required, hint, error, children }: {
@@ -69,17 +69,17 @@ function StepIndicator({ current }: { current: number })
             {STEPS.map((label, idx) => (
                 <div key={label} className="flex items-center gap-2">
                     <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${idx < current ? 'bg-green-600 text-white' :
-                            idx === current ? 'bg-green-700 text-white ring-4 ring-green-500/20' :
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${idx < current ? 'bg-primary text-primary-foreground' :
+                            idx === current ? 'bg-primary text-primary-foreground ring-4 ring-primary/20' :
                                 'bg-muted text-muted-foreground'
                             }`}>
                             {idx < current ? <Check className="w-4 h-4" /> : idx + 1}
                         </div>
-                        <span className={`text-sm font-semibold hidden sm:block ${idx === current ? 'text-foreground' : idx < current ? 'text-green-700' : 'text-muted-foreground'
+                        <span className={`text-sm font-semibold hidden sm:block ${idx === current ? 'text-foreground' : idx < current ? 'text-primary' : 'text-muted-foreground'
                             }`}>{label}</span>
                     </div>
                     {idx < STEPS.length - 1 && (
-                        <div className={`h-0.5 w-10 sm:w-16 rounded-full ${idx < current ? 'bg-green-500' : 'bg-border'}`} />
+                        <div className={`h-0.5 w-10 sm:w-16 rounded-full ${idx < current ? 'bg-primary' : 'bg-border'}`} />
                     )}
                 </div>
             ))}
@@ -123,7 +123,7 @@ function Step1({ form, categories, onNext }: {
             <Field label="Category" required error={errors.category_id?.message}>
                 <div className="relative">
                     <select {...register('category_id')}
-                        className="w-full appearance-none px-4 py-2.5 pr-10 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition-colors cursor-pointer">
+                        className="w-full appearance-none px-4 py-2.5 pr-10 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors cursor-pointer">
                         <option value="" className="text-muted-foreground">Select a category…</option>
                         {categories.map(c => (
                             <option key={c.id} value={c.id} className="text-foreground bg-card">{c.name}</option>
@@ -138,11 +138,11 @@ function Step1({ form, categories, onNext }: {
                 <Field label="Pricing" hint="Toggle free / paid">
                     <div className="flex items-center gap-3 mt-1">
                         <button type="button" onClick={() => setValue('is_free', true)}
-                            className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-all ${isFree ? 'bg-green-700 text-white border-green-700' : 'bg-card text-muted-foreground border-border'}`}>
+                            className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-all ${isFree ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border'}`}>
                             Free
                         </button>
                         <button type="button" onClick={() => setValue('is_free', false)}
-                            className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-all ${!isFree ? 'bg-green-700 text-white border-green-700' : 'bg-card text-muted-foreground border-border'}`}>
+                            className={`flex-1 py-2 rounded-xl text-sm font-bold border transition-all ${!isFree ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border'}`}>
                             Paid
                         </button>
                     </div>
@@ -183,7 +183,7 @@ function Step1({ form, categories, onNext }: {
             <Field label="Intro / Preview Video" hint="Optional short preview video for the course">
                 {introVideo ? (
                     <div className="flex items-center gap-2">
-                        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-bold border border-green-200">
+                        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-bold border border-primary/20">
                             <Video className="w-3.5 h-3.5" /> Video uploaded
                         </span>
                         <button type="button" onClick={() => setValue('video_url', null)}
@@ -200,8 +200,7 @@ function Step1({ form, categories, onNext }: {
 
             <div className="flex justify-end pt-2">
                 <button type="button" onClick={go}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 active:scale-95 transition-all"
-                    style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-primary-foreground bg-primary hover:bg-primary/90 active:scale-95 transition-colors">
                     Next: Curriculum <ChevronRight className="w-4 h-4" />
                 </button>
             </div>
@@ -224,7 +223,7 @@ function LessonRow({ sIdx, lIdx, form, onVideoUpload, canRemove, onRemove }: {
 
     return (
         <div className="flex items-start gap-3 p-4 rounded-xl bg-muted border border-border">
-            <div className="w-6 h-6 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold shrink-0 mt-1">
+            <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0 mt-1">
                 {lIdx + 1}
             </div>
             <div className="flex-1 space-y-3">
@@ -233,7 +232,7 @@ function LessonRow({ sIdx, lIdx, form, onVideoUpload, canRemove, onRemove }: {
                 {err?.title && <p className="text-xs text-rose-500">{err.title.message}</p>}
                 {videoUrl ? (
                     <div className="flex items-center gap-2">
-                        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-bold border border-green-200">
+                        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-bold border border-primary/20">
                             <Video className="w-3.5 h-3.5" /> Video uploaded
                         </span>
                         <button type="button" onClick={() => setValue(`sections.${sIdx}.lessons.${lIdx}.video_url`, null)}
@@ -269,11 +268,9 @@ function SectionBlock({ sIdx, form, onVideoUpload, canRemove, onRemove }: {
 
     return (
         <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-            <div className={`px-5 py-4 border-b ${sErr?.title ? 'border-rose-200 bg-rose-50' : 'border-border'}`}
-                style={!sErr?.title ? { background: 'linear-gradient(135deg,#e8f5ee,#d0ede0)' } : {}}>
+            <div className={`px-5 py-4 border-b ${sErr?.title ? 'border-rose-200 bg-rose-50' : 'border-border bg-primary/5'}`}>
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black text-white shrink-0"
-                        style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black text-primary-foreground bg-primary shrink-0">
                         {sIdx + 1}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -281,7 +278,7 @@ function SectionBlock({ sIdx, form, onVideoUpload, canRemove, onRemove }: {
                             placeholder={`Enter section ${sIdx + 1} title (required)`}
                             className={`w-full text-sm font-bold focus:outline-none rounded-lg px-2 py-1 transition-colors ${sErr?.title
                                     ? 'bg-card border border-rose-300 text-foreground placeholder:text-rose-400'
-                                    : 'bg-white/60 border border-transparent text-foreground placeholder:text-muted-foreground focus:bg-card focus:border-green-400'
+                                    : 'bg-white/60 border border-transparent text-foreground placeholder:text-muted-foreground focus:bg-card focus:border-primary'
                                 }`} />
                         {sErr?.title && (
                             <p className="text-xs text-rose-600 font-semibold mt-1 flex items-center gap-1">
@@ -305,7 +302,7 @@ function SectionBlock({ sIdx, form, onVideoUpload, canRemove, onRemove }: {
                 ))}
                 <button type="button"
                     onClick={() => append({ title: '', video_url: null })}
-                    className="flex items-center gap-1.5 text-sm font-semibold text-green-700 hover:text-green-800 transition-colors">
+                    className="flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary/80 transition-colors">
                     <Plus className="w-4 h-4" /> Add Lesson
                 </button>
             </div>
@@ -342,7 +339,7 @@ function Step2({ form, onVideoUpload, onBack, onNext }: {
             )}
             <button type="button"
                 onClick={() => append({ title: '', lessons: [{ title: '', video_url: null }] })}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-border text-sm font-semibold text-muted-foreground hover:border-green-400 hover:text-green-700 transition-colors">
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-border text-sm font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors">
                 <Plus className="w-4 h-4" /> Add Section
             </button>
             <div className="flex justify-between pt-2">
@@ -351,8 +348,7 @@ function Step2({ form, onVideoUpload, onBack, onNext }: {
                     <ChevronLeft className="w-4 h-4" /> Back
                 </button>
                 <button type="button" onClick={go}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 active:scale-95 transition-all"
-                    style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-primary-foreground bg-primary hover:bg-primary/90 active:scale-95 transition-colors">
                     Next: Review <ChevronRight className="w-4 h-4" />
                 </button>
             </div>
@@ -371,7 +367,7 @@ function Step3({ values, categories, onBack, onPublish, isPublishing }: {
 })
 {
     const totalLessons = values.sections.reduce((s, sec) => s + sec.lessons.length, 0)
-    const catName = categories.find(c => c.id === values.category_id)?.name ?? '—'
+    const catName = categories.find(c => c.id === values.category_id)?.name ?? 'Uncategorized'
 
     return (
         <div className="space-y-5">
@@ -381,14 +377,14 @@ function Step3({ values, categories, onBack, onPublish, isPublishing }: {
                     <img src={values.cover_image_url} alt="" className="w-full h-40 object-cover" />
                 ) : (
                     <div className="h-32 flex items-center justify-center"
-                        style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
+                        style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}>
                         <GraduationCap className="w-12 h-12 text-white/30" />
                     </div>
                 )}
                 <div className="p-5 space-y-3">
                     <div className="flex items-start justify-between gap-3">
                         <h3 className="font-bold text-foreground text-lg leading-tight">{values.title}</h3>
-                        <span className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold ${values.is_free ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                        <span className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold ${values.is_free ? 'bg-emerald/10 text-emerald' : 'bg-amber-50 text-amber-700'
                             }`}>
                             {values.is_free ? 'Free' : `₦${Number(values.amount).toLocaleString('en-NG')}`}
                         </span>
@@ -406,7 +402,7 @@ function Step3({ values, categories, onBack, onPublish, isPublishing }: {
 
             <div className="rounded-2xl border border-border bg-card overflow-hidden">
                 <div className="px-5 py-4 border-b border-border flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-green-700" />
+                    <BookOpen className="w-4 h-4 text-primary" />
                     <span className="font-bold text-foreground text-sm">Curriculum</span>
                 </div>
                 <div className="divide-y divide-border">
@@ -422,7 +418,7 @@ function Step3({ values, categories, onBack, onPublish, isPublishing }: {
                                             {li + 1}
                                         </span>
                                         <span className="flex-1 truncate">{l.title || <span className="italic text-muted-foreground">Untitled</span>}</span>
-                                        {l.video_url && <Video className="w-3.5 h-3.5 text-green-600 shrink-0" />}
+                                        {l.video_url && <Video className="w-3.5 h-3.5 text-primary shrink-0" />}
                                     </div>
                                 ))}
                             </div>
@@ -431,11 +427,11 @@ function Step3({ values, categories, onBack, onPublish, isPublishing }: {
                 </div>
             </div>
 
-            <div className="flex items-start gap-3 p-4 rounded-2xl bg-green-50 border border-green-100">
-                <Eye className="w-5 h-5 text-green-700 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 p-4 rounded-2xl bg-emerald/5 border border-emerald/20">
+                <Eye className="w-5 h-5 text-emerald shrink-0 mt-0.5" />
                 <div>
-                    <p className="text-sm font-bold text-green-800">Ready to publish?</p>
-                    <p className="text-xs text-green-700 mt-0.5">
+                    <p className="text-sm font-bold text-emerald">Ready to publish?</p>
+                    <p className="text-xs text-emerald/80 mt-0.5">
                         This course will be visible in the catalogue immediately.
                     </p>
                 </div>
@@ -447,8 +443,7 @@ function Step3({ values, categories, onBack, onPublish, isPublishing }: {
                     <ChevronLeft className="w-4 h-4" /> Back
                 </button>
                 <button type="button" onClick={onPublish} disabled={isPublishing}
-                    className="flex items-center gap-2 px-7 py-2.5 rounded-xl text-sm font-bold text-white hover:opacity-90 active:scale-95 disabled:opacity-60 transition-all"
-                    style={{ background: 'linear-gradient(135deg,#1a5c38,#0f3d25)' }}>
+                    className="flex items-center gap-2 px-7 py-2.5 rounded-xl text-sm font-bold text-primary-foreground bg-primary hover:bg-primary/90 active:scale-95 disabled:opacity-60 transition-colors">
                     {isPublishing ? (
                         <><span className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" /> Saving…</>
                     ) : (
@@ -530,16 +525,16 @@ export default function CreateCoursePage()
         <div className="min-h-screen bg-background">
             {/* Hero header */}
             <div className="relative overflow-hidden py-8 px-5"
-                style={{ background: 'linear-gradient(150deg,#1a5c38 0%,#0f3d25 55%,#0a2d1c 100%)' }}>
+                style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}>
                 <div className="pointer-events-none absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-10"
-                    style={{ background: 'radial-gradient(circle,#4ade80,transparent)' }} />
+                    style={{ background: 'radial-gradient(circle,#00B8D9,transparent)' }} />
                 <div className="max-w-2xl mx-auto relative z-10 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center">
-                        <GraduationCap className="w-5 h-5 text-green-300" />
+                        <GraduationCap className="w-5 h-5 text-cyan-200" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black text-white">Create a Course</h1>
-                        <p className="text-green-300/80 text-sm">Share your expertise with the community</p>
+                        <h1 className="font-display text-2xl font-black text-white">Create a Course</h1>
+                        <p className="text-white/70 text-sm">Share your expertise with the community</p>
                     </div>
                 </div>
             </div>
