@@ -289,14 +289,17 @@ export default function MarketHomeClient({
                     </div>
 
                     {loading ? (
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                             {Array.from({ length: 10 }).map((_, i) => (
-                                <div key={i} className="overflow-hidden rounded-2xl border border-border bg-card">
-                                    <div className="aspect-square animate-pulse bg-muted" />
-                                    <div className="space-y-2 p-3">
-                                        <div className="h-3 w-5/6 animate-pulse rounded-full bg-muted" />
-                                        <div className="h-3 w-3/6 animate-pulse rounded-full bg-muted" />
-                                        <div className="h-4 w-2/5 animate-pulse rounded-full bg-muted" />
+                                <div key={i} className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card">
+                                    <div className="aspect-square w-full shrink-0 animate-pulse bg-muted" />
+                                    <div className="flex flex-1 flex-col justify-between p-3">
+                                        <div className="space-y-2">
+                                            <div className="h-3 w-5/6 animate-pulse rounded-full bg-muted" />
+                                            <div className="h-3 w-3/6 animate-pulse rounded-full bg-muted" />
+                                            <div className="h-4 w-2/5 animate-pulse rounded-full bg-muted" />
+                                        </div>
+                                        <div className="mt-3 h-8 w-full animate-pulse rounded-xl bg-muted" />
                                     </div>
                                 </div>
                             ))}
@@ -317,7 +320,7 @@ export default function MarketHomeClient({
                         </div>
                     ) : (
                         <>
-                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                                 {listings.map((listing) => (
                                     <ListingCard key={listing.id} listing={listing} />
                                 ))}

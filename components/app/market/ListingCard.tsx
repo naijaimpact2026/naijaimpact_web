@@ -76,8 +76,8 @@ export default function ListingCard({ listing }: { listing: NmListingDetail })
 
     return (
         <Link href={`/app/market/${listing.id}`}
-            className="group cursor-pointer overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-lg">
-            <div className="relative aspect-square overflow-hidden bg-muted">
+            className="group flex h-full flex-col cursor-pointer overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-lg">
+            <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-muted">
                 {coverImg ? (
                     <Image src={coverImg} alt={listing.title} fill
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -112,32 +112,34 @@ export default function ListingCard({ listing }: { listing: NmListingDetail })
                 )}
             </div>
 
-            <div className="p-3">
-                <p className="mb-1 line-clamp-2 text-xs font-bold leading-snug text-foreground">{listing.title}</p>
+            <div className="flex flex-1 flex-col justify-between p-3">
+                <div>
+                    <p className="mb-1 line-clamp-2 text-xs font-bold leading-snug text-foreground">{listing.title}</p>
 
-                {listing.review_count > 0 && (
-                    <p className="mb-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                        <span className="font-semibold text-foreground">{listing.rating.toFixed(1)}</span>
-                        ({listing.review_count})
-                    </p>
-                )}
+                    {listing.review_count > 0 && (
+                        <p className="mb-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                            <span className="font-semibold text-foreground">{listing.rating.toFixed(1)}</span>
+                            ({listing.review_count})
+                        </p>
+                    )}
 
-                <p className="truncate text-sm font-black text-foreground" title={fmt(listing.price)}>{fmt(listing.price)}</p>
-                {listing.negotiable && (
-                    <p className="mt-0.5 text-[10px] font-semibold text-emerald">Negotiable</p>
-                )}
-                {(listing.city || listing.state) && (
-                    <p className="mt-1 flex items-center gap-0.5 truncate text-[10px] text-muted-foreground">
-                        <MapPin className="h-2.5 w-2.5 shrink-0" />
-                        <span className="truncate">{[listing.city, listing.state].filter(Boolean).join(', ')}</span>
-                    </p>
-                )}
+                    <p className="truncate text-sm font-black text-foreground" title={fmt(listing.price)}>{fmt(listing.price)}</p>
+                    {listing.negotiable && (
+                        <p className="mt-0.5 text-[10px] font-semibold text-emerald">Negotiable</p>
+                    )}
+                    {(listing.city || listing.state) && (
+                        <p className="mt-1 flex items-center gap-0.5 truncate text-[10px] text-muted-foreground">
+                            <MapPin className="h-2.5 w-2.5 shrink-0" />
+                            <span className="truncate">{[listing.city, listing.state].filter(Boolean).join(', ')}</span>
+                        </p>
+                    )}
+                </div>
 
                 <button
                     onClick={handleAddToCart}
                     disabled={listing.stock <= 0}
-                    className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-colors disabled:opacity-50 ${inCart ? 'bg-primary/10 text-primary' : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                    className={`mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-colors disabled:opacity-50 ${inCart ? 'bg-primary/10 text-primary' : 'bg-primary text-primary-foreground hover:bg-primary/90'
                         }`}
                 >
                     <ShoppingCart className="h-3.5 w-3.5" />
