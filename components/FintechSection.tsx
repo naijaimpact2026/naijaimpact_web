@@ -24,6 +24,7 @@ const products = [
         bg: 'bg-emerald-500/10 ',
         border: 'border-emerald-500/20',
         text: 'text-emerald-600',
+        span: 'lg:col-span-3',
         perks: ['2–20 members per group', 'Weekly / bi-weekly / monthly', 'Dispute resolution built-in'],
     },
     {
@@ -36,6 +37,7 @@ const products = [
         bg: 'bg-blue-500/10 ',
         border: 'border-blue-500/20',
         text: 'text-blue-600',
+        span: 'lg:col-span-3',
         perks: ['Flexible anytime withdrawals', 'Locked savings with interest', 'Goal tracker with milestones'],
     },
     {
@@ -48,6 +50,7 @@ const products = [
         bg: 'bg-violet-500/10 ',
         border: 'border-violet-500/20',
         text: 'text-violet-600',
+        span: 'lg:col-span-3',
         perks: ['Starter to Platinum tiers', '6-category score breakdown', 'Personalised improvement tips'],
     },
     {
@@ -60,6 +63,7 @@ const products = [
         bg: 'bg-amber-500/10 ',
         border: 'border-amber-500/20',
         text: 'text-amber-600',
+        span: 'lg:col-span-3',
         perks: ['TradeCred score-based approval', 'Flexible repayment schedules', 'Track repayments in-app'],
     },
     {
@@ -72,6 +76,7 @@ const products = [
         bg: 'bg-rose-500/10 ',
         border: 'border-rose-500/20',
         text: 'text-rose-600',
+        span: 'lg:col-span-6',
         perks: ['Pay premiums from wallet', 'File claims with documents', 'Track policy status live'],
     },
 ]
@@ -79,7 +84,7 @@ const products = [
 export default function FintechSection()
 {
     return (
-        <section id="fintech" className="relative py-24 md:py-36 overflow-hidden">
+        <section id="fintech" className="relative scroll-mt-24 py-24 md:py-36 overflow-hidden">
             {/* Background */}
             <div className="absolute inset-0 -z-10">
                 <div className="absolute inset-0 bg-white" />
@@ -120,19 +125,19 @@ export default function FintechSection()
                     </h2>
                     <p className="text-muted-foreground text-lg leading-relaxed">
                         Five integrated fintech products that help you save smarter, build credit, access loans,
-                        and protect what matters — all without leaving HubNovo.
+                        and protect what matters, all without leaving HubNovo.
                     </p>
                 </div>
 
                 {/* Product cards — responsive grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-5 items-stretch">
                     {products.map((product, i) =>
                     {
                         const Icon = product.icon
                         return (
                             <div
                                 key={i}
-                                className={`group relative rounded-2xl border border-border bg-white shadow-sm hover:shadow-md transition-all p-7 ${i === 4 ? 'md:col-span-2 lg:col-span-1' : ''}`}
+                                className={`group relative h-full rounded-2xl border border-border bg-white shadow-sm hover:shadow-md transition-all p-6 ${product.span}`}
                             >
                                 {/* Icon + badge */}
                                 <div className="flex items-start justify-between mb-5">
@@ -142,7 +147,7 @@ export default function FintechSection()
                                         <Icon className="w-6 h-6" />
                                     </div>
                                     <span
-                                        className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${product.bg} ${product.border} ${product.text}`}
+                                        className={`max-w-[190px] truncate text-right text-[10px] font-semibold px-2.5 py-1 rounded-full border ${product.bg} ${product.border} ${product.text}`}
                                     >
                                         {product.tagline}
                                     </span>

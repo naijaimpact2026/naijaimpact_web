@@ -83,7 +83,7 @@ const features = [
     description:
       'Find people, posts, and courses from one search bar with instant results. Tap any result and land directly on the right page.',
     tint: 'bg-purple-500/10 text-purple-600',
-    span: 'lg:col-span-1',
+    span: 'lg:col-span-2',
     extras: null,
   },
   {
@@ -92,7 +92,7 @@ const features = [
     description:
       'Real-time alerts for follows, reactions, comments, and mentions. Live badge counts on every device. Never miss what matters.',
     tint: 'bg-primary/10 text-primary',
-    span: 'lg:col-span-1',
+    span: 'lg:col-span-2',
     extras: null,
   },
 ]
@@ -100,7 +100,7 @@ const features = [
 export default function Features()
 {
   return (
-    <section id="features" className="relative py-24 md:py-32 bg-background">
+    <section id="features" className="relative scroll-mt-24 py-24 md:py-32 bg-background">
       <div className="container-gutter mx-auto max-w-7xl">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
           <div className="space-y-4 max-w-xl">
@@ -123,12 +123,12 @@ export default function Features()
             </h2>
           </div>
           <p className="text-muted-foreground max-w-sm text-base leading-relaxed md:text-right">
-            Eight powerful features, seamlessly connected — social, financial, educational, and
+            Eight powerful features, seamlessly connected social, financial, educational, and
             professional tools in a single platform built for Nigeria.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {features.map((feature, index) =>
           {
             const Icon = feature.icon

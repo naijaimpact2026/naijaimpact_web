@@ -89,8 +89,8 @@ const testimonials = [
 function TestimonialCard({ t }: { t: (typeof testimonials)[0] })
 {
   return (
-    <div className="shrink-0 w-[320px] rounded-2xl border border-border bg-white shadow-sm p-6 mx-2">
-      <Quote className="w-6 h-6 text-primary/25 mb-4" />
+    <div className="group shrink-0 w-[340px] rounded-2xl border border-border bg-white shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 p-6 mx-2">
+      <Quote className="w-6 h-6 text-primary/25 mb-4 group-hover:text-primary/40 transition-colors" />
 
       <div className="flex gap-0.5 mb-3">
         {Array.from({ length: t.rating }).map((_, i) => (
@@ -125,7 +125,7 @@ export default function Testimonials()
   const doubled = [...testimonials, ...testimonials]
 
   return (
-    <section id="testimonials" className="relative py-24 md:py-36 overflow-hidden">
+    <section id="testimonials" className="relative scroll-mt-24 py-24 md:py-36 overflow-hidden">
       <div className="absolute inset-0 -z-10 bg-gray-50" />
 
       <div className="container-gutter mx-auto max-w-7xl mb-14">
