@@ -77,15 +77,6 @@ export default function About()
               </div>
             </div>
 
-            {/* <div className="absolute -bottom-4 -right-4 bg-white px-4 py-3 rounded-2xl shadow-lg border border-border hidden md:block">
-              <div className="text-xs text-muted-foreground mb-1">Community Rating</div>
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="w-4 h-4 rounded-sm bg-amber-400" />
-                ))}
-                <span className="text-sm font-bold text-secondary ml-1">5.0</span>
-              </div>
-            </div> */}
           </div>
 
           {/* Right — content */}

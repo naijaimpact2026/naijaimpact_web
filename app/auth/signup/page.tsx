@@ -2,15 +2,18 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Eye, EyeOff, Loader2, Mail } from 'lucide-react'
+import { Eye, EyeOff, Mail } from 'lucide-react'
 import Image from 'next/image'
 import { signUp } from '@/lib/actions/auth'
-import { createClient } from '@/lib/supabase/client'
+import { signInWithGoogle } from '@/lib/auth/google'
+import { authFields } from '@/lib/validation/auth'
+import { Spinner } from '@/components/ui/spinner'
+import HelpPopover from '@/components/auth/HelpPopover'
 import SignupSlideshow from '../signup-slideshow/signupSlideshow'
-import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
 
 
 const signupSchema = z.object({
@@ -22,21 +25,20 @@ const signupSchema = z.object({
                     /^[a-z0-9_]+$/,
                     'Username can only contain lowercase letters, numbers, and underscores'
                 ),
-            email: z.string().email('Please enter a valid email address'),
-            password: z.string().min(8, 'Password must be at least 8 characters'),
+            ...authFields,
         })
-        
+
 type SignupFormValues = z.infer<typeof signupSchema>
-        
+
 export default function SignupPage() {
+            const searchParams = useSearchParams()
             const [showPassword, setShowPassword] = useState(false)
             const [serverError, setServerError] = useState('')
             const [successEmail, setSuccessEmail] = useState('')
             const [googleLoading, setGoogleLoading] = useState(false)
-            const [helpOpen, setHelpOpen] = useState(false)
-        
-            const supabase = createClient()
-        
+
+            const next = searchParams.get('next') || '/app'
+
             const {
                 register,
                 handleSubmit,
@@ -44,33 +46,19 @@ export default function SignupPage() {
             } = useForm<SignupFormValues>({
                 resolver: zodResolver(signupSchema),
             })
-        
+
             const handleGoogleSignIn = async () => {
                 setServerError('')
                 setGoogleLoading(true)
 
-                const redirectTo = `${window.location.origin}/auth/callback?next=/app`
+                const { error } = await signInWithGoogle(next)
 
-                try {
-                    const { error } = await supabase.auth.signInWithOAuth({
-                        provider: 'google',
-                        options: {
-                            redirectTo,
-                        },
-                    })
-
-                    if (error) {
-                        console.error('Google sign-in error:', error)
-                        setServerError(error.message)
-                        setGoogleLoading(false)
-                    }
-                    // On success the browser navigates away to Google, so googleLoading
-                    // is intentionally left true — there's no "after" state to reset it in.
-                } catch (err) {
-                    console.error('Google sign-in threw:', err)
-                    setServerError('Google sign-in failed. Please try again.')
+                if (error) {
+                    setServerError(error)
                     setGoogleLoading(false)
                 }
+                // On success the browser navigates away to Google, so googleLoading
+                // is intentionally left true — there's no "after" state to reset it in.
             }
         
             const onSubmit = async (values: SignupFormValues) =>
@@ -135,53 +123,13 @@ export default function SignupPage() {
             
                         {/* Help */}
                         <div className="absolute top-8 right-10 hidden lg:block">
-                            <button
-                                type="button"
-                                onClick={() => setHelpOpen(!helpOpen)}
-                                className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
-                            >
-                                <span>Need help?</span>
-                                <span className="flex items-center justify-center w-5 h-5 rounded-full border border-slate-600 text-[11px]">
-                                    ?
-                                </span>
-                            </button>
-        
-                            {helpOpen && (
-                                <div className="absolute right-0 top-8 w-72 rounded-2xl border border-[#294667] bg-[#0B1A31] shadow-2xl p-4 z-50">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div>
-                                            <h3 className="text-sm font-semibold text-white">Need help?</h3>
-                                            <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                                                Having trouble creating your account?
-                                                Check your details or contact the Hubnovo team.
-                                            </p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setHelpOpen(false)}
-                                            className="text-slate-500 hover:text-white text-lg leading-none"
-                                            aria-label="Close help"
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-        
-                                    <div className="mt-4 space-y-2">
-                                        <Link
-                                            href="/auth/login"
-                                            className="block rounded-lg border border-[#3A5D87] px-3 py-2.5 text-xs font-medium text-slate-200 hover:bg-white/5 transition-colors"
-                                        >
-                                            Already have an account? Sign in
-                                        </Link>
-                                        <Link
-                                            href="/#contact"
-                                            className="block rounded-lg bg-gradient-to-r from-[#168BFF] to-[#2CE69B] px-3 py-2.5 text-center text-xs font-semibold text-white hover:brightness-105 transition-all"
-                                        >
-                                            Contact Hubnovo
-                                        </Link>
-                                    </div>
-                                </div>
-                            )}
+                            <HelpPopover
+                                description="Having trouble creating your account? Check your details or contact the Hubnovo team."
+                                links={[
+                                    { href: '/auth/login', label: 'Already have an account? Sign in' },
+                                    { href: '/#contact', label: 'Contact Hubnovo', primary: true },
+                                ]}
+                            />
                         </div>
         
                         <div className="w-full max-w-[440px]">
@@ -395,7 +343,7 @@ export default function SignupPage() {
             
                                     {isSubmitting ? (
                                         <>
-                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            <Spinner className="w-5 h-5" />
                                             Creating account...
                                         </>
                                     ) : (
@@ -445,7 +393,7 @@ export default function SignupPage() {
                                     </span>
                                 </span>
             
-                                {googleLoading ? 'Connecting to Google...' : 'Continue with Google'}
+                                {googleLoading ? 'Connecting to Google...' : 'Sign up with Google'}
             
                             </button>
             

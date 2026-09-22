@@ -9,24 +9,21 @@ import { z } from 'zod'
 import {
     Eye,
     EyeOff,
-    Loader2,
     Mail,
     Lock,
     ArrowRight,
-    HelpCircle,
     Users,
     FolderCheck,
     MapPin,
 } from 'lucide-react'
 import Image from 'next/image'
 import { signIn } from '@/lib/actions/auth'
-import { createClient } from '@/lib/supabase/client'
-import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
+import { signInWithGoogle } from '@/lib/auth/google'
+import { authFields } from '@/lib/validation/auth'
+import { Spinner } from '@/components/ui/spinner'
+import HelpPopover from '@/components/auth/HelpPopover'
 
-const loginSchema = z.object({
-    email: z.string().email('Please enter a valid email address'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-})
+const loginSchema = z.object(authFields)
 
 type LoginFormValues = z.infer<typeof loginSchema>
 
@@ -36,9 +33,11 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false)
     const [serverError, setServerError] = useState('')
     const [googleLoading, setGoogleLoading] = useState(false)
-    const [helpOpen, setHelpOpen] = useState(false)
 
-    const supabase = createClient()
+    // Where to land after a successful sign-in — set by middleware when it
+    // bounces an unauthenticated visitor here from a deep link, so they end
+    // up back where they were headed instead of always on the generic /app.
+    const next = searchParams.get('next') || '/app'
 
     useEffect(() =>
     {
@@ -60,29 +59,14 @@ export default function LoginPage() {
         setServerError('')
         setGoogleLoading(true)
 
-        const redirectTo =
-            `${window.location.origin}/auth/callback?next=/app`
+        const { error } = await signInWithGoogle(next)
 
-        try {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo,
-                },
-            })
-
-            if (error) {
-                console.error('Google sign-in error:', error)
-                setServerError(error.message)
-                setGoogleLoading(false)
-            }
-            // On success the browser navigates away to Google, so googleLoading
-            // is intentionally left true — there's no "after" state to reset it in.
-        } catch (err) {
-            console.error('Google sign-in threw:', err)
-            setServerError('Google sign-in failed. Please try again.')
+        if (error) {
+            setServerError(error)
             setGoogleLoading(false)
         }
+        // On success the browser navigates away to Google, so googleLoading
+        // is intentionally left true — there's no "after" state to reset it in.
     }
 
     const onSubmit = async (values: LoginFormValues) => {
@@ -98,7 +82,7 @@ export default function LoginPage() {
         } else if (result?.success) {
             // Use client-side navigation — server-action redirect()
             // is unreliable on iOS Safari/Chrome due to cookies + redirects.
-            router.push('/app')
+            router.push(next)
             router.refresh()
         }
     }
@@ -344,62 +328,14 @@ export default function LoginPage() {
 
                 {/* Help */}
                 <div className="absolute top-9 right-10 hidden lg:block">
-                    <button
-                        type="button"
-                        onClick={() => setHelpOpen(!helpOpen)}
-                        className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
-                    >
-                        <span>Need help?</span>
-                        <HelpCircle className="w-[18px] h-[18px]" />
-                    </button>
-
-                    {helpOpen && (
-                        <div className="absolute right-0 top-8 w-72 rounded-2xl border border-[#294667] bg-[#0B1A31] shadow-2xl p-4 z-50">
-                            <div className="flex items-start justify-between gap-4">
-                                <div>
-                                    <h3 className="text-sm font-semibold text-white">
-                                        Need help?
-                                    </h3>
-                                    <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                                        Having trouble signing in? Check your details
-                                        or contact the Hubnovo team.
-                                    </p>
-                                </div>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setHelpOpen(false)}
-                                    className="text-slate-500 hover:text-white text-lg leading-none"
-                                    aria-label="Close help"
-                                >
-                                    ×
-                                </button>
-                            </div>
-
-                            <div className="mt-4 space-y-2">
-                                <Link
-                                    href="/auth/forgot-password"
-                                    className="block rounded-lg border border-[#3A5D87] px-3 py-2.5 text-xs font-medium text-slate-200 hover:bg-white/5 transition-colors"
-                                >
-                                    Reset your password
-                                </Link>
-
-                                <Link
-                                    href="/auth/signup"
-                                    className="block rounded-lg border border-[#3A5D87] px-3 py-2.5 text-xs font-medium text-slate-200 hover:bg-white/5 transition-colors"
-                                >
-                                    Create an account
-                                </Link>
-
-                                <Link
-                                    href="/#contact"
-                                    className="block rounded-lg bg-gradient-to-r from-[#168BFF] to-[#2CE69B] px-3 py-2.5 text-center text-xs font-semibold text-white hover:brightness-105 transition-all"
-                                >
-                                    Contact Hubnovo
-                                </Link>
-                            </div>
-                        </div>
-                    )}
+                    <HelpPopover
+                        description="Having trouble signing in? Check your details or contact the Hubnovo team."
+                        links={[
+                            { href: '/auth/forgot-password', label: 'Reset your password' },
+                            { href: '/auth/signup', label: 'Create an account' },
+                            { href: '/#contact', label: 'Contact Hubnovo', primary: true },
+                        ]}
+                    />
                 </div>
 
                 <div className="w-full max-w-[440px]">
@@ -558,7 +494,7 @@ export default function LoginPage() {
 
                             {isSubmitting ? (
                                 <>
-                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    <Spinner className="w-5 h-5" />
                                     Signing in...
                                 </>
                             ) : (

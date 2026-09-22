@@ -24,6 +24,7 @@ const products = [
         bg: 'bg-emerald-500/10 ',
         border: 'border-emerald-500/20',
         text: 'text-emerald-600',
+        span: 'lg:col-span-3',
         perks: ['2–20 members per group', 'Weekly / bi-weekly / monthly', 'Dispute resolution built-in'],
     },
     {
@@ -36,6 +37,7 @@ const products = [
         bg: 'bg-blue-500/10 ',
         border: 'border-blue-500/20',
         text: 'text-blue-600',
+        span: 'lg:col-span-3',
         perks: ['Flexible anytime withdrawals', 'Locked savings with interest', 'Goal tracker with milestones'],
     },
     {
@@ -48,6 +50,7 @@ const products = [
         bg: 'bg-violet-500/10 ',
         border: 'border-violet-500/20',
         text: 'text-violet-600',
+        span: 'lg:col-span-3',
         perks: ['Starter to Platinum tiers', '6-category score breakdown', 'Personalised improvement tips'],
     },
     {
@@ -60,6 +63,7 @@ const products = [
         bg: 'bg-amber-500/10 ',
         border: 'border-amber-500/20',
         text: 'text-amber-600',
+        span: 'lg:col-span-3',
         perks: ['TradeCred score-based approval', 'Flexible repayment schedules', 'Track repayments in-app'],
     },
     {
@@ -72,6 +76,7 @@ const products = [
         bg: 'bg-rose-500/10 ',
         border: 'border-rose-500/20',
         text: 'text-rose-600',
+        span: 'lg:col-span-6',
         perks: ['Pay premiums from wallet', 'File claims with documents', 'Track policy status live'],
     },
 ]
@@ -132,13 +137,7 @@ export default function FintechSection()
                         return (
                             <div
                                 key={i}
-                                className={`group relative h-full rounded-2xl border border-border bg-white shadow-sm hover:shadow-md transition-all p-6 ${
-                                    i < 2
-                                        ? 'lg:col-span-3'
-                                        : i === 2 || i === 3
-                                            ? 'lg:col-span-3'
-                                            : 'lg:col-span-6'
-                                }`}
+                                className={`group relative h-full rounded-2xl border border-border bg-white shadow-sm hover:shadow-md transition-all p-6 ${product.span}`}
                             >
                                 {/* Icon + badge */}
                                 <div className="flex items-start justify-between mb-5">
