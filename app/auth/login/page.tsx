@@ -1,14 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import { signIn } from '@/lib/actions/auth'
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
 
 const loginSchema = z.object({
     email: z.string().email('Please enter a valid email address'),
@@ -20,8 +21,17 @@ type LoginFormValues = z.infer<typeof loginSchema>
 export default function LoginPage()
 {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [showPassword, setShowPassword] = useState(false)
     const [serverError, setServerError] = useState('')
+
+    useEffect(() =>
+    {
+        if (searchParams.get('error') === 'oauth_failed')
+        {
+            setServerError('Google sign-in failed. Please try again.')
+        }
+    }, [searchParams])
 
     const {
         register,
@@ -162,6 +172,14 @@ export default function LoginPage()
                             {isSubmitting ? 'Signing in...' : 'Sign in'}
                         </button>
                     </form>
+
+                    <div className="flex items-center gap-3">
+                        <div className="h-px flex-1 bg-gray-200 dark:bg-slate-700" />
+                        <span className="text-xs text-gray-400">or</span>
+                        <div className="h-px flex-1 bg-gray-200 dark:bg-slate-700" />
+                    </div>
+
+                    <GoogleSignInButton label="Continue with Google" />
 
                     <p className="text-center text-sm text-gray-500 dark:text-gray-400">
                         {"Don't have an account? "}

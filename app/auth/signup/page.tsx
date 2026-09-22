@@ -9,6 +9,7 @@ import { Eye, EyeOff, Loader2, Mail } from 'lucide-react'
 import Image from 'next/image'
 import { signUp } from '@/lib/actions/auth'
 import SignupSlideshow from '../signup-slideshow/signupSlideshow'
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
 
 const signupSchema = z.object({
     fullName: z.string().min(1, 'Full name is required'),
@@ -192,6 +193,14 @@ export default function SignupPage()
                             {isSubmitting ? 'Creating account...' : 'Create account'}
                         </button>
                     </form>
+
+                    <div className="flex items-center gap-3">
+                        <div className="h-px flex-1 bg-gray-200 dark:bg-slate-700" />
+                        <span className="text-xs text-gray-400">or</span>
+                        <div className="h-px flex-1 bg-gray-200 dark:bg-slate-700" />
+                    </div>
+
+                    <GoogleSignInButton label="Sign up with Google" />
 
                     <p className="text-center text-sm text-gray-500 dark:text-gray-400">
                         Already have an account?{' '}

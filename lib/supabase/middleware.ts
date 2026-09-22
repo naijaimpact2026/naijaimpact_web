@@ -37,9 +37,11 @@ export async function updateSession(request: NextRequest) {
         .from('users')
         .select('onboarded')
         .eq('auth_id', user.id)
-        .single()
+        .maybeSingle()
 
-      if (profile && !profile.onboarded) {
+      // No row at all (first-time OAuth sign-in, e.g. Google) counts as
+      // not onboarded too — completeOnboarding() creates the row.
+      if (!profile || !profile.onboarded) {
         const url = request.nextUrl.clone()
         url.pathname = '/app/settings/onboarding'
         return NextResponse.redirect(url)
