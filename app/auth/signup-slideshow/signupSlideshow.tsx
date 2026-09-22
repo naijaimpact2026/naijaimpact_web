@@ -55,8 +55,8 @@ export default function SignupSlideshow() {
             <div className="relative z-10 flex min-h-screen flex-col justify-between p-12">
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-3">
-                    <Image src="/logo.png" alt="Hubnovo" width={52} height={52} className="rounded-xl" />
-                    <Image src="/logo-wordmark.png" alt="Hubnovo" width={156} height={52} className="h-12 w-auto" />
+                    <Image src="/logo-darkmode (1).png" alt="Hubnovo" width={52} height={52} className="rounded-xl" />
+                    <Image src="/logo-darkmode (2).png" alt="Hubnovo" width={156} height={52} className="h-12 w-auto" />
                 </Link>
 
                 {/* Illustration */}

@@ -27,7 +27,10 @@ export const metadata: Metadata = {
     type: 'website',
   },
   icons: {
-    icon: '/logo.png',
+    icon: [
+      { url: '/logo.png', media: '(prefers-color-scheme: light)' },
+      { url: '/logo-darkmode (1).png', media: '(prefers-color-scheme: dark)' },
+    ],
     apple: '/logo.png',
   },
 }

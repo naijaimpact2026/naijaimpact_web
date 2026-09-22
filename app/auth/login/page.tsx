@@ -73,8 +73,8 @@ export default function LoginPage()
                 />
                 <div className="relative z-10 text-center space-y-6">
                     <Link href="/" className="flex items-center justify-center gap-3 mb-8">
-                        <Image src="/logo.png" alt="Hubnovo" width={52} height={52} className="rounded-xl" />
-                        <Image src="/logo-wordmark.png" alt="Hubnovo" width={156} height={52} className="h-12 w-auto" />
+                        <Image src="/logo-darkmode (1).png" alt="Hubnovo" width={52} height={52} className="rounded-xl" />
+                        <Image src="/logo-darkmode (2).png" alt="Hubnovo" width={156} height={52} className="h-12 w-auto" />
                     </Link>
                     <h2 className="text-4xl font-bold text-white leading-tight">
                         Connect. Build.
@@ -104,8 +104,14 @@ export default function LoginPage()
                 <div className="w-full max-w-sm space-y-8">
                     <div>
                         <Link href="/" className="flex items-center gap-2 mb-6 lg:hidden">
-                            <Image src="/logo.png" alt="Hubnovo" width={36} height={36} className="rounded-lg" />
-                            <Image src="/logo-wordmark.png" alt="Hubnovo" width={108} height={36} className="h-9 w-auto" />
+                            {/* Light Mode Logo */}
+                            <Image src="/logo.png" alt="Hubnovo" width={36} height={36} className="rounded-lg dark:hidden" />
+                            {/* Dark Mode Logo */}
+                            <Image src="/logo-darkmode (1).png" alt="Hubnovo" width={36} height={36} className="rounded-lg hidden dark:block" />
+                            {/* Light Mode Wordmark */}
+                            <Image src="/logo-wordmark.png" alt="Hubnovo" width={108} height={36} className="h-9 w-auto dark:hidden" />
+                            {/* Dark Mode Wordmark */}
+                            <Image src="/logo-darkmode (2).png" alt="Hubnovo" width={108} height={36} className="h-9 w-auto hidden dark:block" />
                         </Link>
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome back</h1>
                         <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">Sign in to your account</p>

@@ -98,8 +98,14 @@ export default function SignupPage()
     
                     <div>
                         <Link href="/" className="flex items-center gap-2 mb-6 lg:hidden">
-                            <Image src="/logo.png" alt="Hubnovo" width={36} height={36} className="rounded-lg" />
-                            <Image src="/logo-wordmark.png" alt="Hubnovo" width={108} height={36} className="h-9 w-auto" />
+                            {/* Light Mode Logo */}
+                            <Image src="/logo.png" alt="Hubnovo" width={36} height={36} className="rounded-lg dark:hidden" />
+                            {/* Dark Mode Logo */}
+                            <Image src="/logo-darkmode (1).png" alt="Hubnovo" width={36} height={36} className="rounded-lg hidden dark:block" />
+                            {/* Light Mode Wordmark */}
+                            <Image src="/logo-wordmark.png" alt="Hubnovo" width={108} height={36} className="h-9 w-auto dark:hidden" />
+                            {/* Dark Mode Wordmark */}
+                            <Image src="/logo-darkmode (2).png" alt="Hubnovo" width={108} height={36} className="h-9 w-auto hidden dark:block" />
                         </Link>
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create account</h1>
                         <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">
