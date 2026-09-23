@@ -73,6 +73,7 @@ interface CreatePostModalProps
     onPostCreated: (post: PostWithAuthor) => void
     activeTopic?: string | null
     startWithMedia?: boolean
+    startWithTagging?: boolean
 }
 
 function getInitials(name: string | null | undefined): string
@@ -88,6 +89,7 @@ export default function CreatePostModal({
     onPostCreated,
     activeTopic,
     startWithMedia = false,
+    startWithTagging = false,
 }: CreatePostModalProps)
 {
     const [caption, setCaption] = useState('')
@@ -121,6 +123,7 @@ export default function CreatePostModal({
         if (open)
         {
             if (startWithMedia) setShowMedia(true)
+            if (startWithTagging) setShowTagSection(true)
             if (activeTopic)
             {
                 const matchedGroup = COMMUNITY_GROUPS.find(
@@ -134,7 +137,7 @@ export default function CreatePostModal({
             }
             setTimeout(() => textareaRef.current?.focus(), 150)
         }
-    }, [open, startWithMedia, activeTopic])
+    }, [open, startWithMedia, startWithTagging, activeTopic])
 
     // Debounced search for users to tag
     useEffect(() =>

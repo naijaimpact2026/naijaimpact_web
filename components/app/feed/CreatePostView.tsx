@@ -271,7 +271,7 @@ export default function CreatePostView({ user }: { user: User | null })
     const currentGroup = COMMUNITY_GROUPS.find((g) => g.id === selectedGroupId)
 
     return (
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-6 max-w-7xl mx-auto">
+        <div className="w-full px-3.5 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-7xl mx-auto">
             <h1 className="font-display text-2xl font-extrabold text-secondary mb-5">Create Post</h1>
 
             <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col lg:flex-row gap-6 items-start">

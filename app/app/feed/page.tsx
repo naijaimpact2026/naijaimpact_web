@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { fetchPostsPage } from '@/lib/actions/posts'
 import FeedInfiniteScroll from '@/components/app/feed/FeedInfiniteScroll'
 import CommunityLeftRail from '@/components/app/feed/CommunityLeftRail'
+import CommunityMobileTopics from '@/components/app/feed/CommunityMobileTopics'
 import CommunityRightSidebar from '@/components/app/feed/CommunityRightSidebar'
 import CommunityIllustration from '@/components/illustrations/CommunityIllustration'
 import { Lightbulb, Compass, MessageSquare, Network, Rocket } from 'lucide-react'
@@ -54,19 +55,19 @@ export default async function FeedPage({ searchParams }: FeedPageProps)
     const { posts: initialPosts, nextCursor: initialCursor } = await fetchPostsPage(null, 10, activeTopic)
 
     return (
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-5">
+        <div className="w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
             {/* Hero */}
             <section
-                className="relative overflow-hidden rounded-3xl border border-border px-6 py-7 sm:px-9 sm:py-8"
+                className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border px-4 py-5 sm:px-9 sm:py-8"
                 style={{ background: 'linear-gradient(120deg, #EAF3FE 0%, #F8FAFC 55%, #E6F7FB 100%)' }}
             >
                 <div className="relative z-10 flex items-center justify-between gap-8">
                     <div className="max-w-md">
                         <p className="text-xs font-bold tracking-wide text-emerald uppercase mb-1.5">Community</p>
-                        <h1 className="font-display text-2xl sm:text-3xl font-extrabold leading-tight text-secondary">
+                        <h1 className="font-display text-xl sm:text-3xl font-extrabold leading-tight text-secondary">
                             People. Ideas. Opportunities. A Brighter Tomorrow.
                         </h1>
-                        <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+                        <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
                             Connect, share, learn and grow with a global community on Hubnovo.
                         </p>
                     </div>
@@ -83,6 +84,11 @@ export default async function FeedPage({ searchParams }: FeedPageProps)
                     </div>
                 </div>
             </section>
+
+            {/* Mobile / Tablet Discover Communities Bar */}
+            <div className="lg:hidden">
+                <CommunityMobileTopics activeTopic={activeTopic} />
+            </div>
 
             {/* Three-column layout */}
             <div className="flex gap-6 items-start">
