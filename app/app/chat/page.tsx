@@ -11,7 +11,9 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { followUser, unfollowUser } from '@/lib/actions/profile'
 import { startDmChat, fetchFollowingForChat, fetchSuggestedUsers } from '@/lib/actions/chat'
-import { toast } from 'sonner'
+import { toast } from '@/components/toast'
+import { SkeletonAvatar, SkeletonLine, WAVE_STEP } from '@/components/app/skeletons/primitives'
+import ChatSkeleton from '@/components/app/skeletons/ChatSkeleton'
 
 interface ChatUser { id: string; username: string; display_name: string; avatar_url: string | null }
 interface SuggestedUser extends ChatUser { isFollowing: boolean }
@@ -263,14 +265,10 @@ export default function ChatPage()
 
     if (!isReady || !client)
     {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 bg-white">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center">
-                    <Loader2 className="w-7 h-7 text-emerald-600 animate-spin" />
-                </div>
-                <p className="text-sm text-gray-500 font-medium">Connecting to chat…</p>
-            </div>
-        )
+        // Same shape as app/app/chat/loading.tsx (ChatSkeleton) — connecting to
+        // Stream is a client-side step this page does itself, so it needs its
+        // own fallback rather than relying on the route's Suspense boundary.
+        return <ChatSkeleton />
     }
 
     const filteredChannels = searchQuery
@@ -322,11 +320,11 @@ export default function ChatPage()
                         channelsLoading ? (
                             <div className="space-y-0 pt-2">
                                 {[...Array(5)].map((_, i) => (
-                                    <div key={i} className="flex items-center gap-3 px-4 py-3.5 bg-white border-b border-gray-50 animate-pulse">
-                                        <div className="w-12 h-12 rounded-full bg-gray-100 shrink-0" />
+                                    <div key={i} className="flex items-center gap-3 px-4 py-3.5 bg-white border-b border-gray-50">
+                                        <SkeletonAvatar size={48} delay={i * WAVE_STEP} />
                                         <div className="flex-1 space-y-2">
-                                            <div className="h-3 bg-gray-100 rounded-full w-1/2" />
-                                            <div className="h-2.5 bg-gray-100 rounded-full w-3/4" />
+                                            <SkeletonLine width="50%" height={12} delay={i * WAVE_STEP} />
+                                            <SkeletonLine width="75%" height={10} delay={i * WAVE_STEP} />
                                         </div>
                                     </div>
                                 ))}

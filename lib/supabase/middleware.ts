@@ -23,10 +23,14 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Protect /app routes
+  // Protect /app routes — carry the original destination through as `next`
+  // so login can send the user back where they were headed.
   if (!user && request.nextUrl.pathname.startsWith('/app')) {
+    const originalDestination = `${request.nextUrl.pathname}${request.nextUrl.search}`
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
+    url.search = ''
+    url.searchParams.set('next', originalDestination)
     return NextResponse.redirect(url)
   }
 

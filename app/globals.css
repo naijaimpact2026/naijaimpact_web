@@ -283,3 +283,53 @@ html.dark {
     opacity: 0.85;
   }
 }
+
+/* ── Skeleton shimmer wave ─────────────────────────────────────────────────
+   Brand-coloured light sweep over a muted base. Reads the surrounding
+   `--color-*` tokens directly, so it re-tints automatically between light
+   and dark mode with no JS. Each skeleton block can stagger its sweep via
+   the `--skeleton-delay` custom property (set per-element from the
+   `delay` prop on <Skeleton>), which is what makes a grid/list of
+   skeletons ripple like a wave instead of pulsing in lockstep.
+────────────────────────────────────────────────────────────────────────── */
+@keyframes skeleton-wave {
+  0% {
+    transform: translateX(-100%);
+  }
+  60%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@layer utilities {
+  .skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--skeleton-base, var(--color-muted));
+    isolation: isolate;
+  }
+
+  .skeleton-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(
+      100deg,
+      transparent 20%,
+      color-mix(in srgb, var(--color-primary) 16%, transparent) 40%,
+      color-mix(in srgb, var(--color-cyan) 22%, transparent) 50%,
+      color-mix(in srgb, var(--color-primary) 16%, transparent) 60%,
+      transparent 80%
+    );
+    animation: skeleton-wave 2s ease-in-out infinite;
+    animation-delay: var(--skeleton-delay, 0ms);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after {
+    animation: none;
+  }
+}

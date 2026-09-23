@@ -26,14 +26,14 @@ export default function Header()
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'py-2' : 'py-4'
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'py-2' : 'py-3'
         }`}
     >
       <div className="container-gutter mx-auto max-w-7xl">
         <nav
           className={`flex items-center justify-between px-5 h-14 rounded-2xl transition-all duration-500 ${scrolled
             ? 'bg-white/95 backdrop-blur-xl border border-gray-200 shadow-lg shadow-black/5'
-            : 'bg-transparent'
+            : 'bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-sm'
             }`}
         >
           {/* Logo */}

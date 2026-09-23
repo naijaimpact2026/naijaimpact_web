@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { toast } from 'sonner'
+import { toast } from '@/components/toast'
 import { Store, BadgeCheck } from 'lucide-react'
 import { toggleSellerFollow } from '@/lib/actions/marketplace'
 import type { NmTopSeller } from '@/lib/types'

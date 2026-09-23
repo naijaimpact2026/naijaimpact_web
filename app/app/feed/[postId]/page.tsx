@@ -4,9 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 import PostCard from '@/components/app/feed/PostCard'
 import PostDetailComments from '@/components/app/feed/PostDetailComments'
 import PostDetailActions from '@/components/app/feed/PostDetailActions'
-import type { PostWithAuthor } from '@/lib/types'
 import { ArrowLeft, Clock, ImageIcon, Rocket } from 'lucide-react'
+import type { PostWithAuthor } from '@/lib/types'
 import { fetchRecentPostsPreviews } from '@/lib/actions/posts'
+import { toPostWithAuthor } from '@/lib/post-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,29 +42,18 @@ async function getPost(postId: string, currentUserId: string | null): Promise<Po
     ])
 
     let userReacted = false
+    let userSaved = false
     if (currentUserId)
     {
-        const { data: r } = await supabase
-            .from('post_reactions').select('id').eq('post_id', postId).eq('user_id', currentUserId).maybeSingle()
+        const [{ data: r }, { data: s }] = await Promise.all([
+            supabase.from('post_reactions').select('id').eq('post_id', postId).eq('user_id', currentUserId).maybeSingle(),
+            supabase.from('saved_posts').select('id').eq('post_id', postId).eq('user_id', currentUserId).maybeSingle(),
+        ])
         userReacted = !!r
+        userSaved = !!s
     }
 
-    return {
-        id: p.id, author_id: p.user_id,
-        type: (p.post_type as 'text' | 'image' | 'video') ?? 'text',
-        caption: p.content ?? null, hashtags: [],
-        created_at: p.created_at, updated_at: p.updated_at,
-        author: {
-            id: p.author?.id ?? '', username: p.author?.username ?? '',
-            display_name: p.author?.display_name ?? '', avatar_url: p.author?.avatar_url ?? null, verified: false,
-        },
-        medias: (p.medias ?? []).map((m: any, i: number) => ({
-            id: m.id, post_id: m.post_id, url: m.media_url,
-            media_type: (m.media_type as 'image' | 'video') ?? 'image',
-            width: null, height: null, duration_s: null, position: i, created_at: m.created_at ?? p.created_at,
-        })),
-        reaction_count: rc ?? 0, comment_count: cc ?? 0, user_reacted: userReacted,
-    }
+    return toPostWithAuthor(p, rc ?? 0, cc ?? 0, userReacted, userSaved, false)
 }
 
 async function getComments(postId: string)
@@ -91,10 +81,23 @@ export default async function PostDetailPage({ params }: PageProps)
     const { data: { user: authUser } } = await supabase.auth.getUser()
 
     let currentUserId: string | null = null
+    let currentUserProfile: { username: string; display_name: string; avatar_url: string | null } | null = null
     if (authUser)
     {
-        const { data: profile } = await supabase.from('users').select('id').eq('auth_id', authUser.id).single()
+        const { data: profile } = await supabase
+            .from('users')
+            .select('id, username, display_name, avatar_url')
+            .eq('auth_id', authUser.id)
+            .single()
         currentUserId = profile?.id ?? null
+        if (profile)
+        {
+            currentUserProfile = {
+                username: profile.username,
+                display_name: profile.display_name,
+                avatar_url: profile.avatar_url,
+            }
+        }
     }
 
     const [post, initialComments, recentPosts] = await Promise.all([
@@ -104,8 +107,9 @@ export default async function PostDetailPage({ params }: PageProps)
     ])
 
     if (!post) notFound()
+    if (post.audience === 'only-me' && post.author_id !== currentUserId) notFound()
 
-    const otherRecentPosts = recentPosts.filter(p => p.id !== postId).slice(0, 5)
+    const otherRecentPosts = recentPosts.filter((p: any) => p.id !== postId).slice(0, 5)
 
     return (
         <div className="w-full max-w-6xl mx-auto px-3 py-4 overflow-x-hidden">
@@ -133,6 +137,8 @@ export default async function PostDetailPage({ params }: PageProps)
                             postId={postId}
                             initialComments={initialComments}
                             commentCount={post.comment_count}
+                            currentUser={currentUserProfile}
+                            allowComments={post.allow_comments ?? true}
                         />
                     </div>
                 </div>
@@ -148,6 +154,7 @@ export default async function PostDetailPage({ params }: PageProps)
                         commentCount={post.comment_count}
                         authorUsername={post.author.username}
                         createdAt={post.created_at}
+                        allowSharing={post.allow_sharing ?? true}
                     />
 
                     {/* Recent Posts */}
@@ -163,7 +170,7 @@ export default async function PostDetailPage({ params }: PageProps)
                                 </Link>
                             </div>
                             <div className="space-y-1">
-                                {otherRecentPosts.map((rp) => (
+                                {otherRecentPosts.map((rp: any) => (
                                     <Link key={rp.id} href={`/app/feed/${rp.id}`}
                                         className="block p-2.5 rounded-xl hover:bg-muted transition-colors group">
                                         <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-relaxed">
@@ -209,7 +216,7 @@ export default async function PostDetailPage({ params }: PageProps)
                         <Link href="/app/feed" className="text-xs text-primary font-medium hover:underline">See all</Link>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                        {otherRecentPosts.map((rp) => (
+                        {otherRecentPosts.map((rp: any) => (
                             <Link key={rp.id} href={`/app/feed/${rp.id}`}
                                 className="block p-2.5 rounded-xl hover:bg-muted transition-colors group">
                                 <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
