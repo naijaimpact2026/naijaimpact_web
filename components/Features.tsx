@@ -135,7 +135,7 @@ export default function Features()
             return (
               <div
                 key={index}
-                className={`group relative rounded-2xl border border-border bg-white shadow-sm hover:shadow-md hover:border-primary/30 transition-all p-7 ${feature.span}`}
+                className={`group relative flex flex-col h-full rounded-2xl border border-border bg-white shadow-sm hover:shadow-md hover:border-primary/30 transition-all p-7 ${feature.span}`}
               >
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-5 ${feature.tint}`}>
                   <Icon className="w-6 h-6" />
@@ -166,7 +166,7 @@ export default function Features()
                   </div>
                 )}
 
-                <div className="mt-5 flex items-center gap-1 text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors">
+                <div className="mt-auto pt-5 flex items-center gap-1 text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors">
                   <span>Explore feature</span>
                   <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 </div>

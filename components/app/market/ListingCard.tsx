@@ -75,13 +75,19 @@ export default function ListingCard({ listing }: { listing: NmListingDetail })
     }
 
     return (
-        <Link href={`/app/market/${listing.id}`}
-            className="group cursor-pointer overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-lg">
-            <div className="relative aspect-square overflow-hidden bg-muted">
+        <Link
+            href={`/app/market/${listing.id}`}
+            className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-lg"
+        >
+            <div className="relative aspect-square shrink-0 overflow-hidden bg-muted">
                 {coverImg ? (
-                    <Image src={coverImg} alt={listing.title} fill
+                    <Image
+                        src={coverImg}
+                        alt={listing.title}
+                        fill
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 22vw" />
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    />
                 ) : (
                     <div className="absolute inset-0 flex items-center justify-center bg-muted">
                         <Package className="h-10 w-10 text-muted-foreground/30" />
@@ -89,8 +95,14 @@ export default function ListingCard({ listing }: { listing: NmListingDetail })
                 )}
 
                 {listing.condition && (
-                    <span className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${conditionColors[listing.condition] ?? 'bg-gray-400 text-white'}`}>
-                        {listing.condition === 'fairly_used' ? 'Fairly Used' : listing.condition === 'new' ? 'New' : 'Used'}
+                    <span
+                        className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${conditionColors[listing.condition] ?? 'bg-gray-400 text-white'}`}
+                    >
+                        {listing.condition === 'fairly_used'
+                            ? 'Fairly Used'
+                            : listing.condition === 'new'
+                                ? 'New'
+                                : 'Used'}
                     </span>
                 )}
 
@@ -100,7 +112,13 @@ export default function ListingCard({ listing }: { listing: NmListingDetail })
                     aria-pressed={saved}
                     className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur transition-transform active:scale-90"
                 >
-                    <Heart className={`h-3.5 w-3.5 ${saved ? 'fill-rose-500 text-rose-500' : 'text-gray-500'}`} />
+                    <Heart
+                        className={`h-3.5 w-3.5 ${
+                            saved
+                                ? 'fill-rose-500 text-rose-500'
+                                : 'text-gray-500'
+                        }`}
+                    />
                 </button>
 
                 {listing.is_featured && (
@@ -112,37 +130,64 @@ export default function ListingCard({ listing }: { listing: NmListingDetail })
                 )}
             </div>
 
-            <div className="p-3">
-                <p className="mb-1 line-clamp-2 text-xs font-bold leading-snug text-foreground">{listing.title}</p>
+            <div className="flex flex-1 flex-col p-3">
+                <p className="mb-1 line-clamp-2 min-h-[2rem] text-xs font-bold leading-snug text-foreground">
+                    {listing.title}
+                </p>
 
                 {listing.review_count > 0 && (
                     <p className="mb-1 flex items-center gap-1 text-[11px] text-muted-foreground">
                         <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                        <span className="font-semibold text-foreground">{listing.rating.toFixed(1)}</span>
+                        <span className="font-semibold text-foreground">
+                            {listing.rating.toFixed(1)}
+                        </span>
                         ({listing.review_count})
                     </p>
                 )}
 
-                <p className="truncate text-sm font-black text-foreground" title={fmt(listing.price)}>{fmt(listing.price)}</p>
+                <p
+                    className="truncate text-sm font-black text-foreground"
+                    title={fmt(listing.price)}
+                >
+                    {fmt(listing.price)}
+                </p>
+
                 {listing.negotiable && (
-                    <p className="mt-0.5 text-[10px] font-semibold text-emerald">Negotiable</p>
-                )}
-                {(listing.city || listing.state) && (
-                    <p className="mt-1 flex items-center gap-0.5 truncate text-[10px] text-muted-foreground">
-                        <MapPin className="h-2.5 w-2.5 shrink-0" />
-                        <span className="truncate">{[listing.city, listing.state].filter(Boolean).join(', ')}</span>
+                    <p className="mt-0.5 text-[10px] font-semibold text-emerald">
+                        Negotiable
                     </p>
                 )}
 
-                <button
-                    onClick={handleAddToCart}
-                    disabled={listing.stock <= 0}
-                    className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-colors disabled:opacity-50 ${inCart ? 'bg-primary/10 text-primary' : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                {(listing.city || listing.state) && (
+                    <p className="mt-1 flex items-center gap-0.5 truncate text-[10px] text-muted-foreground">
+                        <MapPin className="h-2.5 w-2.5 shrink-0" />
+                        <span className="truncate">
+                            {[listing.city, listing.state]
+                                .filter(Boolean)
+                                .join(', ')}
+                        </span>
+                    </p>
+                )}
+
+                {/* Bottom-aligned cart action */}
+                <div className="mt-auto pt-3">
+                    <button
+                        onClick={handleAddToCart}
+                        disabled={listing.stock <= 0}
+                        className={`flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-colors disabled:opacity-50 ${
+                            inCart
+                                ? 'bg-primary/10 text-primary'
+                                : 'bg-primary text-primary-foreground hover:bg-primary/90'
                         }`}
-                >
-                    <ShoppingCart className="h-3.5 w-3.5" />
-                    {listing.stock <= 0 ? 'Out of Stock' : inCart ? 'Added' : 'Add to Cart'}
-                </button>
+                    >
+                        <ShoppingCart className="h-3.5 w-3.5" />
+                        {listing.stock <= 0
+                            ? 'Out of Stock'
+                            : inCart
+                                ? 'Added'
+                                : 'Add to Cart'}
+                    </button>
+                </div>
             </div>
         </Link>
     )

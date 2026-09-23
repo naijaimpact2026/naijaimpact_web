@@ -350,9 +350,7 @@ export default function SignupPage() {
                                         <>
                                             Create account
             
-                                            <span className="text-lg transition-transform duration-300 group-hover:translate-x-1">
-                                                →
-                                            </span>
+
                                         </>
                                     )}
             

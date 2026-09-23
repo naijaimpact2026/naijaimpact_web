@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import {
@@ -18,7 +18,6 @@ import {
     GraduationCap,
     Store,
     Bell,
-    ArrowRight,
     Ellipsis,
     Eye,
     Trash2,
@@ -418,6 +417,24 @@ export default function NotificationItem({
 
     const [menuOpen, setMenuOpen] = useState(false)
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+    const [relativeTime, setRelativeTime] = useState('')
+
+    // Relative time depends on Date.now(), so calculate it only after
+    // hydration. This prevents the server and browser from rendering
+    // different values such as "11h ago" vs "12h ago".
+    useEffect(() => {
+        if (!notification.created_at) return
+
+        const updateRelativeTime = () => {
+            setRelativeTime(timeAgo(notification.created_at!))
+        }
+
+        updateRelativeTime()
+
+        const interval = window.setInterval(updateRelativeTime, 60_000)
+
+        return () => window.clearInterval(interval)
+    }, [notification.created_at])
 
     const config = TYPE_CONFIG[notification.type] ?? {
         Icon: Bell,
@@ -709,7 +726,7 @@ export default function NotificationItem({
                             dateTime={notification.created_at}
                             className="whitespace-nowrap text-xs text-muted-foreground"
                         >
-                            {timeAgo(notification.created_at)}
+                            {relativeTime || 'Just now'}
                         </time>
                     </div>
                 )}
@@ -727,7 +744,6 @@ export default function NotificationItem({
                         className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
                     >
                         {actionLabel}
-                        <ArrowRight className="h-3 w-3" />
                     </button>
                 )}
 

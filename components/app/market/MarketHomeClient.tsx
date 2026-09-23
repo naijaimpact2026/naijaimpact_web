@@ -289,7 +289,7 @@ export default function MarketHomeClient({
                     </div>
 
                     {loading ? (
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                             {Array.from({ length: 10 }).map((_, i) => (
                                 <div key={i} className="overflow-hidden rounded-2xl border border-border bg-card">
                                     <div className="aspect-square animate-pulse bg-muted" />
@@ -317,7 +317,7 @@ export default function MarketHomeClient({
                         </div>
                     ) : (
                         <>
-                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                                 {listings.map((listing) => (
                                     <ListingCard key={listing.id} listing={listing} />
                                 ))}

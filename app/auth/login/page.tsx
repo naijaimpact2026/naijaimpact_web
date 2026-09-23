@@ -11,7 +11,6 @@ import {
     EyeOff,
     Mail,
     Lock,
-    ArrowRight,
     Users,
     FolderCheck,
     MapPin,
@@ -500,8 +499,6 @@ export default function LoginPage() {
                             ) : (
                                 <>
                                     Sign in
-
-                                    <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
                                 </>
                             )}
 
