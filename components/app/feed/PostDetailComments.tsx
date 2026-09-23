@@ -46,9 +46,16 @@ interface CommentItemProps
     comment: CommentResult
     replies: CommentResult[]
     replyingToId: string | null
+    currentUser?: {
+        username: string
+        display_name: string
+        avatar_url: string | null
+    } | null
     onStartReply: (commentId: string) => void
     onCancelReply: () => void
     onReplyAdded: (comment: CommentResult) => void
+    onReplyConfirmed?: (tempId: string, confirmed: CommentResult) => void
+    onReplyFailed?: (tempId: string, restoredText: string) => void
 }
 
 function CommentItem({
@@ -56,9 +63,12 @@ function CommentItem({
     comment,
     replies,
     replyingToId,
+    currentUser,
     onStartReply,
     onCancelReply,
     onReplyAdded,
+    onReplyConfirmed,
+    onReplyFailed,
 }: CommentItemProps)
 {
     const initials = getInitials(comment.author.display_name || comment.author.username)
@@ -74,7 +84,7 @@ function CommentItem({
             </Avatar>
 
             <div className="flex-1 min-w-0">
-                <div className="bg-elevated rounded-xl px-3 py-2 space-y-0.5">
+                <div className={`bg-elevated rounded-xl px-3 py-2 space-y-0.5 transition-opacity duration-200 ${comment.isOptimistic ? 'opacity-85' : 'opacity-100'}`}>
                     <div className="flex items-baseline gap-1.5 flex-wrap">
                         <span className="text-sm font-semibold leading-tight truncate">
                             {comment.author.display_name}
@@ -89,15 +99,24 @@ function CommentItem({
                 </div>
 
                 <div className="flex items-center gap-3 mt-0.5 pl-1">
-                    <time dateTime={comment.created_at} className="text-xs text-muted-foreground">
-                        {timeAgo(comment.created_at)}
-                    </time>
-                    <button
-                        onClick={() => (isReplying ? onCancelReply() : onStartReply(comment.id))}
-                        className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        Reply
-                    </button>
+                    {comment.isOptimistic ? (
+                        <span className="text-xs text-muted-foreground/70 italic flex items-center gap-1">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                            Posting…
+                        </span>
+                    ) : (
+                        <time dateTime={comment.created_at} className="text-xs text-muted-foreground">
+                            {timeAgo(comment.created_at)}
+                        </time>
+                    )}
+                    {!comment.isOptimistic && (
+                        <button
+                            onClick={() => (isReplying ? onCancelReply() : onStartReply(comment.id))}
+                            className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            Reply
+                        </button>
+                    )}
                 </div>
 
                 {/* Replies */}
@@ -115,7 +134,7 @@ function CommentItem({
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1 min-w-0">
-                                        <div className="bg-elevated rounded-xl px-3 py-1.5 space-y-0.5">
+                                        <div className={`bg-elevated rounded-xl px-3 py-1.5 space-y-0.5 transition-opacity duration-200 ${reply.isOptimistic ? 'opacity-85' : 'opacity-100'}`}>
                                             <div className="flex items-baseline gap-1.5 flex-wrap">
                                                 <span className="text-xs font-semibold leading-tight truncate">
                                                     {reply.author.display_name}
@@ -128,9 +147,16 @@ function CommentItem({
                                                 {reply.body}
                                             </p>
                                         </div>
-                                        <time dateTime={reply.created_at} className="text-[11px] text-muted-foreground mt-0.5 pl-1 block">
-                                            {timeAgo(reply.created_at)}
-                                        </time>
+                                        {reply.isOptimistic ? (
+                                            <span className="text-[11px] text-muted-foreground/70 italic mt-0.5 pl-1 flex items-center gap-1">
+                                                <span className="inline-block w-1 h-1 rounded-full bg-primary animate-pulse" />
+                                                Posting…
+                                            </span>
+                                        ) : (
+                                            <time dateTime={reply.created_at} className="text-[11px] text-muted-foreground mt-0.5 pl-1 block">
+                                                {timeAgo(reply.created_at)}
+                                            </time>
+                                        )}
                                     </div>
                                 </li>
                             )
@@ -145,6 +171,7 @@ function CommentItem({
                         <div className="flex-1">
                             <CommentInput
                                 postId={postId}
+                                currentUser={currentUser}
                                 parentCommentId={comment.id}
                                 replyingToName={comment.author.username}
                                 placeholder={`Reply to @${comment.author.username}…`}
@@ -152,6 +179,8 @@ function CommentItem({
                                 compact
                                 onCancel={onCancelReply}
                                 onCommentAdded={onReplyAdded}
+                                onCommentConfirmed={onReplyConfirmed}
+                                onCommentFailed={onReplyFailed}
                             />
                         </div>
                     </div>
@@ -163,10 +192,23 @@ function CommentItem({
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+interface PostDetailCommentsProps
+{
+    postId: string
+    initialComments: CommentResult[]
+    commentCount: number
+    currentUser?: {
+        username: string
+        display_name: string
+        avatar_url: string | null
+    } | null
+}
+
 export default function PostDetailComments({
     postId,
     initialComments,
     commentCount,
+    currentUser,
 }: PostDetailCommentsProps)
 {
     const [comments, setComments] = useState<CommentResult[]>(initialComments)
@@ -175,12 +217,21 @@ export default function PostDetailComments({
 
     function handleCommentAdded(comment: CommentResult)
     {
-        setComments((prev) =>
-        {
-            if (prev.some((c) => c.id === comment.id)) return prev
-            return [comment, ...prev]
-        })
+        setComments((prev) => [comment, ...prev])
         setCount((c) => c + 1)
+    }
+
+    function handleCommentConfirmed(tempId: string, confirmed: CommentResult)
+    {
+        setComments((prev) =>
+            prev.map((c) => (c.id === tempId ? confirmed : c))
+        )
+    }
+
+    function handleCommentFailed(tempId: string)
+    {
+        setComments((prev) => prev.filter((c) => c.id !== tempId))
+        setCount((c) => Math.max(0, c - 1))
     }
 
     const { topLevel, repliesByParent } = useMemo(() =>
@@ -219,7 +270,13 @@ export default function PostDetailComments({
             </div>
 
             {/* Comment input */}
-            <CommentInput postId={postId} onCommentAdded={handleCommentAdded} />
+            <CommentInput
+                postId={postId}
+                currentUser={currentUser}
+                onCommentAdded={handleCommentAdded}
+                onCommentConfirmed={handleCommentConfirmed}
+                onCommentFailed={handleCommentFailed}
+            />
 
             {/* Comment list */}
             {topLevel.length === 0 ? (
@@ -235,9 +292,12 @@ export default function PostDetailComments({
                             comment={comment}
                             replies={repliesByParent.get(comment.id) ?? []}
                             replyingToId={replyingToId}
+                            currentUser={currentUser}
                             onStartReply={setReplyingToId}
                             onCancelReply={() => setReplyingToId(null)}
                             onReplyAdded={handleCommentAdded}
+                            onReplyConfirmed={handleCommentConfirmed}
+                            onReplyFailed={handleCommentFailed}
                         />
                     ))}
                 </ul>

@@ -95,10 +95,23 @@ export default async function PostDetailPage({ params }: PageProps)
     const { data: { user: authUser } } = await supabase.auth.getUser()
 
     let currentUserId: string | null = null
+    let currentUserProfile: { username: string; display_name: string; avatar_url: string | null } | null = null
     if (authUser)
     {
-        const { data: profile } = await supabase.from('users').select('id').eq('auth_id', authUser.id).single()
+        const { data: profile } = await supabase
+            .from('users')
+            .select('id, username, display_name, avatar_url')
+            .eq('auth_id', authUser.id)
+            .single()
         currentUserId = profile?.id ?? null
+        if (profile)
+        {
+            currentUserProfile = {
+                username: profile.username,
+                display_name: profile.display_name,
+                avatar_url: profile.avatar_url,
+            }
+        }
     }
 
     const [post, initialComments, recentPosts] = await Promise.all([
@@ -137,6 +150,7 @@ export default async function PostDetailPage({ params }: PageProps)
                             postId={postId}
                             initialComments={initialComments}
                             commentCount={post.comment_count}
+                            currentUser={currentUserProfile}
                         />
                     </div>
                 </div>
