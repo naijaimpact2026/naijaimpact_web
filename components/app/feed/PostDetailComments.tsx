@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import CommentInput, { type CommentResult } from './CommentInput'
 import { formatDistanceToNow } from 'date-fns'
-import { MessageCircle, CornerDownRight } from 'lucide-react'
+import { MessageCircle, CornerDownRight, Lock } from 'lucide-react'
 import
 {
     AlertDialog,
@@ -25,6 +25,12 @@ interface PostDetailCommentsProps
     postId: string
     initialComments: CommentResult[]
     commentCount: number
+    currentUser?: {
+        username: string
+        display_name: string
+        avatar_url: string | null
+    } | null
+    allowComments?: boolean
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -63,6 +69,7 @@ interface CommentItemProps
         display_name: string
         avatar_url: string | null
     } | null
+    allowComments?: boolean
     onStartReply: (commentId: string) => void
     onCancelReply: () => void
     onReplyAdded: (comment: CommentResult) => void
@@ -77,6 +84,7 @@ function CommentItem({
     replies,
     replyingToId,
     currentUser,
+    allowComments = true,
     onStartReply,
     onCancelReply,
     onReplyAdded,
@@ -126,12 +134,14 @@ function CommentItem({
                     )}
                     {!comment.isOptimistic && (
                         <div className="flex items-center gap-3">
-                            <button
-                                onClick={() => (isReplying ? onCancelReply() : onStartReply(comment.id))}
-                                className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                                Reply
-                            </button>
+                            {allowComments && (
+                                <button
+                                    onClick={() => (isReplying ? onCancelReply() : onStartReply(comment.id))}
+                                    className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    Reply
+                                </button>
+                            )}
                             {isOwnComment && (
                                 <button
                                     onClick={() => onDeleteComment(comment.id)}
@@ -227,23 +237,12 @@ function CommentItem({
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-interface PostDetailCommentsProps
-{
-    postId: string
-    initialComments: CommentResult[]
-    commentCount: number
-    currentUser?: {
-        username: string
-        display_name: string
-        avatar_url: string | null
-    } | null
-}
-
 export default function PostDetailComments({
     postId,
     initialComments,
     commentCount,
     currentUser,
+    allowComments = true,
 }: PostDetailCommentsProps)
 {
     const [comments, setComments] = useState<CommentResult[]>(initialComments)
@@ -346,14 +345,21 @@ export default function PostDetailComments({
                 </h2>
             </div>
 
-            {/* Comment input */}
-            <CommentInput
-                postId={postId}
-                currentUser={currentUser}
-                onCommentAdded={handleCommentAdded}
-                onCommentConfirmed={handleCommentConfirmed}
-                onCommentFailed={handleCommentFailed}
-            />
+            {/* Comment input or locked banner */}
+            {allowComments === false ? (
+                <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-muted/60 border border-border/80 text-muted-foreground text-sm">
+                    <Lock className="w-4 h-4 shrink-0 text-muted-foreground" />
+                    <span>Comments have been turned off for this post.</span>
+                </div>
+            ) : (
+                <CommentInput
+                    postId={postId}
+                    currentUser={currentUser}
+                    onCommentAdded={handleCommentAdded}
+                    onCommentConfirmed={handleCommentConfirmed}
+                    onCommentFailed={handleCommentFailed}
+                />
+            )}
 
             {/* Comment list */}
             {topLevel.length === 0 ? (
@@ -370,6 +376,7 @@ export default function PostDetailComments({
                             replies={repliesByParent.get(comment.id) ?? []}
                             replyingToId={replyingToId}
                             currentUser={currentUser}
+                            allowComments={allowComments}
                             onStartReply={setReplyingToId}
                             onCancelReply={() => setReplyingToId(null)}
                             onReplyAdded={handleCommentAdded}

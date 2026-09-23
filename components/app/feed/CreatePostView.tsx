@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { toast } from 'sonner'
+import { toast } from '@/components/toast'
 import Link from 'next/link'
 import
 {
@@ -236,7 +236,14 @@ export default function CreatePostView({ user }: { user: User | null })
         setIsSubmitting(true)
         try
         {
-            await createPost(captionValue, type, mediaUrls)
+            await createPost(captionValue, type, mediaUrls, {
+                allow_comments: allowComments,
+                allow_sharing: allowSharing,
+                is_featured: featurePost,
+                audience: audience,
+                scheduled_at: isScheduling && scheduledDateTime ? scheduledDateTime : null,
+                group_id: selectedGroupId || null,
+            })
 
             if (isScheduling && scheduledDateTime)
             {

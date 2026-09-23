@@ -6,7 +6,7 @@ import PostDetailComments from '@/components/app/feed/PostDetailComments'
 import PostDetailActions from '@/components/app/feed/PostDetailActions'
 import type { PostWithAuthor } from '@/lib/types'
 import { ArrowLeft, Clock, ImageIcon, Rocket } from 'lucide-react'
-import { fetchRecentPostsPreviews } from '@/lib/actions/posts'
+import { fetchRecentPostsPreviews, toPostWithAuthor } from '@/lib/actions/posts'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,22 +52,7 @@ async function getPost(postId: string, currentUserId: string | null): Promise<Po
         userSaved = !!s
     }
 
-    return {
-        id: p.id, author_id: p.user_id,
-        type: (p.post_type as 'text' | 'image' | 'video') ?? 'text',
-        caption: p.content ?? null, hashtags: [],
-        created_at: p.created_at, updated_at: p.updated_at,
-        author: {
-            id: p.author?.id ?? '', username: p.author?.username ?? '',
-            display_name: p.author?.display_name ?? '', avatar_url: p.author?.avatar_url ?? null, verified: false,
-        },
-        medias: (p.medias ?? []).map((m: any, i: number) => ({
-            id: m.id, post_id: m.post_id, url: m.media_url,
-            media_type: (m.media_type as 'image' | 'video') ?? 'image',
-            width: null, height: null, duration_s: null, position: i, created_at: m.created_at ?? p.created_at,
-        })),
-        reaction_count: rc ?? 0, comment_count: cc ?? 0, user_reacted: userReacted, user_saved: userSaved,
-    }
+    return toPostWithAuthor(p, rc ?? 0, cc ?? 0, userReacted, userSaved, false)
 }
 
 async function getComments(postId: string)
@@ -121,6 +106,7 @@ export default async function PostDetailPage({ params }: PageProps)
     ])
 
     if (!post) notFound()
+    if (post.audience === 'only-me' && post.author_id !== currentUserId) notFound()
 
     const otherRecentPosts = recentPosts.filter(p => p.id !== postId).slice(0, 5)
 
@@ -151,6 +137,7 @@ export default async function PostDetailPage({ params }: PageProps)
                             initialComments={initialComments}
                             commentCount={post.comment_count}
                             currentUser={currentUserProfile}
+                            allowComments={post.allow_comments ?? true}
                         />
                     </div>
                 </div>
@@ -166,6 +153,7 @@ export default async function PostDetailPage({ params }: PageProps)
                         commentCount={post.comment_count}
                         authorUsername={post.author.username}
                         createdAt={post.created_at}
+                        allowSharing={post.allow_sharing ?? true}
                     />
 
                     {/* Recent Posts */}

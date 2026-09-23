@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { toast } from 'sonner'
+import { toast } from '@/components/toast'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { addComment } from '@/lib/actions/posts'
@@ -117,7 +117,10 @@ export default function CommentInput({
             {
                 setBody(textToSubmit)
             }
-            toast.error('Failed to post comment. Your message was restored.')
+            const message = err instanceof Error && err.message
+                ? err.message
+                : 'Failed to post comment. Your message was restored.'
+            toast.error(message)
         }
     }
 

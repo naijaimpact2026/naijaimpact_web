@@ -37,6 +37,7 @@ import
         UserCheck,
         UserX,
         Trash2,
+        Lock,
     } from 'lucide-react'
 import MediaDisplay from './MediaDisplay'
 import type { PostWithAuthor } from '@/lib/types'
@@ -312,6 +313,12 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
 
     async function handleCopyLink()
     {
+        if (post.allow_sharing === false)
+        {
+            const { toast } = await import('sonner')
+            toast.error('Sharing has been disabled for this post by the author')
+            return
+        }
         const url = `${window.location.origin}/app/feed/${post.id}`
         const { toast } = await import('sonner')
         const ok = await copyToClipboard(url)
@@ -321,6 +328,12 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
 
     async function handleShare()
     {
+        if (post.allow_sharing === false)
+        {
+            const { toast } = await import('sonner')
+            toast.error('Sharing has been disabled for this post by the author')
+            return
+        }
         const url = `${window.location.origin}/app/feed/${post.id}`
 
         if (navigator.share)
@@ -544,25 +557,35 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
                 {/* Comment */}
                 <button
                     onClick={() => router.push(`/app/feed/${post.id}`)}
-                    aria-label="Comment"
+                    aria-label={post.allow_comments === false ? 'Comments are disabled' : 'Comment'}
+                    title={post.allow_comments === false ? 'Comments are disabled for this post' : 'Comment'}
                     className="flex items-center gap-1.5 flex-1 justify-center py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 >
-                    <span className="relative">
-                        <MessageCircle className="h-4 w-4" />
-                        {comment_count > 0 && (
+                    <span className="relative flex items-center">
+                        {post.allow_comments === false ? (
+                            <Lock className="h-4 w-4 text-muted-foreground/70" />
+                        ) : (
+                            <MessageCircle className="h-4 w-4" />
+                        )}
+                        {post.allow_comments !== false && comment_count > 0 && (
                             <span className="absolute -top-2 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground">
                                 {comment_count > 99 ? '99+' : comment_count}
                             </span>
                         )}
                     </span>
-                    <span>Comment</span>
+                    <span>{post.allow_comments === false ? 'Off' : 'Comment'}</span>
                 </button>
 
                 {/* Share */}
                 <button
                     onClick={handleShare}
-                    aria-label="Share"
-                    className="flex items-center gap-1.5 flex-1 justify-center py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    aria-label={post.allow_sharing === false ? 'Sharing disabled' : 'Share'}
+                    title={post.allow_sharing === false ? 'Sharing is disabled for this post' : 'Share'}
+                    className={`flex items-center gap-1.5 flex-1 justify-center py-2 rounded-xl text-sm font-medium transition-colors ${
+                        post.allow_sharing === false
+                            ? 'text-muted-foreground/60 hover:text-muted-foreground cursor-not-allowed'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
                 >
                     <Share2 className="h-4 w-4" />
                     <span>Share</span>
