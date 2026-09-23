@@ -12,7 +12,8 @@ import PromotedCarousel from './PromotedCarousel'
 import { fetchPostsPage, fetchFollowingPosts, fetchSavedPostsPage, fetchSuggestedUsers } from '@/lib/actions/posts'
 import { fetchPromotedContent, type PromotedItem } from '@/lib/actions/promoted'
 import type { PostWithAuthor, User } from '@/lib/types'
-import { Plus } from 'lucide-react'
+import Link from 'next/link'
+import { Plus, X } from 'lucide-react'
 
 const SUGGESTIONS_AFTER_POST = 5
 
@@ -22,6 +23,7 @@ interface FeedInfiniteScrollProps
     initialCursor: string | null
     currentUserId: string
     user?: User | null
+    topic?: string | null
 }
 
 const SKELETON_COUNT = 3
@@ -31,6 +33,7 @@ export default function FeedInfiniteScroll({
     initialCursor,
     currentUserId,
     user,
+    topic,
 }: FeedInfiniteScrollProps)
 {
     const router = useRouter()
@@ -39,6 +42,14 @@ export default function FeedInfiniteScroll({
     const [cursor, setCursor] = useState<string | null>(initialCursor)
     const [loading, setLoading] = useState(false)
     const [exhausted, setExhausted] = useState(initialCursor === null)
+
+    // Sync state when topic or initial posts change
+    useEffect(() =>
+    {
+        setPosts(initialPosts)
+        setCursor(initialCursor)
+        setExhausted(initialCursor === null)
+    }, [initialPosts, initialCursor, topic])
     const [tabLoading, setTabLoading] = useState(false)
     const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([])
     const [suggestionsDismissed, setSuggestionsDismissed] = useState(false)
@@ -67,9 +78,9 @@ export default function FeedInfiniteScroll({
         {
             case 'following': return fetchFollowingPosts(cur)
             case 'saved': return fetchSavedPostsPage(cur)
-            default: return fetchPostsPage(cur)
+            default: return fetchPostsPage(cur, 10, topic ?? null)
         }
-    }, [])
+    }, [topic])
 
     const UNBACKED_TABS: FeedTab[] = ['groups', 'opportunities', 'events']
 
@@ -157,6 +168,23 @@ export default function FeedInfiniteScroll({
             {/* Promoted carousel — real Marketplace listings and Learn courses */}
             {activeTab === 'for-you' && <PromotedCarousel items={promotedItems} />}
 
+            {/* Active topic banner */}
+            {topic && (
+                <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-card border border-primary/25 shadow-sm text-sm">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse shrink-0" />
+                        <span className="text-muted-foreground text-xs font-medium">Community:</span>
+                        <span className="font-bold text-primary truncate">#{topic}</span>
+                    </div>
+                    <Link
+                        href="/app/feed"
+                        className="text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors px-2.5 py-1 rounded-lg hover:bg-muted shrink-0"
+                    >
+                        <X className="w-3.5 h-3.5" /> Clear filter
+                    </Link>
+                </div>
+            )}
+
             {/* Feed tabs */}
             <div className="bg-card rounded-2xl border border-border shadow-sm dark:shadow-none overflow-hidden">
                 <FeedTabs activeTab={activeTab} onTabChange={handleTabChange} />
@@ -174,13 +202,11 @@ export default function FeedInfiniteScroll({
                         {activeTab === 'groups' && 'Groups coming soon'}
                         {activeTab === 'opportunities' && 'Opportunities coming soon'}
                         {activeTab === 'events' && 'Events coming soon'}
-                        {activeTab === 'saved' && 'No saved posts yet'}
                     </p>
                     <p className="text-sm mt-1 text-center px-4">
                         {activeTab === 'groups' && 'Join community groups to see their posts here.'}
                         {activeTab === 'opportunities' && 'Jobs, grants and partnerships will show up here.'}
                         {activeTab === 'events' && 'Community events will show up here.'}
-                        {activeTab === 'saved' && 'Save posts to read them later.'}
                     </p>
                 </div>
             )}
@@ -191,12 +217,12 @@ export default function FeedInfiniteScroll({
                     <p className="text-lg font-semibold">
                         {activeTab === 'following' && 'No posts from people you follow'}
                         {activeTab === 'saved' && 'No saved posts yet'}
-                        {activeTab !== 'following' && activeTab !== 'saved' && 'No posts yet'}
+                        {activeTab !== 'following' && activeTab !== 'saved' && (topic ? `No posts found in #${topic}` : 'No posts yet')}
                     </p>
                     <p className="text-sm mt-1 text-center px-4">
                         {activeTab === 'following' && 'Follow people to see their posts here.'}
                         {activeTab === 'saved' && 'Tap the Save button on any post to read it later.'}
-                        {activeTab !== 'following' && activeTab !== 'saved' && 'Be the first to share something!'}
+                        {activeTab !== 'following' && activeTab !== 'saved' && (topic ? `Be the first to share something in #${topic}!` : 'Be the first to share something!')}
                     </p>
                 </div>
             ) : (
@@ -205,6 +231,27 @@ export default function FeedInfiniteScroll({
                         <PostCard
                             post={post}
                             currentUserId={currentUserId}
+                            onReactionToggle={(postId, reacted, delta) => {
+                                setPosts((prev) =>
+                                    prev.map((p) =>
+                                        p.id === postId
+                                            ? {
+                                                ...p,
+                                                user_reacted: reacted,
+                                                reaction_count: Math.max(0, (p.reaction_count || 0) + delta),
+                                            }
+                                            : p
+                                    )
+                                )
+                            }}
+                            onSaveToggle={(postId, saved) => {
+                                setPosts((prev) =>
+                                    prev.map((p) => (p.id === postId ? { ...p, user_saved: saved } : p))
+                                )
+                                if (activeTab === 'saved' && !saved) {
+                                    setPosts((prev) => prev.filter((p) => p.id !== postId))
+                                }
+                            }}
                             onHide={(postId) => setPosts((prev) => prev.filter((p) => p.id !== postId))}
                         />
 
@@ -225,7 +272,7 @@ export default function FeedInfiniteScroll({
             {isLoading && (
                 <div className="space-y-3">
                     {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-                        <PostCardSkeleton key={`skeleton-${i}`} />
+                        <PostCardSkeleton key={`skeleton-${i}`} delay={i * 80} />
                     ))}
                 </div>
             )}

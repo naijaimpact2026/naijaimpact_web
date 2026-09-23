@@ -20,12 +20,20 @@ export interface CommentResult
         display_name: string
         avatar_url: string | null
     }
+    isOptimistic?: boolean
 }
 
 interface CommentInputProps
 {
     postId: string
     onCommentAdded: (comment: CommentResult) => void
+    onCommentConfirmed?: (tempId: string, confirmed: CommentResult) => void
+    onCommentFailed?: (tempId: string, restoredText: string) => void
+    currentUser?: {
+        username: string
+        display_name: string
+        avatar_url: string | null
+    } | null
     parentCommentId?: string | null
     placeholder?: string
     replyingToName?: string
@@ -39,6 +47,9 @@ interface CommentInputProps
 export default function CommentInput({
     postId,
     onCommentAdded,
+    onCommentConfirmed,
+    onCommentFailed,
+    currentUser,
     parentCommentId = null,
     placeholder,
     replyingToName,
@@ -48,7 +59,6 @@ export default function CommentInput({
 }: CommentInputProps)
 {
     const [body, setBody] = useState('')
-    const [isSubmitting, setIsSubmitting] = useState(false)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
     useEffect(() =>
@@ -57,29 +67,57 @@ export default function CommentInput({
     }, [autoFocus])
 
     const trimmed = body.trim()
-    const isDisabled = !trimmed || trimmed.length > 1000 || isSubmitting
+    const isDisabled = !trimmed || trimmed.length > 1000
     const isOverLimit = trimmed.length > 1000
 
     async function handleSubmit(e: React.FormEvent)
     {
         e.preventDefault()
-        if (isDisabled) return
+        const textToSubmit = body.trim()
+        if (!textToSubmit || textToSubmit.length > 1000) return
 
-        setIsSubmitting(true)
+        const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+        const optimisticComment: CommentResult = {
+            id: tempId,
+            body: textToSubmit,
+            created_at: new Date().toISOString(),
+            parent_comment_id: parentCommentId,
+            author: {
+                username: currentUser?.username ?? 'you',
+                display_name: currentUser?.display_name ?? 'You',
+                avatar_url: currentUser?.avatar_url ?? null,
+            },
+            isOptimistic: true,
+        }
+
+        // 1. Instantly display in UI (0ms loading delay)
+        onCommentAdded(optimisticComment)
+        setBody('')
+        if (parentCommentId)
+        {
+            onCancel?.()
+        }
+        else
+        {
+            textareaRef.current?.focus()
+        }
+
+        // 2. Perform background server mutation
         try
         {
-            const comment = await addComment(postId, trimmed, parentCommentId)
-            setBody('')
-            onCommentAdded(comment)
-            if (parentCommentId) onCancel?.()
-            else textareaRef.current?.focus()
-        } catch (err)
+            const confirmed = await addComment(postId, textToSubmit, parentCommentId)
+            onCommentConfirmed?.(tempId, confirmed)
+        }
+        catch (err)
         {
             console.error('addComment error:', err)
-            toast.error('Failed to post comment. Please try again.')
-        } finally
-        {
-            setIsSubmitting(false)
+            // 3. Rollback on failure and restore text
+            onCommentFailed?.(tempId, textToSubmit)
+            if (!parentCommentId)
+            {
+                setBody(textToSubmit)
+            }
+            toast.error('Failed to post comment. Your message was restored.')
         }
     }
 
@@ -130,7 +168,6 @@ export default function CommentInput({
                     rows={compact ? 1 : 2}
                     maxLength={1100} // hard cap slightly above limit to allow counter feedback
                     className="resize-none pr-12"
-                    disabled={isSubmitting}
                     aria-label={parentCommentId ? 'Write a reply' : 'Write a comment'}
                 />
             </div>
@@ -163,7 +200,7 @@ export default function CommentInput({
                         aria-label={parentCommentId ? 'Post reply' : 'Post comment'}
                     >
                         <Send className="h-3.5 w-3.5" />
-                        {isSubmitting ? 'Posting…' : parentCommentId ? 'Reply' : 'Comment'}
+                        {parentCommentId ? 'Reply' : 'Comment'}
                     </Button>
                 </div>
             </div>
