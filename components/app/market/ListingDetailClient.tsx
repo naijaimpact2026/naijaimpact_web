@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { toast } from 'sonner'
+import { toast } from '@/components/toast'
 import
     {
         ChevronLeft, ChevronRight, Share2, MapPin, Star, Shield,

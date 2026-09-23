@@ -32,11 +32,17 @@ const VIDEO_SIZE_LIMIT = 500 * 1024 * 1024  // 500 MB
 // ─── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  // 1. Verify Supabase session
+  // 1. Verify Supabase session (with fallback to getSession)
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user: import('@supabase/supabase-js').User | null = null
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (!error && data.user) user = data.user
+  } catch {}
+  if (!user) {
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (sessionData.session?.user) user = sessionData.session.user
+  }
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

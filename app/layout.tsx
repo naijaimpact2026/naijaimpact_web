@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Manrope, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
+import { ToastViewport } from '@/components/toast'
 import './globals.css'
 
 const manrope = Manrope({
@@ -54,6 +55,7 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-background text-foreground">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
+          <ToastViewport />
           {process.env.NODE_ENV === 'production' && <Analytics />}
         </ThemeProvider>
       </body>

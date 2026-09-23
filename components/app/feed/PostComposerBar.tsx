@@ -7,7 +7,7 @@ import type { User } from '@/lib/types'
 interface PostComposerBarProps
 {
     user: User | null
-    onOpen: () => void
+    onOpen: (withMedia?: boolean) => void
 }
 
 function getInitials(name: string | null | undefined): string
@@ -35,10 +35,10 @@ export default function PostComposerBar({ user, onOpen }: PostComposerBarProps)
             {/* Top: avatar + prompt */}
             <div
                 className="flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/40 transition-colors"
-                onClick={onOpen}
+                onClick={() => onOpen(false)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && onOpen()}
+                onKeyDown={(e) => e.key === 'Enter' && onOpen(false)}
                 aria-label="Create a new post"
             >
                 <Avatar className="h-9 w-9 shrink-0 border border-border">
@@ -60,7 +60,7 @@ export default function PostComposerBar({ user, onOpen }: PostComposerBarProps)
                 {ACTIONS.map(({ icon: Icon, label, color, functional }) => (
                     <button
                         key={label}
-                        onClick={functional ? onOpen : undefined}
+                        onClick={functional ? () => onOpen(label === 'Photo/Video') : undefined}
                         disabled={!functional}
                         title={functional ? undefined : 'Coming soon'}
                         className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl transition-colors text-xs font-medium min-w-0 ${functional

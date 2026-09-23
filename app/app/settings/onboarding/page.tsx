@@ -4,7 +4,7 @@ import { useEffect, useCallback, useRef, useState, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { toast } from 'sonner'
+import { toast } from '@/components/toast'
 import { Loader2, CheckCircle, XCircle, Upload, User } from 'lucide-react'
 import Image from 'next/image'
 

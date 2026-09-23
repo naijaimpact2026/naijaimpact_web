@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Share2, Check, Link2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/components/toast'
 
 interface Props
 {
@@ -12,6 +12,7 @@ interface Props
     commentCount: number
     authorUsername: string
     createdAt: string
+    allowSharing?: boolean
 }
 
 export default function PostDetailActions({
@@ -21,12 +22,18 @@ export default function PostDetailActions({
     commentCount,
     authorUsername,
     createdAt,
+    allowSharing = true,
 }: Props)
 {
     const [copied, setCopied] = useState(false)
 
     async function handleShare()
     {
+        if (allowSharing === false)
+        {
+            toast.error('Sharing has been disabled for this post by the author.')
+            return
+        }
         const url = `${window.location.origin}/app/feed/${postId}`
         if (navigator.share)
         {
@@ -74,12 +81,20 @@ export default function PostDetailActions({
 
             <button
                 onClick={handleShare}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-border text-xs font-medium text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                aria-disabled={allowSharing === false}
+                className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl border text-xs font-medium transition-colors ${
+                    allowSharing === false
+                        ? 'border-border/60 text-muted-foreground/60 cursor-not-allowed bg-muted/30'
+                        : 'border-border text-muted-foreground hover:border-primary hover:text-primary'
+                }`}
             >
-                {copied
-                    ? <><Check className="w-3.5 h-3.5" /> Copied!</>
-                    : <><Share2 className="w-3.5 h-3.5" /> Share this post</>
-                }
+                {allowSharing === false ? (
+                    <>Sharing disabled</>
+                ) : copied ? (
+                    <><Check className="w-3.5 h-3.5" /> Copied!</>
+                ) : (
+                    <><Share2 className="w-3.5 h-3.5" /> Share this post</>
+                )}
             </button>
         </div>
     )

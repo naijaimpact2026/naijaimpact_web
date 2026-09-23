@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { toast } from 'sonner'
+import { toast } from '@/components/toast'
 import { Package, Heart, Star, MapPin, ShoppingCart } from 'lucide-react'
 import { toggleSavedListing } from '@/lib/actions/marketplace'
 import { useMarketCart } from './MarketCartProvider'

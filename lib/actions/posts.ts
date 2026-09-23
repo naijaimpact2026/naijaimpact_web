@@ -51,6 +51,14 @@ async function fetchEngagementMaps(
   return { commentCountMap, reactionCountMap, userReactedSet, userSavedSet }
 }
 
+import
+{
+  type PostOptions,
+  encodePostContent,
+  parsePostContent,
+  toPostWithAuthor,
+} from '@/lib/post-helpers'
+
 /**
  * Fetch a page of posts using cursor-based pagination.
  * Posts are ordered by created_at DESC.
@@ -184,38 +192,22 @@ export async function fetchPostsPage(
   const followingSet = new Set((followingRows ?? []).map((r: any) => r.following_id))
 
   // Assemble PostWithAuthor objects — map real columns to app type shape
-  const posts: PostWithAuthor[] = pagePosts.map((p: any) => ({
-    id: p.id,
-    author_id: p.user_id,
-    type: (p.post_type as 'text' | 'image' | 'video') ?? 'text',
-    caption: p.content ?? null,
-    hashtags: [],
-    created_at: p.created_at,
-    updated_at: p.updated_at,
-    author: {
-      id: p.author?.id ?? '',
-      username: p.author?.username ?? '',
-      display_name: p.author?.display_name ?? '',
-      avatar_url: p.author?.avatar_url ?? null,
-      verified: false,
-    },
-    medias: (p.medias ?? []).map((m: any, idx: number) => ({
-      id: m.id,
-      post_id: m.post_id,
-      url: m.media_url,
-      media_type: (m.media_type as 'image' | 'video') ?? 'image',
-      width: null,
-      height: null,
-      duration_s: null,
-      position: idx,
-      created_at: m.created_at ?? p.created_at,
-    })),
-    reaction_count: reactionCountMap[p.id] ?? 0,
-    comment_count: commentCountMap[p.id] ?? 0,
-    user_reacted: userReactedSet.has(p.id),
-    user_saved: userSavedSet.has(p.id),
-    is_following_author: followingSet.has(p.user_id),
-  }))
+  const allPosts: PostWithAuthor[] = pagePosts.map((p: any) =>
+    toPostWithAuthor(
+      p,
+      reactionCountMap[p.id] ?? 0,
+      commentCountMap[p.id] ?? 0,
+      userReactedSet.has(p.id),
+      userSavedSet.has(p.id),
+      followingSet.has(p.user_id)
+    )
+  )
+
+  // Filter out 'only-me' posts for viewers who are not the author
+  const posts = allPosts.filter((p) => {
+    if (p.audience === 'only-me' && p.author_id !== currentUserId) return false
+    return true
+  })
 
   return { posts, nextCursor }
 }
@@ -232,7 +224,8 @@ export async function createPost(
     width?: number
     height?: number
     duration_s?: number
-  }>
+  }>,
+  options?: PostOptions
 ): Promise<PostWithAuthor> {
   const supabase = await createClient()
 
@@ -262,6 +255,9 @@ export async function createPost(
   // Extract hashtags from caption
   const hashtags = (caption.match(/#(\w+)/g) ?? []).map((t) => t.slice(1).toLowerCase())
 
+  // Encode options into content comment
+  const encodedContent = encodePostContent(caption, options)
+
   // Insert the post using real DB column names
   // post_type enum: 'post' | 'funding' | 'cource' — regular feed posts are always 'post'
   const { data: post, error: postError } = await supabase
@@ -269,7 +265,7 @@ export async function createPost(
     .insert({
       user_id: profile.id,
       post_type: 'post',
-      content: caption,
+      content: encodedContent,
     })
     .select()
     .single()
@@ -314,20 +310,27 @@ export async function createPost(
   const { revalidatePath } = await import('next/cache')
   revalidatePath('/app/feed')
 
+  const { caption: cleanCaption, options: parsedOptions } = parsePostContent(post.content)
+
   return {
     id: post.id,
     author_id: post.user_id,
     type: (post.post_type as 'text' | 'image' | 'video') ?? type,
-    caption: post.content ?? null,
-    hashtags: [],
+    caption: cleanCaption,
+    hashtags: hashtags,
     created_at: post.created_at,
     updated_at: post.updated_at,
+    allow_comments: parsedOptions.allow_comments ?? true,
+    allow_sharing: parsedOptions.allow_sharing ?? true,
+    is_featured: parsedOptions.is_featured ?? false,
+    audience: parsedOptions.audience ?? 'public',
+    scheduled_at: parsedOptions.scheduled_at ?? null,
     author: {
       id: profile.id,
       username: profile.username,
       display_name: profile.display_name,
       avatar_url: profile.avatar_url ?? null,
-      verified: false,
+      verified: profile.verified ?? false,
     },
     medias: insertedMedias,
     reaction_count: 0,
@@ -442,6 +445,22 @@ export async function addComment(
 
   if (!profile) throw new Error('User profile not found')
 
+  // Verify that the target post exists and comments are allowed
+  const { data: postRow, error: postRowError } = await supabase
+    .from('posts')
+    .select('id, user_id, content')
+    .eq('id', postId)
+    .single()
+
+  if (postRowError || !postRow) {
+    throw new Error('Post not found')
+  }
+
+  const { options: postOptions } = parsePostContent(postRow.content)
+  if (postOptions.allow_comments === false) {
+    throw new Error('Comments are disabled for this post')
+  }
+
   // Insert the comment using real DB column names
   const { data: comment, error: commentError } = await supabase
     .from('post_comments')
@@ -464,13 +483,7 @@ export async function addComment(
   try {
     const notifyTargets = new Set<string>()
 
-    const { data: postRow } = await supabase
-      .from('posts')
-      .select('user_id')
-      .eq('id', postId)
-      .single()
-
-    if (postRow && postRow.user_id !== profile.id) {
+    if (postRow.user_id !== profile.id) {
       notifyTargets.add(postRow.user_id)
     }
 
@@ -820,37 +833,21 @@ export async function fetchSavedPostsPage(
     profile.id
   )
 
-  const posts: PostWithAuthor[] = orderedPosts.map((p: any) => ({
-    id: p.id,
-    author_id: p.user_id,
-    type: (p.post_type as 'text' | 'image' | 'video') ?? 'text',
-    caption: p.content ?? null,
-    hashtags: [],
-    created_at: p.created_at,
-    updated_at: p.updated_at,
-    author: {
-      id: p.author?.id ?? '',
-      username: p.author?.username ?? '',
-      display_name: p.author?.display_name ?? '',
-      avatar_url: p.author?.avatar_url ?? null,
-      verified: p.author?.verified ?? false,
-    },
-    medias: (p.medias ?? []).map((m: any, idx: number) => ({
-      id: m.id,
-      post_id: m.post_id,
-      url: m.media_url,
-      media_type: (m.media_type as 'image' | 'video') ?? 'image',
-      width: null,
-      height: null,
-      duration_s: null,
-      position: idx,
-      created_at: m.created_at ?? p.created_at,
-    })),
-    reaction_count: reactionCountMap[p.id] ?? 0,
-    comment_count: commentCountMap[p.id] ?? 0,
-    user_reacted: userReactedSet.has(p.id),
-    user_saved: true,
-  }))
+  const posts: PostWithAuthor[] = orderedPosts
+    .map((p: any) =>
+      toPostWithAuthor(
+        p,
+        reactionCountMap[p.id] ?? 0,
+        commentCountMap[p.id] ?? 0,
+        userReactedSet.has(p.id),
+        true,
+        false
+      )
+    )
+    .filter((p) => {
+      if (p.audience === 'only-me' && p.author_id !== profile.id) return false
+      return true
+    })
 
   return { posts, nextCursor }
 }
@@ -939,37 +936,21 @@ export async function fetchUserPostsPage(
     currentUserId
   )
 
-  const posts: PostWithAuthor[] = pagePosts.map((p: any) => ({
-    id: p.id,
-    author_id: p.user_id,
-    type: (p.post_type as 'text' | 'image' | 'video') ?? 'text',
-    caption: p.content ?? null,
-    hashtags: [],
-    created_at: p.created_at,
-    updated_at: p.updated_at,
-    author: {
-      id: p.author?.id ?? '',
-      username: p.author?.username ?? '',
-      display_name: p.author?.display_name ?? '',
-      avatar_url: p.author?.avatar_url ?? null,
-      verified: p.author?.verified ?? false,
-    },
-    medias: (p.medias ?? []).map((m: any, idx: number) => ({
-      id: m.id,
-      post_id: m.post_id,
-      url: m.media_url,
-      media_type: (m.media_type as 'image' | 'video') ?? 'image',
-      width: null,
-      height: null,
-      duration_s: null,
-      position: idx,
-      created_at: m.created_at ?? p.created_at,
-    })),
-    reaction_count: reactionCountMap[p.id] ?? 0,
-    comment_count: commentCountMap[p.id] ?? 0,
-    user_reacted: userReactedSet.has(p.id),
-    user_saved: userSavedSet.has(p.id),
-  }))
+  const posts: PostWithAuthor[] = pagePosts
+    .map((p: any) =>
+      toPostWithAuthor(
+        p,
+        reactionCountMap[p.id] ?? 0,
+        commentCountMap[p.id] ?? 0,
+        userReactedSet.has(p.id),
+        userSavedSet.has(p.id),
+        false
+      )
+    )
+    .filter((p) => {
+      if (p.audience === 'only-me' && p.author_id !== currentUserId) return false
+      return true
+    })
 
   const nextCursor = hasMore ? pagePosts[pagePosts.length - 1].created_at : null
 
@@ -1033,35 +1014,21 @@ export async function fetchDiscoverPosts(
     profile.id
   )
 
-  const posts: PostWithAuthor[] = page.map((p: any, idx: number) => ({
-    id: p.id,
-    author_id: p.user_id,
-    type: (p.post_type as 'text' | 'image' | 'video') ?? 'text',
-    caption: p.content ?? null,
-    hashtags: [],
-    created_at: p.created_at,
-    updated_at: p.updated_at,
-    author: {
-      id: p.author?.id ?? '',
-      username: p.author?.username ?? '',
-      display_name: p.author?.display_name ?? '',
-      avatar_url: p.author?.avatar_url ?? null,
-      verified: false,
-    },
-    medias: (p.medias ?? []).map((m: any, i: number) => ({
-      id: m.id,
-      post_id: m.post_id,
-      url: m.media_url,
-      media_type: (m.media_type as 'image' | 'video') ?? 'image',
-      width: null, height: null, duration_s: null,
-      position: i,
-      created_at: m.created_at ?? p.created_at,
-    })),
-    reaction_count: reactionCountMap[p.id] ?? 0,
-    comment_count: commentCountMap[p.id] ?? 0,
-    user_reacted: userReactedSet.has(p.id),
-    user_saved: userSavedSet.has(p.id),
-  }))
+  const posts: PostWithAuthor[] = page
+    .map((p: any) =>
+      toPostWithAuthor(
+        p,
+        reactionCountMap[p.id] ?? 0,
+        commentCountMap[p.id] ?? 0,
+        userReactedSet.has(p.id),
+        userSavedSet.has(p.id),
+        false
+      )
+    )
+    .filter((p) => {
+      if (p.audience === 'only-me' && p.author_id !== profile.id) return false
+      return true
+    })
 
   return {
     posts,
@@ -1122,37 +1089,21 @@ export async function fetchFollowingPosts(
     profile.id
   )
 
-  const posts: PostWithAuthor[] = page.map((p: any) => ({
-    id: p.id,
-    author_id: p.user_id,
-    type: (p.post_type as 'text' | 'image' | 'video') ?? 'text',
-    caption: p.content ?? null,
-    hashtags: [],
-    created_at: p.created_at,
-    updated_at: p.updated_at,
-    author: {
-      id: p.author?.id ?? '',
-      username: p.author?.username ?? '',
-      display_name: p.author?.display_name ?? '',
-      avatar_url: p.author?.avatar_url ?? null,
-      verified: false,
-    },
-    medias: (p.medias ?? []).map((m: any, i: number) => ({
-      id: m.id,
-      post_id: m.post_id,
-      url: m.media_url,
-      media_type: (m.media_type as 'image' | 'video') ?? 'image',
-      width: null, height: null, duration_s: null,
-      position: i,
-      created_at: m.created_at ?? p.created_at,
-    })),
-    reaction_count: reactionCountMap[p.id] ?? 0,
-    comment_count: commentCountMap[p.id] ?? 0,
-    user_reacted: userReactedSet.has(p.id),
-    user_saved: userSavedSet.has(p.id),
-    // This whole tab is posts from people the viewer follows, by definition.
-    is_following_author: true,
-  }))
+  const posts: PostWithAuthor[] = page
+    .map((p: any) =>
+      toPostWithAuthor(
+        p,
+        reactionCountMap[p.id] ?? 0,
+        commentCountMap[p.id] ?? 0,
+        userReactedSet.has(p.id),
+        userSavedSet.has(p.id),
+        true
+      )
+    )
+    .filter((p) => {
+      if (p.audience === 'only-me' && p.author_id !== profile.id) return false
+      return true
+    })
 
   return {
     posts,
