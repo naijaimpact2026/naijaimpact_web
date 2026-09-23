@@ -358,11 +358,11 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
     return (
         <article className="bg-card rounded-2xl border border-border shadow-sm dark:shadow-none overflow-hidden">
             {/* ── Header ─────────────────────────────────────────────────────── */}
-            <div className="flex items-center gap-3 px-4 pt-4 pb-2">
+            <div className="flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 pt-3.5 sm:pt-4 pb-2">
                 <Link href={`/app/profile/${author.username}`} className="shrink-0">
-                    <Avatar className="h-10 w-10 border border-border">
+                    <Avatar className="h-9 w-9 sm:h-10 sm:w-10 border border-border">
                         <AvatarImage src={author.avatar_url ?? undefined} alt={author.display_name} />
-                        <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs sm:text-sm font-bold">
                             {authorInitials}
                         </AvatarFallback>
                     </Avatar>
@@ -371,14 +371,14 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1 flex-wrap">
                         <Link href={`/app/profile/${author.username}`}
-                            className="font-semibold text-sm hover:underline truncate text-foreground">
+                            className="font-semibold text-xs sm:text-sm hover:underline truncate text-foreground">
                             {author.display_name}
                         </Link>
                         {author.verified && (
                             <BadgeCheck className="h-3.5 w-3.5 text-primary shrink-0" />
                         )}
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1 text-[11px] sm:text-xs text-muted-foreground">
                         <span>@{author.username}</span>
                         <span>·</span>
                         <time dateTime={post.created_at}>{timeAgo(post.created_at)}</time>
@@ -392,17 +392,18 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
                         size="sm"
                         onClick={handleFollowToggle}
                         disabled={followPending}
-                        className="shrink-0 rounded-full gap-1.5 px-3"
+                        className="shrink-0 rounded-full gap-1 sm:gap-1.5 px-2.5 sm:px-3 text-xs h-7 sm:h-8"
                     >
                         {following ? (
                             <>
-                                <UserCheck className="h-3.5 w-3.5" />
-                                Following
+                                <UserCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                <span className="hidden xs:inline">Following</span>
+                                <span className="xs:hidden">✓</span>
                             </>
                         ) : (
                             <>
-                                <UserPlus className="h-3.5 w-3.5" />
-                                Follow
+                                <UserPlus className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                                <span>Follow</span>
                             </>
                         )}
                     </Button>
@@ -516,20 +517,20 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
             <div className="h-px bg-border mx-4" />
 
             {/* ── Action bar — counts shown as badges on their icon ─────────────── */}
-            <div className="flex items-center justify-around px-2 py-1">
+            <div className="flex items-center justify-around px-1 sm:px-2 py-1">
                 {/* Like / Unlike */}
                 <button
                     type="button"
                     onClick={handleReaction}
                     aria-label={reacted ? 'Remove like' : 'Like'}
                     aria-pressed={reacted}
-                    className={`flex items-center gap-1.5 flex-1 justify-center py-2 rounded-xl text-sm font-medium transition-all duration-200 active:scale-95 group hover:bg-muted ${
+                    className={`flex items-center gap-1 sm:gap-1.5 flex-1 justify-center py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 group hover:bg-muted ${
                         reacted ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                     }`}
                 >
                     <span className="relative flex items-center justify-center">
                         <ThumbsUp
-                            className={`h-4 w-4 transition-all duration-200 ${
+                            className={`h-3.5 w-3.5 sm:h-4 sm:w-4 transition-all duration-200 ${
                                 reacted
                                     ? 'fill-primary stroke-primary'
                                     : 'stroke-current fill-transparent'
@@ -542,7 +543,7 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
                             }`}
                         />
                         <span
-                            className={`absolute -top-2 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground transition-all duration-200 ${
+                            className={`absolute -top-2 -right-2.5 flex h-3.5 min-w-3.5 sm:h-4 sm:min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[8px] sm:text-[9px] font-bold leading-none text-primary-foreground transition-all duration-200 ${
                                 reactionCount > 0 ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'
                             } ${isLiking ? 'scale-110' : ''}`}
                         >
@@ -559,16 +560,16 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
                     onClick={() => router.push(`/app/feed/${post.id}`)}
                     aria-label={post.allow_comments === false ? 'Comments are disabled' : 'Comment'}
                     title={post.allow_comments === false ? 'Comments are disabled for this post' : 'Comment'}
-                    className="flex items-center gap-1.5 flex-1 justify-center py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    className="flex items-center gap-1 sm:gap-1.5 flex-1 justify-center py-2 rounded-xl text-xs sm:text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 >
                     <span className="relative flex items-center">
                         {post.allow_comments === false ? (
-                            <Lock className="h-4 w-4 text-muted-foreground/70" />
+                            <Lock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground/70" />
                         ) : (
-                            <MessageCircle className="h-4 w-4" />
+                            <MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         )}
                         {post.allow_comments !== false && comment_count > 0 && (
-                            <span className="absolute -top-2 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground">
+                            <span className="absolute -top-2 -right-2.5 flex h-3.5 min-w-3.5 sm:h-4 sm:min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[8px] sm:text-[9px] font-bold leading-none text-primary-foreground">
                                 {comment_count > 99 ? '99+' : comment_count}
                             </span>
                         )}
@@ -581,13 +582,13 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
                     onClick={handleShare}
                     aria-label={post.allow_sharing === false ? 'Sharing disabled' : 'Share'}
                     title={post.allow_sharing === false ? 'Sharing is disabled for this post' : 'Share'}
-                    className={`flex items-center gap-1.5 flex-1 justify-center py-2 rounded-xl text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-1 sm:gap-1.5 flex-1 justify-center py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors ${
                         post.allow_sharing === false
                             ? 'text-muted-foreground/60 hover:text-muted-foreground cursor-not-allowed'
                             : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                     }`}
                 >
-                    <Share2 className="h-4 w-4" />
+                    <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     <span>Share</span>
                 </button>
 
@@ -597,13 +598,13 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
                     onClick={handleSaveToggle}
                     aria-label={saved ? 'Unsave post' : 'Save post'}
                     aria-pressed={saved}
-                    className={`flex items-center gap-1.5 flex-1 justify-center py-2 rounded-xl text-sm font-medium transition-all duration-200 active:scale-95 group hover:bg-muted ${
+                    className={`flex items-center gap-1 sm:gap-1.5 flex-1 justify-center py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 active:scale-95 group hover:bg-muted ${
                         saved ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                     }`}
                 >
                     <span className="relative flex items-center justify-center">
                         <Bookmark
-                            className={`h-4 w-4 transition-all duration-200 ${
+                            className={`h-3.5 w-3.5 sm:h-4 sm:w-4 transition-all duration-200 ${
                                 saved
                                     ? 'fill-primary stroke-primary'
                                     : 'stroke-current fill-transparent'

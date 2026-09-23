@@ -3,16 +3,8 @@
 import { useState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Briefcase, Cpu, Sprout, Palette, HeartPulse, Sparkles, Users, Check, Loader2 } from 'lucide-react'
-
-const DISCOVER = [
-    { icon: Briefcase, label: 'Entrepreneurs', tag: 'entrepreneur', tint: 'bg-primary/10 text-primary' },
-    { icon: Cpu, label: 'Tech & Innovation', tag: 'tech', tint: 'bg-cyan/10 text-cyan' },
-    { icon: Sprout, label: 'Agriculture', tag: 'agriculture', tint: 'bg-emerald/10 text-emerald' },
-    { icon: Palette, label: 'Creative Hub', tag: 'creative', tint: 'bg-amber-500/10 text-amber-600' },
-    { icon: HeartPulse, label: 'Health & Wellness', tag: 'health', tint: 'bg-purple-500/10 text-purple-600' },
-    { icon: Sparkles, label: 'Faith & Purpose', tag: 'faith', tint: 'bg-rose-500/10 text-rose-600' },
-]
+import { COMMUNITY_TOPICS } from './community-data'
+import { Check, Loader2, ArrowRight } from 'lucide-react'
 
 interface CommunityLeftRailProps
 {
@@ -60,11 +52,12 @@ export default function CommunityLeftRail({ activeTopic }: CommunityLeftRailProp
                     )}
                 </div>
                 <div className="space-y-1">
-                    {DISCOVER.map((c) =>
+                    {COMMUNITY_TOPICS.map((c) =>
                     {
                         const isSelected = activeTopic?.toLowerCase() === c.tag.toLowerCase()
                         const isLoading = isPending && loadingTag === c.tag
                         const targetHref = isSelected ? '/app/feed' : `/app/feed?topic=${c.tag}`
+                        const Icon = c.icon
 
                         return (
                             <Link
@@ -80,7 +73,7 @@ export default function CommunityLeftRail({ activeTopic }: CommunityLeftRailProp
                                 }`}
                             >
                                 <div className={`flex items-center justify-center w-8 h-8 rounded-lg shrink-0 ${c.tint} group-hover:scale-105 transition-transform`}>
-                                    <c.icon className="w-4 h-4" />
+                                    <Icon className="w-4 h-4" />
                                 </div>
                                 <span className="text-xs font-medium flex-1 truncate">{c.label}</span>
                                 {isLoading ? (
@@ -103,11 +96,39 @@ export default function CommunityLeftRail({ activeTopic }: CommunityLeftRailProp
                 </div>
             </div>
 
-            <div className="rounded-2xl bg-card border border-border p-4 shadow-sm">
-                <h3 className="font-bold text-sm text-foreground mb-2">My Groups</h3>
-                <div className="flex flex-col items-center text-center py-6 text-muted-foreground">
-                    <Users className="w-8 h-8 opacity-30 mb-2" />
-                    <p className="text-xs">Community groups aren&apos;t live yet.</p>
+            <div className="rounded-2xl bg-card border border-border p-4 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-sm text-foreground">Featured Hubs</h3>
+                    <Link
+                        href="/app/feed"
+                        className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-0.5"
+                    >
+                        Explore <ArrowRight className="w-2.5 h-2.5" />
+                    </Link>
+                </div>
+                <div className="space-y-2">
+                    {COMMUNITY_TOPICS.slice(0, 3).map((hub) => (
+                        <Link
+                            key={hub.id}
+                            href={`/app/feed?topic=${hub.tag}`}
+                            className="flex items-center justify-between p-2 rounded-xl hover:bg-muted/70 transition-colors group"
+                        >
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-sm">{hub.emoji}</span>
+                                <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                                        {hub.label}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground truncate">
+                                        #{hub.tag}
+                                    </p>
+                                </div>
+                            </div>
+                            <span className="text-[10px] font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                View
+                            </span>
+                        </Link>
+                    ))}
                 </div>
             </div>
         </aside>

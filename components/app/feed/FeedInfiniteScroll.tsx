@@ -10,6 +10,7 @@ import FeedTabs, { type FeedTab } from './FeedTabs'
 import SuggestedAccounts, { type SuggestedUser } from './SuggestedAccounts'
 import PromotedCarousel from './PromotedCarousel'
 import CreatePostModal from './CreatePostModal'
+import CommunityGroupsView from './CommunityGroupsView'
 import { fetchPostsPage, fetchFollowingPosts, fetchSavedPostsPage, fetchSuggestedUsers } from '@/lib/actions/posts'
 import { fetchPromotedContent, type PromotedItem } from '@/lib/actions/promoted'
 import type { PostWithAuthor, User } from '@/lib/types'
@@ -57,10 +58,14 @@ export default function FeedInfiniteScroll({
     const [promotedItems, setPromotedItems] = useState<PromotedItem[]>([])
     const [isComposerOpen, setIsComposerOpen] = useState(false)
     const [startWithMedia, setStartWithMedia] = useState(false)
+    const [startWithTagging, setStartWithTagging] = useState(false)
+    const [composerTopic, setComposerTopic] = useState<string | null>(null)
 
-    function handleOpenComposer(withMedia: boolean = false)
+    function handleOpenComposer(options?: { withMedia?: boolean; withTagging?: boolean; topic?: string | null })
     {
-        setStartWithMedia(withMedia)
+        setStartWithMedia(Boolean(options?.withMedia))
+        setStartWithTagging(Boolean(options?.withTagging))
+        setComposerTopic(options?.topic ?? null)
         setIsComposerOpen(true)
     }
 
@@ -100,7 +105,7 @@ export default function FeedInfiniteScroll({
         }
     }, [topic])
 
-    const UNBACKED_TABS: FeedTab[] = ['groups', 'opportunities', 'events']
+    const UNBACKED_TABS: FeedTab[] = ['opportunities', 'events']
 
     // Switch tabs — reset posts and fetch fresh
     async function handleTabChange(tab: FeedTab)
@@ -111,6 +116,14 @@ export default function FeedInfiniteScroll({
         setPosts([])
         setCursor(null)
         setExhausted(false)
+
+        // Groups tab shows rich interactive community group directory
+        if (tab === 'groups')
+        {
+            setTabLoading(false)
+            setExhausted(true)
+            return
+        }
 
         // Not backed by real data yet — show an honest "coming soon" state
         if (UNBACKED_TABS.includes(tab))
@@ -212,7 +225,19 @@ export default function FeedInfiniteScroll({
             {activeTab === 'for-you' && (
                 <PostComposerBar
                     user={user ?? null}
-                    onOpen={(withMedia) => handleOpenComposer(Boolean(withMedia))}
+                    onOpen={(options) => handleOpenComposer(options)}
+                />
+            )}
+
+            {/* Groups Tab — interactive community group directory */}
+            {activeTab === 'groups' && (
+                <CommunityGroupsView
+                    onSelectGroupFeed={(tag) => {
+                        router.push(`/app/feed?topic=${tag}`)
+                    }}
+                    onPostToGroup={(tag) => {
+                        handleOpenComposer({ topic: tag })
+                    }}
                 />
             )}
 
@@ -220,12 +245,10 @@ export default function FeedInfiniteScroll({
             {UNBACKED_TABS.includes(activeTab) && !isLoading && (
                 <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border border-border shadow-sm dark:shadow-none text-muted-foreground">
                     <p className="text-lg font-semibold">
-                        {activeTab === 'groups' && 'Groups coming soon'}
                         {activeTab === 'opportunities' && 'Opportunities coming soon'}
                         {activeTab === 'events' && 'Events coming soon'}
                     </p>
                     <p className="text-sm mt-1 text-center px-4">
-                        {activeTab === 'groups' && 'Join community groups to see their posts here.'}
                         {activeTab === 'opportunities' && 'Jobs, grants and partnerships will show up here.'}
                         {activeTab === 'events' && 'Community events will show up here.'}
                     </p>
@@ -233,7 +256,7 @@ export default function FeedInfiniteScroll({
             )}
 
             {/* Feed posts */}
-            {!isLoading && posts.length === 0 && !UNBACKED_TABS.includes(activeTab) ? (
+            {!isLoading && posts.length === 0 && !UNBACKED_TABS.includes(activeTab) && activeTab !== 'groups' ? (
                 <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border border-border shadow-sm dark:shadow-none text-muted-foreground">
                     <p className="text-lg font-semibold">
                         {activeTab === 'following' && 'No posts from people you follow'}
@@ -298,9 +321,9 @@ export default function FeedInfiniteScroll({
                 </div>
             )}
 
-            {!exhausted && <div ref={sentinelRef} className="h-1" aria-hidden="true" />}
+            {!exhausted && activeTab !== 'groups' && <div ref={sentinelRef} className="h-1" aria-hidden="true" />}
 
-            {exhausted && posts.length > 0 && (
+            {exhausted && posts.length > 0 && activeTab !== 'groups' && (
                 <p className="text-center text-sm text-muted-foreground py-8">
                     You&apos;ve seen all recent posts.
                 </p>
@@ -308,7 +331,7 @@ export default function FeedInfiniteScroll({
 
             {/* FAB — mobile only */}
             <button
-                onClick={() => handleOpenComposer(false)}
+                onClick={() => handleOpenComposer()}
                 aria-label="Create post"
                 className="xl:hidden fixed bottom-20 right-4 z-30 flex items-center justify-center w-14 h-14 rounded-full bg-primary shadow-lg hover:bg-primary/90 transition-all active:scale-95"
             >
@@ -321,8 +344,9 @@ export default function FeedInfiniteScroll({
                 onOpenChange={setIsComposerOpen}
                 user={user ?? null}
                 onPostCreated={handlePostCreated}
-                activeTopic={topic}
+                activeTopic={composerTopic ?? topic}
                 startWithMedia={startWithMedia}
+                startWithTagging={startWithTagging}
             />
         </div>
     )
