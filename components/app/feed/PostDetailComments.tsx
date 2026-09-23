@@ -5,6 +5,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import CommentInput, { type CommentResult } from './CommentInput'
 import { formatDistanceToNow } from 'date-fns'
 import { MessageCircle, CornerDownRight } from 'lucide-react'
+import
+{
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { deleteComment } from '@/lib/actions/posts'
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -56,6 +68,7 @@ interface CommentItemProps
     onReplyAdded: (comment: CommentResult) => void
     onReplyConfirmed?: (tempId: string, confirmed: CommentResult) => void
     onReplyFailed?: (tempId: string, restoredText: string) => void
+    onDeleteComment: (commentId: string) => void
 }
 
 function CommentItem({
@@ -69,10 +82,12 @@ function CommentItem({
     onReplyAdded,
     onReplyConfirmed,
     onReplyFailed,
+    onDeleteComment,
 }: CommentItemProps)
 {
     const initials = getInitials(comment.author.display_name || comment.author.username)
     const isReplying = replyingToId === comment.id
+    const isOwnComment = !!(currentUser?.username && currentUser.username === comment.author.username)
 
     return (
         <li className="flex gap-3" aria-label={`Comment by ${comment.author.display_name}`}>
@@ -110,12 +125,22 @@ function CommentItem({
                         </time>
                     )}
                     {!comment.isOptimistic && (
-                        <button
-                            onClick={() => (isReplying ? onCancelReply() : onStartReply(comment.id))}
-                            className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                            Reply
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => (isReplying ? onCancelReply() : onStartReply(comment.id))}
+                                className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                Reply
+                            </button>
+                            {isOwnComment && (
+                                <button
+                                    onClick={() => onDeleteComment(comment.id)}
+                                    className="text-xs font-semibold text-muted-foreground hover:text-destructive transition-colors"
+                                >
+                                    Delete
+                                </button>
+                            )}
+                        </div>
                     )}
                 </div>
 
@@ -153,9 +178,19 @@ function CommentItem({
                                                 Posting…
                                             </span>
                                         ) : (
-                                            <time dateTime={reply.created_at} className="text-[11px] text-muted-foreground mt-0.5 pl-1 block">
-                                                {timeAgo(reply.created_at)}
-                                            </time>
+                                            <div className="flex items-center gap-3 mt-0.5 pl-1">
+                                                <time dateTime={reply.created_at} className="text-[11px] text-muted-foreground">
+                                                    {timeAgo(reply.created_at)}
+                                                </time>
+                                                {currentUser?.username && currentUser.username === reply.author.username && (
+                                                    <button
+                                                        onClick={() => onDeleteComment(reply.id)}
+                                                        className="text-[11px] font-semibold text-muted-foreground hover:text-destructive transition-colors"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 </li>
@@ -214,6 +249,48 @@ export default function PostDetailComments({
     const [comments, setComments] = useState<CommentResult[]>(initialComments)
     const [count, setCount] = useState(commentCount)
     const [replyingToId, setReplyingToId] = useState<string | null>(null)
+    const [commentToDeleteId, setCommentToDeleteId] = useState<string | null>(null)
+    const [isDeletingComment, setIsDeletingComment] = useState(false)
+
+    async function handleConfirmDelete()
+    {
+        if (!commentToDeleteId || isDeletingComment) return
+        const targetId = commentToDeleteId
+        setCommentToDeleteId(null)
+        setIsDeletingComment(true)
+
+        // 1. Optimistic removal
+        const previousComments = [...comments]
+        const previousCount = count
+
+        const removedCount = previousComments.filter(
+            (c) => c.id === targetId || c.parent_comment_id === targetId
+        ).length
+
+        setComments((prev) => prev.filter((c) => c.id !== targetId && c.parent_comment_id !== targetId))
+        setCount((c) => Math.max(0, c - (removedCount || 1)))
+
+        // 2. Background server execution
+        try
+        {
+            await deleteComment(targetId)
+            const { toast } = await import('sonner')
+            toast.success('Comment deleted')
+        }
+        catch (err)
+        {
+            console.error('Failed to delete comment:', err)
+            // 3. Rollback on failure
+            setComments(previousComments)
+            setCount(previousCount)
+            const { toast } = await import('sonner')
+            toast.error('Could not delete comment. Please try again.')
+        }
+        finally
+        {
+            setIsDeletingComment(false)
+        }
+    }
 
     function handleCommentAdded(comment: CommentResult)
     {
@@ -298,10 +375,33 @@ export default function PostDetailComments({
                             onReplyAdded={handleCommentAdded}
                             onReplyConfirmed={handleCommentConfirmed}
                             onReplyFailed={handleCommentFailed}
+                            onDeleteComment={setCommentToDeleteId}
                         />
                     ))}
                 </ul>
             )}
+
+            {/* Delete comment confirmation modal */}
+            <AlertDialog open={!!commentToDeleteId} onOpenChange={(open) => !open && setCommentToDeleteId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete comment?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete this comment? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeletingComment}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => { e.preventDefault(); handleConfirmDelete() }}
+                            disabled={isDeletingComment}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {isDeletingComment ? 'Deleting…' : 'Delete'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </section>
     )
 }

@@ -512,6 +512,80 @@ export async function addComment(
 }
 
 /**
+ * Delete a comment or reply.
+ * Allowed for the comment's author or the parent post's author.
+ * Cleans up any child replies if deleting a top-level comment.
+ */
+export async function deleteComment(commentId: string): Promise<{ success: boolean }> {
+  const supabase = await createClient()
+
+  let user: import('@supabase/supabase-js').User | null = null
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) throw new Error('Unauthenticated')
+    user = data.user
+  } catch (err: any) {
+    if (err?.message === 'Unauthenticated') throw err
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (!sessionData.session?.user) throw new Error('Unauthenticated')
+    user = sessionData.session.user
+  }
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (!profile) throw new Error('User profile not found')
+
+  // Fetch comment to check ownership
+  const { data: comment, error: commentError } = await supabase
+    .from('post_comments')
+    .select('id, user_id, post_id')
+    .eq('id', commentId)
+    .single()
+
+  if (commentError || !comment) throw new Error('Comment not found')
+
+  // Check if current user is comment author OR post author
+  if (comment.user_id !== profile.id) {
+    const { data: post } = await supabase
+      .from('posts')
+      .select('id, user_id')
+      .eq('id', comment.post_id)
+      .single()
+
+    if (!post || post.user_id !== profile.id) {
+      throw new Error('Unauthorized to delete this comment')
+    }
+  }
+
+  // Delete child replies if any
+  await supabase
+    .from('post_comments')
+    .delete()
+    .eq('parent_comment_id', commentId)
+
+  // Delete the comment itself
+  const { error: deleteError } = await supabase
+    .from('post_comments')
+    .delete()
+    .eq('id', commentId)
+
+  if (deleteError) {
+    console.error('deleteComment error:', deleteError)
+    throw new Error('Failed to delete comment')
+  }
+
+  const { revalidatePath } = await import('next/cache')
+  revalidatePath(`/app/feed/${comment.post_id}`)
+  revalidatePath('/app/feed')
+
+  return { success: true }
+}
+
+/**
  * Toggle the current user's reaction on a post.
  * If a reaction exists, remove it. Otherwise, insert one.
  */
