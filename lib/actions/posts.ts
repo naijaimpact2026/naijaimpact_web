@@ -471,24 +471,24 @@ export async function toggleReaction(postId: string): Promise<{ reacted: boolean
   if (!profile) throw new Error('User profile not found')
 
   // Check if reaction already exists
-  const { data: existing, error: selectError } = await supabase
+  const { data: existingRows, error: selectError } = await supabase
     .from('post_reactions')
     .select('id')
     .eq('post_id', postId)
     .eq('user_id', profile.id)
-    .maybeSingle()
 
   if (selectError) {
     console.error('toggleReaction select error:', selectError)
     throw new Error('Failed to check reaction')
   }
 
-  if (existing) {
+  if (existingRows && existingRows.length > 0) {
     // Remove reaction
     const { error: deleteError } = await supabase
       .from('post_reactions')
       .delete()
-      .eq('id', existing.id)
+      .eq('post_id', postId)
+      .eq('user_id', profile.id)
 
     if (deleteError) {
       console.error('toggleReaction delete error:', deleteError)

@@ -94,6 +94,7 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onHide
     const [reacted, setReacted] = useState(post.user_reacted)
     const [reactionCount, setReactionCount] = useState(post.reaction_count)
     const [isLiking, setIsLiking] = useState(false)
+    const [isUnliking, setIsUnliking] = useState(false)
     const [saved, setSaved] = useState(post.user_saved)
     const [savePending, setSavePending] = useState(false)
     const [expanded, setExpanded] = useState(false)
@@ -160,6 +161,11 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onHide
         {
             setIsLiking(true)
             setTimeout(() => setIsLiking(false), 450)
+        }
+        else
+        {
+            setIsUnliking(true)
+            setTimeout(() => setIsUnliking(false), 350)
         }
         onReactionToggle?.(post.id, newReacted, delta)
 
@@ -423,7 +429,7 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onHide
 
             {/* ── Action bar — counts shown as badges on their icon ─────────────── */}
             <div className="flex items-center justify-around px-2 py-1">
-                {/* Like */}
+                {/* Like / Unlike */}
                 <button
                     type="button"
                     onClick={handleReaction}
@@ -435,21 +441,27 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onHide
                 >
                     <span className="relative flex items-center justify-center">
                         <ThumbsUp
-                            className={`h-4 w-4 transition-transform duration-200 ${
-                                reacted ? 'fill-primary stroke-primary' : 'stroke-current'
-                            } ${isLiking ? 'scale-125 -rotate-12' : 'group-hover:scale-110'}`}
+                            className={`h-4 w-4 transition-all duration-200 ${
+                                reacted
+                                    ? 'fill-primary stroke-primary'
+                                    : 'stroke-current fill-transparent'
+                            } ${
+                                isLiking
+                                    ? 'scale-125 -rotate-12'
+                                    : isUnliking
+                                    ? 'scale-90 rotate-6 text-muted-foreground'
+                                    : 'group-hover:scale-110'
+                            }`}
                         />
-                        {reactionCount > 0 && (
-                            <span
-                                className={`absolute -top-2 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground transition-all duration-200 ${
-                                    isLiking ? 'scale-110' : 'scale-100'
-                                }`}
-                            >
-                                {reactionCount > 99 ? '99+' : reactionCount}
-                            </span>
-                        )}
+                        <span
+                            className={`absolute -top-2 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground transition-all duration-200 ${
+                                reactionCount > 0 ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'
+                            } ${isLiking ? 'scale-110' : ''}`}
+                        >
+                            {reactionCount > 99 ? '99+' : reactionCount}
+                        </span>
                     </span>
-                    <span className={reacted ? 'font-semibold' : ''}>
+                    <span className={`transition-colors duration-200 ${reacted ? 'font-semibold text-primary' : ''}`}>
                         {reacted ? 'Liked' : 'Like'}
                     </span>
                 </button>
