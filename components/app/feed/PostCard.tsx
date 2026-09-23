@@ -36,10 +36,11 @@ import
         UserPlus,
         UserCheck,
         UserX,
+        Trash2,
     } from 'lucide-react'
 import MediaDisplay from './MediaDisplay'
 import type { PostWithAuthor } from '@/lib/types'
-import { toggleReaction, toggleSavePost } from '@/lib/actions/posts'
+import { toggleReaction, toggleSavePost, deletePost } from '@/lib/actions/posts'
 
 // ─── Caption parser ────────────────────────────────────────────────────────
 
@@ -104,6 +105,8 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
     const [followPending, setFollowPending] = useState(false)
     const [blockDialogOpen, setBlockDialogOpen] = useState(false)
     const [blocking, setBlocking] = useState(false)
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [deleting, setDeleting] = useState(false)
 
     useEffect(() =>
     {
@@ -245,6 +248,36 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
         }
     }
 
+    async function handleDelete()
+    {
+        if (deleting) return
+        setDeleting(true)
+
+        try
+        {
+            await deletePost(post.id)
+            setDeleteDialogOpen(false)
+            onHide?.(post.id)
+            const { toast } = await import('sonner')
+            toast.success('Post deleted')
+
+            if (typeof window !== 'undefined' && window.location.pathname.includes(`/app/feed/${post.id}`))
+            {
+                router.push('/app/feed')
+            }
+        }
+        catch (err)
+        {
+            console.error('Failed to delete post:', err)
+            const { toast } = await import('sonner')
+            toast.error('Could not delete post. Please try again.')
+        }
+        finally
+        {
+            setDeleting(false)
+        }
+    }
+
     async function copyToClipboard(text: string): Promise<boolean>
     {
         try
@@ -376,7 +409,7 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
                         <DropdownMenuItem onClick={() => router.push(`/app/feed/${post.id}`)}>
                             <MessageCircle className="h-4 w-4 mr-2" /> View post
                         </DropdownMenuItem>
-                        {currentUserId !== author.id && (
+                        {currentUserId !== author.id ? (
                             <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
@@ -386,10 +419,41 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
                                     <UserX className="h-4 w-4 mr-2" /> Block @{author.username}
                                 </DropdownMenuItem>
                             </>
+                        ) : (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    variant="destructive"
+                                    onClick={() => setDeleteDialogOpen(true)}
+                                >
+                                    <Trash2 className="h-4 w-4 mr-2" /> Delete post
+                                </DropdownMenuItem>
+                            </>
                         )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
+
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete post?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete this post and all its interactions. This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => { e.preventDefault(); handleDelete() }}
+                            disabled={deleting}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {deleting ? 'Deleting…' : 'Delete'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             <AlertDialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
                 <AlertDialogContent>

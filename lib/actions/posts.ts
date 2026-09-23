@@ -332,6 +332,70 @@ export async function createPost(
 }
 
 /**
+ * Delete a post owned by the current user.
+ * Cleans up related media, reactions, comments, and saves before removing the post.
+ */
+export async function deletePost(postId: string): Promise<{ success: boolean }> {
+  const supabase = await createClient()
+
+  let user: import('@supabase/supabase-js').User | null = null
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) throw new Error('Unauthenticated')
+    user = data.user
+  } catch (err: any) {
+    if (err?.message === 'Unauthenticated') throw err
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (!sessionData.session?.user) throw new Error('Unauthenticated')
+    user = sessionData.session.user
+  }
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (!profile) throw new Error('User profile not found')
+
+  // Verify ownership
+  const { data: post, error: fetchError } = await supabase
+    .from('posts')
+    .select('id, user_id')
+    .eq('id', postId)
+    .single()
+
+  if (fetchError || !post) throw new Error('Post not found')
+  if (post.user_id !== profile.id) throw new Error('Unauthorized to delete this post')
+
+  // Clean up child rows to prevent foreign key errors
+  await Promise.all([
+    supabase.from('post_medias').delete().eq('post_id', postId),
+    supabase.from('post_reactions').delete().eq('post_id', postId),
+    supabase.from('post_comments').delete().eq('post_id', postId),
+    supabase.from('saved_posts').delete().eq('post_id', postId),
+  ])
+
+  // Delete the post row
+  const { error: deleteError } = await supabase
+    .from('posts')
+    .delete()
+    .eq('id', postId)
+    .eq('user_id', profile.id)
+
+  if (deleteError) {
+    console.error('deletePost error:', deleteError)
+    throw new Error('Failed to delete post')
+  }
+
+  const { revalidatePath } = await import('next/cache')
+  revalidatePath('/app/feed')
+  revalidatePath('/app/profile')
+
+  return { success: true }
+}
+
+/**
  * Add a comment to a post, or a reply to an existing comment when
  * parentCommentId is provided.
  */

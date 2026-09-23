@@ -145,6 +145,7 @@ function PostFeedList({
                             prev.map((p) => (p.id === postId ? { ...p, user_saved: saved } : p))
                         )
                     }}
+                    onHide={(postId) => setPosts((prev) => prev.filter((p) => p.id !== postId))}
                 />
             ))}
 
