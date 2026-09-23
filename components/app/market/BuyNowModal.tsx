@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
+import { toast } from '@/components/toast'
 import { X, ShoppingCart, MapPin, Truck, Package, Lock } from 'lucide-react'
 import { createOrder } from '@/lib/actions/marketplace'
 import type { ProductWithSeller } from '@/lib/types'

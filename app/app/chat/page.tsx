@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { followUser, unfollowUser } from '@/lib/actions/profile'
 import { startDmChat, fetchFollowingForChat, fetchSuggestedUsers } from '@/lib/actions/chat'
-import { toast } from 'sonner'
+import { toast } from '@/components/toast'
 import { SkeletonAvatar, SkeletonLine, WAVE_STEP } from '@/components/app/skeletons/primitives'
 import ChatSkeleton from '@/components/app/skeletons/ChatSkeleton'
 
