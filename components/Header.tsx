@@ -38,13 +38,40 @@ export default function Header()
         >
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-            <Image src="/logo.png" alt="Hubnovo" width={36} height={36} className="rounded-lg" priority />
+            {/* Light Mode Logo */}
+            <Image
+              src="/logo.png"
+              alt="Hubnovo"
+              width={36}
+              height={36}
+              className="rounded-lg dark:hidden"
+              priority
+            />
+            {/* Dark Mode Logo */}
+            <Image
+              src="/logo-darkmode (1).png"
+              alt="Hubnovo"
+              width={36}
+              height={36}
+              className="rounded-lg hidden dark:block"
+              priority
+            />
+            {/* Light Mode Wordmark */}
             <Image
               src="/logo-wordmark.png"
               alt="Hubnovo"
               width={96}
               height={32}
-              className="h-7 w-auto hidden sm:inline"
+              className="h-7 w-auto hidden sm:inline dark:hidden"
+              priority
+            />
+            {/* Dark Mode Wordmark */}
+            <Image
+              src="/logo-darkmode (2).png"
+              alt="Hubnovo"
+              width={96}
+              height={32}
+              className="h-7 w-auto hidden dark:sm:inline"
               priority
             />
           </Link>

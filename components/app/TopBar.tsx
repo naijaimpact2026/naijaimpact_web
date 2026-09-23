@@ -48,8 +48,14 @@ export default function TopBar({ user, notificationCount = 0, messageCount = 0, 
 
             {/* Logo */}
             <Link href="/app" className="flex items-center gap-2 shrink-0">
-                <Image src="/logo.png" alt="Hubnovo" width={30} height={30} className="rounded-md" unoptimized />
-                <Image src="/logo-wordmark.png" alt="Hubnovo" width={90} height={30} className="hidden sm:block h-6 w-auto" unoptimized />
+                {/* Light Mode Logo */}
+                <Image src="/logo.png" alt="Hubnovo" width={30} height={30} className="rounded-md dark:hidden" unoptimized />
+                {/* Dark Mode Logo */}
+                <Image src="/logo-darkmode (1).png" alt="Hubnovo" width={30} height={30} className="rounded-md hidden dark:block" unoptimized />
+                {/* Light Mode Wordmark */}
+                <Image src="/logo-wordmark.png" alt="Hubnovo" width={90} height={30} className="hidden sm:block dark:hidden h-6 w-auto" unoptimized />
+                {/* Dark Mode Wordmark */}
+                <Image src="/logo-darkmode (2).png" alt="Hubnovo" width={90} height={30} className="hidden dark:sm:block h-6 w-auto" unoptimized />
             </Link>
 
             {/* Search */}

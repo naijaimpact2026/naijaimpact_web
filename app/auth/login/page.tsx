@@ -101,6 +101,8 @@ export default function LoginPage() {
                 }}
             >
 
+
+
                 {/* Background glow */}
                 <div className="absolute inset-0 pointer-events-none">
 
@@ -163,6 +165,7 @@ export default function LoginPage() {
                             height={64}
                             className="h-14 w-auto"
                         />
+
                     </Link>
 
                 </div>
@@ -321,6 +324,7 @@ export default function LoginPage() {
             </div>
 
 
+
             {/* =========================================================
                 RIGHT — LOGIN PANEL
             ========================================================= */}
@@ -375,6 +379,7 @@ export default function LoginPage() {
                         <p className="mt-2 text-[15px] text-slate-400">
                             Sign in to continue to Hubnovo
                         </p>
+
 
                     </div>
 

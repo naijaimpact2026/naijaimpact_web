@@ -70,8 +70,8 @@ export default function Footer()
           {/* Brand col — takes 2 cols on lg */}
           <div className="lg:col-span-2 space-y-5">
             <Link href="/" className="inline-flex items-center gap-2.5 group">
-              <Image src="/logo.png" alt="Hubnovo" width={40} height={40} className="rounded-xl" />
-              <Image src="/logo-wordmark.png" alt="Hubnovo" width={120} height={40} className="h-8 w-auto" />
+              <Image src="/logo-darkmode (1).png" alt="Hubnovo" width={40} height={40} className="rounded-xl" />
+              <Image src="/logo-darkmode (2).png" alt="Hubnovo" width={120} height={40} className="h-8 w-auto" />
             </Link>
 
             <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
