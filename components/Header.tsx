@@ -5,13 +5,11 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Menu, X, ArrowRight } from 'lucide-react'
 
-export default function Header()
-{
+export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
-  useEffect(() =>
-  {
+  useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
@@ -38,40 +36,20 @@ export default function Header()
         >
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-            {/* Light Mode Logo */}
             <Image
               src="/logo.png"
               alt="Hubnovo"
               width={36}
               height={36}
-              className="rounded-lg dark:hidden"
+              className="rounded-lg"
               priority
             />
-            {/* Dark Mode Logo */}
-            <Image
-              src="/logo-darkmode (1).png"
-              alt="Hubnovo"
-              width={36}
-              height={36}
-              className="rounded-lg hidden dark:block"
-              priority
-            />
-            {/* Light Mode Wordmark */}
             <Image
               src="/logo-wordmark.png"
               alt="Hubnovo"
               width={96}
               height={32}
-              className="h-7 w-auto hidden sm:inline dark:hidden"
-              priority
-            />
-            {/* Dark Mode Wordmark */}
-            <Image
-              src="/logo-darkmode (2).png"
-              alt="Hubnovo"
-              width={96}
-              height={32}
-              className="h-7 w-auto hidden dark:sm:inline"
+              className="h-7 w-auto hidden sm:inline"
               priority
             />
           </Link>

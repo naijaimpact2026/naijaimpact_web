@@ -49,10 +49,7 @@ export default function About() {
           <div className="relative space-y-4">
             <div className="rounded-2xl border border-border bg-white shadow-sm p-7">
               <div className="flex items-center gap-3 mb-6">
-                {/* Light Mode Logo */}
-                <Image src="/logo.png" alt="Hubnovo" width={44} height={44} className="rounded-xl dark:hidden" />
-                {/* Dark Mode Logo */}
-                <Image src="/logo-darkmode (1).png" alt="Hubnovo" width={44} height={44} className="rounded-xl hidden dark:block" />
+                <Image src="/logo.png" alt="Hubnovo" width={44} height={44} className="rounded-xl" />
                 <div>
                   <div className="font-bold text-secondary">Hubnovo</div>
                   <div className="text-xs text-muted-foreground">Est. 2020 · Lagos, Nigeria</div>
