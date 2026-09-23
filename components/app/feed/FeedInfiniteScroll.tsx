@@ -272,7 +272,7 @@ export default function FeedInfiniteScroll({
             {isLoading && (
                 <div className="space-y-3">
                     {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-                        <PostCardSkeleton key={`skeleton-${i}`} />
+                        <PostCardSkeleton key={`skeleton-${i}`} delay={i * 80} />
                     ))}
                 </div>
             )}

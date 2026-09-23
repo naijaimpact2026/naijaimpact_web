@@ -15,6 +15,8 @@ import { searchUsers, searchPosts, searchCourses } from '@/lib/actions/search'
 import { fetchSuggestedUsers } from '@/lib/actions/posts'
 import { followUser, unfollowUser } from '@/lib/actions/profile'
 import { toPublicStorageUrl } from '@/lib/supabase-image'
+import { Skeleton } from '@/components/ui/skeleton'
+import { SkeletonLine, WAVE_STEP } from '@/components/app/skeletons/primitives'
 
 type UserResult = {
     id: string; username: string; display_name: string; avatar_url: string | null
@@ -64,11 +66,11 @@ function Skeletons()
     return (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="rounded-2xl bg-card border border-border overflow-hidden animate-pulse">
-                    <div className="h-24 bg-muted" />
+                <div key={i} className="rounded-2xl bg-card border border-border overflow-hidden">
+                    <Skeleton className="h-24 w-full rounded-none" delay={i * WAVE_STEP} />
                     <div className="p-3 space-y-2">
-                        <div className="h-3 bg-muted rounded-full w-2/3" />
-                        <div className="h-2.5 bg-muted rounded-full w-1/2" />
+                        <SkeletonLine width="65%" height={12} delay={i * WAVE_STEP} />
+                        <SkeletonLine width="45%" height={10} delay={i * WAVE_STEP} />
                     </div>
                 </div>
             ))}
