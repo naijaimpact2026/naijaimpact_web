@@ -41,11 +41,15 @@ async function getPost(postId: string, currentUserId: string | null): Promise<Po
     ])
 
     let userReacted = false
+    let userSaved = false
     if (currentUserId)
     {
-        const { data: r } = await supabase
-            .from('post_reactions').select('id').eq('post_id', postId).eq('user_id', currentUserId).maybeSingle()
+        const [{ data: r }, { data: s }] = await Promise.all([
+            supabase.from('post_reactions').select('id').eq('post_id', postId).eq('user_id', currentUserId).maybeSingle(),
+            supabase.from('saved_posts').select('id').eq('post_id', postId).eq('user_id', currentUserId).maybeSingle(),
+        ])
         userReacted = !!r
+        userSaved = !!s
     }
 
     return {
@@ -62,7 +66,7 @@ async function getPost(postId: string, currentUserId: string | null): Promise<Po
             media_type: (m.media_type as 'image' | 'video') ?? 'image',
             width: null, height: null, duration_s: null, position: i, created_at: m.created_at ?? p.created_at,
         })),
-        reaction_count: rc ?? 0, comment_count: cc ?? 0, user_reacted: userReacted,
+        reaction_count: rc ?? 0, comment_count: cc ?? 0, user_reacted: userReacted, user_saved: userSaved,
     }
 }
 

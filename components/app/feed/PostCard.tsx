@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -39,6 +39,7 @@ import
     } from 'lucide-react'
 import MediaDisplay from './MediaDisplay'
 import type { PostWithAuthor } from '@/lib/types'
+import { toggleReaction } from '@/lib/actions/posts'
 
 // ─── Caption parser ────────────────────────────────────────────────────────
 
@@ -92,7 +93,7 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onHide
     const router = useRouter()
     const [reacted, setReacted] = useState(post.user_reacted)
     const [reactionCount, setReactionCount] = useState(post.reaction_count)
-    const [reactionPending, setReactionPending] = useState(false)
+    const [isLiking, setIsLiking] = useState(false)
     const [saved, setSaved] = useState(post.user_saved)
     const [savePending, setSavePending] = useState(false)
     const [expanded, setExpanded] = useState(false)
@@ -100,6 +101,12 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onHide
     const [followPending, setFollowPending] = useState(false)
     const [blockDialogOpen, setBlockDialogOpen] = useState(false)
     const [blocking, setBlocking] = useState(false)
+
+    useEffect(() =>
+    {
+        setReacted(post.user_reacted)
+        setReactionCount(post.reaction_count)
+    }, [post.user_reacted, post.reaction_count])
 
     const { author, medias, comment_count } = post
     const authorInitials = author.display_name
@@ -143,25 +150,32 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onHide
 
     async function handleReaction()
     {
-        if (reactionPending) return
         const newReacted = !reacted
         const delta = newReacted ? 1 : -1
+
+        // 1. Instant optimistic UI update
         setReacted(newReacted)
-        setReactionCount((c) => c + delta)
-        setReactionPending(true)
+        setReactionCount((c) => Math.max(0, c + delta))
+        if (newReacted)
+        {
+            setIsLiking(true)
+            setTimeout(() => setIsLiking(false), 450)
+        }
         onReactionToggle?.(post.id, newReacted, delta)
+
+        // 2. Server mutation in the background (no blocking/loading state)
         try
         {
-            const { toggleReaction } = await import('@/lib/actions/posts')
             await toggleReaction(post.id)
-        } catch
+        } catch (err)
         {
+            // 3. Rollback only if the server explicitly fails
+            console.error('Failed to toggle reaction:', err)
             setReacted(!newReacted)
-            setReactionCount((c) => c - delta)
+            setReactionCount((c) => Math.max(0, c - delta))
             onReactionToggle?.(post.id, !newReacted, -delta)
-        } finally
-        {
-            setReactionPending(false)
+            const { toast } = await import('sonner')
+            toast.error('Could not update like. Please try again.')
         }
     }
 
@@ -411,22 +425,33 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onHide
             <div className="flex items-center justify-around px-2 py-1">
                 {/* Like */}
                 <button
+                    type="button"
                     onClick={handleReaction}
-                    disabled={reactionPending}
                     aria-label={reacted ? 'Remove like' : 'Like'}
                     aria-pressed={reacted}
-                    className={`flex items-center gap-1.5 flex-1 justify-center py-2 rounded-xl text-sm font-medium transition-colors hover:bg-muted ${reacted ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                        }`}
+                    className={`flex items-center gap-1.5 flex-1 justify-center py-2 rounded-xl text-sm font-medium transition-all duration-200 active:scale-95 group hover:bg-muted ${
+                        reacted ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                    }`}
                 >
-                    <span className="relative">
-                        <ThumbsUp className={`h-4 w-4 ${reacted ? 'fill-primary' : ''}`} />
+                    <span className="relative flex items-center justify-center">
+                        <ThumbsUp
+                            className={`h-4 w-4 transition-transform duration-200 ${
+                                reacted ? 'fill-primary stroke-primary' : 'stroke-current'
+                            } ${isLiking ? 'scale-125 -rotate-12' : 'group-hover:scale-110'}`}
+                        />
                         {reactionCount > 0 && (
-                            <span className="absolute -top-2 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground">
+                            <span
+                                className={`absolute -top-2 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-none text-primary-foreground transition-all duration-200 ${
+                                    isLiking ? 'scale-110' : 'scale-100'
+                                }`}
+                            >
                                 {reactionCount > 99 ? '99+' : reactionCount}
                             </span>
                         )}
                     </span>
-                    <span>Like</span>
+                    <span className={reacted ? 'font-semibold' : ''}>
+                        {reacted ? 'Liked' : 'Like'}
+                    </span>
                 </button>
 
                 {/* Comment */}

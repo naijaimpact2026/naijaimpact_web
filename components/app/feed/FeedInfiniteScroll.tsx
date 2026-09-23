@@ -205,6 +205,19 @@ export default function FeedInfiniteScroll({
                         <PostCard
                             post={post}
                             currentUserId={currentUserId}
+                            onReactionToggle={(postId, reacted, delta) => {
+                                setPosts((prev) =>
+                                    prev.map((p) =>
+                                        p.id === postId
+                                            ? {
+                                                ...p,
+                                                user_reacted: reacted,
+                                                reaction_count: Math.max(0, (p.reaction_count || 0) + delta),
+                                            }
+                                            : p
+                                    )
+                                )
+                            }}
                             onHide={(postId) => setPosts((prev) => prev.filter((p) => p.id !== postId))}
                         />
 

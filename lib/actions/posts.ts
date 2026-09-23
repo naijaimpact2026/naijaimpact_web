@@ -446,15 +446,20 @@ export async function addComment(
  * Toggle the current user's reaction on a post.
  * If a reaction exists, remove it. Otherwise, insert one.
  */
-export async function toggleReaction(postId: string): Promise<void> {
+export async function toggleReaction(postId: string): Promise<{ reacted: boolean; reactionCountDelta: number }> {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) throw new Error('Unauthenticated')
+  let user: import('@supabase/supabase-js').User | null = null
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) throw new Error('Unauthenticated')
+    user = data.user
+  } catch (err: any) {
+    if (err?.message === 'Unauthenticated') throw err
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (!sessionData.session?.user) throw new Error('Unauthenticated')
+    user = sessionData.session.user
+  }
 
   // Get platform user id
   const { data: profile } = await supabase
@@ -466,28 +471,45 @@ export async function toggleReaction(postId: string): Promise<void> {
   if (!profile) throw new Error('User profile not found')
 
   // Check if reaction already exists
-  const { data: existing } = await supabase
+  const { data: existing, error: selectError } = await supabase
     .from('post_reactions')
     .select('id')
     .eq('post_id', postId)
     .eq('user_id', profile.id)
     .maybeSingle()
 
+  if (selectError) {
+    console.error('toggleReaction select error:', selectError)
+    throw new Error('Failed to check reaction')
+  }
+
   if (existing) {
     // Remove reaction
-    await supabase
+    const { error: deleteError } = await supabase
       .from('post_reactions')
       .delete()
       .eq('id', existing.id)
+
+    if (deleteError) {
+      console.error('toggleReaction delete error:', deleteError)
+      throw new Error('Failed to remove reaction')
+    }
+    return { reacted: false, reactionCountDelta: -1 }
   } else {
-    // Add reaction
-    await supabase.from('post_reactions').insert({
+    // Add reaction - post_reactions only has (id, post_id, user_id, created_at, updated_at)
+    const { error: insertError } = await supabase.from('post_reactions').insert({
       post_id: postId,
       user_id: profile.id,
-      emoji: 'like',
     })
+
+    if (insertError && insertError.code !== '23505') {
+      console.error('toggleReaction insert error:', insertError)
+      throw new Error('Failed to add reaction')
+    }
+    return { reacted: true, reactionCountDelta: 1 }
   }
 }
+
 
 /**
  * Toggle whether the current user has saved a post for later.
