@@ -347,12 +347,17 @@ export async function addComment(
   author: { username: string; display_name: string; avatar_url: string | null }
 }> {
   const supabase = await createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) throw new Error('Unauthenticated')
+  let user: import('@supabase/supabase-js').User | null = null
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) throw new Error('Unauthenticated')
+    user = data.user
+  } catch (err: any) {
+    if (err?.message === 'Unauthenticated') throw err
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (!sessionData.session?.user) throw new Error('Unauthenticated')
+    user = sessionData.session.user
+  }
 
   const trimmed = body.trim()
   if (!trimmed || trimmed.length < 1) throw new Error('Comment cannot be empty')
