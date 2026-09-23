@@ -1,7 +1,9 @@
 'use client'
 
+import { useState, useEffect, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Briefcase, Cpu, Sprout, Palette, HeartPulse, Sparkles, Users, Check } from 'lucide-react'
+import { Briefcase, Cpu, Sprout, Palette, HeartPulse, Sparkles, Users, Check, Loader2 } from 'lucide-react'
 
 const DISCOVER = [
     { icon: Briefcase, label: 'Entrepreneurs', tag: 'entrepreneur', tint: 'bg-primary/10 text-primary' },
@@ -19,28 +21,61 @@ interface CommunityLeftRailProps
 
 export default function CommunityLeftRail({ activeTopic }: CommunityLeftRailProps)
 {
+    const router = useRouter()
+    const [isPending, startTransition] = useTransition()
+    const [loadingTag, setLoadingTag] = useState<string | null>(null)
+
+    useEffect(() =>
+    {
+        setLoadingTag(null)
+    }, [activeTopic])
+
+    function handleNavigate(e: React.MouseEvent, href: string, tag: string | null)
+    {
+        e.preventDefault()
+        setLoadingTag(tag ?? 'clear')
+        startTransition(() =>
+        {
+            router.push(href)
+        })
+    }
+
     return (
         <aside className="hidden lg:flex flex-col gap-4 w-64 shrink-0">
             <div className="rounded-2xl bg-card border border-border p-4 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                     <h3 className="font-bold text-sm text-foreground">Discover Communities</h3>
                     {activeTopic && (
-                        <Link href="/app/feed" className="text-[11px] text-primary hover:underline font-medium">
+                        <button
+                            type="button"
+                            onClick={(e) => handleNavigate(e, '/app/feed', null)}
+                            disabled={isPending}
+                            className="text-[11px] text-primary hover:underline font-medium inline-flex items-center gap-1 disabled:opacity-60"
+                        >
+                            {isPending && loadingTag === 'clear' && (
+                                <Loader2 className="w-2.5 h-2.5 animate-spin text-primary" />
+                            )}
                             Clear
-                        </Link>
+                        </button>
                     )}
                 </div>
                 <div className="space-y-1">
                     {DISCOVER.map((c) =>
                     {
                         const isSelected = activeTopic?.toLowerCase() === c.tag.toLowerCase()
+                        const isLoading = isPending && loadingTag === c.tag
+                        const targetHref = isSelected ? '/app/feed' : `/app/feed?topic=${c.tag}`
+
                         return (
                             <Link
                                 key={c.label}
-                                href={isSelected ? '/app/feed' : `/app/feed?topic=${c.tag}`}
+                                href={targetHref}
+                                onClick={(e) => handleNavigate(e, targetHref, isSelected ? 'clear' : c.tag)}
                                 className={`flex items-center gap-2.5 py-2 px-2.5 rounded-xl transition-all group ${
                                     isSelected
                                         ? 'bg-primary/10 border border-primary/25 font-semibold text-primary'
+                                        : isLoading
+                                        ? 'bg-primary/5 border border-primary/20 text-primary'
                                         : 'hover:bg-muted/70 text-foreground'
                                 }`}
                             >
@@ -48,7 +83,12 @@ export default function CommunityLeftRail({ activeTopic }: CommunityLeftRailProp
                                     <c.icon className="w-4 h-4" />
                                 </div>
                                 <span className="text-xs font-medium flex-1 truncate">{c.label}</span>
-                                {isSelected ? (
+                                {isLoading ? (
+                                    <span className="flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/15 px-2 py-0.5 rounded-full shrink-0 animate-pulse">
+                                        <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                        Loading…
+                                    </span>
+                                ) : isSelected ? (
                                     <span className="flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/15 px-2 py-0.5 rounded-full shrink-0">
                                         <Check className="w-3 h-3" /> Active
                                     </span>
