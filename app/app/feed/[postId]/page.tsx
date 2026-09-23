@@ -4,9 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 import PostCard from '@/components/app/feed/PostCard'
 import PostDetailComments from '@/components/app/feed/PostDetailComments'
 import PostDetailActions from '@/components/app/feed/PostDetailActions'
-import type { PostWithAuthor } from '@/lib/types'
 import { ArrowLeft, Clock, ImageIcon, Rocket } from 'lucide-react'
-import { fetchRecentPostsPreviews, toPostWithAuthor } from '@/lib/actions/posts'
+import type { PostWithAuthor } from '@/lib/types'
+import { fetchRecentPostsPreviews } from '@/lib/actions/posts'
+import { toPostWithAuthor } from '@/lib/post-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -108,7 +109,7 @@ export default async function PostDetailPage({ params }: PageProps)
     if (!post) notFound()
     if (post.audience === 'only-me' && post.author_id !== currentUserId) notFound()
 
-    const otherRecentPosts = recentPosts.filter(p => p.id !== postId).slice(0, 5)
+    const otherRecentPosts = recentPosts.filter((p: any) => p.id !== postId).slice(0, 5)
 
     return (
         <div className="w-full max-w-6xl mx-auto px-3 py-4 overflow-x-hidden">
@@ -169,7 +170,7 @@ export default async function PostDetailPage({ params }: PageProps)
                                 </Link>
                             </div>
                             <div className="space-y-1">
-                                {otherRecentPosts.map((rp) => (
+                                {otherRecentPosts.map((rp: any) => (
                                     <Link key={rp.id} href={`/app/feed/${rp.id}`}
                                         className="block p-2.5 rounded-xl hover:bg-muted transition-colors group">
                                         <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-relaxed">
@@ -215,7 +216,7 @@ export default async function PostDetailPage({ params }: PageProps)
                         <Link href="/app/feed" className="text-xs text-primary font-medium hover:underline">See all</Link>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                        {otherRecentPosts.map((rp) => (
+                        {otherRecentPosts.map((rp: any) => (
                             <Link key={rp.id} href={`/app/feed/${rp.id}`}
                                 className="block p-2.5 rounded-xl hover:bg-muted transition-colors group">
                                 <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
