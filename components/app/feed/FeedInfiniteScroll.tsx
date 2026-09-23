@@ -9,6 +9,7 @@ import StoryRow from './StoryRow'
 import FeedTabs, { type FeedTab } from './FeedTabs'
 import SuggestedAccounts, { type SuggestedUser } from './SuggestedAccounts'
 import PromotedCarousel from './PromotedCarousel'
+import CreatePostModal from './CreatePostModal'
 import { fetchPostsPage, fetchFollowingPosts, fetchSavedPostsPage, fetchSuggestedUsers } from '@/lib/actions/posts'
 import { fetchPromotedContent, type PromotedItem } from '@/lib/actions/promoted'
 import type { PostWithAuthor, User } from '@/lib/types'
@@ -54,6 +55,23 @@ export default function FeedInfiniteScroll({
     const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([])
     const [suggestionsDismissed, setSuggestionsDismissed] = useState(false)
     const [promotedItems, setPromotedItems] = useState<PromotedItem[]>([])
+    const [isComposerOpen, setIsComposerOpen] = useState(false)
+    const [startWithMedia, setStartWithMedia] = useState(false)
+
+    function handleOpenComposer(withMedia: boolean = false)
+    {
+        setStartWithMedia(withMedia)
+        setIsComposerOpen(true)
+    }
+
+    function handlePostCreated(newPost: PostWithAuthor)
+    {
+        setPosts((prev) => [newPost, ...prev])
+        if (typeof window !== 'undefined')
+        {
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+        }
+    }
 
     const sentinelRef = useRef<HTMLDivElement>(null)
     const loadingRef = useRef(false)
@@ -190,9 +208,12 @@ export default function FeedInfiniteScroll({
                 <FeedTabs activeTab={activeTab} onTabChange={handleTabChange} />
             </div>
 
-            {/* Post composer bar — only on For You tab; opens the dedicated Create Post page */}
+            {/* Post composer bar — only on For You tab; opens in-feed modal */}
             {activeTab === 'for-you' && (
-                <PostComposerBar user={user ?? null} onOpen={() => router.push('/app/feed/create')} />
+                <PostComposerBar
+                    user={user ?? null}
+                    onOpen={(withMedia) => handleOpenComposer(Boolean(withMedia))}
+                />
             )}
 
             {/* Empty state for tabs with no real data source yet */}
@@ -287,12 +308,22 @@ export default function FeedInfiniteScroll({
 
             {/* FAB — mobile only */}
             <button
-                onClick={() => router.push('/app/feed/create')}
+                onClick={() => handleOpenComposer(false)}
                 aria-label="Create post"
                 className="xl:hidden fixed bottom-20 right-4 z-30 flex items-center justify-center w-14 h-14 rounded-full bg-primary shadow-lg hover:bg-primary/90 transition-all active:scale-95"
             >
                 <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
             </button>
+
+            {/* In-feed Post Creator Modal */}
+            <CreatePostModal
+                open={isComposerOpen}
+                onOpenChange={setIsComposerOpen}
+                user={user ?? null}
+                onPostCreated={handlePostCreated}
+                activeTopic={topic}
+                startWithMedia={startWithMedia}
+            />
         </div>
     )
 }
