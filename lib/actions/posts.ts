@@ -59,8 +59,6 @@ import
   toPostWithAuthor,
 } from '@/lib/post-helpers'
 
-export type { PostOptions }
-
 /**
  * Fetch a page of posts using cursor-based pagination.
  * Posts are ordered by created_at DESC.
