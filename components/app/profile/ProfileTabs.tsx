@@ -123,7 +123,29 @@ function PostFeedList({
     return (
         <div className="p-4 space-y-4 bg-muted/30">
             {posts.map((post) => (
-                <PostCard key={post.id} post={post} currentUserId={currentUserId} />
+                <PostCard
+                    key={post.id}
+                    post={post}
+                    currentUserId={currentUserId}
+                    onReactionToggle={(postId, reacted, delta) => {
+                        setPosts((prev) =>
+                            prev.map((p) =>
+                                p.id === postId
+                                    ? {
+                                        ...p,
+                                        user_reacted: reacted,
+                                        reaction_count: Math.max(0, (p.reaction_count || 0) + delta),
+                                    }
+                                    : p
+                            )
+                        )
+                    }}
+                    onSaveToggle={(postId, saved) => {
+                        setPosts((prev) =>
+                            prev.map((p) => (p.id === postId ? { ...p, user_saved: saved } : p))
+                        )
+                    }}
+                />
             ))}
 
             {loading && Array.from({ length: SKELETON_COUNT }).map((_, i) => (

@@ -174,13 +174,11 @@ export default function FeedInfiniteScroll({
                         {activeTab === 'groups' && 'Groups coming soon'}
                         {activeTab === 'opportunities' && 'Opportunities coming soon'}
                         {activeTab === 'events' && 'Events coming soon'}
-                        {activeTab === 'saved' && 'No saved posts yet'}
                     </p>
                     <p className="text-sm mt-1 text-center px-4">
                         {activeTab === 'groups' && 'Join community groups to see their posts here.'}
                         {activeTab === 'opportunities' && 'Jobs, grants and partnerships will show up here.'}
                         {activeTab === 'events' && 'Community events will show up here.'}
-                        {activeTab === 'saved' && 'Save posts to read them later.'}
                     </p>
                 </div>
             )}
@@ -217,6 +215,14 @@ export default function FeedInfiniteScroll({
                                             : p
                                     )
                                 )
+                            }}
+                            onSaveToggle={(postId, saved) => {
+                                setPosts((prev) =>
+                                    prev.map((p) => (p.id === postId ? { ...p, user_saved: saved } : p))
+                                )
+                                if (activeTab === 'saved' && !saved) {
+                                    setPosts((prev) => prev.filter((p) => p.id !== postId))
+                                }
                             }}
                             onHide={(postId) => setPosts((prev) => prev.filter((p) => p.id !== postId))}
                         />

@@ -524,12 +524,17 @@ export async function toggleReaction(postId: string): Promise<{ reacted: boolean
 export async function toggleSavePost(postId: string): Promise<{ saved: boolean }> {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) throw new Error('Unauthenticated')
+  let user: import('@supabase/supabase-js').User | null = null
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) throw new Error('Unauthenticated')
+    user = data.user
+  } catch (err: any) {
+    if (err?.message === 'Unauthenticated') throw err
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (!sessionData.session?.user) throw new Error('Unauthenticated')
+    user = sessionData.session.user
+  }
 
   const { data: profile } = await supabase
     .from('users')
@@ -539,21 +544,28 @@ export async function toggleSavePost(postId: string): Promise<{ saved: boolean }
 
   if (!profile) throw new Error('User profile not found')
 
-  const { data: existing } = await supabase
+  const { data: existingRows, error: selectError } = await supabase
     .from('saved_posts')
     .select('id')
     .eq('post_id', postId)
     .eq('user_id', profile.id)
-    .maybeSingle()
 
-  if (existing) {
-    const { error } = await supabase.from('saved_posts').delete().eq('id', existing.id)
+  if (selectError) {
+    console.error('toggleSavePost select error:', selectError)
+    throw new Error('Failed to check saved post')
+  }
+
+  if (existingRows && existingRows.length > 0) {
+    const { error } = await supabase
+      .from('saved_posts')
+      .delete()
+      .eq('post_id', postId)
+      .eq('user_id', profile.id)
+
     if (error) {
       console.error('toggleSavePost delete error:', error)
       throw new Error('Failed to unsave post')
     }
-    const { revalidatePath } = await import('next/cache')
-    revalidatePath('/app/profile')
     return { saved: false }
   }
 
@@ -562,13 +574,11 @@ export async function toggleSavePost(postId: string): Promise<{ saved: boolean }
     user_id: profile.id,
   })
 
-  if (error) {
+  if (error && error.code !== '23505') {
     console.error('toggleSavePost insert error:', error)
     throw new Error('Failed to save post')
   }
 
-  const { revalidatePath } = await import('next/cache')
-  revalidatePath('/app/profile')
   return { saved: true }
 }
 
@@ -583,8 +593,16 @@ export async function fetchSavedPostsPage(
 ): Promise<{ posts: PostWithAuthor[]; nextCursor: string | null }> {
   const supabase = await createClient()
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return { posts: [], nextCursor: null }
+  let user: import('@supabase/supabase-js').User | null = null
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) throw new Error('Unauthenticated')
+    user = data.user
+  } catch (err: any) {
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (!sessionData.session?.user) return { posts: [], nextCursor: null }
+    user = sessionData.session.user
+  }
 
   const { data: profile } = await supabase
     .from('users')
