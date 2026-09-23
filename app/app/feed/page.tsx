@@ -17,8 +17,16 @@ const HERO_ACTIONS = [
     { icon: Rocket, label: 'Create Impact' },
 ]
 
-export default async function FeedPage()
+interface FeedPageProps
 {
+    searchParams?: Promise<{ topic?: string }>
+}
+
+export default async function FeedPage({ searchParams }: FeedPageProps)
+{
+    const resolvedParams = searchParams ? await searchParams : undefined
+    const activeTopic = resolvedParams?.topic?.trim() || null
+
     const supabase = await createClient()
 
     const {
@@ -43,7 +51,7 @@ export default async function FeedPage()
         }
     }
 
-    const { posts: initialPosts, nextCursor: initialCursor } = await fetchPostsPage(null, 10)
+    const { posts: initialPosts, nextCursor: initialCursor } = await fetchPostsPage(null, 10, activeTopic)
 
     return (
         <div className="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-5">
@@ -78,7 +86,7 @@ export default async function FeedPage()
 
             {/* Three-column layout */}
             <div className="flex gap-6 items-start">
-                <CommunityLeftRail />
+                <CommunityLeftRail activeTopic={activeTopic} />
 
                 <div className="flex-1 min-w-0 max-w-2xl mx-auto lg:mx-0">
                     <FeedInfiniteScroll
@@ -86,6 +94,7 @@ export default async function FeedPage()
                         initialCursor={initialCursor}
                         currentUserId={currentUserId}
                         user={userProfile}
+                        topic={activeTopic}
                     />
                 </div>
 

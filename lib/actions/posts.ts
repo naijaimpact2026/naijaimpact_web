@@ -59,7 +59,8 @@ async function fetchEngagementMaps(
  */
 export async function fetchPostsPage(
   cursor: string | null,
-  limit: number = DEFAULT_LIMIT
+  limit: number = DEFAULT_LIMIT,
+  topic?: string | null
 ): Promise<{ posts: PostWithAuthor[]; nextCursor: string | null }> {
   const supabase = await createClient()
 
@@ -130,6 +131,11 @@ export async function fetchPostsPage(
 
   if (cursor) {
     query = query.lt('created_at', cursor)
+  }
+
+  if (topic && topic.trim()) {
+    const clean = topic.trim().replace(/^#/, '')
+    query = query.or(`content.ilike.%#${clean}%,content.ilike.%${clean}%`)
   }
 
   const { data: postsData, error: postsError } = await query
