@@ -10,7 +10,7 @@ import
         Channel,
         Window,
         MessageList,
-        MessageComposerUI,
+        MessageComposer,
         Thread,
         useChannelStateContext,
     } from 'stream-chat-react'
@@ -166,7 +166,7 @@ export default function ChannelPage()
 
                         {/* Composer pinned to bottom */}
                         <div className="bg-card border-t border-border px-3 py-2">
-                            <MessageComposerUI />
+                            <MessageComposer />
                         </div>
                     </Window>
 
