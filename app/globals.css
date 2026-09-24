@@ -210,6 +210,64 @@ html.dark {
   .str-chat__channel-list-empty--v2 {
     background-image: none !important;
   }
+
+  /* ── Stream Chat Hubnovo Theme Integration ── */
+  .str-chat {
+    --str-chat__font-family: var(--font-sans);
+    --str-chat__primary-color: hsl(212, 88%, 46%);
+    --str-chat__active-primary-color: hsl(212, 88%, 40%);
+    --str-chat__surface-color: var(--color-background);
+    --str-chat__secondary-surface-color: var(--color-card);
+    --str-chat__background-color: var(--color-background);
+    --str-chat__channel-header-background-color: var(--color-card);
+    --str-chat__primary-surface-color: var(--color-card);
+    --str-chat__message-bubble-background-color: var(--color-card);
+    --str-chat__message-bubble-color: var(--color-foreground);
+    --str-chat__own-message-bubble-background-color: hsl(212, 88%, 46%);
+    --str-chat__own-message-bubble-color: #ffffff;
+    --str-chat__border-radius-sm: 8px;
+    --str-chat__border-radius-md: 12px;
+    --str-chat__border-radius-lg: 16px;
+  }
+
+  html.dark .str-chat,
+  .str-chat.str-chat__theme-dark,
+  .str-chat__theme-dark {
+    --str-chat__primary-color: hsl(212, 90%, 62%);
+    --str-chat__active-primary-color: hsl(212, 90%, 55%);
+    --str-chat__surface-color: #0a1420;
+    --str-chat__secondary-surface-color: #102a43;
+    --str-chat__background-color: #0a1420;
+    --str-chat__channel-header-background-color: #102a43;
+    --str-chat__primary-surface-color: #102a43;
+    --str-chat__message-bubble-background-color: #16324f;
+    --str-chat__message-bubble-color: #e7ecf3;
+    --str-chat__own-message-bubble-background-color: hsl(212, 90%, 62%);
+    --str-chat__own-message-bubble-color: #06111c;
+    --str-chat__disabled-color: #1e3a58;
+    --str-chat__cta-button-text-color: #06111c;
+    --str-chat__text-color: #e7ecf3;
+    --str-chat__text-low-emphasis-color: #93a4bb;
+  }
+
+  /* Chat composer dark mode support */
+  html.dark .str-chat__textarea textarea {
+    background-color: #132840 !important;
+    color: #e7ecf3 !important;
+    border-color: #1e3a58 !important;
+  }
+  html.dark .str-chat__message-input {
+    background-color: #102a43 !important;
+    border-color: #1e3a58 !important;
+  }
+  html.dark .str-chat__list {
+    background-color: #0a1420 !important;
+  }
+  html.dark .str-chat__message--received .str-chat__message-bubble {
+    background-color: #16324f !important;
+    color: #e7ecf3 !important;
+    border: 1px solid #1e3a58 !important;
+  }
 }
 
 @keyframes marquee {

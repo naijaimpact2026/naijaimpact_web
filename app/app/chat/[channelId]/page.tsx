@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useTheme } from 'next-themes'
+import 'stream-chat-react/dist/css/index.css'
 import
     {
         Chat,
@@ -45,34 +47,34 @@ function CustomChannelHeader()
     const onlineCount = members.filter((m) => m.user?.online).length
 
     return (
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-white sticky top-0 z-10">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card sticky top-0 z-10">
             <button
                 onClick={() => router.push('/app/chat')}
-                className="p-1.5 rounded-full hover:bg-gray-100 transition-colors -ml-1.5 shrink-0"
+                className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors -ml-1.5 shrink-0"
                 aria-label="Back"
             >
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
+                <ArrowLeft className="w-5 h-5" />
             </button>
 
-            <Avatar className="h-9 w-9 shrink-0">
+            <Avatar className="h-9 w-9 shrink-0 border border-border">
                 <AvatarImage src={channelImage} />
-                <AvatarFallback className="bg-green-100 text-green-700 font-bold text-xs">
+                <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
                     {initials}
                 </AvatarFallback>
             </Avatar>
 
             <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-gray-900 truncate">{name}</p>
+                <p className="text-sm font-bold text-foreground truncate">{name}</p>
                 {onlineCount > 0 && (
-                    <p className="text-[11px] text-green-600 leading-tight">{onlineCount} online</p>
+                    <p className="text-[11px] text-primary leading-tight font-medium">{onlineCount} online</p>
                 )}
             </div>
 
             <button
-                className="p-1.5 rounded-full hover:bg-gray-100 transition-colors shrink-0"
+                className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
                 aria-label="Options"
             >
-                <MoreVertical className="w-5 h-5 text-gray-500" />
+                <MoreVertical className="w-5 h-5" />
             </button>
         </div>
     )
@@ -85,6 +87,7 @@ export default function ChannelPage()
     const { channelId } = useParams<{ channelId: string }>()
     const { client, isReady } = useChatClient()
     const router = useRouter()
+    const { resolvedTheme } = useTheme()
     const [channel, setChannel] = useState<StreamChannel | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -120,8 +123,8 @@ export default function ChannelPage()
     if (!isReady || loading)
     {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-white">
-                <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+            <div className="flex items-center justify-center min-h-screen bg-background">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
         )
     }
@@ -129,11 +132,11 @@ export default function ChannelPage()
     if (error || !channel)
     {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-white gap-4 px-6">
-                <p className="text-gray-500 text-center">{error ?? 'Conversation not found.'}</p>
+            <div className="flex flex-col items-center justify-center min-h-screen bg-background gap-4 px-6">
+                <p className="text-muted-foreground text-center">{error ?? 'Conversation not found.'}</p>
                 <button
                     onClick={() => router.push('/app/chat')}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card text-sm font-medium text-foreground hover:bg-muted transition-colors"
                 >
                     <ArrowLeft className="w-4 h-4" />
                     Back to Messages
@@ -142,15 +145,17 @@ export default function ChannelPage()
         )
     }
 
+    const streamTheme = resolvedTheme === 'dark' ? 'str-chat__theme-dark' : 'str-chat__theme-light'
+
     return (
-        <Chat client={client!}>
+        <Chat client={client!} theme={streamTheme}>
             <Channel channel={channel}>
                 <div
-                    className="flex flex-col bg-gray-50"
+                    className="flex flex-col bg-background"
                     style={{ height: '100dvh' }}
                 >
                     <Window>
-                        {/* Our custom header */}
+                        {/* Custom header */}
                         <CustomChannelHeader />
 
                         {/* Message list fills remaining space */}
@@ -159,7 +164,7 @@ export default function ChannelPage()
                         </div>
 
                         {/* Composer pinned to bottom */}
-                        <div className="bg-white border-t border-gray-100 px-2 py-2">
+                        <div className="bg-card border-t border-border px-3 py-2">
                             <MessageComposerUI />
                         </div>
                     </Window>

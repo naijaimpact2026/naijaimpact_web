@@ -38,9 +38,13 @@ interface UserResult
     avatar_url: string | null
 }
 
+interface CreateGroupChatModalProps {
+    trigger?: React.ReactNode
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function CreateGroupChatModal()
+export default function CreateGroupChatModal({ trigger }: CreateGroupChatModalProps = {})
 {
     const router = useRouter()
     const [open, setOpen] = useState(false)
@@ -144,25 +148,30 @@ export default function CreateGroupChatModal()
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                    <Users className="w-4 h-4" />
-                    New Group
-                </Button>
+                {trigger ? (
+                    trigger
+                ) : (
+                    <Button variant="outline" size="sm" className="gap-2 border-border bg-card hover:bg-muted text-foreground">
+                        <Users className="w-4 h-4 text-muted-foreground" />
+                        New Group
+                    </Button>
+                )}
             </DialogTrigger>
 
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md bg-card border-border text-foreground">
                 <DialogHeader>
-                    <DialogTitle>Create Group Chat</DialogTitle>
+                    <DialogTitle className="text-foreground">Create Group Chat</DialogTitle>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     {/* Group name */}
                     <div className="space-y-1.5">
-                        <Label htmlFor="group-name">Group Name</Label>
+                        <Label htmlFor="group-name" className="text-foreground">Group Name</Label>
                         <Input
                             id="group-name"
                             placeholder="e.g. HubNovo Team"
                             {...register('name')}
+                            className="bg-background border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
                         />
                         {errors.name && (
                             <p className="text-xs text-destructive">{errors.name.message}</p>
@@ -171,35 +180,35 @@ export default function CreateGroupChatModal()
 
                     {/* Member search */}
                     <div className="space-y-1.5">
-                        <Label>Add Members (minimum 2)</Label>
+                        <Label className="text-foreground">Add Members (minimum 2)</Label>
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                             <Input
                                 placeholder="Search by username or name…"
                                 value={memberQuery}
                                 onChange={handleMemberQueryChange}
-                                className="pl-9"
+                                className="pl-9 bg-background border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
                             />
                         </div>
 
                         {/* Search results dropdown */}
                         {memberResults.length > 0 && (
-                            <div className="border rounded-lg overflow-hidden bg-popover shadow-md max-h-48 overflow-y-auto">
+                            <div className="border border-border rounded-lg overflow-hidden bg-card shadow-lg max-h-48 overflow-y-auto divide-y divide-border">
                                 {memberResults.map((user) => (
                                     <button
                                         key={user.id}
                                         type="button"
                                         onClick={() => addMember(user)}
-                                        className="flex items-center gap-3 w-full px-3 py-2 hover:bg-muted transition-colors text-left"
+                                        className="flex items-center gap-3 w-full px-3 py-2 hover:bg-muted transition-colors text-left text-foreground"
                                     >
                                         <Avatar className="h-7 w-7 flex-shrink-0">
                                             <AvatarImage src={user.avatar_url ?? undefined} />
-                                            <AvatarFallback className="text-xs">
+                                            <AvatarFallback className="text-xs bg-muted text-muted-foreground">
                                                 {user.display_name[0]?.toUpperCase()}
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="min-w-0">
-                                            <p className="text-sm font-medium truncate">{user.display_name}</p>
+                                            <p className="text-sm font-medium truncate text-foreground">{user.display_name}</p>
                                             <p className="text-xs text-muted-foreground truncate">@{user.username}</p>
                                         </div>
                                     </button>
@@ -218,7 +227,7 @@ export default function CreateGroupChatModal()
                             {selectedMembers.map((member) => (
                                 <div
                                     key={member.id}
-                                    className="flex items-center gap-1.5 bg-primary/10 text-primary text-xs px-2 py-1 rounded-full"
+                                    className="flex items-center gap-1.5 bg-primary/10 text-primary text-xs px-2.5 py-1 rounded-full border border-primary/20"
                                 >
                                     <span>{member.display_name}</span>
                                     <button
@@ -236,7 +245,7 @@ export default function CreateGroupChatModal()
 
                     {error && <p className="text-xs text-destructive">{error}</p>}
 
-                    <Button type="submit" className="w-full" disabled={submitting}>
+                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold" disabled={submitting}>
                         {submitting ? 'Creating…' : 'Create Group'}
                     </Button>
                 </form>
