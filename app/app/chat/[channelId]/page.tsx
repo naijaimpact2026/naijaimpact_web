@@ -18,6 +18,7 @@ import type { Channel as StreamChannel } from 'stream-chat'
 import { ArrowLeft, Loader2, MoreVertical } from 'lucide-react'
 import { useChatClient } from '@/components/app/ChatProvider'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { playSendMessageSound, playReceiveMessageSound } from '@/lib/chat-sound'
 
 // ─── Custom channel header ───────────────────────────────────────────────────
 
@@ -121,6 +122,35 @@ export default function ChannelPage()
         return () => { cancelled = true }
     }, [isReady, client, channelId])
 
+    const handleSendMessage = (ch: StreamChannel, message: any, options?: any) =>
+    {
+        playSendMessageSound()
+        return ch.sendMessage(message, options)
+    }
+
+    // Play sounds on receiving messages from other users
+    useEffect(() =>
+    {
+        if (!channel || !client) return
+
+        const handleNewMessage = (event: any) =>
+        {
+            const senderId = event.message?.user?.id || event.user?.id
+            if (!senderId) return
+
+            if (senderId !== client.userID)
+            {
+                playReceiveMessageSound()
+            }
+        }
+
+        channel.on('message.new', handleNewMessage)
+        return () =>
+        {
+            channel.off('message.new', handleNewMessage)
+        }
+    }, [channel, client])
+
     if (!isReady || loading)
     {
         return (
@@ -151,7 +181,7 @@ export default function ChannelPage()
     return (
         <div className="flex flex-col h-[calc(100dvh-4rem)] w-full overflow-hidden bg-background">
             <Chat client={client!} theme={streamTheme}>
-                <Channel channel={channel}>
+                <Channel channel={channel} doSendMessageRequest={handleSendMessage}>
                     <Window>
                         <CustomChannelHeader />
                         <MessageList />

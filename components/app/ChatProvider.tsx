@@ -12,6 +12,7 @@ import type { StreamChat, Event } from 'stream-chat'
 import { getStreamClient } from '@/lib/stream'
 import { createClient } from '@/lib/supabase/client'
 import { useUnreadCount } from './UnreadCountContext'
+import { playReceiveMessageSound } from '@/lib/chat-sound'
 
 // ─── Public context shape ────────────────────────────────────────────────────
 
@@ -135,6 +136,10 @@ export default function ChatProvider({ children }: ChatProviderProps)
                     if (!mountedRef.current) return
                     const total = event.total_unread_count ?? 0
                     updateUnread(total)
+                    if (event.user?.id !== streamClient.userID)
+                    {
+                        playReceiveMessageSound()
+                    }
                 }
                 streamClient.on('notification.message_new', handleNewMessage)
                 streamClient.on('notification.mark_read', handleNewMessage)
