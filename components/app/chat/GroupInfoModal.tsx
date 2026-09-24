@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { Channel as StreamChannel } from 'stream-chat'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Users, Crown, ExternalLink, ShieldCheck, Loader2 } from 'lucide-react'
+import { Users, Crown, ExternalLink, ShieldCheck, Loader2, Images } from 'lucide-react'
 import { getChannelMembersProfiles } from '@/lib/actions/chat'
 
 interface GroupInfoModalProps {
@@ -13,6 +13,7 @@ interface GroupInfoModalProps {
   onClose: () => void
   channel: StreamChannel
   currentUserId?: string
+  onOpenSharedMedia?: () => void
 }
 
 interface MemberProfile {
@@ -29,6 +30,7 @@ export default function GroupInfoModal({
   onClose,
   channel,
   currentUserId,
+  onOpenSharedMedia,
 }: GroupInfoModalProps) {
   const router = useRouter()
   const [profiles, setProfiles] = useState<Record<string, MemberProfile>>({})
@@ -109,6 +111,19 @@ export default function GroupInfoModal({
             {members.length} members ·{' '}
             <span className="text-emerald-500 font-medium">{onlineCount} online</span>
           </p>
+
+          {onOpenSharedMedia && (
+            <button
+              onClick={() => {
+                onClose()
+                onOpenSharedMedia()
+              }}
+              className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border bg-muted/40 hover:bg-muted text-xs font-semibold text-foreground transition-colors cursor-pointer"
+            >
+              <Images className="w-3.5 h-3.5 text-primary" />
+              <span>Shared Media & Files</span>
+            </button>
+          )}
         </DialogHeader>
 
         {/* Member list section */}

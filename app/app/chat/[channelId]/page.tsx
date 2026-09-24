@@ -38,6 +38,7 @@ import
         ChevronUp,
         ChevronDown,
         ChevronRight,
+        Images,
     } from 'lucide-react'
 import { useChatClient } from '@/components/app/ChatProvider'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -50,6 +51,7 @@ import
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import GroupInfoModal from '@/components/app/chat/GroupInfoModal'
+import SharedMediaDrawer from '@/components/app/chat/SharedMediaDrawer'
 import { getUserProfileById } from '@/lib/actions/chat'
 import { playSendMessageSound, playReceiveMessageSound } from '@/lib/chat-sound'
 import { toast } from '@/components/toast'
@@ -79,6 +81,7 @@ function CustomChannelHeader({ onToggleSearch, isSearchOpen }: CustomChannelHead
     const router = useRouter()
     const { channel } = useChannelStateContext()
     const [groupInfoOpen, setGroupInfoOpen] = useState(false)
+    const [sharedMediaOpen, setSharedMediaOpen] = useState(false)
     const [, setPresenceTick] = useState(0)
 
     // Listen to real-time presence events so online/offline state updates instantly
@@ -328,6 +331,14 @@ function CustomChannelHeader({ onToggleSearch, isSearchOpen }: CustomChannelHead
                             Search in Conversation
                         </DropdownMenuItem>
 
+                        <DropdownMenuItem
+                            onClick={() => setSharedMediaOpen(true)}
+                            className="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-sm font-medium"
+                        >
+                            <Images className="w-4 h-4 text-primary" />
+                            Shared Media & Files
+                        </DropdownMenuItem>
+
                         <DropdownMenuSeparator className="my-1 border-border/50" />
 
                         <DropdownMenuItem
@@ -357,8 +368,16 @@ function CustomChannelHeader({ onToggleSearch, isSearchOpen }: CustomChannelHead
                     onClose={() => setGroupInfoOpen(false)}
                     channel={channel}
                     currentUserId={currentUserId}
+                    onOpenSharedMedia={() => setSharedMediaOpen(true)}
                 />
             )}
+
+            {/* Shared Media, Files & Links Drawer (Step 4) */}
+            <SharedMediaDrawer
+                isOpen={sharedMediaOpen}
+                onClose={() => setSharedMediaOpen(false)}
+                channel={channel}
+            />
         </>
     )
 }
