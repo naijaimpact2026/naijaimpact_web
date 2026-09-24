@@ -10,6 +10,7 @@ import
     {
         Dialog,
         DialogContent,
+        DialogDescription,
         DialogHeader,
         DialogTitle,
         DialogTrigger,
@@ -161,6 +162,9 @@ export default function CreateGroupChatModal({ trigger }: CreateGroupChatModalPr
             <DialogContent className="max-w-md bg-card border-border text-foreground">
                 <DialogHeader>
                     <DialogTitle className="text-foreground">Create Group Chat</DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground">
+                        Connect with multiple members in a shared discussion.
+                    </DialogDescription>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

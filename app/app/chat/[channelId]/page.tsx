@@ -27,8 +27,9 @@ function CustomChannelHeader()
     const { channel } = useChannelStateContext()
 
     const rawData = channel.data as Record<string, unknown> | undefined
-    const channelName = typeof rawData?.name === 'string' ? rawData.name : undefined
-    const channelImage = typeof rawData?.image === 'string' ? rawData.image : undefined
+    const customData = rawData?.custom as Record<string, unknown> | undefined
+    const channelName = typeof rawData?.name === 'string' ? rawData.name : typeof customData?.name === 'string' ? customData.name : undefined
+    const channelImage = typeof rawData?.image === 'string' ? rawData.image : typeof customData?.image === 'string' ? customData.image : undefined
 
     const members = Object.values(channel.state.members)
     const otherMembers = members.filter((m) => m.user?.id !== channel._client.userID)

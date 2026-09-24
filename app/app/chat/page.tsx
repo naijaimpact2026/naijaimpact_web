@@ -78,8 +78,9 @@ function ChannelRow({ channel, onClick }: { channel: Channel; onClick: () => voi
 {
     const lastMessage = channel.state.messages[channel.state.messages.length - 1]
     const rawData = channel.data as Record<string, unknown> | undefined
-    const channelName = typeof rawData?.name === 'string' ? rawData.name : undefined
-    const channelImage = typeof rawData?.image === 'string' ? rawData.image : undefined
+    const customData = rawData?.custom as Record<string, unknown> | undefined
+    const channelName = typeof rawData?.name === 'string' ? rawData.name : typeof customData?.name === 'string' ? customData.name : undefined
+    const channelImage = typeof rawData?.image === 'string' ? rawData.image : typeof customData?.image === 'string' ? customData.image : undefined
     const members = Object.values(channel.state.members)
     const otherMembers = members.filter(m => m.user?.id !== channel._client.userID)
     const name = channelName || otherMembers.map(m => m.user?.name ?? '?').join(', ') || 'Unknown'
@@ -296,7 +297,8 @@ export default function ChatPage()
         ? channels.filter(ch =>
         {
             const rawData = ch.data as Record<string, unknown> | undefined
-            const name = typeof rawData?.name === 'string' ? rawData.name : ''
+            const customData = rawData?.custom as Record<string, unknown> | undefined
+            const name = typeof rawData?.name === 'string' ? rawData.name : typeof customData?.name === 'string' ? customData.name : ''
             const otherNames = Object.values(ch.state.members).filter(m => m.user?.id !== ch._client.userID).map(m => m.user?.name ?? '').join(' ')
             return name.toLowerCase().includes(searchQuery.toLowerCase()) || otherNames.toLowerCase().includes(searchQuery.toLowerCase())
         })

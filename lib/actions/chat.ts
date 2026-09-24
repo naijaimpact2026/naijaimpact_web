@@ -18,7 +18,7 @@ export async function startDmChat(targetUserId: string): Promise<{ channelId: st
 
   const { data: profile, error: profileError } = await supabase
     .from('users')
-    .select('id, display_name')
+    .select('id, display_name, avatar_url')
     .eq('auth_id', authUser.id)
     .single()
 
@@ -26,10 +26,36 @@ export async function startDmChat(targetUserId: string): Promise<{ channelId: st
 
   if (profile.id === targetUserId) throw new Error('Cannot DM yourself')
 
+  const { data: targetProfile, error: targetError } = await supabase
+    .from('users')
+    .select('id, display_name, avatar_url')
+    .eq('id', targetUserId)
+    .single()
+
+  if (targetError || !targetProfile) throw new Error('Target user not found')
+
   const apiKey = process.env.STREAM_API_KEY || process.env.NEXT_PUBLIC_STREAM_KEY!
   const apiSecret = process.env.STREAM_SECRET_KEY || process.env.STREAM_API_SECRET!
 
+  if (!apiKey || !apiSecret) {
+    throw new Error('Stream Chat configuration missing on server')
+  }
+
   const streamServerClient = new StreamClient(apiKey, apiSecret)
+
+  // Ensure both users exist in Stream Chat before creating/getting channel
+  await streamServerClient.upsertUsers([
+    {
+      id: profile.id,
+      name: profile.display_name || 'User',
+      image: profile.avatar_url ?? undefined,
+    },
+    {
+      id: targetProfile.id,
+      name: targetProfile.display_name || 'User',
+      image: targetProfile.avatar_url ?? undefined,
+    },
+  ])
 
   // Deterministic channel id — always same pair, same channel
   const sortedIds = [profile.id, targetUserId].sort()
@@ -150,7 +176,7 @@ export async function createGroupChat(name: string, memberIds: string[]) {
   // Fetch current user's platform profile
   const { data: profile, error: profileError } = await supabase
     .from('users')
-    .select('id, display_name')
+    .select('id, display_name, avatar_url')
     .eq('auth_id', authUser.id)
     .single()
 
@@ -167,12 +193,32 @@ export async function createGroupChat(name: string, memberIds: string[]) {
   }
 
   const apiKey = process.env.STREAM_API_KEY || process.env.NEXT_PUBLIC_STREAM_KEY!
-  const apiSecret = process.env.STREAM_API_SECRET!
+  const apiSecret = process.env.STREAM_SECRET_KEY || process.env.STREAM_API_SECRET!
+
+  if (!apiKey || !apiSecret) {
+    throw new Error('Stream Chat configuration missing on server')
+  }
 
   const streamServerClient = new StreamClient(apiKey, apiSecret)
 
   // Include the creator in the members list
   const allMemberIds = Array.from(new Set([profile.id, ...memberIds]))
+
+  // Fetch all member details from Supabase so we can upsert them in Stream
+  const { data: memberProfiles } = await supabase
+    .from('users')
+    .select('id, display_name, avatar_url')
+    .in('id', allMemberIds)
+
+  if (memberProfiles && memberProfiles.length > 0) {
+    await streamServerClient.upsertUsers(
+      memberProfiles.map((m) => ({
+        id: m.id,
+        name: m.display_name || 'User',
+        image: m.avatar_url ?? undefined,
+      }))
+    )
+  }
 
   // Build channel id — deterministic based on timestamp + creator
   const channelId = `group_${Date.now()}_${profile.id.slice(0, 8)}`
