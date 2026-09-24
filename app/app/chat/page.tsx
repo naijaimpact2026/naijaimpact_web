@@ -309,7 +309,7 @@ export default function ChatPage()
 
     return (
         <Chat client={client}>
-            <div className="flex flex-col bg-background" style={{ height: 'calc(100dvh - 3.5rem)' }}>
+            <div className="flex flex-col bg-background h-[calc(100dvh-8rem)] lg:h-[calc(100dvh-4rem)]">
 
                 {/* ── Header ── */}
                 <div className="flex items-center justify-between px-4 pt-4 pb-3 bg-card sticky top-0 z-10 border-b border-border shadow-sm">

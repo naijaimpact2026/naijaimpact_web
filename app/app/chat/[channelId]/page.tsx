@@ -48,7 +48,7 @@ function CustomChannelHeader()
     const onlineCount = members.filter((m) => m.user?.online).length
 
     return (
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card sticky top-0 z-10">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card sticky top-0 z-10 w-full shrink-0">
             <button
                 onClick={() => router.push('/app/chat')}
                 className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors -ml-1.5 shrink-0"
@@ -124,7 +124,7 @@ export default function ChannelPage()
     if (!isReady || loading)
     {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-background">
+            <div className="flex items-center justify-center min-h-[calc(100dvh-4rem)] bg-background">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
         )
@@ -133,7 +133,7 @@ export default function ChannelPage()
     if (error || !channel)
     {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-background gap-4 px-6">
+            <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-4rem)] bg-background gap-4 px-6">
                 <p className="text-muted-foreground text-center">{error ?? 'Conversation not found.'}</p>
                 <button
                     onClick={() => router.push('/app/chat')}
@@ -149,30 +149,17 @@ export default function ChannelPage()
     const streamTheme = resolvedTheme === 'dark' ? 'str-chat__theme-dark' : 'str-chat__theme-light'
 
     return (
-        <Chat client={client!} theme={streamTheme}>
-            <Channel channel={channel}>
-                <div
-                    className="flex flex-col bg-background"
-                    style={{ height: '100dvh' }}
-                >
+        <div className="flex flex-col h-[calc(100dvh-4rem)] w-full overflow-hidden bg-background">
+            <Chat client={client!} theme={streamTheme}>
+                <Channel channel={channel}>
                     <Window>
-                        {/* Custom header */}
                         <CustomChannelHeader />
-
-                        {/* Message list fills remaining space */}
-                        <div className="flex-1 overflow-y-auto">
-                            <MessageList />
-                        </div>
-
-                        {/* Composer pinned to bottom */}
-                        <div className="bg-card border-t border-border px-3 py-2">
-                            <MessageComposer />
-                        </div>
+                        <MessageList />
+                        <MessageComposer />
                     </Window>
-
                     <Thread />
-                </div>
-            </Channel>
-        </Chat>
+                </Channel>
+            </Chat>
+        </div>
     )
 }
