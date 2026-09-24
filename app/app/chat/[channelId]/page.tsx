@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import 'stream-chat-react/dist/css/index.css'
@@ -13,12 +13,32 @@ import
         MessageComposer,
         Thread,
         useChannelStateContext,
+        useChannelActionContext,
         useMessageContext,
         useChatContext,
         ComponentProvider,
+        type ThreadHeaderProps,
     } from 'stream-chat-react'
 import type { Channel as StreamChannel } from 'stream-chat'
-import { ArrowLeft, Loader2, MoreVertical, Bell, BellOff, Check, CheckCheck, Clock, User as UserIcon, Users } from 'lucide-react'
+import
+    {
+        ArrowLeft,
+        Loader2,
+        MoreVertical,
+        Bell,
+        BellOff,
+        Check,
+        CheckCheck,
+        Clock,
+        User as UserIcon,
+        Users,
+        Pin,
+        Search,
+        X,
+        ChevronUp,
+        ChevronDown,
+        ChevronRight,
+    } from 'lucide-react'
 import { useChatClient } from '@/components/app/ChatProvider'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import
@@ -48,7 +68,13 @@ function formatLastSeen(dateStr?: string | Date): string
 
 // ─── Custom channel header ───────────────────────────────────────────────────
 
-function CustomChannelHeader()
+interface CustomChannelHeaderProps
+{
+    onToggleSearch: () => void
+    isSearchOpen: boolean
+}
+
+function CustomChannelHeader({ onToggleSearch, isSearchOpen }: CustomChannelHeaderProps)
 {
     const router = useRouter()
     const { channel } = useChannelStateContext()
@@ -253,6 +279,18 @@ function CustomChannelHeader()
                     )}
                 </div>
 
+                {/* Search In Conversation button (Step 3) */}
+                <button
+                    onClick={onToggleSearch}
+                    className={`p-1.5 rounded-full hover:bg-muted transition-colors shrink-0 outline-hidden ${
+                        isSearchOpen ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                    aria-label="Search conversation"
+                    title="Search conversation (Cmd+F)"
+                >
+                    <Search className="w-5 h-5" />
+                </button>
+
                 {/* 3-Dots Dropdown Options Menu */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -281,6 +319,16 @@ function CustomChannelHeader()
                                 View Profile
                             </DropdownMenuItem>
                         )}
+
+                        <DropdownMenuItem
+                            onClick={onToggleSearch}
+                            className="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-sm font-medium"
+                        >
+                            <Search className="w-4 h-4 text-primary" />
+                            Search in Conversation
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator className="my-1 border-border/50" />
 
                         <DropdownMenuItem
                             onClick={handleToggleMute}
@@ -312,6 +360,300 @@ function CustomChannelHeader()
                 />
             )}
         </>
+    )
+}
+
+// ─── Step 3: In-Chat Search Bar ───────────────────────────────────────────────
+
+function InChatSearchBar({ onClose }: { onClose: () => void })
+{
+    const { messages } = useChannelStateContext()
+    const { jumpToMessage } = useChannelActionContext()
+    const [query, setQuery] = useState('')
+    const [currentIndex, setCurrentIndex] = useState(0)
+    const inputRef = useRef<HTMLInputElement>(null)
+
+    useEffect(() =>
+    {
+        inputRef.current?.focus()
+    }, [])
+
+    const searchResults = useMemo(() =>
+    {
+        const trimmed = query.trim().toLowerCase()
+        if (!trimmed) return []
+        return (messages || []).filter((m) =>
+            m.text?.toLowerCase().includes(trimmed)
+        )
+    }, [query, messages])
+
+    // Jump to the latest result when query changes
+    useEffect(() =>
+    {
+        if (searchResults.length > 0)
+        {
+            const targetIdx = searchResults.length - 1
+            setCurrentIndex(targetIdx)
+            jumpToMessage(searchResults[targetIdx].id, 25, 2000)
+        } else
+        {
+            setCurrentIndex(0)
+        }
+    }, [query, searchResults, jumpToMessage])
+
+    const handleNext = () =>
+    {
+        if (searchResults.length === 0) return
+        const nextIdx = (currentIndex + 1) % searchResults.length
+        setCurrentIndex(nextIdx)
+        jumpToMessage(searchResults[nextIdx].id, 25, 2000)
+    }
+
+    const handlePrev = () =>
+    {
+        if (searchResults.length === 0) return
+        const prevIdx = (currentIndex - 1 + searchResults.length) % searchResults.length
+        setCurrentIndex(prevIdx)
+        jumpToMessage(searchResults[prevIdx].id, 25, 2000)
+    }
+
+    const handleKeyDown = (e: React.KeyboardEvent) =>
+    {
+        if (e.key === 'Escape')
+        {
+            onClose()
+        } else if (e.key === 'Enter')
+        {
+            if (e.shiftKey)
+            {
+                handlePrev()
+            } else
+            {
+                handleNext()
+            }
+        }
+    }
+
+    return (
+        <div className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border text-sm shrink-0 z-10 shadow-xs animate-in slide-in-from-top-1 duration-150">
+            <Search className="w-4 h-4 text-muted-foreground shrink-0 ml-1" />
+            <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Search messages in conversation..."
+                className="flex-1 min-w-0 bg-transparent text-foreground placeholder:text-muted-foreground text-xs sm:text-sm focus:outline-hidden"
+            />
+
+            {query.trim() && (
+                <span className="text-[11px] text-muted-foreground whitespace-nowrap px-1">
+                    {searchResults.length > 0 ? (
+                        <>
+                            {currentIndex + 1} of {searchResults.length}
+                        </>
+                    ) : (
+                        'No matches'
+                    )}
+                </span>
+            )}
+
+            <div className="flex items-center gap-0.5 shrink-0">
+                <button
+                    onClick={handlePrev}
+                    disabled={searchResults.length === 0}
+                    className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                    title="Previous match (Shift+Enter)"
+                    aria-label="Previous match"
+                >
+                    <ChevronUp className="w-4 h-4" />
+                </button>
+                <button
+                    onClick={handleNext}
+                    disabled={searchResults.length === 0}
+                    className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                    title="Next match (Enter)"
+                    aria-label="Next match"
+                >
+                    <ChevronDown className="w-4 h-4" />
+                </button>
+                <button
+                    onClick={onClose}
+                    className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors ml-0.5"
+                    title="Close search (Esc)"
+                    aria-label="Close search"
+                >
+                    <X className="w-4 h-4" />
+                </button>
+            </div>
+        </div>
+    )
+}
+
+// ─── Pinned Message Banner ────────────────────────────────────────────────────
+
+function PinnedMessageBanner()
+{
+    const { pinnedMessages } = useChannelStateContext()
+    const { jumpToMessage } = useChannelActionContext()
+    const { client } = useChatContext()
+    const [currentIndex, setCurrentIndex] = useState(0)
+
+    const list = pinnedMessages || []
+    if (list.length === 0) return null
+
+    const activeIndex = currentIndex < list.length ? currentIndex : 0
+    const currentPin = list[activeIndex]
+    if (!currentPin) return null
+
+    const pinAuthor = currentPin.pinned_by?.name || currentPin.pinned_by?.id || (currentPin.user?.name || currentPin.user?.id || 'Message')
+    const textSnippet = currentPin.text || (currentPin.attachments?.length ? 'Shared attachment' : 'Pinned message')
+
+    const handleJump = () =>
+    {
+        jumpToMessage(currentPin.id, 25, 2000)
+    }
+
+    const handleUnpin = async (e: React.MouseEvent) =>
+    {
+        e.stopPropagation()
+        try
+        {
+            await client.unpinMessage(currentPin.id)
+            toast.success('Message unpinned')
+        } catch (err)
+        {
+            console.error('Failed to unpin message:', err)
+            toast.error('Failed to unpin message')
+        }
+    }
+
+    return (
+        <div className="flex items-center justify-between px-3.5 py-1.5 bg-card/95 border-b border-border/70 text-xs shrink-0 backdrop-blur-xs z-9 shadow-xs transition-colors">
+            <div
+                onClick={handleJump}
+                className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer group"
+                title="Click to jump to message"
+            >
+                <div className="w-6 h-6 rounded-full bg-amber-500/15 dark:bg-amber-400/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Pin className="w-3.5 h-3.5 fill-amber-500/30 rotate-45" />
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                        <p className="font-semibold text-foreground text-[11px] truncate">
+                            Pinned Message
+                        </p>
+                        {list.length > 1 && (
+                            <span className="text-[10px] text-muted-foreground font-medium">
+                                ({activeIndex + 1}/{list.length})
+                            </span>
+                        )}
+                        <span className="text-[10px] text-muted-foreground truncate">
+                            · {pinAuthor}
+                        </span>
+                    </div>
+                    <p className="text-muted-foreground truncate text-[11px] group-hover:text-foreground transition-colors">
+                        {textSnippet}
+                    </p>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-1 shrink-0 ml-2">
+                {list.length > 1 && (
+                    <button
+                        onClick={(e) =>
+                        {
+                            e.stopPropagation()
+                            setCurrentIndex((i) => (i + 1) % list.length)
+                        }}
+                        className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        title="Next pinned message"
+                        aria-label="Next pinned message"
+                    >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                )}
+                <button
+                    onClick={handleUnpin}
+                    className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
+                    title="Unpin message"
+                    aria-label="Unpin message"
+                >
+                    <X className="w-3.5 h-3.5" />
+                </button>
+            </div>
+        </div>
+    )
+}
+
+// ─── Custom Pin Indicator (Pill badge above message) ──────────────────────────
+
+function CustomPinIndicator({ message }: { message?: any })
+{
+    const { client } = useChatContext()
+    if (!message?.pinned) return null
+
+    const isOwnPin = message.pinned_by?.id === client.user?.id
+    const pinAuthor = isOwnPin ? 'You' : (message.pinned_by?.name || message.pinned_by?.id || 'Admin')
+
+    return (
+        <div className="flex items-center gap-1.5 px-2.5 py-0.5 mb-1.5 rounded-full bg-amber-500/10 dark:bg-amber-400/15 border border-amber-500/25 dark:border-amber-400/30 text-amber-600 dark:text-amber-400 text-[11px] font-semibold tracking-tight w-fit select-none shadow-xs">
+            <Pin className="w-3 h-3 fill-amber-500/40 dark:fill-amber-400/40 rotate-45 shrink-0" />
+            <span>Pinned by {pinAuthor}</span>
+        </div>
+    )
+}
+
+// ─── Custom Thread Header ─────────────────────────────────────────────────────
+
+function CustomThreadHeader({ closeThread, thread }: ThreadHeaderProps)
+{
+    const authorName = thread?.user?.name || thread?.user?.id || 'User'
+    const replyCount = thread?.reply_count ?? 0
+
+    useEffect(() =>
+    {
+        const handleKeyDown = (e: KeyboardEvent) =>
+        {
+            if (e.key === 'Escape') closeThread()
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [closeThread])
+
+    return (
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card sticky top-0 z-10 w-full shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+                <button
+                    onClick={closeThread}
+                    className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors -ml-1.5 shrink-0"
+                    aria-label="Back to conversation"
+                    title="Back to conversation"
+                >
+                    <ArrowLeft className="w-5 h-5 md:hidden" />
+                    <X className="w-5 h-5 hidden md:block" />
+                </button>
+                <div className="min-w-0">
+                    <p className="text-sm font-bold text-foreground truncate">
+                        Thread Replies
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate leading-tight font-medium">
+                        Replying to <span className="text-foreground font-semibold">{authorName}</span>
+                        {replyCount > 0 && ` · ${replyCount} ${replyCount === 1 ? 'reply' : 'replies'}`}
+                    </p>
+                </div>
+            </div>
+
+            <button
+                onClick={closeThread}
+                className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                aria-label="Close thread"
+                title="Close thread (Esc)"
+            >
+                <X className="w-5 h-5" />
+            </button>
+        </div>
     )
 }
 
@@ -385,6 +727,22 @@ export default function ChannelPage()
     const [channel, setChannel] = useState<StreamChannel | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+    // Keyboard shortcut Cmd+F / Ctrl+F to toggle in-conversation search
+    useEffect(() =>
+    {
+        const handleKeyDown = (e: KeyboardEvent) =>
+        {
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f')
+            {
+                e.preventDefault()
+                setIsSearchOpen((prev) => !prev)
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [])
 
     useEffect(() =>
     {
@@ -497,9 +855,22 @@ export default function ChannelPage()
         <div className="flex flex-col h-[calc(100dvh-4rem)] w-full overflow-hidden bg-background">
             <Chat client={client!} theme={streamTheme}>
                 <Channel channel={channel} doSendMessageRequest={handleSendMessage}>
-                    <ComponentProvider value={{ MessageStatus: CustomMessageStatus }}>
+                    <ComponentProvider
+                        value={{
+                            MessageStatus: CustomMessageStatus,
+                            PinIndicator: CustomPinIndicator,
+                            ThreadHeader: CustomThreadHeader,
+                        }}
+                    >
                         <Window>
-                            <CustomChannelHeader />
+                            <CustomChannelHeader
+                                onToggleSearch={() => setIsSearchOpen((v) => !v)}
+                                isSearchOpen={isSearchOpen}
+                            />
+                            {isSearchOpen && (
+                                <InChatSearchBar onClose={() => setIsSearchOpen(false)} />
+                            )}
+                            <PinnedMessageBanner />
                             <MessageList returnAllReadData />
                             <MessageComposer />
                         </Window>

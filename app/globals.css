@@ -265,18 +265,115 @@ html.dark {
     max-height: 100% !important;
     width: 100% !important;
     display: flex !important;
+    flex-direction: row !important;
     min-height: 0 !important;
     flex: 1 1 0% !important;
+    position: relative !important;
+    overflow: hidden !important;
   }
-  .str-chat__main-panel {
+  .str-chat .str-chat__main-panel {
     height: 100% !important;
     max-height: 100% !important;
-    width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
     min-height: 0 !important;
     flex: 1 1 0% !important;
+    min-width: 0 !important;
+    background-color: var(--color-background) !important;
   }
+
+  /* ── Thread Reply Container & Responsive Drawer ── */
+  .str-chat .str-chat__thread-container,
+  .str-chat .str-chat__thread {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    background-color: var(--color-background) !important;
+    border-left: 1px solid var(--color-border) !important;
+    z-index: 20 !important;
+  }
+
+  @media (min-width: 768px) {
+    .str-chat .str-chat__thread-container,
+    .str-chat .str-chat__thread {
+      width: 420px !important;
+      min-width: 360px !important;
+      max-width: 460px !important;
+      flex: 0 0 420px !important;
+      box-shadow: -4px 0 24px rgba(0, 0, 0, 0.08) !important;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .str-chat:has(.str-chat__thread-container) .str-chat__main-panel,
+    .str-chat__container:has(.str-chat__thread-container) > .str-chat__main-panel,
+    .str-chat__main-panel--thread-open {
+      display: none !important;
+    }
+    .str-chat .str-chat__thread-container,
+    .str-chat .str-chat__thread {
+      width: 100% !important;
+      max-width: 100% !important;
+      flex: 1 1 100% !important;
+      border-left: none !important;
+    }
+  }
+
+  /* ── Thread Start Divider ("1 reply") ── */
+  .str-chat .str-chat__parent-message-li .str-chat__thread-start,
+  .str-chat .str-chat__thread-start {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 1rem auto !important;
+    padding: 0.25rem 0.875rem !important;
+    border-radius: 9999px !important;
+    background-color: var(--color-muted) !important;
+    border: 1px solid var(--color-border) !important;
+    color: var(--color-muted-foreground) !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.025em !important;
+    width: fit-content !important;
+  }
+
+  /* ── Thread "Send as direct message" checkbox ── */
+  .str-chat .str-chat__send-to-channel-checkbox__container {
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    color: var(--color-muted-foreground) !important;
+  }
+  .str-chat .str-chat__send-to-channel-checkbox__container.str-chat__send-to-channel-checkbox__container--checked {
+    color: var(--color-foreground) !important;
+  }
+  .str-chat .str-chat__send-to-channel-checkbox__visual {
+    border-radius: 6px !important;
+    border-color: var(--color-border) !important;
+    background-color: var(--color-card) !important;
+  }
+  .str-chat .str-chat__send-to-channel-checkbox__input:checked + .str-chat__send-to-channel-checkbox__visual {
+    background-color: var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+  }
+
+  /* ── Pinned Message UI Enhancement ── */
+  /* Remove full-width brown background highlight */
+  .str-chat__li:has(.str-chat__message--pinned)::before,
+  .str-chat__li--pinned::before,
+  .str-chat__message--pinned::before,
+  [class*="message--pinned"]::before {
+    display: none !important;
+    background: transparent !important;
+    content: none !important;
+  }
+  .str-chat__message--pinned .str-chat__message-bubble {
+    box-shadow: 0 0 0 1.5px rgba(245, 158, 11, 0.45), 0 4px 14px rgba(245, 158, 11, 0.1) !important;
+  }
+  html.dark .str-chat__message--pinned .str-chat__message-bubble {
+    box-shadow: 0 0 0 1.5px rgba(251, 191, 36, 0.4), 0 4px 14px rgba(251, 191, 36, 0.1) !important;
+  }
+
   .str-chat__list {
     flex: 1 1 0% !important;
     min-height: 0 !important;
@@ -501,6 +598,16 @@ html.dark {
     background-color: hsl(212, 90%, 62%) !important;
     color: #06111c !important;
     border-radius: 18px 18px 4px 18px !important;
+  }
+
+  /* Dark mode thread container & list */
+  html.dark .str-chat .str-chat__thread-container,
+  html.dark .str-chat .str-chat__thread {
+    background-color: #0a1420 !important;
+    border-color: #1a334e !important;
+  }
+  html.dark .str-chat .str-chat__thread .str-chat__list {
+    background-color: #0a1420 !important;
   }
 
   /* ── Stream Chat Read Receipts & Status styling ── */
