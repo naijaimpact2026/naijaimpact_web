@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/components/toast'
 import
     {
         Dialog,

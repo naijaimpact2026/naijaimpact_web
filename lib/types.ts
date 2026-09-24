@@ -58,6 +58,11 @@ export type Post = {
   hashtags: string[]
   created_at: string
   updated_at: string
+  allow_comments?: boolean
+  allow_sharing?: boolean
+  is_featured?: boolean
+  audience?: 'public' | 'connections' | 'group' | 'only-me'
+  scheduled_at?: string | null
 }
 
 export type PostMedia = {

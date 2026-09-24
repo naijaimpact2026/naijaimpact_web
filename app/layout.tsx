@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Manrope, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
+import { ToastViewport } from '@/components/toast'
 import './globals.css'
 
 const manrope = Manrope({
@@ -27,7 +28,10 @@ export const metadata: Metadata = {
     type: 'website',
   },
   icons: {
-    icon: '/logo.png',
+    icon: [
+      { url: '/logo.png', media: '(prefers-color-scheme: light)' },
+      { url: '/logo-darkmode (1).png', media: '(prefers-color-scheme: dark)' },
+    ],
     apple: '/logo.png',
   },
 }
@@ -54,6 +58,7 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-background text-foreground">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
+          <ToastViewport />
           {process.env.NODE_ENV === 'production' && <Analytics />}
         </ThemeProvider>
       </body>

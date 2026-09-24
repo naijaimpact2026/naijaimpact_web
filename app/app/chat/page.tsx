@@ -163,13 +163,13 @@ function ChatEmptyState({ onFindPeople }: { onFindPeople: () => void }) {
 function ChannelRow({ channel, onClick }: { channel: Channel; onClick: () => void }) {
     const lastMessage = channel.state.messages[channel.state.messages.length - 1]
     const rawData = channel.data as Record<string, unknown> | undefined
-    const channelName = typeof rawData?.name === 'string' ? rawData.name : undefined
-    const channelImage = typeof rawData?.image === 'string' ? rawData.image : undefined
+    const customData = rawData?.custom as Record<string, unknown> | undefined
+    const channelName = typeof rawData?.name === 'string' ? rawData.name : typeof customData?.name === 'string' ? customData.name : undefined
+    const channelImage = typeof rawData?.image === 'string' ? rawData.image : typeof customData?.image === 'string' ? customData.image : undefined
     const members = Object.values(channel.state.members)
     const otherMembers = members.filter((m) => m.user?.id !== channel._client.userID)
     const name = channelName || otherMembers.map((m) => m.user?.name ?? '?').join(', ') || 'Unknown'
     const unread = channel.countUnread()
-    const isGroup = members.length > 2
 
     return (
         <button
@@ -399,7 +399,17 @@ export default function ChatPage() {
             return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 otherNames.toLowerCase().includes(searchQuery.toLowerCase())
         })
-        : channels
+    }, [searchQuery])
+
+    const filteredNormalChannels = useMemo(() => filterChannelList(normalChannels), [filterChannelList, normalChannels])
+    const filteredGroupChannels = useMemo(() => filterChannelList(groupChannels), [filterChannelList, groupChannels])
+
+    const filteredFollowing = useMemo(() =>
+    {
+        if (!searchQuery) return following
+        const q = searchQuery.toLowerCase().trim()
+        return following.filter(u => u.display_name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q))
+    }, [following, searchQuery])
 
     const filteredFollowing = following.filter(
         (u) =>

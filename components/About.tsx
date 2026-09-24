@@ -38,14 +38,13 @@ const milestones = [
   '50,000+ active members today',
 ]
 
-export default function About()
-{
+export default function About() {
   return (
     <section id="about" className="relative scroll-mt-24 py-16 md:py-20 bg-white overflow-hidden">
       <div className="absolute left-0 top-0 bottom-0 w-1/2 bg-gray-50 -z-10 rounded-r-[80px] hidden lg:block" />
 
       <div className="container-gutter mx-auto max-w-7xl">
-      <div className="grid lg:grid-cols-2 gap-10 xl:gap-14 items-start">
+        <div className="grid lg:grid-cols-2 gap-10 xl:gap-14 items-start">
           {/* Left — visual stack */}
           <div className="relative space-y-4">
             <div className="rounded-2xl border border-border bg-white shadow-sm p-7">
@@ -76,7 +75,6 @@ export default function About()
                 <div className="text-sm text-white/70 mt-1">States Reached</div>
               </div>
             </div>
-
           </div>
 
           {/* Right — content */}
@@ -106,14 +104,13 @@ export default function About()
                 social life?
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                Hubnovo was born to change that one all-in-one platform that respects how
+                Hubnovo was born to change that — one all-in-one platform that respects how
                 Nigerians actually live, save, and support each other.
               </p>
             </div>
 
             <div className="space-y-2">
-              {values.map((value, index) =>
-              {
+              {values.map((value, index) => {
                 const Icon = value.icon
                 return (
                   <div

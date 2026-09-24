@@ -46,6 +46,7 @@ export default function SignupSlideshow() {
             }}
         >
 
+
             {/* =====================================================
                 BACKGROUND EFFECTS
             ===================================================== */}
@@ -114,6 +115,7 @@ export default function SignupSlideshow() {
                         height={60}
                         className="h-14 w-auto"
                     />
+
                 </Link>
 
 

@@ -12,6 +12,7 @@ import type { StreamChat, Event } from 'stream-chat'
 import { getStreamClient } from '@/lib/stream'
 import { createClient } from '@/lib/supabase/client'
 import { useUnreadCount } from './UnreadCountContext'
+import { playReceiveMessageSound } from '@/lib/chat-sound'
 
 // ─── Public context shape ────────────────────────────────────────────────────
 

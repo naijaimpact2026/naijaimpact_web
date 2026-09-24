@@ -3,6 +3,17 @@
 import { StreamChat } from 'stream-chat'
 import { createClient } from '@/lib/supabase/server'
 
+function getStreamServerClient(): StreamChat {
+  const apiKey = process.env.STREAM_API_KEY || process.env.NEXT_PUBLIC_STREAM_KEY!
+  const apiSecret = process.env.STREAM_SECRET_KEY || process.env.STREAM_API_SECRET!
+
+  if (!apiKey || !apiSecret) {
+    throw new Error('Stream Chat configuration missing on server')
+  }
+
+  return StreamChat.getInstance(apiKey, apiSecret)
+}
+
 /**
  * Start or resume a 1-on-1 DM channel between the current user and targetUserId.
  * Uses a deterministic channel ID so the same pair always lands in the same channel.
@@ -301,4 +312,321 @@ export async function createGroupChat(name: string, memberIds: string[]) {
   await channel.watch()
 
   return { channelId }
+}
+
+/**
+ * Fetch a single user's public profile by their UUID.
+ */
+export async function getUserProfileById(userId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('users')
+    .select('id, username, display_name, avatar_url, bio, verified, location, created_at')
+    .eq('id', userId)
+    .single()
+  return data
+}
+
+/**
+ * Fetch multiple users' profiles by their UUIDs (for group member list).
+ */
+export async function getChannelMembersProfiles(userIds: string[]) {
+  if (!userIds || userIds.length === 0) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('users')
+    .select('id, username, display_name, avatar_url, bio, verified, location, created_at')
+    .in('id', userIds)
+  return data ?? []
+}
+
+/**
+ * Add members to an existing group chat.
+ */
+export async function addMembersToGroupChat(channelId: string, memberIds: string[]) {
+  const supabase = await createClient()
+  const {
+    data: { user: authUser },
+    error: authError,
+  } = await supabase.auth.getUser()
+  if (authError || !authUser) throw new Error('Unauthorized')
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id, display_name')
+    .eq('auth_id', authUser.id)
+    .single()
+  if (!profile) throw new Error('User profile not found')
+
+  if (!memberIds || memberIds.length === 0) {
+    throw new Error('No members selected')
+  }
+
+  // Fetch member profiles from Supabase to ensure they exist and have display names
+  const { data: memberProfiles } = await supabase
+    .from('users')
+    .select('id, display_name, avatar_url')
+    .in('id', memberIds)
+
+  const serverClient = getStreamServerClient()
+
+  // Ensure added users exist in Stream
+  if (memberProfiles && memberProfiles.length > 0) {
+    await serverClient.upsertUsers(
+      memberProfiles.map((m) => ({
+        id: m.id,
+        name: m.display_name || 'User',
+        image: m.avatar_url ?? undefined,
+      }))
+    )
+  }
+
+  const channel = serverClient.channel('messaging', channelId)
+  const names = memberProfiles?.map((m) => m.display_name).filter(Boolean).join(', ') || 'new members'
+  
+  await channel.addMembers(memberIds, {
+    text: `${profile.display_name || 'A member'} added ${names} to the group`,
+    user_id: profile.id,
+  })
+
+  return { success: true }
+}
+
+/**
+ * Remove a member from a group chat (admin or member themselves).
+ */
+export async function removeMemberFromGroupChat(channelId: string, targetUserId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user: authUser },
+    error: authError,
+  } = await supabase.auth.getUser()
+  if (authError || !authUser) throw new Error('Unauthorized')
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id, display_name')
+    .eq('auth_id', authUser.id)
+    .single()
+  if (!profile) throw new Error('User profile not found')
+
+  const serverClient = getStreamServerClient()
+  const channel = serverClient.channel('messaging', channelId)
+
+  // Query channel to check if caller is the creator or the member themselves
+  const channelState = await channel.query()
+  const createdById =
+    (channelState.channel.created_by as any)?.id ||
+    (channelState.channel as any).created_by_id
+
+  const isCreator = createdById === profile.id
+  const isSelf = targetUserId === profile.id
+
+  if (!isCreator && !isSelf) {
+    throw new Error('Only the group admin can remove members')
+  }
+
+  const { data: targetProfile } = await supabase
+    .from('users')
+    .select('display_name')
+    .eq('id', targetUserId)
+    .single()
+
+  const targetName = targetProfile?.display_name || 'A member'
+
+  await channel.removeMembers([targetUserId], {
+    text: isSelf
+      ? `${profile.display_name || 'A member'} left the group`
+      : `${profile.display_name || 'Admin'} removed ${targetName} from the group`,
+    user_id: profile.id,
+  })
+
+  return { success: true }
+}
+
+/**
+ * Current user leaves a group chat.
+ */
+export async function leaveGroupChat(channelId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user: authUser },
+    error: authError,
+  } = await supabase.auth.getUser()
+  if (authError || !authUser) throw new Error('Unauthorized')
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id, display_name')
+    .eq('auth_id', authUser.id)
+    .single()
+  if (!profile) throw new Error('User profile not found')
+
+  const serverClient = getStreamServerClient()
+  const channel = serverClient.channel('messaging', channelId)
+
+  await channel.removeMembers([profile.id], {
+    text: `${profile.display_name || 'A member'} left the group`,
+    user_id: profile.id,
+  })
+
+  return { success: true }
+}
+
+/**
+ * Delete or hide conversation and clear history for the calling user.
+ */
+export async function deleteOrHideConversation(channelId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user: authUser },
+    error: authError,
+  } = await supabase.auth.getUser()
+  if (authError || !authUser) throw new Error('Unauthorized')
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', authUser.id)
+    .single()
+  if (!profile) throw new Error('User profile not found')
+
+  const serverClient = getStreamServerClient()
+  const channel = serverClient.channel('messaging', channelId)
+
+  // Hide the channel for this user and clear history
+  await channel.hide(profile.id, true)
+
+  return { success: true }
+}
+
+/**
+ * Block a user in Stream Chat and hide any existing DM channel.
+ */
+export async function blockUserChat(targetUserId: string, channelId?: string) {
+  const supabase = await createClient()
+  const {
+    data: { user: authUser },
+    error: authError,
+  } = await supabase.auth.getUser()
+  if (authError || !authUser) throw new Error('Unauthorized')
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', authUser.id)
+    .single()
+  if (!profile) throw new Error('User profile not found')
+
+  const serverClient = getStreamServerClient()
+  await serverClient.blockUser(targetUserId, profile.id)
+
+  if (channelId) {
+    try {
+      const channel = serverClient.channel('messaging', channelId)
+      await channel.hide(profile.id, true)
+    } catch {
+      // Ignore channel hide failure
+    }
+  }
+
+  return { success: true }
+}
+
+/**
+ * Unblock a user in Stream Chat.
+ */
+export async function unblockUserChat(targetUserId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user: authUser },
+    error: authError,
+  } = await supabase.auth.getUser()
+  if (authError || !authUser) throw new Error('Unauthorized')
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', authUser.id)
+    .single()
+  if (!profile) throw new Error('User profile not found')
+
+  const serverClient = getStreamServerClient()
+  await serverClient.unBlockUser(targetUserId, profile.id)
+
+  return { success: true }
+}
+
+/**
+ * Fetch candidate users to add to a group chat (excluding existing members).
+ */
+export async function fetchAvailableUsersToAdd(channelId: string, existingMemberIds: string[]) {
+  const supabase = await createClient()
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser()
+  if (!authUser) return []
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', authUser.id)
+    .single()
+  if (!profile) return []
+
+  const excludeSet = new Set([...existingMemberIds, profile.id])
+
+  // 1. People current user follows
+  const { data: follows } = await supabase
+    .from('user_follows')
+    .select('following:users!user_follows_following_id_fkey(id, username, display_name, avatar_url, verified)')
+    .eq('follower_id', profile.id)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  const candidates: Array<{
+    id: string
+    username: string
+    display_name: string
+    avatar_url: string | null
+    verified?: boolean
+  }> = []
+  const seen = new Set<string>()
+
+  for (const row of (follows ?? []) as any[]) {
+    const u = row.following
+    if (!u || excludeSet.has(u.id) || seen.has(u.id)) continue
+    seen.add(u.id)
+    candidates.push({
+      id: u.id,
+      username: u.username ?? '',
+      display_name: u.display_name ?? '',
+      avatar_url: u.avatar_url ?? null,
+      verified: Boolean(u.verified),
+    })
+  }
+
+  // 2. Also fetch active users to supplement if list is short
+  if (candidates.length < 20) {
+    const { data: activeUsers } = await supabase
+      .from('users')
+      .select('id, username, display_name, avatar_url, verified')
+      .order('created_at', { ascending: false })
+      .limit(40)
+
+    for (const u of activeUsers ?? []) {
+      if (!u || excludeSet.has(u.id) || seen.has(u.id)) continue
+      seen.add(u.id)
+      candidates.push({
+        id: u.id,
+        username: u.username ?? '',
+        display_name: u.display_name ?? '',
+        avatar_url: u.avatar_url ?? null,
+        verified: Boolean(u.verified),
+      })
+      if (candidates.length >= 30) break
+    }
+  }
+
+  return candidates
 }

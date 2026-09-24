@@ -107,9 +107,15 @@ export default function Sidebar({
                 {/* Header — mobile/tablet drawer only (lg+ already has the logo in the top bar) */}
                 <div className="flex items-center justify-between px-4 py-4 border-b border-border lg:hidden">
                     <Link href="/app" onClick={onClose} className="flex items-center gap-2">
-                        <Image src="/logo.png" alt="Hubnovo" width={30} height={30} className="rounded-md shrink-0" unoptimized />
+                        {/* Light Mode Logo */}
+                        <Image src="/logo.png" alt="Hubnovo" width={30} height={30} className="rounded-md shrink-0 dark:hidden" unoptimized />
+                        {/* Dark Mode Logo */}
+                        <Image src="/logo-darkmode (1).png" alt="Hubnovo" width={30} height={30} className="rounded-md shrink-0 hidden dark:block" unoptimized />
                         <div className="leading-none">
-                            <Image src="/logo-wordmark.png" alt="Hubnovo" width={84} height={28} className="h-4 w-auto" unoptimized />
+                            {/* Light Mode Wordmark */}
+                            <Image src="/logo-wordmark.png" alt="Hubnovo" width={84} height={28} className="h-4 w-auto dark:hidden" unoptimized />
+                            {/* Dark Mode Wordmark */}
+                            <Image src="/logo-darkmode (2).png" alt="Hubnovo" width={84} height={28} className="h-4 w-auto hidden dark:block" unoptimized />
                             <p className="text-[8px] font-medium text-emerald mt-0.5">People. Opportunities. Prosperity.</p>
                         </div>
                     </Link>

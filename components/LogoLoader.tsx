@@ -19,12 +19,24 @@ export default function LogoLoader({ size = 56, fullScreen = true, className = '
     const mark = (
         <div className={`relative ${className}`} style={{ width: size, height: size }}>
             <span className="absolute inset-0 rounded-2xl bg-primary/15 animate-ping" style={{ animationDuration: '1.8s' }} />
+            {/* Light Mode Logo */}
             <Image
                 src="/logo.png"
                 alt="Loading"
                 width={size}
                 height={size}
-                className="relative rounded-2xl"
+                className="relative rounded-2xl dark:hidden"
+                style={{ animation: 'logoBreathe 1.8s ease-in-out infinite' }}
+                priority
+                unoptimized
+            />
+            {/* Dark Mode Logo */}
+            <Image
+                src="/logo-darkmode (1).png"
+                alt="Loading"
+                width={size}
+                height={size}
+                className="relative rounded-2xl hidden dark:block"
                 style={{ animation: 'logoBreathe 1.8s ease-in-out infinite' }}
                 priority
                 unoptimized
