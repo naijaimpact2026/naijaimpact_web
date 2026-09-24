@@ -13,9 +13,12 @@ import
         MessageComposer,
         Thread,
         useChannelStateContext,
+        useMessageContext,
+        useChatContext,
+        ComponentProvider,
     } from 'stream-chat-react'
 import type { Channel as StreamChannel } from 'stream-chat'
-import { ArrowLeft, Loader2, MoreVertical } from 'lucide-react'
+import { ArrowLeft, Loader2, MoreVertical, Bell, BellOff, Check, CheckCheck, Clock, User as UserIcon, Users } from 'lucide-react'
 import { useChatClient } from '@/components/app/ChatProvider'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import
@@ -29,7 +32,7 @@ import
 import GroupInfoModal from '@/components/app/chat/GroupInfoModal'
 import { getUserProfileById } from '@/lib/actions/chat'
 import { playSendMessageSound, playReceiveMessageSound } from '@/lib/chat-sound'
-import { User as UserIcon, Users } from 'lucide-react'
+import { toast } from '@/components/toast'
 
 function formatLastSeen(dateStr?: string | Date): string
 {
@@ -104,6 +107,50 @@ function CustomChannelHeader()
     const isOtherOnline = !isGroup && Boolean(otherMember?.user?.online)
     const otherLastActive = otherMember?.user?.last_active
 
+    const [isMuted, setIsMuted] = useState(() => Boolean(channel.muteStatus()?.muted))
+
+    useEffect(() =>
+    {
+        const updateMute = () =>
+        {
+            setIsMuted(Boolean(channel.muteStatus()?.muted))
+        }
+
+        updateMute()
+        channel.on('channel.updated', updateMute)
+        channel.on('channel.muted', updateMute)
+        channel.on('channel.unmuted', updateMute)
+
+        return () =>
+        {
+            channel.off('channel.updated', updateMute)
+            channel.off('channel.muted', updateMute)
+            channel.off('channel.unmuted', updateMute)
+        }
+    }, [channel])
+
+    const handleToggleMute = async () =>
+    {
+        try
+        {
+            if (isMuted)
+            {
+                await channel.unmute()
+                setIsMuted(false)
+                toast.success('Notifications unmuted')
+            } else
+            {
+                await channel.mute()
+                setIsMuted(true)
+                toast.success('Notifications muted for this conversation')
+            }
+        } catch (err)
+        {
+            console.error('Failed to toggle mute:', err)
+            toast.error('Failed to update notifications')
+        }
+    }
+
     // Action: navigate to user's profile
     const handleViewProfile = async () =>
     {
@@ -173,9 +220,16 @@ function CustomChannelHeader()
                     className="flex-1 min-w-0 cursor-pointer group"
                     title={isGroup ? 'View Group Info' : 'View Profile'}
                 >
-                    <p className="text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">
-                        {name}
-                    </p>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">
+                            {name}
+                        </p>
+                        {isMuted && (
+                            <span title="Notifications muted">
+                                <BellOff className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
+                            </span>
+                        )}
+                    </div>
                     {isGroup ? (
                         <p className="text-[11px] text-muted-foreground leading-tight font-medium">
                             {members.length} members
@@ -227,6 +281,23 @@ function CustomChannelHeader()
                                 View Profile
                             </DropdownMenuItem>
                         )}
+
+                        <DropdownMenuItem
+                            onClick={handleToggleMute}
+                            className="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-sm font-medium"
+                        >
+                            {isMuted ? (
+                                <>
+                                    <Bell className="w-4 h-4 text-primary" />
+                                    Unmute notifications
+                                </>
+                            ) : (
+                                <>
+                                    <BellOff className="w-4 h-4 text-muted-foreground" />
+                                    Mute notifications
+                                </>
+                            )}
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
@@ -241,6 +312,65 @@ function CustomChannelHeader()
                 />
             )}
         </>
+    )
+}
+
+// ─── Custom Message Status (Seen with Sky-Blue Double Tick) ───────────────────
+
+function CustomMessageStatus()
+{
+    const { isMyMessage, message, readBy, deliveredTo, threadList } = useMessageContext()
+    const { client } = useChatContext()
+
+    if (!isMyMessage() || message.type === 'error') return null
+
+    const justReadByMe = readBy?.length === 1 && readBy[0].id === client.user?.id
+    const deliveredOnlyToMe = deliveredTo?.length === 1 && deliveredTo[0].id === client.user?.id
+    const isSending = message.status === 'sending'
+    const isRead = Boolean(readBy?.length && !justReadByMe && !threadList)
+    const isDelivered = Boolean(deliveredTo?.length && !deliveredOnlyToMe && !isRead && !threadList)
+
+    if (isSending)
+    {
+        return (
+            <span className="inline-flex items-center text-muted-foreground/60 mr-1" title="Sending...">
+                <Clock className="w-3 h-3 animate-spin" />
+            </span>
+        )
+    }
+
+    if (isRead)
+    {
+        return (
+            <span
+                className="inline-flex items-center gap-0.5 text-sky-400 dark:text-sky-400 font-semibold text-[11px] mr-1 select-none"
+                title="Seen"
+            >
+                <span>Seen</span>
+                <CheckCheck className="w-3.5 h-3.5 stroke-[2.5]" />
+            </span>
+        )
+    }
+
+    if (isDelivered)
+    {
+        return (
+            <span
+                className="inline-flex items-center text-muted-foreground/70 dark:text-white/60 mr-1 select-none"
+                title="Delivered"
+            >
+                <CheckCheck className="w-3.5 h-3.5 stroke-[2]" />
+            </span>
+        )
+    }
+
+    return (
+        <span
+            className="inline-flex items-center text-muted-foreground/70 dark:text-white/60 mr-1 select-none"
+            title="Sent"
+        >
+            <Check className="w-3.5 h-3.5 stroke-[2]" />
+        </span>
     )
 }
 
@@ -269,6 +399,7 @@ export default function ChannelPage()
                 setError(null)
                 const ch = client!.channel('messaging', channelId as string)
                 await ch.watch()
+                await ch.markRead().catch(() => {})
                 if (!cancelled) setChannel(ch)
             } catch (err)
             {
@@ -284,13 +415,25 @@ export default function ChannelPage()
         return () => { cancelled = true }
     }, [isReady, client, channelId])
 
+    // Mark channel read when window gains focus
+    useEffect(() =>
+    {
+        if (!channel) return
+        const onFocus = () =>
+        {
+            channel.markRead().catch(() => {})
+        }
+        window.addEventListener('focus', onFocus)
+        return () => window.removeEventListener('focus', onFocus)
+    }, [channel])
+
     const handleSendMessage = (ch: StreamChannel, message: any, options?: any) =>
     {
         playSendMessageSound()
         return ch.sendMessage(message, options)
     }
 
-    // Play sounds on receiving messages from other users
+    // Play sounds on receiving messages from other users (if not muted)
     useEffect(() =>
     {
         if (!channel || !client) return
@@ -302,7 +445,12 @@ export default function ChannelPage()
 
             if (senderId !== client.userID)
             {
-                playReceiveMessageSound()
+                const isMuted = Boolean(channel.muteStatus()?.muted)
+                if (!isMuted)
+                {
+                    playReceiveMessageSound()
+                }
+                channel.markRead().catch(() => {})
             }
         }
 
@@ -349,12 +497,14 @@ export default function ChannelPage()
         <div className="flex flex-col h-[calc(100dvh-4rem)] w-full overflow-hidden bg-background">
             <Chat client={client!} theme={streamTheme}>
                 <Channel channel={channel} doSendMessageRequest={handleSendMessage}>
-                    <Window>
-                        <CustomChannelHeader />
-                        <MessageList />
-                        <MessageComposer />
-                    </Window>
-                    <Thread />
+                    <ComponentProvider value={{ MessageStatus: CustomMessageStatus }}>
+                        <Window>
+                            <CustomChannelHeader />
+                            <MessageList returnAllReadData />
+                            <MessageComposer />
+                        </Window>
+                        <Thread />
+                    </ComponentProvider>
                 </Channel>
             </Chat>
         </div>

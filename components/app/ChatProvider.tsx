@@ -107,7 +107,12 @@ export default function ChatProvider({ children }: ChatProviderProps)
                 updateUnread(total)
                 if (event.user?.id !== streamClient.userID)
                 {
-                    playReceiveMessageSound()
+                    const channelCid = event.cid
+                    const isMuted = channelCid ? Boolean(streamClient._muteStatus(channelCid)?.muted) : false
+                    if (!isMuted)
+                    {
+                        playReceiveMessageSound()
+                    }
                 }
             }
 

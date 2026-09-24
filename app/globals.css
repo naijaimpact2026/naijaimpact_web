@@ -502,6 +502,24 @@ html.dark {
     color: #06111c !important;
     border-radius: 18px 18px 4px 18px !important;
   }
+
+  /* ── Stream Chat Read Receipts & Status styling ── */
+  .str-chat__message-status {
+    display: inline-flex !important;
+    align-items: center !important;
+    margin-right: 4px !important;
+  }
+  .str-chat__message-status-read-by,
+  .str-chat__message-status--read,
+  [data-testid="message-status-read-by"] {
+    color: #38bdf8 !important;
+  }
+  .str-chat__message-status-read-by svg,
+  .str-chat__message-status--read svg {
+    color: #38bdf8 !important;
+    stroke: #38bdf8 !important;
+    fill: #38bdf8 !important;
+  }
 }
 
 @keyframes marquee {
