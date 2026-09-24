@@ -147,7 +147,12 @@ export default function ChannelPage()
         channel.on('message.new', handleNewMessage)
         return () =>
         {
-            channel.off('message.new', handleNewMessage)
+            try
+            {
+                channel.off('message.new', handleNewMessage)
+            } catch {
+                // Ignore if channel was closed
+            }
         }
     }, [channel, client])
 

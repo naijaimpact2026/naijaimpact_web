@@ -9,6 +9,8 @@ import BottomNav from './BottomNav'
 import TopBar from './TopBar'
 import { UnreadCountProvider, useUnreadCount } from './UnreadCountContext'
 import NotificationListener from './NotificationListener'
+import ChatProvider from './ChatProvider'
+import { disconnectChatUser } from '@/lib/stream'
 
 interface AppShellInnerProps
 {
@@ -27,6 +29,7 @@ function AppShellInner({ children, user }: AppShellInnerProps)
 
     const handleSignOut = async () =>
     {
+        await disconnectChatUser()
         const supabase = createClient()
         await supabase.auth.signOut()
         router.push('/')
@@ -92,7 +95,9 @@ export default function AppShell({ children, user, initialNotificationCount = 0 
             {user && (
                 <NotificationListener userId={user.id} initialUnreadCount={initialNotificationCount} />
             )}
-            <AppShellInner user={user}>{children}</AppShellInner>
+            <ChatProvider>
+                <AppShellInner user={user}>{children}</AppShellInner>
+            </ChatProvider>
         </UnreadCountProvider>
     )
 }

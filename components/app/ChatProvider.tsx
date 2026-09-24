@@ -58,7 +58,7 @@ export default function ChatProvider({ children }: ChatProviderProps)
     const [isReady, setIsReady] = useState(false)
     const [unavailable, setUnavailable] = useState(false)
     const [unreadCount, setUnreadCount] = useState(0)
-    const disconnectRef = useRef<(() => Promise<void>) | null>(null)
+    const cleanupListenersRef = useRef<(() => void) | null>(null)
     const mountedRef = useRef(true)
 
     // Write to the global unread context so Sidebar/BottomNav badge updates
@@ -92,6 +92,45 @@ export default function ChatProvider({ children }: ChatProviderProps)
         if (!profile || !mountedRef.current) return
 
         const streamClient = getStreamClient()
+
+        // Helper to register listeners and update state
+        const attachListenersAndFinish = () =>
+        {
+            const userObj = streamClient.user as unknown as Record<string, unknown> | null
+            const initialUnread = (userObj?.total_unread_count as number | undefined) ?? 0
+            updateUnread(initialUnread)
+
+            const handleNewMessage = (event: Event) =>
+            {
+                if (!mountedRef.current) return
+                const total = event.total_unread_count ?? 0
+                updateUnread(total)
+                if (event.user?.id !== streamClient.userID)
+                {
+                    playReceiveMessageSound()
+                }
+            }
+
+            streamClient.on('notification.message_new', handleNewMessage)
+            streamClient.on('notification.mark_read', handleNewMessage)
+
+            cleanupListenersRef.current = () =>
+            {
+                streamClient.off('notification.message_new', handleNewMessage)
+                streamClient.off('notification.mark_read', handleNewMessage)
+            }
+
+            setClient(streamClient)
+            setIsReady(true)
+        }
+
+        // Fast-path: if singleton is already connected to this user, reuse immediately
+        if (streamClient.userID === profile.id && streamClient.user)
+        {
+            attachListenersAndFinish()
+            return
+        }
+
         const MAX_ATTEMPTS = 5
 
         for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++)
@@ -117,43 +156,9 @@ export default function ChatProvider({ children }: ChatProviderProps)
                     token,
                 )
 
-                if (!mountedRef.current)
-                {
-                    await streamClient.disconnectUser()
-                    return
-                }
+                if (!mountedRef.current) return
 
-                // Seed initial unread count
-                // total_unread_count is present at runtime but the type definition
-                // is narrower — cast through unknown to avoid TS error
-                const userObj = streamClient.user as unknown as Record<string, unknown> | null
-                const initialUnread = (userObj?.total_unread_count as number | undefined) ?? 0
-                updateUnread(initialUnread)
-
-                // Listen for message events to update the global badge
-                const handleNewMessage = (event: Event) =>
-                {
-                    if (!mountedRef.current) return
-                    const total = event.total_unread_count ?? 0
-                    updateUnread(total)
-                    if (event.user?.id !== streamClient.userID)
-                    {
-                        playReceiveMessageSound()
-                    }
-                }
-                streamClient.on('notification.message_new', handleNewMessage)
-                streamClient.on('notification.mark_read', handleNewMessage)
-
-                // Store disconnect function for cleanup
-                disconnectRef.current = async () =>
-                {
-                    streamClient.off('notification.message_new', handleNewMessage)
-                    streamClient.off('notification.mark_read', handleNewMessage)
-                    await streamClient.disconnectUser()
-                }
-
-                setClient(streamClient)
-                setIsReady(true)
+                attachListenersAndFinish()
                 return // success — exit retry loop
             } catch (err)
             {
@@ -184,10 +189,10 @@ export default function ChatProvider({ children }: ChatProviderProps)
         return () =>
         {
             mountedRef.current = false
-            if (disconnectRef.current)
+            if (cleanupListenersRef.current)
             {
-                disconnectRef.current()
-                disconnectRef.current = null
+                cleanupListenersRef.current()
+                cleanupListenersRef.current = null
             }
         }
     }, [connectWithRetry])

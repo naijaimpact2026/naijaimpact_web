@@ -27,3 +27,16 @@ export function getStreamClient(): StreamChat {
   }
   return client
 }
+
+/**
+ * Cleanly disconnects the current user session (to be used on logout).
+ */
+export async function disconnectChatUser(): Promise<void> {
+  if (client && client.userID) {
+    try {
+      await client.disconnectUser()
+    } catch {
+      // Ignore disconnect errors during logout
+    }
+  }
+}
