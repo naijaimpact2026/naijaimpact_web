@@ -8,6 +8,7 @@ import
     SheetContent,
     SheetHeader,
     SheetTitle,
+    SheetDescription,
 } from '@/components/ui/sheet'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import
@@ -343,6 +344,9 @@ export default function SharedMediaDrawer({
                         <SheetTitle className="text-base font-bold text-foreground">
                             Shared Media & Files
                         </SheetTitle>
+                        <SheetDescription className="sr-only">
+                            Browse shared photos, videos, files, and links
+                        </SheetDescription>
                     </SheetHeader>
 
                     {loading ? (

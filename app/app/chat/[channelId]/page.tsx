@@ -39,6 +39,10 @@ import
         ChevronDown,
         ChevronRight,
         Images,
+        UserPlus,
+        LogOut,
+        Trash2,
+        Ban,
     } from 'lucide-react'
 import { useChatClient } from '@/components/app/ChatProvider'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -50,9 +54,26 @@ import
     DropdownMenuItem,
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
+import
+{
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import GroupInfoModal from '@/components/app/chat/GroupInfoModal'
+import AddMembersModal from '@/components/app/chat/AddMembersModal'
 import SharedMediaDrawer from '@/components/app/chat/SharedMediaDrawer'
-import { getUserProfileById } from '@/lib/actions/chat'
+import {
+    getUserProfileById,
+    leaveGroupChat,
+    deleteOrHideConversation,
+    blockUserChat,
+} from '@/lib/actions/chat'
 import { playSendMessageSound, playReceiveMessageSound } from '@/lib/chat-sound'
 import { toast } from '@/components/toast'
 
@@ -82,6 +103,13 @@ function CustomChannelHeader({ onToggleSearch, isSearchOpen }: CustomChannelHead
     const { channel } = useChannelStateContext()
     const [groupInfoOpen, setGroupInfoOpen] = useState(false)
     const [sharedMediaOpen, setSharedMediaOpen] = useState(false)
+    const [addMembersOpen, setAddMembersOpen] = useState(false)
+    const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
+    const [isLeaving, setIsLeaving] = useState(false)
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
+    const [blockConfirmOpen, setBlockConfirmOpen] = useState(false)
+    const [isBlocking, setIsBlocking] = useState(false)
     const [, setPresenceTick] = useState(0)
 
     // Listen to real-time presence events so online/offline state updates instantly
@@ -211,6 +239,66 @@ function CustomChannelHeader({ onToggleSearch, isSearchOpen }: CustomChannelHead
         }
     }
 
+    const handleLeaveGroup = async () =>
+    {
+        if (!channel.id) return
+        try
+        {
+            setIsLeaving(true)
+            await leaveGroupChat(channel.id)
+            toast.success('You left the group')
+            setLeaveConfirmOpen(false)
+            router.push('/app/chat')
+        } catch (err: any)
+        {
+            console.error('Failed to leave group:', err)
+            toast.error(err.message || 'Failed to leave group')
+        } finally
+        {
+            setIsLeaving(false)
+        }
+    }
+
+    const handleDeleteConversation = async () =>
+    {
+        if (!channel.id) return
+        try
+        {
+            setIsDeleting(true)
+            await deleteOrHideConversation(channel.id)
+            toast.success('Conversation deleted')
+            setDeleteConfirmOpen(false)
+            router.push('/app/chat')
+        } catch (err: any)
+        {
+            console.error('Failed to delete conversation:', err)
+            toast.error(err.message || 'Failed to delete conversation')
+        } finally
+        {
+            setIsDeleting(false)
+        }
+    }
+
+    const handleBlockUser = async () =>
+    {
+        if (!otherMember?.user?.id) return
+        try
+        {
+            setIsBlocking(true)
+            await blockUserChat(otherMember.user.id, channel.id)
+            toast.success(`Blocked ${otherMember.user.name || 'user'}`)
+            setBlockConfirmOpen(false)
+            router.push('/app/chat')
+        } catch (err: any)
+        {
+            console.error('Failed to block user:', err)
+            toast.error(err.message || 'Failed to block user')
+        } finally
+        {
+            setIsBlocking(false)
+        }
+    }
+
     return (
         <>
             <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card sticky top-0 z-10 w-full shrink-0">
@@ -306,13 +394,22 @@ function CustomChannelHeader({ onToggleSearch, isSearchOpen }: CustomChannelHead
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56 bg-card border-border shadow-lg p-1.5">
                         {isGroup ? (
-                            <DropdownMenuItem
-                                onClick={() => setGroupInfoOpen(true)}
-                                className="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-sm font-medium"
-                            >
-                                <Users className="w-4 h-4 text-primary" />
-                                Group Info & Members
-                            </DropdownMenuItem>
+                            <>
+                                <DropdownMenuItem
+                                    onClick={() => setGroupInfoOpen(true)}
+                                    className="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-sm font-medium"
+                                >
+                                    <Users className="w-4 h-4 text-primary" />
+                                    Group Info & Members
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => setAddMembersOpen(true)}
+                                    className="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-sm font-medium"
+                                >
+                                    <UserPlus className="w-4 h-4 text-primary" />
+                                    Add Members
+                                </DropdownMenuItem>
+                            </>
                         ) : (
                             <DropdownMenuItem
                                 onClick={handleViewProfile}
@@ -357,6 +454,35 @@ function CustomChannelHeader({ onToggleSearch, isSearchOpen }: CustomChannelHead
                                 </>
                             )}
                         </DropdownMenuItem>
+
+                        <DropdownMenuSeparator className="my-1 border-border/50" />
+
+                        {isGroup ? (
+                            <DropdownMenuItem
+                                onClick={() => setLeaveConfirmOpen(true)}
+                                className="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-sm font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 focus:text-rose-500 focus:bg-rose-500/10"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                Leave Group
+                            </DropdownMenuItem>
+                        ) : (
+                            <>
+                                <DropdownMenuItem
+                                    onClick={() => setDeleteConfirmOpen(true)}
+                                    className="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-sm font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 focus:text-rose-500 focus:bg-rose-500/10"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete Conversation
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => setBlockConfirmOpen(true)}
+                                    className="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-sm font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 focus:text-rose-500 focus:bg-rose-500/10"
+                                >
+                                    <Ban className="w-4 h-4" />
+                                    Block {otherMember?.user?.name || 'User'}
+                                </DropdownMenuItem>
+                            </>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
@@ -372,12 +498,117 @@ function CustomChannelHeader({ onToggleSearch, isSearchOpen }: CustomChannelHead
                 />
             )}
 
+            {/* Add Members Modal (Step 5) */}
+            {isGroup && (
+                <AddMembersModal
+                    isOpen={addMembersOpen}
+                    onClose={() => setAddMembersOpen(false)}
+                    channel={channel}
+                />
+            )}
+
             {/* Shared Media, Files & Links Drawer (Step 4) */}
             <SharedMediaDrawer
                 isOpen={sharedMediaOpen}
                 onClose={() => setSharedMediaOpen(false)}
                 channel={channel}
             />
+
+            {/* Confirmation Dialog: Leave Group */}
+            <AlertDialog
+                open={leaveConfirmOpen}
+                onOpenChange={(open) => !open && setLeaveConfirmOpen(false)}
+            >
+                <AlertDialogContent className="bg-card border-border text-foreground">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-foreground">
+                            Leave {name}?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-muted-foreground text-xs">
+                            Are you sure you want to leave this group chat? You will stop receiving messages from this group.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel
+                            disabled={isLeaving}
+                            className="rounded-xl text-xs"
+                        >
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleLeaveGroup}
+                            disabled={isLeaving}
+                            className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold"
+                        >
+                            {isLeaving ? 'Leaving...' : 'Leave Group'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Confirmation Dialog: Delete Conversation */}
+            <AlertDialog
+                open={deleteConfirmOpen}
+                onOpenChange={(open) => !open && setDeleteConfirmOpen(false)}
+            >
+                <AlertDialogContent className="bg-card border-border text-foreground">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-foreground">
+                            Delete Conversation?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-muted-foreground text-xs">
+                            This conversation will be removed from your chat list and your chat history will be cleared. This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel
+                            disabled={isDeleting}
+                            className="rounded-xl text-xs"
+                        >
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteConversation}
+                            disabled={isDeleting}
+                            className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold"
+                        >
+                            {isDeleting ? 'Deleting...' : 'Delete Conversation'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Confirmation Dialog: Block User */}
+            <AlertDialog
+                open={blockConfirmOpen}
+                onOpenChange={(open) => !open && setBlockConfirmOpen(false)}
+            >
+                <AlertDialogContent className="bg-card border-border text-foreground">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-foreground">
+                            Block {otherMember?.user?.name || 'User'}?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-muted-foreground text-xs">
+                            Blocked users will not be able to send you messages or see your presence. You can unblock them at any time.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel
+                            disabled={isBlocking}
+                            className="rounded-xl text-xs"
+                        >
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleBlockUser}
+                            disabled={isBlocking}
+                            className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold"
+                        >
+                            {isBlocking ? 'Blocking...' : 'Block User'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     )
 }
