@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@/lib/types'
 import Sidebar from './Sidebar'
@@ -9,6 +9,8 @@ import BottomNav from './BottomNav'
 import TopBar from './TopBar'
 import { UnreadCountProvider, useUnreadCount } from './UnreadCountContext'
 import NotificationListener from './NotificationListener'
+import ChatProvider from './ChatProvider'
+import { disconnectChatUser } from '@/lib/stream'
 
 interface AppShellInnerProps
 {
@@ -19,11 +21,15 @@ interface AppShellInnerProps
 function AppShellInner({ children, user }: AppShellInnerProps)
 {
     const router = useRouter()
+    const pathname = usePathname()
     const { messageCount, notificationCount } = useUnreadCount()
     const [sidebarOpen, setSidebarOpen] = useState(false)
 
+    const isChatConversation = pathname.startsWith('/app/chat/')
+
     const handleSignOut = async () =>
     {
+        await disconnectChatUser()
         const supabase = createClient()
         await supabase.auth.signOut()
         router.push('/')
@@ -59,16 +65,18 @@ function AppShellInner({ children, user }: AppShellInnerProps)
             )}
 
             {/* Main content — full width, no left margin offset */}
-            <main className="flex-1 min-h-screen pt-16 pb-16 lg:pb-0 overflow-x-hidden">
+            <main className={`flex-1 min-h-screen pt-16 ${isChatConversation ? 'pb-0' : 'pb-16'} lg:pb-0 overflow-x-hidden`}>
                 {children}
             </main>
 
-            {/* Mobile bottom nav — Menu tab opens the same sidebar drawer */}
-            <BottomNav
-                messageCount={messageCount}
-                notificationCount={notificationCount}
-                onMenuToggle={() => setSidebarOpen((v) => !v)}
-            />
+            {/* Mobile bottom nav — hide inside active chat conversations so composer is unobstructed */}
+            {!isChatConversation && (
+                <BottomNav
+                    messageCount={messageCount}
+                    notificationCount={notificationCount}
+                    onMenuToggle={() => setSidebarOpen((v) => !v)}
+                />
+            )}
         </div>
     )
 }
@@ -87,7 +95,9 @@ export default function AppShell({ children, user, initialNotificationCount = 0 
             {user && (
                 <NotificationListener userId={user.id} initialUnreadCount={initialNotificationCount} />
             )}
-            <AppShellInner user={user}>{children}</AppShellInner>
+            <ChatProvider>
+                <AppShellInner user={user}>{children}</AppShellInner>
+            </ChatProvider>
         </UnreadCountProvider>
     )
 }
