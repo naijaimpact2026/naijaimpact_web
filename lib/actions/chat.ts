@@ -235,3 +235,29 @@ export async function createGroupChat(name: string, memberIds: string[]) {
 
   return { channelId }
 }
+
+/**
+ * Fetch a single user's public profile by their UUID.
+ */
+export async function getUserProfileById(userId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('users')
+    .select('id, username, display_name, avatar_url, bio, verified, location, created_at')
+    .eq('id', userId)
+    .single()
+  return data
+}
+
+/**
+ * Fetch multiple users' profiles by their UUIDs (for group member list).
+ */
+export async function getChannelMembersProfiles(userIds: string[]) {
+  if (!userIds || userIds.length === 0) return []
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('users')
+    .select('id, username, display_name, avatar_url, bio, verified, location, created_at')
+    .in('id', userIds)
+  return data ?? []
+}

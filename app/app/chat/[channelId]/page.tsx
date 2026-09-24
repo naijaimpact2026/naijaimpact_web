@@ -18,7 +18,30 @@ import type { Channel as StreamChannel } from 'stream-chat'
 import { ArrowLeft, Loader2, MoreVertical } from 'lucide-react'
 import { useChatClient } from '@/components/app/ChatProvider'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import
+{
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import GroupInfoModal from '@/components/app/chat/GroupInfoModal'
+import { getUserProfileById } from '@/lib/actions/chat'
 import { playSendMessageSound, playReceiveMessageSound } from '@/lib/chat-sound'
+import { User as UserIcon, Users } from 'lucide-react'
+
+function formatLastSeen(dateStr?: string | Date): string
+{
+    if (!dateStr) return 'Offline'
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000)
+    if (diffSec < 60) return 'Active just now'
+    if (diffSec < 3600) return `Active ${Math.floor(diffSec / 60)}m ago`
+    if (diffSec < 86400) return `Active ${Math.floor(diffSec / 3600)}h ago`
+    return `Last seen ${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+}
 
 // ─── Custom channel header ───────────────────────────────────────────────────
 
@@ -26,6 +49,32 @@ function CustomChannelHeader()
 {
     const router = useRouter()
     const { channel } = useChannelStateContext()
+    const [groupInfoOpen, setGroupInfoOpen] = useState(false)
+    const [, setPresenceTick] = useState(0)
+
+    // Listen to real-time presence events so online/offline state updates instantly
+    useEffect(() =>
+    {
+        const client = channel._client
+        if (!client) return
+
+        const handlePresenceChange = (event: any) =>
+        {
+            if (event.user?.id && channel.state.members[event.user.id])
+            {
+                setPresenceTick((t) => t + 1)
+            }
+        }
+
+        client.on('user.presence.changed', handlePresenceChange)
+        client.on('user.updated', handlePresenceChange)
+
+        return () =>
+        {
+            client.off('user.presence.changed', handlePresenceChange)
+            client.off('user.updated', handlePresenceChange)
+        }
+    }, [channel])
 
     const rawData = channel.data as Record<string, unknown> | undefined
     const customData = rawData?.custom as Record<string, unknown> | undefined
@@ -33,7 +82,11 @@ function CustomChannelHeader()
     const channelImage = typeof rawData?.image === 'string' ? rawData.image : typeof customData?.image === 'string' ? customData.image : undefined
 
     const members = Object.values(channel.state.members)
-    const otherMembers = members.filter((m) => m.user?.id !== channel._client.userID)
+    const currentUserId = channel._client.userID
+    const otherMembers = members.filter((m) => m.user?.id !== currentUserId)
+    const isGroup = (channel.id ?? '').startsWith('group_') || Boolean((customData as any)?.isGroup) || otherMembers.length > 1
+    const otherMember = otherMembers[0]
+
     const name =
         channelName ||
         otherMembers.map((m) => m.user?.name ?? m.user?.id ?? '?').join(', ') ||
@@ -46,39 +99,148 @@ function CustomChannelHeader()
         .toUpperCase()
         .slice(0, 2)
 
+    // Online status computation
     const onlineCount = members.filter((m) => m.user?.online).length
+    const isOtherOnline = !isGroup && Boolean(otherMember?.user?.online)
+    const otherLastActive = otherMember?.user?.last_active
+
+    // Action: navigate to user's profile
+    const handleViewProfile = async () =>
+    {
+        if (isGroup)
+        {
+            setGroupInfoOpen(true)
+            return
+        }
+
+        if (!otherMember?.user?.id) return
+
+        const directUsername = (otherMember.user as any)?.username
+        if (directUsername)
+        {
+            router.push(`/app/profile/${directUsername}`)
+            return
+        }
+
+        try
+        {
+            const profile = await getUserProfileById(otherMember.user.id)
+            if (profile?.username)
+            {
+                router.push(`/app/profile/${profile.username}`)
+            }
+        } catch (err)
+        {
+            console.error('Failed to get profile for navigation:', err)
+        }
+    }
 
     return (
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card sticky top-0 z-10 w-full shrink-0">
-            <button
-                onClick={() => router.push('/app/chat')}
-                className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors -ml-1.5 shrink-0"
-                aria-label="Back"
-            >
-                <ArrowLeft className="w-5 h-5" />
-            </button>
+        <>
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card sticky top-0 z-10 w-full shrink-0">
+                <button
+                    onClick={() => router.push('/app/chat')}
+                    className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors -ml-1.5 shrink-0"
+                    aria-label="Back"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
 
-            <Avatar className="h-9 w-9 shrink-0 border border-border">
-                <AvatarImage src={channelImage} />
-                <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
-                    {initials}
-                </AvatarFallback>
-            </Avatar>
+                {/* Avatar with click to view profile/group info & online status indicator */}
+                <div
+                    onClick={handleViewProfile}
+                    className="relative cursor-pointer shrink-0 group"
+                    title={isGroup ? 'View Group Info' : 'View Profile'}
+                >
+                    <Avatar className="h-9 w-9 border border-border group-hover:border-primary/50 transition-colors">
+                        <AvatarImage src={channelImage || otherMember?.user?.image} />
+                        <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                            {initials}
+                        </AvatarFallback>
+                    </Avatar>
+                    {!isGroup && (
+                        <span
+                            className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-2 ring-card ${
+                                isOtherOnline ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/30'
+                            }`}
+                        />
+                    )}
+                </div>
 
-            <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground truncate">{name}</p>
-                {onlineCount > 0 && (
-                    <p className="text-[11px] text-primary leading-tight font-medium">{onlineCount} online</p>
-                )}
+                {/* Title & dynamic online presence */}
+                <div
+                    onClick={handleViewProfile}
+                    className="flex-1 min-w-0 cursor-pointer group"
+                    title={isGroup ? 'View Group Info' : 'View Profile'}
+                >
+                    <p className="text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">
+                        {name}
+                    </p>
+                    {isGroup ? (
+                        <p className="text-[11px] text-muted-foreground leading-tight font-medium">
+                            {members.length} members
+                            {onlineCount > 0 && (
+                                <span className="text-emerald-500 font-semibold"> · {onlineCount} online</span>
+                            )}
+                        </p>
+                    ) : (
+                        <p className="text-[11px] leading-tight font-medium flex items-center">
+                            {isOtherOnline ? (
+                                <span className="text-emerald-500 flex items-center font-semibold">
+                                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse" />
+                                    Online
+                                </span>
+                            ) : (
+                                <span className="text-muted-foreground">
+                                    {formatLastSeen(otherLastActive)}
+                                </span>
+                            )}
+                        </p>
+                    )}
+                </div>
+
+                {/* 3-Dots Dropdown Options Menu */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0 outline-hidden"
+                            aria-label="Conversation options"
+                        >
+                            <MoreVertical className="w-5 h-5" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 bg-card border-border shadow-lg p-1.5">
+                        {isGroup ? (
+                            <DropdownMenuItem
+                                onClick={() => setGroupInfoOpen(true)}
+                                className="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-sm font-medium"
+                            >
+                                <Users className="w-4 h-4 text-primary" />
+                                Group Info & Members
+                            </DropdownMenuItem>
+                        ) : (
+                            <DropdownMenuItem
+                                onClick={handleViewProfile}
+                                className="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-sm font-medium"
+                            >
+                                <UserIcon className="w-4 h-4 text-primary" />
+                                View Profile
+                            </DropdownMenuItem>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
 
-            <button
-                className="p-1.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                aria-label="Options"
-            >
-                <MoreVertical className="w-5 h-5" />
-            </button>
-        </div>
+            {/* Group info modal */}
+            {isGroup && (
+                <GroupInfoModal
+                    isOpen={groupInfoOpen}
+                    onClose={() => setGroupInfoOpen(false)}
+                    channel={channel}
+                    currentUserId={currentUserId}
+                />
+            )}
+        </>
     )
 }
 
