@@ -335,11 +335,6 @@ export default function ChatPage()
         else setFollowing(prev => prev.filter(u => u.id !== user.id))
     }, [])
 
-    if (!isReady || !client)
-    {
-        return <ChatSkeleton />
-    }
-
     const normalChannels = useMemo(() =>
     {
         return channels.filter(ch => !isGroupChannel(ch))
@@ -359,7 +354,7 @@ export default function ChatPage()
             const rawData = ch.data as Record<string, unknown> | undefined
             const customData = rawData?.custom as Record<string, unknown> | undefined
             const name = typeof rawData?.name === 'string' ? rawData.name : typeof customData?.name === 'string' ? customData.name : ''
-            const otherNames = Object.values(ch.state.members).filter(m => m.user?.id !== ch._client.userID).map(m => m.user?.name ?? '').join(' ')
+            const otherNames = Object.values(ch.state?.members || {}).filter(m => m.user?.id !== ch._client?.userID).map(m => m.user?.name ?? '').join(' ')
             return name.toLowerCase().includes(q) || otherNames.toLowerCase().includes(q)
         })
     }, [searchQuery])
@@ -367,8 +362,24 @@ export default function ChatPage()
     const filteredNormalChannels = useMemo(() => filterChannelList(normalChannels), [filterChannelList, normalChannels])
     const filteredGroupChannels = useMemo(() => filterChannelList(groupChannels), [filterChannelList, groupChannels])
 
-    const filteredFollowing = following.filter(u => u.display_name.toLowerCase().includes(searchQuery.toLowerCase()) || u.username.toLowerCase().includes(searchQuery.toLowerCase()))
-    const filteredSuggested = suggested.filter(u => u.display_name.toLowerCase().includes(searchQuery.toLowerCase()) || u.username.toLowerCase().includes(searchQuery.toLowerCase()))
+    const filteredFollowing = useMemo(() =>
+    {
+        if (!searchQuery) return following
+        const q = searchQuery.toLowerCase().trim()
+        return following.filter(u => u.display_name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q))
+    }, [following, searchQuery])
+
+    const filteredSuggested = useMemo(() =>
+    {
+        if (!searchQuery) return suggested
+        const q = searchQuery.toLowerCase().trim()
+        return suggested.filter(u => u.display_name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q))
+    }, [suggested, searchQuery])
+
+    if (!isReady || !client)
+    {
+        return <ChatSkeleton />
+    }
 
     return (
         <Chat client={client}>
