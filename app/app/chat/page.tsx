@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useCallback, useRef } from 'react'
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
     Chat,
@@ -161,6 +161,7 @@ function ChatEmptyState({ onFindPeople }: { onFindPeople: () => void }) {
 }
 
 function ChannelRow({ channel, onClick }: { channel: Channel; onClick: () => void }) {
+    const isGroup = Object.keys(channel.state.members).length > 2
     const lastMessage = channel.state.messages[channel.state.messages.length - 1]
     const rawData = channel.data as Record<string, unknown> | undefined
     const customData = rawData?.custom as Record<string, unknown> | undefined
@@ -375,6 +376,46 @@ export default function ChatPage() {
     }, [client, router])
 
 
+    const filteredChannels = useMemo(() => {
+        if (!searchQuery.trim()) return channels
+    
+        const query = searchQuery.toLowerCase().trim()
+    
+        return channels.filter((ch) => {
+            const rawData = ch.data as Record<string, unknown> | undefined
+    
+            const name =
+                typeof rawData?.name === 'string'
+                    ? rawData.name
+                    : ''
+    
+            const otherNames = Object.values(ch.state.members)
+                .filter((m) => m.user?.id !== ch._client.userID)
+                .map((m) => m.user?.name ?? '')
+                .join(' ')
+    
+            return (
+                name.toLowerCase().includes(query) ||
+                otherNames.toLowerCase().includes(query)
+            )
+        })
+    }, [channels, searchQuery])
+    
+    const filteredFollowing = useMemo(() => {
+        if (!searchQuery.trim()) return following
+    
+        const query = searchQuery.toLowerCase().trim()
+    
+        return following.filter(
+            (u) =>
+                u.display_name.toLowerCase().includes(query) ||
+                u.username.toLowerCase().includes(query),
+        )
+    }, [following, searchQuery])
+    const totalUnread = channels.reduce(
+        (sum, channel) => sum + channel.countUnread(),
+        0,
+    )
 
     if (!isReady || !client) {
         return (
@@ -387,37 +428,6 @@ export default function ChatPage() {
         )
     }
 
-    const filteredChannels = searchQuery
-        ? channels.filter((ch) => {
-            const rawData = ch.data as Record<string, unknown> | undefined
-            const name = typeof rawData?.name === 'string' ? rawData.name : ''
-            const otherNames = Object.values(ch.state.members)
-                .filter((m) => m.user?.id !== ch._client.userID)
-                .map((m) => m.user?.name ?? '')
-                .join(' ')
-
-            return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                otherNames.toLowerCase().includes(searchQuery.toLowerCase())
-        })
-    }, [searchQuery])
-
-    const filteredNormalChannels = useMemo(() => filterChannelList(normalChannels), [filterChannelList, normalChannels])
-    const filteredGroupChannels = useMemo(() => filterChannelList(groupChannels), [filterChannelList, groupChannels])
-
-    const filteredFollowing = useMemo(() =>
-    {
-        if (!searchQuery) return following
-        const q = searchQuery.toLowerCase().trim()
-        return following.filter(u => u.display_name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q))
-    }, [following, searchQuery])
-
-    const filteredFollowing = following.filter(
-        (u) =>
-            u.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            u.username.toLowerCase().includes(searchQuery.toLowerCase()),
-    )
-
-    const totalUnread = channels.reduce((sum, channel) => sum + channel.countUnread(), 0)
 
     return (
         <Chat client={client}>
