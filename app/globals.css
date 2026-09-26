@@ -257,7 +257,7 @@ html.dark {
     width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
-    background-color: var(--color-background) !important;
+    background-color: transparent !important;
     position: relative !important;
   }
   .str-chat__container {
@@ -270,6 +270,7 @@ html.dark {
     flex: 1 1 0% !important;
     position: relative !important;
     overflow: hidden !important;
+    background-color: transparent !important;
   }
   .str-chat .str-chat__main-panel {
     height: 100% !important;
@@ -279,7 +280,8 @@ html.dark {
     min-height: 0 !important;
     flex: 1 1 0% !important;
     min-width: 0 !important;
-    background-color: var(--color-background) !important;
+    background-color: transparent !important;
+    position: relative !important;
   }
 
   /* ── Thread Reply Container & Responsive Drawer ── */
@@ -374,11 +376,14 @@ html.dark {
     box-shadow: 0 0 0 1.5px rgba(251, 191, 36, 0.4), 0 4px 14px rgba(251, 191, 36, 0.1) !important;
   }
 
-  .str-chat__list {
+  .str-chat__list,
+  .str-chat__message-list,
+  .str-chat__virtual-list {
     flex: 1 1 0% !important;
     min-height: 0 !important;
     height: 100% !important;
-    background-color: var(--color-background) !important;
+    background-color: transparent !important;
+    background: transparent !important;
   }
   .str-chat .str-chat__message-composer-container {
     flex-shrink: 0 !important;
@@ -585,8 +590,11 @@ html.dark {
     background-color: #102338 !important;
     color: #f1f5f9 !important;
   }
-  html.dark .str-chat__list {
-    background-color: #0a1420 !important;
+  html.dark .str-chat__list,
+  html.dark .str-chat__message-list,
+  html.dark .str-chat__virtual-list {
+    background-color: transparent !important;
+    background: transparent !important;
   }
   html.dark .str-chat__message--received .str-chat__message-bubble {
     background-color: #16324f !important;
@@ -606,7 +614,8 @@ html.dark {
     background-color: #0a1420 !important;
     border-color: #1a334e !important;
   }
-  html.dark .str-chat .str-chat__thread .str-chat__list {
+  html.dark .str-chat .str-chat__thread .str-chat__list,
+  html.dark .str-chat .str-chat__thread .str-chat__message-list {
     background-color: #0a1420 !important;
   }
 
@@ -750,3 +759,78 @@ html.dark {
     animation: none;
   }
 }
+
+/* ── Chat Ambient Floating Aurora Animations (GPU accelerated) ── */
+@keyframes chat-aurora-float-1 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(40px, 30px, 0) scale(1.08);
+  }
+  100% {
+    transform: translate3d(-25px, 45px, 0) scale(0.96);
+  }
+}
+
+@keyframes chat-aurora-float-2 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-45px, -30px, 0) scale(1.10);
+  }
+  100% {
+    transform: translate3d(25px, -40px, 0) scale(0.94);
+  }
+}
+
+@keyframes chat-aurora-float-3 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(30px, -35px, 0) scale(1.06);
+  }
+  100% {
+    transform: translate3d(-35px, 20px, 0) scale(1.02);
+  }
+}
+
+@keyframes chat-aurora-float-4 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-35px, 30px, 0) scale(1.10);
+  }
+  100% {
+    transform: translate3d(30px, -25px, 0) scale(0.95);
+  }
+}
+
+.chat-aurora-orb-1 {
+  animation: chat-aurora-float-1 22s ease-in-out infinite alternate;
+}
+
+.chat-aurora-orb-2 {
+  animation: chat-aurora-float-2 26s ease-in-out infinite alternate;
+}
+
+.chat-aurora-orb-3 {
+  animation: chat-aurora-float-3 18s ease-in-out infinite alternate;
+}
+
+.chat-aurora-orb-4 {
+  animation: chat-aurora-float-4 24s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-aurora-orb-1,
+  .chat-aurora-orb-2,
+  .chat-aurora-orb-3,
+  .chat-aurora-orb-4 {
+    animation: none !important;
+  }
+}
+
