@@ -727,7 +727,6 @@ export default function NotificationItem({
                         className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
                     >
                         {actionLabel}
-                        <ArrowRight className="h-3 w-3" />
                     </button>
                 )}
 
