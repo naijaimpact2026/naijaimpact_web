@@ -68,6 +68,7 @@ import
 import GroupInfoModal from '@/components/app/chat/GroupInfoModal'
 import AddMembersModal from '@/components/app/chat/AddMembersModal'
 import SharedMediaDrawer from '@/components/app/chat/SharedMediaDrawer'
+import ChatWallpaper from '@/components/app/chat/ChatWallpaper'
 import {
     getUserProfileById,
     leaveGroupChat,
@@ -1102,7 +1103,8 @@ export default function ChannelPage()
     const streamTheme = resolvedTheme === 'dark' ? 'str-chat__theme-dark' : 'str-chat__theme-light'
 
     return (
-        <div className="flex flex-col h-[calc(100dvh-4rem)] w-full overflow-hidden bg-background">
+        <div className="relative flex flex-col h-[calc(100dvh-4rem)] w-full overflow-hidden bg-background">
+            <ChatWallpaper />
             <Chat client={client!} theme={streamTheme}>
                 <Channel channel={channel} doSendMessageRequest={handleSendMessage}>
                     <ComponentProvider
