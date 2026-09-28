@@ -1,5 +1,7 @@
-import ComingSoonSkeleton from '@/components/app/skeletons/ComingSoonSkeleton'
+import BusinessLaunchpadSkeleton from '@/components/app/skeletons/BusinessLaunchpadSkeleton'
 
-export default function Loading() {
-    return <ComingSoonSkeleton />
+export default function Loading()
+{
+    return <BusinessLaunchpadSkeleton />
 }
+
