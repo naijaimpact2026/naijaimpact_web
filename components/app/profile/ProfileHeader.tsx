@@ -2,10 +2,25 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { BadgeCheck, UserCheck, UserPlus, Calendar, Pencil, MapPin, Link2, Share2, Camera } from 'lucide-react'
+import {
+    BadgeCheck,
+    UserCheck,
+    UserPlus,
+    Calendar,
+    Pencil,
+    MapPin,
+    Link2,
+    Share2,
+    Camera,
+    MessageCircle,
+    Loader2,
+} from 'lucide-react'
 import { followUser, unfollowUser } from '@/lib/actions/profile'
+import { startDmChat } from '@/lib/actions/chat'
+import { toast } from '@/components/toast'
 import FollowersModal from './FollowersModal'
 import ProfileCoverIllustration from '@/components/illustrations/ProfileCoverIllustration'
 import type { User } from '@/lib/types'
@@ -36,9 +51,32 @@ export default function ProfileHeader({
     isOwnProfile,
 }: ProfileHeaderProps)
 {
+    const router = useRouter()
     const [isFollowing, setIsFollowing] = useState(initialIsFollowing)
     const [followerCount, setFollowerCount] = useState(initialFollowerCount)
     const [pending, setPending] = useState(false)
+    const [startingChat, setStartingChat] = useState(false)
+
+    async function handleStartChat()
+    {
+        if (startingChat) return
+        if (!currentUserId)
+        {
+            router.push('/sign-in')
+            return
+        }
+        setStartingChat(true)
+        try
+        {
+            const { channelId } = await startDmChat(profile.id)
+            router.push(`/app/chat/${channelId}`)
+        } catch (err: any)
+        {
+            console.error('Failed to start chat:', err)
+            toast.error(err?.message ?? 'Could not start conversation')
+            setStartingChat(false)
+        }
+    }
 
     const initials = profile.display_name
         .split(' ')
@@ -178,26 +216,43 @@ export default function ProfileHeader({
                                     </Button>
                                 </>
                             ) : (
-                                <Button
-                                    size="sm"
-                                    variant={isFollowing ? 'outline' : 'default'}
-                                    onClick={handleFollowToggle}
-                                    disabled={pending}
-                                    className="gap-1.5 rounded-full px-4"
-                                    aria-label={isFollowing ? `Unfollow ${profile.username}` : `Follow ${profile.username}`}
-                                >
-                                    {isFollowing ? (
-                                        <>
-                                            <UserCheck className="h-3.5 w-3.5" />
-                                            Following
-                                        </>
-                                    ) : (
-                                        <>
-                                            <UserPlus className="h-3.5 w-3.5" />
-                                            Follow
-                                        </>
-                                    )}
-                                </Button>
+                                <>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={handleStartChat}
+                                        disabled={startingChat}
+                                        className="gap-1.5 rounded-full px-4 border-border hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all font-semibold"
+                                        aria-label={`Message ${profile.display_name}`}
+                                    >
+                                        {startingChat ? (
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                                        ) : (
+                                            <MessageCircle className="h-3.5 w-3.5" />
+                                        )}
+                                        Message
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant={isFollowing ? 'outline' : 'default'}
+                                        onClick={handleFollowToggle}
+                                        disabled={pending}
+                                        className="gap-1.5 rounded-full px-4 font-semibold"
+                                        aria-label={isFollowing ? `Unfollow ${profile.username}` : `Follow ${profile.username}`}
+                                    >
+                                        {isFollowing ? (
+                                            <>
+                                                <UserCheck className="h-3.5 w-3.5" />
+                                                Following
+                                            </>
+                                        ) : (
+                                            <>
+                                                <UserPlus className="h-3.5 w-3.5" />
+                                                Follow
+                                            </>
+                                        )}
+                                    </Button>
+                                </>
                             )}
                         </div>
 
