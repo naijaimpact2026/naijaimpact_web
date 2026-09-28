@@ -106,40 +106,82 @@ function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }:
 
                 <Link
                     href="/app/chat"
-                    className="relative p-2.5 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    className="relative hidden sm:flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     aria-label="Messages"
                 >
                     <MessageCircle className="w-5 h-5" />
                     {messageCount > 0 && (
-                        <span className="absolute top-1.5 right-1.5 flex items-center justify-center min-w-[16px] h-4 px-0.5 rounded-full bg-destructive text-white text-[9px] font-bold leading-none">
+                        <span className="absolute top-0.5 right-1 flex items-center justify-center min-w-[16px] h-4 px-0.5 rounded-full bg-destructive text-white text-[9px] font-bold leading-none">
                             {messageCount > 99 ? '99+' : messageCount}
                         </span>
                     )}
+                    <span className="text-[10px] font-medium">Chat</span>
                 </Link>
 
                 <Link
                     href="/app/notifications"
-                    className="relative p-2.5 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    className="relative hidden sm:flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     aria-label="Notifications"
                 >
                     <Bell className="w-5 h-5" />
                     {notificationCount > 0 && (
-                        <span className="absolute top-1.5 right-1.5 flex items-center justify-center min-w-[16px] h-4 px-0.5 rounded-full bg-destructive text-white text-[9px] font-bold leading-none">
+                        <span className="absolute top-0.5 right-1 flex items-center justify-center min-w-[16px] h-4 px-0.5 rounded-full bg-destructive text-white text-[9px] font-bold leading-none">
                             {notificationCount > 99 ? '99+' : notificationCount}
                         </span>
                     )}
+                    <span className="text-[10px] font-medium">Alerts</span>
                 </Link>
 
-                <Link href={profileHref} className="flex items-center gap-2 pl-1.5 pr-1 py-1 rounded-full hover:bg-muted transition-colors" aria-label="Profile">
-                    <Avatar className="h-8 w-8 ring-1 ring-border">
-                        <AvatarImage src={user?.avatar_url ?? undefined} alt={user?.display_name ?? 'User'} />
-                        <AvatarFallback className="bg-primary/15 text-primary text-xs font-bold">
+                {/* Profile */}
+                <Link
+                    href={profileHref}
+                    aria-label="Profile"
+                    className="
+                        flex h-14
+                        items-center
+                        gap-2
+                        rounded-xl
+                        px-2
+                        transition-all
+                        hover:bg-white/10
+                    "
+                >
+                    <Avatar
+                        className="
+                            h-8 w-8
+                            shrink-0
+                            border
+                            border-white/15
+                            ring-1
+                            ring-white/5
+                        "
+                    >
+                        <AvatarImage
+                            src={user?.avatar_url ?? undefined}
+                            alt={user?.display_name ?? 'User'}
+                        />
+
+                        <AvatarFallback
+                            className="
+                                bg-emerald-500/20
+                                text-emerald-300
+                                text-xs
+                                font-bold
+                            "
+                        >
                             {getInitials(user?.display_name)}
                         </AvatarFallback>
                     </Avatar>
-                    <span className="hidden md:block text-sm font-semibold text-foreground pr-1">
-                        {user?.display_name?.split(' ')[0] ?? 'Profile'}
-                    </span>
+
+                    <div className="hidden min-w-0 text-left md:block">
+                        <p className="max-w-[90px] truncate text-sm font-semibold text-white">
+                            {user?.display_name?.split(' ')[0] ?? 'Profile'}
+                        </p>
+
+                        <p className="max-w-[90px] truncate text-[10px] text-white/40">
+                            @{user?.username ?? 'user'}
+                        </p>
+                    </div>
                 </Link>
             </div>
         </header>
