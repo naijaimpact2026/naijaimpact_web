@@ -1009,3 +1009,87 @@ export type ServiceCategory = {
   name: string
   service_type: string
 }
+
+// ─────────────────────────────────────────────
+// Jobs & Opportunities Tables
+// ─────────────────────────────────────────────
+
+export type JobType = 'full_time' | 'part_time' | 'contract' | 'internship' | 'freelance'
+export type WorkplaceType = 'remote' | 'on_site' | 'hybrid'
+export type JobSalaryPeriod = 'monthly' | 'yearly' | 'hourly' | 'project'
+export type JobStatus = 'active' | 'paused' | 'closed'
+export type ApplicationStatus = 'submitted' | 'in_review' | 'shortlisted' | 'interviewed' | 'rejected' | 'hired'
+
+export interface Job {
+  id: string
+  employer_id: string
+  title: string
+  company_name: string
+  company_logo_url: string | null
+  category: string
+  job_type: JobType
+  workplace_type: WorkplaceType
+  location_state: string | null
+  location_city: string | null
+  salary_min: number | null
+  salary_max: number | null
+  salary_currency: string
+  salary_period: JobSalaryPeriod
+  is_salary_negotiable: boolean
+  description: string
+  requirements: string[]
+  responsibilities: string[]
+  benefits: string[]
+  tags: string[]
+  application_url: string | null
+  application_deadline: string | null
+  status: JobStatus
+  views_count: number
+  applications_count: number
+  created_at: string
+  updated_at: string
+  // Optional joined data
+  employer?: {
+    id: string
+    display_name: string
+    avatar_url: string | null
+    username: string
+    verified?: boolean
+  } | null
+  is_saved?: boolean
+  has_applied?: boolean
+}
+
+export interface JobApplication {
+  id: string
+  job_id: string
+  applicant_id: string
+  full_name: string
+  email: string
+  phone: string | null
+  resume_url: string | null
+  cover_letter: string | null
+  portfolio_url: string | null
+  experience_years: number
+  expected_salary: number | null
+  status: ApplicationStatus
+  employer_notes: string | null
+  created_at: string
+  updated_at: string
+  job?: Job | null
+  applicant?: {
+    id: string
+    display_name: string
+    avatar_url: string | null
+    username: string
+    email?: string
+  } | null
+}
+
+export interface JobBookmark {
+  id: string
+  user_id: string
+  job_id: string
+  created_at: string
+  job?: Job | null
+}

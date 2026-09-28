@@ -215,11 +215,12 @@ export default function MarketHomeClient({
             </section>
 
             {/* ══ QUICK NAV ═════════════════════════════════════════════ */}
-            <div className="grid grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                 {[
                     { icon: Heart, label: 'Saved', href: '/app/market/saved' },
                     { icon: Users, label: 'Artisans', href: '/app/market/artisans' },
                     { icon: Store, label: 'Stores', href: '/app/market/stores' },
+                    { icon: Briefcase, label: 'Jobs', href: '/app/market/jobs' },
                     { icon: ShoppingCart, label: 'My Orders', href: '/app/market/orders' },
                 ].map(({ icon: Icon, label, href }) => (
                     <Link key={href} href={href}
