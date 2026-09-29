@@ -7,6 +7,7 @@ import type { BusinessProfile, CacApplication } from '@/lib/types'
 
 interface LaunchpadJourneyTrackerProps {
     percentage?: number
+    stepProgress?: number
     business?: BusinessProfile | null
     cacApplication?: CacApplication | null
     onContinueSetup?: () => void
@@ -17,30 +18,70 @@ interface LaunchpadJourneyTrackerProps {
 export default function LaunchpadJourneyTracker({
     business,
     cacApplication,
+    stepProgress: customStepProgress,
     percentage: manualPercentage,
     onContinueSetup,
     onSelectStep,
     onViewAll,
 }: LaunchpadJourneyTrackerProps) {
-    // Determine dynamic completion based on actual user business state
     const isProfileDone = !!business
     const isCacDone = cacApplication?.status === 'approved'
     const isCacSubmitted = !!cacApplication
 
+    const currentStep = customStepProgress ?? business?.step_progress ?? (
+        isCacDone ? 3 : isProfileDone ? 2 : 1
+    )
+
+    const isStorefrontDone = currentStep >= 4
+    const isSavingsDone = currentStep >= 5
+    const isBroadcastDone = currentStep >= 6
+    const isCrowdfundDone = currentStep >= 7
+    const isTradecredDone = currentStep >= 7 && (business?.stage === 'scaling' || manualPercentage === 100)
+
     const stepsStatus = [
-        { id: 1, label: '1. Business Profile setup', completed: isProfileDone },
-        { id: 2, label: '2. CAC Registration (₦5,000)', completed: isCacDone, inProgress: isCacSubmitted && !isCacDone },
-        { id: 3, label: '3. Digital Storefront created', completed: false },
-        { id: 4, label: '4. Business Savings Goal active', completed: false },
-        { id: 5, label: '5. Launch Announcement broadcast', completed: false },
-        { id: 6, label: '6. CommunityFund Crowdfund', completed: false },
-        { id: 7, label: '7. TradeCred Credit Score unlocked', completed: false },
+        { id: 1, label: '1. Business Profile setup', completed: isProfileDone, inProgress: !isProfileDone },
+        { id: 2, label: '2. CAC Registration (₦5,000)', completed: isCacDone, inProgress: isProfileDone && !isCacDone },
+        { id: 3, label: '3. Digital Storefront created', completed: isStorefrontDone, inProgress: isCacDone && !isStorefrontDone },
+        { id: 4, label: '4. Business Savings Goal active', completed: isSavingsDone, inProgress: isStorefrontDone && !isSavingsDone },
+        { id: 5, label: '5. Launch Announcement broadcast', completed: isBroadcastDone, inProgress: isSavingsDone && !isBroadcastDone },
+        { id: 6, label: '6. CommunityFund Crowdfund', completed: isCrowdfundDone, inProgress: isBroadcastDone && !isCrowdfundDone },
+        { id: 7, label: '7. TradeCred Credit Score unlocked', completed: isTradecredDone, inProgress: isCrowdfundDone && !isTradecredDone },
     ]
 
     const completedCount = stepsStatus.filter((s) => s.completed).length
-    const computedPercentage = manualPercentage ?? (
-        isCacDone ? 30 : isCacSubmitted ? 20 : isProfileDone ? 15 : 0
-    )
+
+    // Dynamic Percentage mapping
+    const percentageMap: Record<number, number> = {
+        0: 0,
+        1: 15,
+        2: 30,
+        3: 45,
+        4: 60,
+        5: 75,
+        6: 90,
+        7: 100,
+    }
+    const computedPercentage = manualPercentage ?? percentageMap[completedCount] ?? 0
+
+    // Prompt message for the next action
+    let nextStepMessage = 'Start Step 1: Set up your business profile.'
+    if (!isProfileDone) {
+        nextStepMessage = 'Start Step 1: Set up your business profile.'
+    } else if (!isCacDone) {
+        nextStepMessage = 'Step 2: Formalize with CAC for ₦5,000.'
+    } else if (!isStorefrontDone) {
+        nextStepMessage = 'Step 3: Create your digital storefront.'
+    } else if (!isSavingsDone) {
+        nextStepMessage = 'Step 4: Activate seed savings goal.'
+    } else if (!isBroadcastDone) {
+        nextStepMessage = 'Step 5: Broadcast your launch.'
+    } else if (!isCrowdfundDone) {
+        nextStepMessage = 'Step 6: Launch CommunityFund campaign.'
+    } else if (!isTradecredDone) {
+        nextStepMessage = 'Step 7: Unlock TradeCred SME credit score.'
+    } else {
+        nextStepMessage = 'All 7 milestones complete! Fully formalized.'
+    }
 
     // SVG Circular Progress calculation
     const size = 96
@@ -108,17 +149,13 @@ export default function LaunchpadJourneyTracker({
                         {computedPercentage >= 100 ? 'Fully Launched!' : 'Keep Going!'}
                     </p>
                     <p className="text-[11px] text-muted-foreground leading-snug mt-0.5 mb-2.5">
-                        {!isProfileDone
-                            ? 'Start Step 1: Set up your business profile.'
-                            : !isCacDone
-                            ? 'Step 2: Formalize with CAC for ₦5,000.'
-                            : 'Step 3: Create your digital storefront.'}
+                        {nextStepMessage}
                     </p>
                     <button
                         onClick={onContinueSetup}
                         className="w-full py-1.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
                     >
-                        <span>Continue Setup</span>
+                        <span>{computedPercentage >= 100 ? 'Review Milestones' : 'Continue Setup'}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                 </div>

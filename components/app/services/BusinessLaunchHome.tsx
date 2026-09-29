@@ -19,6 +19,11 @@ import BusinessProfileModal from './launchpad/BusinessProfileModal'
 import CacRegistrationModal from './launchpad/CacRegistrationModal'
 import CacCertificateModal from './launchpad/CacCertificateModal'
 import CacStatusTrackerCard from './launchpad/CacStatusTrackerCard'
+import DigitalStorefrontModal from './launchpad/DigitalStorefrontModal'
+import BusinessSavingsGoalModal from './launchpad/BusinessSavingsGoalModal'
+import LaunchAnnouncementModal from './launchpad/LaunchAnnouncementModal'
+import CommunityFundModal from './launchpad/CommunityFundModal'
+import TradeCredScoreModal from './launchpad/TradeCredScoreModal'
 import {
     type BusinessTemplate,
     type BusinessToolResource,
@@ -60,6 +65,12 @@ export default function BusinessLaunchHome({
     const [business, setBusiness] = useState<BusinessProfile | null>(initialBusiness)
     const [cacApplication, setCacApplication] = useState<CacApplication | null>(initialCacApplication)
     const [walletBalance, setWalletBalance] = useState<number>(initialWalletBalance)
+    const [stepProgress, setStepProgress] = useState<number>(() => {
+        if (initialStepProgress && initialStepProgress > 1) return initialStepProgress
+        if (initialCacApplication?.status === 'approved') return 3
+        if (initialBusiness) return 2
+        return 1
+    })
 
     // Active Roadmap stage (1: Ideate, 2: Plan, 3: Fund, 4: Launch, 5: Grow)
     const defaultStage = cacApplication?.status === 'approved' ? 4 : business ? 2 : 1
@@ -73,6 +84,11 @@ export default function BusinessLaunchHome({
     const [profileModalOpen, setProfileModalOpen] = useState(false)
     const [cacModalOpen, setCacModalOpen] = useState(false)
     const [certModalOpen, setCertModalOpen] = useState(false)
+    const [storefrontModalOpen, setStorefrontModalOpen] = useState(false)
+    const [savingsModalOpen, setSavingsModalOpen] = useState(false)
+    const [announcementModalOpen, setAnnouncementModalOpen] = useState(false)
+    const [crowdfundModalOpen, setCrowdfundModalOpen] = useState(false)
+    const [tradecredModalOpen, setTradecredModalOpen] = useState(false)
 
     // Handlers
     const handleSelectStage = (stage: RoadmapStage) => {
@@ -114,41 +130,70 @@ export default function BusinessLaunchHome({
     const handleStartJourney = () => {
         if (!business) {
             setProfileModalOpen(true)
-        } else if (!cacApplication) {
+        } else if (!cacApplication || cacApplication.status !== 'approved') {
             setCacModalOpen(true)
-        } else if (cacApplication.status === 'approved') {
-            setCertModalOpen(true)
+        } else if (stepProgress <= 3) {
+            setStorefrontModalOpen(true)
         } else {
-            toast.info(`CAC registration in progress: ${cacApplication.proposed_name_1}`)
+            handleJourneyContinueSetup()
         }
     }
 
     const handleJourneyContinueSetup = () => {
         if (!business) {
             setProfileModalOpen(true)
-        } else if (!cacApplication) {
+        } else if (!cacApplication || cacApplication.status !== 'approved') {
             setCacModalOpen(true)
-        } else if (cacApplication.status === 'approved') {
-            setCertModalOpen(true)
+        } else if (stepProgress <= 3) {
+            setStorefrontModalOpen(true)
+        } else if (stepProgress === 4) {
+            setSavingsModalOpen(true)
+        } else if (stepProgress === 5) {
+            setAnnouncementModalOpen(true)
+        } else if (stepProgress === 6) {
+            setCrowdfundModalOpen(true)
         } else {
-            setCacModalOpen(true)
+            setTradecredModalOpen(true)
         }
     }
 
     const handleJourneySelectStep = (stepId: number) => {
-        if (stepId === 1) {
-            setProfileModalOpen(true)
-        } else if (stepId === 2) {
-            if (!business) {
-                toast.info('Complete Step 1: Business Profile setup first.')
+        switch (stepId) {
+            case 1:
                 setProfileModalOpen(true)
-            } else if (cacApplication?.status === 'approved') {
-                setCertModalOpen(true)
-            } else {
-                setCacModalOpen(true)
-            }
-        } else {
-            toast.info(`Step ${stepId} unlocks after CAC formalization.`)
+                break
+            case 2:
+                if (!business) {
+                    toast.info('Complete Step 1: Business Profile setup first.')
+                    setProfileModalOpen(true)
+                } else if (cacApplication?.status === 'approved') {
+                    setCertModalOpen(true)
+                } else {
+                    setCacModalOpen(true)
+                }
+                break
+            case 3:
+                if (cacApplication?.status !== 'approved') {
+                    toast.info('Step 3 unlocks once your CAC registration is approved.')
+                    setCacModalOpen(true)
+                } else {
+                    setStorefrontModalOpen(true)
+                }
+                break
+            case 4:
+                setSavingsModalOpen(true)
+                break
+            case 5:
+                setAnnouncementModalOpen(true)
+                break
+            case 6:
+                setCrowdfundModalOpen(true)
+                break
+            case 7:
+                setTradecredModalOpen(true)
+                break
+            default:
+                break
         }
     }
 
@@ -181,7 +226,13 @@ export default function BusinessLaunchHome({
                                 }
                             }}
                             onViewCertificate={() => setCertModalOpen(true)}
-                            onApplicationUpdated={(app) => setCacApplication(app)}
+                            onApplicationUpdated={(app) => {
+                                setCacApplication(app)
+                                if (app.status === 'approved') {
+                                    setStepProgress((prev) => Math.max(prev, 3))
+                                    setActiveStageId(4)
+                                }
+                            }}
                         />
 
                         {/* 3. 5 Core Quick-Action Cards */}
@@ -239,6 +290,7 @@ export default function BusinessLaunchHome({
                         <LaunchpadJourneyTracker
                             business={business}
                             cacApplication={cacApplication}
+                            stepProgress={stepProgress}
                             onContinueSetup={handleJourneyContinueSetup}
                             onSelectStep={handleJourneySelectStep}
                             onViewAll={() => toast.success('Viewing full 7-step milestone breakdown')}
@@ -270,6 +322,7 @@ export default function BusinessLaunchHome({
                 existingBusiness={business}
                 onSaved={(b) => {
                     setBusiness(b)
+                    setStepProgress((prev) => Math.max(prev, 2))
                     setActiveStageId(2)
                 }}
                 onProceedToCac={() => {
@@ -296,6 +349,87 @@ export default function BusinessLaunchHome({
                 onClose={() => setCertModalOpen(false)}
                 application={cacApplication}
                 business={business}
+            />
+
+            {/* ── Step 3: Digital Storefront Modal ── */}
+            <DigitalStorefrontModal
+                isOpen={storefrontModalOpen}
+                onClose={() => setStorefrontModalOpen(false)}
+                business={business}
+                cacApplication={cacApplication}
+                onCreated={() => {
+                    setStepProgress((prev) => Math.max(prev, 4))
+                    if (business) {
+                        setBusiness({ ...business, step_progress: Math.max(business.step_progress || 0, 4) })
+                    }
+                }}
+                onProceedToNext={() => {
+                    setSavingsModalOpen(true)
+                }}
+            />
+
+            {/* ── Step 4: Business Savings Goal Modal ── */}
+            <BusinessSavingsGoalModal
+                isOpen={savingsModalOpen}
+                onClose={() => setSavingsModalOpen(false)}
+                business={business}
+                walletBalance={walletBalance}
+                onGoalCreated={() => {
+                    setStepProgress((prev) => Math.max(prev, 5))
+                    if (business) {
+                        setBusiness({ ...business, step_progress: Math.max(business.step_progress || 0, 5) })
+                    }
+                }}
+                onProceedToNext={() => {
+                    setAnnouncementModalOpen(true)
+                }}
+            />
+
+            {/* ── Step 5: Launch Announcement Broadcast Modal ── */}
+            <LaunchAnnouncementModal
+                isOpen={announcementModalOpen}
+                onClose={() => setAnnouncementModalOpen(false)}
+                business={business}
+                cacApplication={cacApplication}
+                onBroadcasted={() => {
+                    setStepProgress((prev) => Math.max(prev, 6))
+                    if (business) {
+                        setBusiness({ ...business, step_progress: Math.max(business.step_progress || 0, 6) })
+                    }
+                }}
+                onProceedToNext={() => {
+                    setCrowdfundModalOpen(true)
+                }}
+            />
+
+            {/* ── Step 6: CommunityFund Crowdfund Modal ── */}
+            <CommunityFundModal
+                isOpen={crowdfundModalOpen}
+                onClose={() => setCrowdfundModalOpen(false)}
+                business={business}
+                onCreated={() => {
+                    setStepProgress((prev) => Math.max(prev, 7))
+                    if (business) {
+                        setBusiness({ ...business, step_progress: Math.max(business.step_progress || 0, 7) })
+                    }
+                }}
+                onProceedToNext={() => {
+                    setTradecredModalOpen(true)
+                }}
+            />
+
+            {/* ── Step 7: TradeCred SME Rating Modal ── */}
+            <TradeCredScoreModal
+                isOpen={tradecredModalOpen}
+                onClose={() => setTradecredModalOpen(false)}
+                business={business}
+                cacApplication={cacApplication}
+                onUnlocked={() => {
+                    setStepProgress(7)
+                    if (business) {
+                        setBusiness({ ...business, step_progress: 7, stage: 'scaling' })
+                    }
+                }}
             />
 
             {/* ── Additional Launchpad Resources Modals ── */}
