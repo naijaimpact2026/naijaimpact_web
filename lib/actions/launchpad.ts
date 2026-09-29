@@ -42,13 +42,63 @@ async function resolveProfile(supabase: Awaited<ReturnType<typeof createClient>>
 
   if (authError || !user) throw new Error('Unauthenticated')
 
-  const { data: profile, error: profileError } = await supabase
+  // 1. Try lookup by auth_id
+  let { data: profile, error: profileError } = await supabase
     .from('users')
-    .select('id, display_name, phone_number, full_name')
+    .select('id, display_name, fullname, username, email')
     .eq('auth_id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (profileError || !profile) throw new Error('User profile not found')
+  // 2. Fallback to primary key id = user.id
+  if (!profile) {
+    const { data: fallback, error: fallbackError } = await supabase
+      .from('users')
+      .select('id, display_name, fullname, username, email')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (fallback) {
+      profile = fallback
+    } else if (profileError || fallbackError) {
+      console.warn('resolveProfile lookup warning:', profileError?.message || fallbackError?.message)
+    }
+  }
+
+  // 3. Fallback auto-provision if row doesn't exist
+  if (!profile) {
+    const fallbackName =
+      (user.user_metadata?.full_name as string) ||
+      (user.user_metadata?.display_name as string) ||
+      user.email?.split('@')[0] ||
+      'Entrepreneur'
+
+    const { data: provisioned, error: provError } = await supabase
+      .from('users')
+      .upsert(
+        {
+          id: user.id,
+          auth_id: user.id,
+          email: user.email || '',
+          fullname: fallbackName,
+          display_name: fallbackName,
+          username:
+            (user.email?.split('@')[0] || 'user').toLowerCase() +
+            '_' +
+            Math.floor(1000 + Math.random() * 9000),
+          onboarded: true,
+        },
+        { onConflict: 'id' }
+      )
+      .select('id, display_name, fullname, username, email')
+      .single()
+
+    if (provisioned) {
+      profile = provisioned
+    } else {
+      console.error('resolveProfile auto-provision error:', provError)
+      throw new Error('User profile not found. Please refresh or sign in again.')
+    }
+  }
 
   return { authUser: user, profile }
 }
