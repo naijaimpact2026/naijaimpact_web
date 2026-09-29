@@ -15,6 +15,10 @@ import BusinessTemplateModal from './launchpad/BusinessTemplateModal'
 import BusinessToolModal from './launchpad/BusinessToolModal'
 import FundingApplicationModal from './launchpad/FundingApplicationModal'
 import AdvisoryBookingModal from './launchpad/AdvisoryBookingModal'
+import BusinessProfileModal from './launchpad/BusinessProfileModal'
+import CacRegistrationModal from './launchpad/CacRegistrationModal'
+import CacCertificateModal from './launchpad/CacCertificateModal'
+import CacStatusTrackerCard from './launchpad/CacStatusTrackerCard'
 import {
     type BusinessTemplate,
     type BusinessToolResource,
@@ -25,12 +29,16 @@ import {
     TOOLS_AND_RESOURCES,
     FUNDING_OPPORTUNITIES,
 } from '@/lib/launchpad-data'
+import type { BusinessProfile, CacApplication } from '@/lib/types'
 import { toast } from '@/components/toast'
 import { ArrowRight, Sparkles } from 'lucide-react'
 
-interface BusinessLaunchHomeProps
-{
+interface BusinessLaunchHomeProps {
     displayName?: string
+    initialBusiness?: BusinessProfile | null
+    initialCacApplication?: CacApplication | null
+    initialWalletBalance?: number
+    initialStepProgress?: number
     services?: any[]
     myServices?: any[]
     savedAmount?: number
@@ -43,28 +51,37 @@ interface BusinessLaunchHomeProps
 
 export default function BusinessLaunchHome({
     displayName = 'Entrepreneur',
-}: BusinessLaunchHomeProps)
-{
-    // Active Roadmap stage (default 3: Fund / 60% completion)
-    const [activeStageId, setActiveStageId] = useState(3)
+    initialBusiness = null,
+    initialCacApplication = null,
+    initialWalletBalance = 0,
+    initialStepProgress = 1,
+}: BusinessLaunchHomeProps) {
+    // Business & CAC data state
+    const [business, setBusiness] = useState<BusinessProfile | null>(initialBusiness)
+    const [cacApplication, setCacApplication] = useState<CacApplication | null>(initialCacApplication)
+    const [walletBalance, setWalletBalance] = useState<number>(initialWalletBalance)
+
+    // Active Roadmap stage (1: Ideate, 2: Plan, 3: Fund, 4: Launch, 5: Grow)
+    const defaultStage = cacApplication?.status === 'approved' ? 4 : business ? 2 : 1
+    const [activeStageId, setActiveStageId] = useState(defaultStage)
 
     // Modals state
     const [selectedTemplate, setSelectedTemplate] = useState<BusinessTemplate | null>(null)
     const [selectedTool, setSelectedTool] = useState<BusinessToolResource | null>(null)
     const [selectedFunding, setSelectedFunding] = useState<FundingOpportunity | null>(null)
     const [advisoryOpen, setAdvisoryOpen] = useState(false)
+    const [profileModalOpen, setProfileModalOpen] = useState(false)
+    const [cacModalOpen, setCacModalOpen] = useState(false)
+    const [certModalOpen, setCertModalOpen] = useState(false)
 
     // Handlers
-    const handleSelectStage = (stage: RoadmapStage) =>
-    {
+    const handleSelectStage = (stage: RoadmapStage) => {
         setActiveStageId(stage.id)
         toast.success(`Navigated to stage ${stage.id}: ${stage.title} (${stage.subtitle})`)
     }
 
-    const handleSelectAction = (actionKey: string) =>
-    {
-        switch (actionKey)
-        {
+    const handleSelectAction = (actionKey: string) => {
+        switch (actionKey) {
             case 'validate':
                 setSelectedTool(TOOLS_AND_RESOURCES.find((t) => t.id === 'market-research') || TOOLS_AND_RESOURCES[0])
                 break
@@ -75,7 +92,12 @@ export default function BusinessLaunchHome({
                 setSelectedFunding(FUNDING_OPPORTUNITIES[0])
                 break
             case 'register':
-                setSelectedTool(TOOLS_AND_RESOURCES.find((t) => t.id === 'cac-guide') || TOOLS_AND_RESOURCES[0])
+                if (!business) {
+                    toast.info('Please set up your business profile first before registering with CAC.')
+                    setProfileModalOpen(true)
+                } else {
+                    setCacModalOpen(true)
+                }
                 break
             case 'grow':
                 setAdvisoryOpen(true)
@@ -85,15 +107,49 @@ export default function BusinessLaunchHome({
         }
     }
 
-    const handleSelectSector = (sector: BusinessSector) =>
-    {
+    const handleSelectSector = (sector: BusinessSector) => {
         toast.success(`Exploring templates & funding opportunities for ${sector.title}`)
     }
 
-    const handleStartJourney = () =>
-    {
-        setActiveStageId(1)
-        setSelectedTemplate(BUSINESS_TEMPLATES[0])
+    const handleStartJourney = () => {
+        if (!business) {
+            setProfileModalOpen(true)
+        } else if (!cacApplication) {
+            setCacModalOpen(true)
+        } else if (cacApplication.status === 'approved') {
+            setCertModalOpen(true)
+        } else {
+            toast.info(`CAC registration in progress: ${cacApplication.proposed_name_1}`)
+        }
+    }
+
+    const handleJourneyContinueSetup = () => {
+        if (!business) {
+            setProfileModalOpen(true)
+        } else if (!cacApplication) {
+            setCacModalOpen(true)
+        } else if (cacApplication.status === 'approved') {
+            setCertModalOpen(true)
+        } else {
+            setCacModalOpen(true)
+        }
+    }
+
+    const handleJourneySelectStep = (stepId: number) => {
+        if (stepId === 1) {
+            setProfileModalOpen(true)
+        } else if (stepId === 2) {
+            if (!business) {
+                toast.info('Complete Step 1: Business Profile setup first.')
+                setProfileModalOpen(true)
+            } else if (cacApplication?.status === 'approved') {
+                setCertModalOpen(true)
+            } else {
+                setCacModalOpen(true)
+            }
+        } else {
+            toast.info(`Step ${stepId} unlocks after CAC formalization.`)
+        }
     }
 
     return (
@@ -112,10 +168,26 @@ export default function BusinessLaunchHome({
                             onSelectStage={handleSelectStage}
                         />
 
-                        {/* 2. 5 Core Quick-Action Cards */}
+                        {/* 2. Step 2 Spotlight: Facilitated CAC Registration & Tracker Card */}
+                        <CacStatusTrackerCard
+                            business={business}
+                            application={cacApplication}
+                            onStartCac={() => {
+                                if (!business) {
+                                    toast.info('Please set up your business profile first.')
+                                    setProfileModalOpen(true)
+                                } else {
+                                    setCacModalOpen(true)
+                                }
+                            }}
+                            onViewCertificate={() => setCertModalOpen(true)}
+                            onApplicationUpdated={(app) => setCacApplication(app)}
+                        />
+
+                        {/* 3. 5 Core Quick-Action Cards */}
                         <LaunchpadActionCards onSelectAction={handleSelectAction} />
 
-                        {/* 3. Business Templates Grid */}
+                        {/* 4. Business Templates Grid */}
                         <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-xs">
                             <LaunchpadTemplates
                                 onUseTemplate={(tpl) => setSelectedTemplate(tpl)}
@@ -123,13 +195,13 @@ export default function BusinessLaunchHome({
                             />
                         </div>
 
-                        {/* 4. Tools & Resources Grid */}
+                        {/* 5. Tools & Resources Grid */}
                         <LaunchpadToolsResources
                             onSelectTool={(tool) => setSelectedTool(tool)}
                             onSeeAll={() => setSelectedTool(TOOLS_AND_RESOURCES[0])}
                         />
 
-                        {/* 5. Featured Business Sectors */}
+                        {/* 6. Featured Business Sectors */}
                         <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-xs">
                             <LaunchpadSectors
                                 onSelectSector={handleSelectSector}
@@ -137,7 +209,7 @@ export default function BusinessLaunchHome({
                             />
                         </div>
 
-                        {/* 6. Bottom Banner / Callout */}
+                        {/* 7. Bottom Banner / Callout */}
                         <div className="relative overflow-hidden rounded-2xl p-5 sm:p-6 bg-gradient-to-r from-emerald-600 via-teal-700 to-slate-900 text-white shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div className="relative z-10 max-w-lg">
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 text-[11px] font-bold text-emerald-200 mb-2">
@@ -148,14 +220,14 @@ export default function BusinessLaunchHome({
                                     Ready to turn your vision into an established enterprise?
                                 </h3>
                                 <p className="text-xs text-white/80 mt-1">
-                                    Get step-by-step assistance, funding eligibility checks, and CAC corporate registration.
+                                    Get step-by-step assistance, funding eligibility checks, and CAC corporate registration for ₦5,000.
                                 </p>
                             </div>
                             <button
                                 onClick={handleStartJourney}
                                 className="relative z-10 shrink-0 px-5 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-bold text-xs sm:text-sm transition-all shadow-sm flex items-center gap-2 cursor-pointer"
                             >
-                                <span>Start Now</span>
+                                <span>{business ? 'Manage Business' : 'Start Now'}</span>
                                 <ArrowRight className="w-4 h-4" />
                             </button>
                         </div>
@@ -165,9 +237,11 @@ export default function BusinessLaunchHome({
                     <div className="w-full space-y-5 lg:sticky lg:top-20">
                         {/* 1. Your Business Journey Tracker */}
                         <LaunchpadJourneyTracker
-                            percentage={60}
-                            onContinueSetup={() => setSelectedTemplate(BUSINESS_TEMPLATES[0])}
-                            onViewAll={() => toast.success('Viewing full 5-step milestone breakdown')}
+                            business={business}
+                            cacApplication={cacApplication}
+                            onContinueSetup={handleJourneyContinueSetup}
+                            onSelectStep={handleJourneySelectStep}
+                            onViewAll={() => toast.success('Viewing full 7-step milestone breakdown')}
                         />
 
                         {/* 2. Funding Opportunities */}
@@ -189,7 +263,42 @@ export default function BusinessLaunchHome({
                 </div>
             </div>
 
-            {/* ── Interactive Modals ── */}
+            {/* ── Step 1: Business Profile Setup Wizard ── */}
+            <BusinessProfileModal
+                isOpen={profileModalOpen}
+                onClose={() => setProfileModalOpen(false)}
+                existingBusiness={business}
+                onSaved={(b) => {
+                    setBusiness(b)
+                    setActiveStageId(2)
+                }}
+                onProceedToCac={() => {
+                    setCacModalOpen(true)
+                }}
+            />
+
+            {/* ── Step 2: CAC Facilitated Registration Intake ── */}
+            <CacRegistrationModal
+                isOpen={cacModalOpen}
+                onClose={() => setCacModalOpen(false)}
+                business={business}
+                walletBalance={walletBalance}
+                onSubmitted={(app) => {
+                    setCacApplication(app)
+                    setWalletBalance((prev) => Math.max(0, prev - 5000))
+                }}
+                onOpenProfileSetup={() => setProfileModalOpen(true)}
+            />
+
+            {/* ── Step 2 Output: CAC Official Certificate Modal ── */}
+            <CacCertificateModal
+                isOpen={certModalOpen}
+                onClose={() => setCertModalOpen(false)}
+                application={cacApplication}
+                business={business}
+            />
+
+            {/* ── Additional Launchpad Resources Modals ── */}
             <BusinessTemplateModal
                 template={selectedTemplate}
                 onClose={() => setSelectedTemplate(null)}

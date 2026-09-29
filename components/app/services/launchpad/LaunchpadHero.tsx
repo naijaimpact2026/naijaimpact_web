@@ -70,6 +70,7 @@ export default function LaunchpadHero({ onStartJourney }: LaunchpadHeroProps)
                             src="/images/launchpad/hero-entrepreneur.jpg"
                             alt="African female entrepreneur working on her business launchpad"
                             fill
+                            sizes="(max-width: 640px) 256px, (max-width: 1024px) 288px, 320px"
                             className="object-cover object-top group-hover:scale-105 transition-transform duration-700"
                             priority
                         />

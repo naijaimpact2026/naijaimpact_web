@@ -1,28 +1,53 @@
 'use client'
 
 import React from 'react'
-import { JOURNEY_CHECKLIST, type JourneyChecklistItem } from '@/lib/launchpad-data'
+import { SEVEN_STEP_LAUNCH_JOURNEY } from '@/lib/launchpad-data'
 import { Check, Circle, ArrowRight } from 'lucide-react'
+import type { BusinessProfile, CacApplication } from '@/lib/types'
 
-interface LaunchpadJourneyTrackerProps
-{
+interface LaunchpadJourneyTrackerProps {
     percentage?: number
+    business?: BusinessProfile | null
+    cacApplication?: CacApplication | null
     onContinueSetup?: () => void
+    onSelectStep?: (stepId: number) => void
     onViewAll?: () => void
 }
 
 export default function LaunchpadJourneyTracker({
-    percentage = 60,
+    business,
+    cacApplication,
+    percentage: manualPercentage,
     onContinueSetup,
+    onSelectStep,
     onViewAll,
-}: LaunchpadJourneyTrackerProps)
-{
+}: LaunchpadJourneyTrackerProps) {
+    // Determine dynamic completion based on actual user business state
+    const isProfileDone = !!business
+    const isCacDone = cacApplication?.status === 'approved'
+    const isCacSubmitted = !!cacApplication
+
+    const stepsStatus = [
+        { id: 1, label: '1. Business Profile setup', completed: isProfileDone },
+        { id: 2, label: '2. CAC Registration (₦5,000)', completed: isCacDone, inProgress: isCacSubmitted && !isCacDone },
+        { id: 3, label: '3. Digital Storefront created', completed: false },
+        { id: 4, label: '4. Business Savings Goal active', completed: false },
+        { id: 5, label: '5. Launch Announcement broadcast', completed: false },
+        { id: 6, label: '6. CommunityFund Crowdfund', completed: false },
+        { id: 7, label: '7. TradeCred Credit Score unlocked', completed: false },
+    ]
+
+    const completedCount = stepsStatus.filter((s) => s.completed).length
+    const computedPercentage = manualPercentage ?? (
+        isCacDone ? 30 : isCacSubmitted ? 20 : isProfileDone ? 15 : 0
+    )
+
     // SVG Circular Progress calculation
     const size = 96
     const strokeWidth = 8
     const radius = (size - strokeWidth) / 2
     const circumference = 2 * Math.PI * radius
-    const strokeDashoffset = circumference - (percentage / 100) * circumference
+    const strokeDashoffset = circumference - (computedPercentage / 100) * circumference
 
     return (
         <div className="w-full bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-xs">
@@ -31,12 +56,9 @@ export default function LaunchpadJourneyTracker({
                 <h3 className="text-sm sm:text-base font-bold text-foreground">
                     Your Business Journey
                 </h3>
-                <button
-                    onClick={onViewAll}
-                    className="text-xs font-semibold text-primary hover:underline cursor-pointer"
-                >
-                    View All
-                </button>
+                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                    {completedCount} of 7 Done
+                </span>
             </div>
 
             {/* Circular Progress & Message */}
@@ -76,21 +98,25 @@ export default function LaunchpadJourneyTracker({
                     </svg>
 
                     <span className="absolute font-black text-lg text-foreground">
-                        {percentage}%
+                        {computedPercentage}%
                     </span>
                 </div>
 
                 {/* Text & Action */}
                 <div className="min-w-0 flex-1">
                     <p className="text-xs font-black text-foreground">
-                        Keep Going!
+                        {computedPercentage >= 100 ? 'Fully Launched!' : 'Keep Going!'}
                     </p>
                     <p className="text-[11px] text-muted-foreground leading-snug mt-0.5 mb-2.5">
-                        Complete the next step to launch your business.
+                        {!isProfileDone
+                            ? 'Start Step 1: Set up your business profile.'
+                            : !isCacDone
+                            ? 'Step 2: Formalize with CAC for ₦5,000.'
+                            : 'Step 3: Create your digital storefront.'}
                     </p>
                     <button
                         onClick={onContinueSetup}
-                        className="w-full py-1.5 px-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                        className="w-full py-1.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
                     >
                         <span>Continue Setup</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -100,25 +126,41 @@ export default function LaunchpadJourneyTracker({
 
             {/* Steps Checklist */}
             <div className="space-y-2 pt-2 border-t border-border/60">
-                {JOURNEY_CHECKLIST.map((step) => (
-                    <div key={step.id} className="flex items-center gap-2.5 text-xs">
+                {stepsStatus.map((step) => (
+                    <button
+                        key={step.id}
+                        type="button"
+                        onClick={() => onSelectStep?.(step.id)}
+                        className="w-full flex items-center gap-2.5 text-xs text-left hover:bg-muted/40 p-1 rounded-lg transition-colors cursor-pointer group"
+                    >
                         {step.completed ? (
                             <div className="w-4 h-4 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0">
                                 <Check className="w-2.5 h-2.5 stroke-[3]" />
                             </div>
+                        ) : step.inProgress ? (
+                            <div className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 text-[9px] font-bold">
+                                •
+                            </div>
                         ) : (
-                            <Circle className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+                            <Circle className="w-4 h-4 text-muted-foreground/60 shrink-0 group-hover:text-emerald-500 transition-colors" />
                         )}
                         <span
-                            className={`truncate ${
+                            className={`truncate flex-1 ${
                                 step.completed
                                     ? 'text-foreground font-medium'
-                                    : 'text-muted-foreground'
+                                    : step.inProgress
+                                    ? 'text-amber-600 dark:text-amber-400 font-semibold'
+                                    : 'text-muted-foreground group-hover:text-foreground'
                             }`}
                         >
                             {step.label}
                         </span>
-                    </div>
+                        {step.inProgress && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0">
+                                In Progress
+                            </span>
+                        )}
+                    </button>
                 ))}
             </div>
         </div>

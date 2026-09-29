@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { fetchServices } from '@/lib/actions/services'
+import { getLaunchpadUserData } from '@/lib/actions/launchpad'
 import BusinessLaunchHome from '@/components/app/services/BusinessLaunchHome'
 import type { SafeGoalSavings } from '@/lib/types'
 
@@ -43,6 +44,7 @@ export default async function ServicesPage()
         { services },
         { data: myServices },
         { data: goalRows },
+        launchpadResult,
     ] = await Promise.all([
         // Equipment listings (all active services)
         fetchServices(null, 20),
@@ -62,7 +64,20 @@ export default async function ServicesPage()
             .eq('user_id', userId)
             .eq('status', 'active')
             .order('created_at', { ascending: true }),
+
+        // Business Launchpad & CAC Registration
+        getLaunchpadUserData(),
     ])
+
+    const launchpad = launchpadResult.success
+        ? launchpadResult.data
+        : {
+              business: null,
+              cacApplication: null,
+              walletBalance: 0,
+              businessGoal: null,
+              stepProgress: 1,
+          }
 
     // ── Derive cooperative savings data ───────────────────────────────────────
 
@@ -86,6 +101,10 @@ export default async function ServicesPage()
     return (
         <BusinessLaunchHome
             displayName={profile?.display_name ?? 'Entrepreneur'}
+            initialBusiness={launchpad.business}
+            initialCacApplication={launchpad.cacApplication}
+            initialWalletBalance={launchpad.walletBalance}
+            initialStepProgress={launchpad.stepProgress}
             services={services}
             myServices={myServices ?? []}
             savedAmount={savedAmount}

@@ -300,13 +300,33 @@ export const FEATURED_SECTORS: BusinessSector[] = [
     },
 ]
 
-// ── Journey Setup Checklist (60% default) ──
+// ── 7-Step Business Launch Journey (Pillar 3 Specification) ──
+export interface LaunchStepItem {
+    id: number
+    title: string
+    subtitle: string
+    actionKey: string
+}
+
+export const SEVEN_STEP_LAUNCH_JOURNEY: LaunchStepItem[] = [
+    { id: 1, title: 'Business Profile', subtitle: 'Name, category, AI logo options, location, description', actionKey: 'profile' },
+    { id: 2, title: 'CAC Registration', subtitle: 'Facilitated in-platform for ₦5,000 (subsidised)', actionKey: 'cac' },
+    { id: 3, title: 'Digital Storefront', subtitle: 'Live product and service listings on NaijaMarket', actionKey: 'storefront' },
+    { id: 4, title: 'Business Savings Goal', subtitle: 'Automated equipment/stock seed savings', actionKey: 'savings' },
+    { id: 5, title: 'Launch Announcement', subtitle: 'Platform broadcast to community feed & local hub', actionKey: 'announcement' },
+    { id: 6, title: 'CommunityFund Campaign', subtitle: 'Crowdfund startup capital from the community', actionKey: 'crowdfund' },
+    { id: 7, title: 'TradeCred Score', subtitle: 'Build activity score unlocking formal credit', actionKey: 'tradecred' },
+]
+
+// ── Journey Setup Checklist ──
 export const JOURNEY_CHECKLIST: JourneyChecklistItem[] = [
-    { id: '1', label: 'Idea submitted', completed: true },
-    { id: '2', label: 'Business plan created', completed: true },
-    { id: '3', label: 'Explore funding options', completed: true },
-    { id: '4', label: 'Register business', completed: false },
-    { id: '5', label: 'Launch and track progress', completed: false },
+    { id: '1', label: '1. Business Profile setup', completed: true },
+    { id: '2', label: '2. CAC Registration submitted', completed: false },
+    { id: '3', label: '3. Digital Storefront created', completed: false },
+    { id: '4', label: '4. Business Savings Goal active', completed: false },
+    { id: '5', label: '5. Community Launch broadcast', completed: false },
+    { id: '6', label: '6. CommunityFund Crowdfund', completed: false },
+    { id: '7', label: '7. TradeCred Credit Score unlocked', completed: false },
 ]
 
 // ── Funding Opportunities ──
