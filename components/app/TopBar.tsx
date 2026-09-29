@@ -55,8 +55,8 @@ function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }:
                 {/* Light Mode Wordmark */}
                 <Image src="/logo-wordmark.png" alt="Hubnovo" width={90} height={30} className="hidden sm:block dark:hidden h-6 w-auto" unoptimized />
                 {/* Dark Mode Wordmark */}
-                <Image src="/logo-darkmode (2).png" alt="Hubnovo" width={90} height={30} className="hidden dark:sm:block h-6 w-auto" unoptimized />
-            </Link>
+                <Image src="/logo-darkmode (2).png" alt="Hubnovo" width={90} height={30} className="hidden dark:sm:block h-6 w-auto" unoptimized loading="eager" />
+            </Link> 
 
             {/* Search */}
             <form onSubmit={handleSearchSubmit} className="flex-1 max-w-xl mx-auto">
