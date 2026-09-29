@@ -527,15 +527,60 @@ export async function submitCacApplication(
       })
     }
 
+    // Ensure business_id exists in public.businesses (satisfying foreign key constraint)
+    let validBusinessId = input.business_id
+
+    const { data: existingBiz } = await supabase
+      .from('businesses')
+      .select('id')
+      .eq('id', input.business_id)
+      .maybeSingle()
+
+    if (!existingBiz) {
+      // Find user's business or auto-create in public.businesses
+      const { data: userBiz } = await supabase
+        .from('businesses')
+        .select('id')
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (userBiz) {
+        validBusinessId = userBiz.id
+      } else {
+        const { data: newBiz } = await supabase
+          .from('businesses')
+          .insert({
+            user_id: profile.id,
+            name: name1,
+            category: 'Tech, Software & Digital Services',
+            description: input.business_nature,
+            location_state: input.business_state || 'Lagos',
+            location_city: input.business_city || 'Ikeja',
+            stage: 'planning',
+            step_progress: 2,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single()
+
+        if (newBiz) {
+          validBusinessId = newBiz.id
+        }
+      }
+    }
+
     // Insert or update CAC application
     const { data: existingApp } = await supabase
       .from('cac_applications')
       .select('id')
-      .eq('business_id', input.business_id)
+      .eq('business_id', validBusinessId)
       .maybeSingle()
 
     const cacPayload = {
-      business_id: input.business_id,
+      business_id: validBusinessId,
       user_id: profile.id,
       proposed_name_1: name1,
       proposed_name_2: name2,
@@ -610,17 +655,15 @@ export async function submitCacApplication(
       }
     }
 
-    // Update business stage if businesses table exists
-    if (!input.business_id.startsWith('nm_')) {
-      await supabase
-        .from('businesses')
-        .update({
-          stage: 'registered',
-          step_progress: 3, // Advances to Step 3: Digital Storefront
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', input.business_id)
-    }
+    // Update business stage in businesses table
+    await supabase
+      .from('businesses')
+      .update({
+        stage: 'registered',
+        step_progress: 3, // Advances to Step 3: Digital Storefront
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', validBusinessId)
 
     revalidatePath('/app/services')
     return { success: true, data: application }
