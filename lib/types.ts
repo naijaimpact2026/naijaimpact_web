@@ -143,6 +143,7 @@ export type TransactionType =
   | 'course_purchase'
   | 'campaign_donation'
   | 'marketplace_purchase'
+  | 'cac_registration'
 
 export type Transaction = {
   id: string
@@ -1092,4 +1093,68 @@ export interface JobBookmark {
   job_id: string
   created_at: string
   job?: Job | null
-}
+}
+
+// ─────────────────────────────────────────────
+// Business Launchpad — 7-Step Journey & CAC
+// ─────────────────────────────────────────────
+
+export type BusinessStage =
+  | 'ideation'
+  | 'planning'
+  | 'registered'
+  | 'launched'
+  | 'scaling'
+
+export interface BusinessProfile {
+  id: string
+  user_id: string
+  name: string
+  tagline: string | null
+  category: string
+  description: string | null
+  location_state: string | null
+  location_city: string | null
+  logo_url: string | null
+  stage: BusinessStage
+  step_progress: number // 1 through 7
+  created_at: string
+  updated_at: string
+}
+
+export type CacApplicationStatus =
+  | 'draft'
+  | 'submitted'
+  | 'name_reservation'
+  | 'filing'
+  | 'approved'
+  | 'rejected'
+
+export interface CacApplication {
+  id: string
+  business_id: string
+  user_id: string
+  proposed_name_1: string
+  proposed_name_2: string
+  business_nature: string
+  proprietor_full_name: string
+  proprietor_nin: string
+  proprietor_phone: string
+  business_address: string
+  business_city: string
+  business_state: string
+  fee_amount: number
+  fee_paid: boolean
+  payment_method: string
+  payment_reference?: string | null
+  status: CacApplicationStatus
+  rejection_reason?: string | null
+  cac_registration_number?: string | null
+  certificate_url?: string | null
+  submitted_at?: string | null
+  approved_at?: string | null
+  created_at: string
+  updated_at: string
+  business?: BusinessProfile | null
+}
+
