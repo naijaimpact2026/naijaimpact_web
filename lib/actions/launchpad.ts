@@ -426,7 +426,7 @@ export async function checkCacNameAvailability(name: string): Promise<NameCheckR
   return {
     available: true,
     hasRestrictedWords: false,
-    message: 'Name format complies with CAC Business Name naming guidelines.',
+    message: 'Name format complies with Hubnovo Enterprise naming guidelines.',
   }
 }
 
@@ -477,7 +477,7 @@ export async function submitCacApplication(
     }
 
     if (!input.business_address.trim() || !input.business_state.trim()) {
-      return { success: false, error: 'Physical business address and state are required by CAC.' }
+      return { success: false, error: 'Physical business address and state are required for registration.' }
     }
 
     const FEE = 5000 // Subsidised fee: ₦5,000
@@ -499,7 +499,7 @@ export async function submitCacApplication(
       if (balance < FEE) {
         return {
           success: false,
-          error: `Insufficient wallet balance. You have ₦${balance.toLocaleString('en-NG')}, but the subsidised CAC registration fee is ₦${FEE.toLocaleString('en-NG')}. Please fund your wallet or pay via Paystack.`,
+          error: `Insufficient wallet balance. You have ₦${balance.toLocaleString('en-NG')}, but the subsidised Hubnovo registration fee is ₦${FEE.toLocaleString('en-NG')}. Please fund your wallet or pay via Paystack.`,
         }
       }
 
@@ -523,7 +523,7 @@ export async function submitCacApplication(
         amount: FEE,
         status: 'success',
         reference_id: paymentRef,
-        description: `Subsidised CAC Registration — ${name1}`,
+        description: `Subsidised Hubnovo Registration — ${name1}`,
       })
     }
 
@@ -671,7 +671,7 @@ export async function submitCacApplication(
     console.error('submitCacApplication error:', err)
     return {
       success: false,
-      error: err.message || 'Failed to submit CAC application',
+      error: err.message || 'Failed to submit Hubnovo registration',
     }
   }
 }

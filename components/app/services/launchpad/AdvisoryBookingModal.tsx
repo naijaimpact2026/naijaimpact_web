@@ -62,7 +62,7 @@ export default function AdvisoryBookingModal({ open, onClose }: AdvisoryBookingM
                             className="mt-1 w-full px-3 py-2 rounded-xl border border-border bg-muted/40 text-sm font-medium"
                         >
                             <option>Business Plan & Financial Review</option>
-                            <option>CAC Registration & Compliance Guidance</option>
+                            <option>Hubnovo Registration & Compliance Guidance</option>
                             <option>Investor Pitch Deck Preparation</option>
                             <option>Sales & Go-to-Market Strategy</option>
                             <option>Grant & Loan Application Assistance</option>

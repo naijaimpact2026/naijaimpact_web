@@ -37,7 +37,7 @@ export default function CacCertificateModal({
     }
 
     const handleDownload = () => {
-        toast.success(`Official CAC Certificate for ${businessName} prepared for download!`)
+        toast.success(`Official Hubnovo Certificate for ${businessName} prepared for download!`)
         window.print()
     }
 
@@ -49,7 +49,7 @@ export default function CacCertificateModal({
                     <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                         <span className="text-xs font-bold text-foreground">
-                            Official Digital CAC Registration Certificate
+                            Official Digital Hubnovo Registration Certificate
                         </span>
                         <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                             {regNumber}
@@ -97,7 +97,7 @@ export default function CacCertificateModal({
                         {/* Top Coat of Arms Emblem & Header */}
                         <div className="text-center space-y-1 relative z-10 border-b-2 border-[#b4975a]/30 pb-4">
                             <div className="w-16 h-16 mx-auto mb-2 relative flex items-center justify-center">
-                                {/* Nigerian Coat of Arms stylization */}
+                                {/* Nigerian Emblem stylization */}
                                 <div className="w-14 h-14 rounded-full border-2 border-[#008751] flex items-center justify-center bg-white shadow-xs">
                                     <ShieldCheck className="w-9 h-9 text-[#008751]" />
                                 </div>
@@ -107,10 +107,10 @@ export default function CacCertificateModal({
                                 Federal Republic of Nigeria
                             </p>
                             <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-950 font-serif">
-                                CORPORATE AFFAIRS COMMISSION
+                                HUBNOVO ENTERPRISE COMMISSION
                             </h2>
                             <p className="text-[10px] sm:text-xs italic text-slate-600">
-                                (Established under the Companies and Allied Matters Act, 2020)
+                                (Established under the Hubnovo Enterprise Charter & Allied Business Framework)
                             </p>
                         </div>
 
@@ -138,8 +138,8 @@ export default function CacCertificateModal({
                             </div>
 
                             <p>
-                                was registered pursuant to and in accordance with the provisions of Part C of the
-                                <strong> Companies and Allied Matters Act, 2020</strong> as an enterprise carrying on business as:
+                                was registered pursuant to and in accordance with the provisions of the
+                                <strong> Hubnovo Enterprise Charter</strong> as an enterprise carrying on business as:
                             </p>
 
                             <p className="font-semibold text-slate-900 italic max-w-lg mx-auto">
@@ -181,13 +181,13 @@ export default function CacCertificateModal({
                                 </span>
                             </div>
 
-                            {/* Middle: Gold Foil CAC Seal */}
+                            {/* Middle: Gold Foil Hubnovo Seal */}
                             <div className="flex flex-col items-center justify-center">
                                 <div className="w-16 h-16 rounded-full border-2 border-[#b4975a] bg-gradient-to-br from-[#d4af37] via-[#f3e5ab] to-[#aa771c] shadow-md flex items-center justify-center p-1">
                                     <div className="w-full h-full rounded-full border border-dashed border-[#855810] flex flex-col items-center justify-center text-[7px] font-black uppercase text-[#4a350e] leading-none text-center">
                                         <span>Official</span>
                                         <Award className="w-4 h-4 my-0.5 text-[#5e3e0c]" />
-                                        <span>CAC Seal</span>
+                                        <span>Hubnovo Seal</span>
                                     </div>
                                 </div>
                                 <span className="text-[9px] text-[#008751] font-bold mt-1.5 flex items-center gap-1">
@@ -207,7 +207,7 @@ export default function CacCertificateModal({
                                     Registrar-General
                                 </span>
                                 <span className="text-[9px] text-slate-500 block">
-                                    Corporate Affairs Commission
+                                    Hubnovo Enterprise Registry
                                 </span>
                             </div>
                         </div>

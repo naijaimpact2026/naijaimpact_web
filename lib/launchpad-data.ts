@@ -123,7 +123,7 @@ export const QUICK_ACTIONS: QuickActionCard[] = [
     {
         id: 'register',
         title: 'Register Business',
-        subtitle: 'CAC, Tax & Compliance',
+        subtitle: 'Hubnovo, Tax & Compliance',
         icon: 'briefcase',
         color: 'text-amber-600 dark:text-amber-400',
         bgColor: 'bg-amber-500/10',
@@ -202,10 +202,10 @@ export const BUSINESS_TEMPLATES: BusinessTemplate[] = [
 export const TOOLS_AND_RESOURCES: BusinessToolResource[] = [
     {
         id: 'cac-guide',
-        title: 'CAC Registration Guide',
+        title: 'Hubnovo Registration Guide',
         type: 'guide',
         icon: 'file-check-2',
-        description: 'Step-by-step guide to registering your Business Name or Limited Company (LLC) directly on the CAC CRP portal.',
+        description: 'Step-by-step guide to formalizing your Business Name or Enterprise directly on the Hubnovo portal.',
         badge: 'Popular',
     },
     {
@@ -243,7 +243,7 @@ export const TOOLS_AND_RESOURCES: BusinessToolResource[] = [
         title: 'Business Name Generator',
         type: 'tool',
         icon: 'sparkles',
-        description: 'Generate catchy, memorable, and CAC-searchable Nigerian business names by industry and keyword.',
+        description: 'Generate catchy, memorable, and verified Nigerian business names by industry and keyword.',
         badge: 'AI Powered',
     },
 ]
@@ -310,7 +310,7 @@ export interface LaunchStepItem {
 
 export const SEVEN_STEP_LAUNCH_JOURNEY: LaunchStepItem[] = [
     { id: 1, title: 'Business Profile', subtitle: 'Name, category, AI logo options, location, description', actionKey: 'profile' },
-    { id: 2, title: 'CAC Registration', subtitle: 'Facilitated in-platform for ₦5,000 (subsidised)', actionKey: 'cac' },
+    { id: 2, title: 'Hubnovo Registration', subtitle: 'Facilitated in-platform for ₦5,000 (subsidised)', actionKey: 'cac' },
     { id: 3, title: 'Digital Storefront', subtitle: 'Live product and service listings on NaijaMarket', actionKey: 'storefront' },
     { id: 4, title: 'Business Savings Goal', subtitle: 'Automated equipment/stock seed savings', actionKey: 'savings' },
     { id: 5, title: 'Launch Announcement', subtitle: 'Platform broadcast to community feed & local hub', actionKey: 'announcement' },
@@ -321,7 +321,7 @@ export const SEVEN_STEP_LAUNCH_JOURNEY: LaunchStepItem[] = [
 // ── Journey Setup Checklist ──
 export const JOURNEY_CHECKLIST: JourneyChecklistItem[] = [
     { id: '1', label: '1. Business Profile setup', completed: true },
-    { id: '2', label: '2. CAC Registration submitted', completed: false },
+    { id: '2', label: '2. Hubnovo Registration submitted', completed: false },
     { id: '3', label: '3. Digital Storefront created', completed: false },
     { id: '4', label: '4. Business Savings Goal active', completed: false },
     { id: '5', label: '5. Community Launch broadcast', completed: false },

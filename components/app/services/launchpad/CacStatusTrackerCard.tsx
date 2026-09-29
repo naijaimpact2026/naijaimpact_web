@@ -28,9 +28,9 @@ interface CacStatusTrackerCardProps {
 }
 
 const CAC_STAGES: { id: CacApplicationStatus; title: string; desc: string }[] = [
-    { id: 'submitted', title: 'Submitted & Paid', desc: 'NIN & intake verified' },
-    { id: 'name_reservation', title: 'Name Reservation', desc: 'CAC registry clearance' },
-    { id: 'filing', title: 'Registrar Review', desc: 'Official documentation filing' },
+    { id: 'submitted', title: 'Submitted & Paid', desc: 'Intake & verification' },
+    { id: 'name_reservation', title: 'Name Clearance', desc: 'Hubnovo registry check' },
+    { id: 'filing', title: 'Registry Review', desc: 'Documentation verification' },
     { id: 'approved', title: 'Approved & Issued', desc: 'Certificate ready to download' },
 ]
 
@@ -89,10 +89,10 @@ export default function CacStatusTrackerCard({
                             </span>
                         </div>
                         <h3 className="text-base sm:text-lg font-bold text-foreground">
-                            Register Your Business with CAC for ₦5,000
+                            Register Your Business with Hubnovo for ₦5,000
                         </h3>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                            Facilitated in-platform. Delivered digitally within 5 working days. No queue, no middleman. Unlocks corporate bank accounts, SMEDAN grants, and TradeCred formal loans.
+                            Facilitated in-platform. Delivered digitally within 5 working days. No queue, no middleman. Unlocks corporate bank accounts, partner grants, and TradeCred formal loans.
                         </p>
                     </div>
 
@@ -101,7 +101,7 @@ export default function CacStatusTrackerCard({
                         onClick={onStartCac}
                         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-98 text-slate-950 text-xs sm:text-sm font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer shrink-0"
                     >
-                        <span>Start CAC Registration</span>
+                        <span>Start Hubnovo Registration</span>
                         <ChevronRight className="w-4 h-4" />
                     </button>
                 </div>
@@ -144,7 +144,7 @@ export default function CacStatusTrackerCard({
                             <div className="flex items-center gap-2 flex-wrap">
                                 <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                                     <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                                    <span>CAC Registered Enterprise</span>
+                                    <span>Hubnovo Registered Enterprise</span>
                                 </span>
                                 <span className="text-xs font-mono font-bold text-foreground">
                                     {regNum}
@@ -156,7 +156,7 @@ export default function CacStatusTrackerCard({
                             </h3>
 
                             <p className="text-xs text-muted-foreground mt-0.5">
-                                Official Certificate of Registration issued by Corporate Affairs Commission.
+                                Official Certificate of Registration issued by Hubnovo Enterprise Commission.
                             </p>
                         </div>
                     </div>
@@ -195,7 +195,7 @@ export default function CacStatusTrackerCard({
                     <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
                         <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                            CAC Filing In Progress
+                            Hubnovo Verification In Progress
                         </span>
                         <span className="text-[11px] text-muted-foreground">
                             • Est. 3–5 working days
@@ -215,7 +215,7 @@ export default function CacStatusTrackerCard({
                         onClick={handleAdvanceSimulation}
                         disabled={advancing}
                         className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-muted/80 hover:bg-muted text-[11px] font-semibold text-foreground transition-all cursor-pointer"
-                        title="Simulate advancing to next CAC approval stage for demo"
+                        title="Simulate advancing to next Hubnovo approval stage for demo"
                     >
                         {advancing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 text-emerald-500" />}
                         <span>Fast-Track (Demo)</span>

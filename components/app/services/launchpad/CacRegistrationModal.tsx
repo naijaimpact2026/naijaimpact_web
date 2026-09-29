@@ -97,7 +97,7 @@ export default function CacRegistrationModal({
                     <div>
                         <h3 className="text-lg font-bold text-foreground">Set Up Business Profile First</h3>
                         <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                            To register with the Corporate Affairs Commission (CAC), you need an active business profile. It only takes 3 minutes!
+                            To register your enterprise on Hubnovo, you need an active business profile. It only takes 3 minutes!
                         </p>
                     </div>
                     <div className="flex items-center gap-3 pt-2">
@@ -160,7 +160,7 @@ export default function CacRegistrationModal({
         }
 
         if (!address.trim()) {
-            toast.error('Physical business address is required by CAC.')
+            toast.error('Physical business address is required for registration.')
             setStep(2)
             return
         }
@@ -192,7 +192,7 @@ export default function CacRegistrationModal({
                 return
             }
 
-            toast.success('CAC Application submitted successfully! Tracking initiated.')
+            toast.success('Hubnovo Registration submitted successfully! Tracking initiated.')
             onSubmitted(res.data)
             onClose()
         } catch (err: any) {
@@ -214,7 +214,7 @@ export default function CacRegistrationModal({
                         <div>
                             <div className="flex items-center gap-2">
                                 <h2 className="text-base sm:text-lg font-bold text-foreground">
-                                    CAC Business Registration
+                                    Hubnovo Business Registration
                                 </h2>
                                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                                     ₦5,000 Subsidised
@@ -237,7 +237,7 @@ export default function CacRegistrationModal({
                 <div className="px-6 py-2.5 bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent border-b border-border/60 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-medium">
                         <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
-                        <span>Corporate Affairs Commission (CAC) Official Business Name Filing</span>
+                        <span>Hubnovo Official Business Name Filing</span>
                     </div>
                     <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
                         Save ₦15,000+ vs. Agents
@@ -275,7 +275,7 @@ export default function CacRegistrationModal({
                             <div className="p-3 rounded-xl bg-muted/40 border border-border/80 text-xs text-muted-foreground flex items-start gap-2.5">
                                 <Info className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                                 <div>
-                                    CAC requires two proposed name options. If your primary name has a conflict at the registry, the registrar will automatically reserve your alternative name.
+                                    Hubnovo requires two proposed name options. If your primary name has a conflict at the registry, the system will automatically reserve your alternative name.
                                 </div>
                             </div>
 
@@ -355,7 +355,7 @@ export default function CacRegistrationModal({
                                     className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all placeholder:text-muted-foreground/60 resize-none"
                                 />
                                 <p className="text-[11px] text-muted-foreground mt-1">
-                                    Will be officially recorded on your CAC Certificate of Registration.
+                                    Will be officially recorded on your Hubnovo Certificate of Registration.
                                 </p>
                             </div>
 
@@ -413,7 +413,7 @@ export default function CacRegistrationModal({
                             <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2.5">
                                 <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
                                 <div>
-                                    Under Federal Law, CAC validates proprietor identity against the National Identity Management Commission (NIMC) database. Ensure names match your NIN slip exactly.
+                                    Under compliance guidelines, Hubnovo validates proprietor identity against the National Identity Management Commission (NIMC) database. Ensure names match your NIN slip exactly.
                                 </div>
                             </div>
 
@@ -493,7 +493,7 @@ export default function CacRegistrationModal({
                             {/* Fee Breakdown */}
                             <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 space-y-2">
                                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                    <span>Standard CAC Business Name Fee:</span>
+                                    <span>Standard Business Name Fee:</span>
                                     <span className="line-through">₦10,000</span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
@@ -639,7 +639,7 @@ export default function CacRegistrationModal({
                             ) : (
                                 <>
                                     <CheckCircle2 className="w-4 h-4" />
-                                    <span>Pay ₦5,000 & Submit to CAC</span>
+                                    <span>Pay ₦5,000 & Submit to Hubnovo</span>
                                 </>
                             )}
                         </button>

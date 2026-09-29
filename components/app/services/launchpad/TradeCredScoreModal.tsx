@@ -46,7 +46,7 @@ export default function TradeCredScoreModal({
 
     const milestoneAudit = [
         { name: '1. Business Profile & Identity KYC', points: '+100 pts', done: true },
-        { name: '2. CAC Formalization (BN Issued)', points: '+200 pts', done: true },
+        { name: '2. Hubnovo Formalization (Registration Issued)', points: '+200 pts', done: true },
         { name: '3. Digital Storefront on NaijaMarket', points: '+150 pts', done: true },
         { name: '4. Capital Discipline on Hubnovo Safe', points: '+175 pts', done: true },
         { name: '5. Community Launch Broadcast', points: '+80 pts', done: true },

@@ -109,7 +109,7 @@ export default function BusinessLaunchHome({
                 break
             case 'register':
                 if (!business) {
-                    toast.info('Please set up your business profile first before registering with CAC.')
+                    toast.info('Please set up your business profile first before registering with Hubnovo.')
                     setProfileModalOpen(true)
                 } else {
                     setCacModalOpen(true)
@@ -174,7 +174,7 @@ export default function BusinessLaunchHome({
                 break
             case 3:
                 if (cacApplication?.status !== 'approved') {
-                    toast.info('Step 3 unlocks once your CAC registration is approved.')
+                    toast.info('Step 3 unlocks once your Hubnovo registration is approved.')
                     setCacModalOpen(true)
                 } else {
                     setStorefrontModalOpen(true)
@@ -271,7 +271,7 @@ export default function BusinessLaunchHome({
                                     Ready to turn your vision into an established enterprise?
                                 </h3>
                                 <p className="text-xs text-white/80 mt-1">
-                                    Get step-by-step assistance, funding eligibility checks, and CAC corporate registration for ₦5,000.
+                                    Get step-by-step assistance, funding eligibility checks, and Hubnovo enterprise registration for ₦5,000.
                                 </p>
                             </div>
                             <button

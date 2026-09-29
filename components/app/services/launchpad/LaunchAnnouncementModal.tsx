@@ -39,7 +39,7 @@ export default function LaunchAnnouncementModal({
     const cacNumber = cacApplication?.cac_registration_number || 'BN 3861132'
     const location = `${business?.location_city || 'Ikeja'}, ${business?.location_state || 'Lagos'}`
 
-    const defaultCaption = `🚀 Proud milestone! ${businessName} is officially CAC registered (${cacNumber}) and live on Hubnovo! We offer verified ${business?.category || 'commercial'} solutions based out of ${location}. Check out our digital storefront on NaijaMarket or connect with us for projects. Grateful for this community's support! 🇳🇬✨ #BusinessLaunch #Hubnovo #SME`
+    const defaultCaption = `🚀 Proud milestone! ${businessName} is officially Hubnovo registered (${cacNumber}) and live on Hubnovo! We offer verified ${business?.category || 'commercial'} solutions based out of ${location}. Check out our digital storefront on NaijaMarket or connect with us for projects. Grateful for this community's support! 🇳🇬✨ #BusinessLaunch #Hubnovo #SME`
 
     const [caption, setCaption] = useState(defaultCaption)
     const [targetHub, setTargetHub] = useState('Lagos State Entrepreneurs Hub')
@@ -176,7 +176,7 @@ export default function LaunchAnnouncementModal({
                         <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-start gap-3">
                             <Sparkles className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
                             <div className="text-xs text-muted-foreground leading-relaxed">
-                                <span className="font-bold text-foreground">Launch Visibility:</span> Your announcement showcases your verified CAC status badge and direct links to your new digital storefront.
+                                <span className="font-bold text-foreground">Launch Visibility:</span> Your announcement showcases your verified Hubnovo status badge and direct links to your new digital storefront.
                             </div>
                         </div>
 
@@ -235,7 +235,7 @@ export default function LaunchAnnouncementModal({
                                         </span>
                                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
                                             <ShieldCheck className="w-3 h-3 text-emerald-500" />
-                                            CAC Verified
+                                            Hubnovo Verified
                                         </span>
                                     </div>
                                     <p className="text-[11px] text-muted-foreground flex items-center gap-1">

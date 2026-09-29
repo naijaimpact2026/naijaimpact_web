@@ -228,7 +228,7 @@ export default function BusinessProfileModal({
                                     className="w-full px-3.5 py-2.5 rounded-xl border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all placeholder:text-muted-foreground/60"
                                 />
                                 <p className="text-[11px] text-muted-foreground mt-1">
-                                    This will also be used in Step 2 for CAC corporate name reservation.
+                                    This will also be used in Step 2 for Hubnovo enterprise name reservation.
                                 </p>
                             </div>
 
@@ -464,7 +464,7 @@ export default function BusinessProfileModal({
                             ) : (
                                 <>
                                     <CheckCircle2 className="w-4 h-4" />
-                                    <span>Save & Continue to CAC</span>
+                                    <span>Save & Continue to Hubnovo Registration</span>
                                 </>
                             )}
                         </button>

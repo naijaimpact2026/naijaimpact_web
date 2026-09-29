@@ -40,7 +40,7 @@ export default function LaunchpadJourneyTracker({
 
     const stepsStatus = [
         { id: 1, label: '1. Business Profile setup', completed: isProfileDone, inProgress: !isProfileDone },
-        { id: 2, label: '2. CAC Registration (₦5,000)', completed: isCacDone, inProgress: isProfileDone && !isCacDone },
+        { id: 2, label: '2. Hubnovo Registration (₦5,000)', completed: isCacDone, inProgress: isProfileDone && !isCacDone },
         { id: 3, label: '3. Digital Storefront created', completed: isStorefrontDone, inProgress: isCacDone && !isStorefrontDone },
         { id: 4, label: '4. Business Savings Goal active', completed: isSavingsDone, inProgress: isStorefrontDone && !isSavingsDone },
         { id: 5, label: '5. Launch Announcement broadcast', completed: isBroadcastDone, inProgress: isSavingsDone && !isBroadcastDone },
@@ -68,7 +68,7 @@ export default function LaunchpadJourneyTracker({
     if (!isProfileDone) {
         nextStepMessage = 'Start Step 1: Set up your business profile.'
     } else if (!isCacDone) {
-        nextStepMessage = 'Step 2: Formalize with CAC for ₦5,000.'
+        nextStepMessage = 'Step 2: Formalize with Hubnovo for ₦5,000.'
     } else if (!isStorefrontDone) {
         nextStepMessage = 'Step 3: Create your digital storefront.'
     } else if (!isSavingsDone) {

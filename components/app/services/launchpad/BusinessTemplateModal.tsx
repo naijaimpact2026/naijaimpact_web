@@ -72,7 +72,7 @@ export default function BusinessTemplateModal({ template, onClose }: BusinessTem
                             </div>
                             <div className="flex items-center gap-2">
                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                                <span>Editable sections ready for CAC and bank loan applications</span>
+                                <span>Editable sections ready for Hubnovo and bank loan applications</span>
                             </div>
                         </div>
                     </div>

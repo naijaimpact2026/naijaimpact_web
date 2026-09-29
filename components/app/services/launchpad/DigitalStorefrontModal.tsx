@@ -171,7 +171,7 @@ export default function DigitalStorefrontModal({
                                 Storefront Listing Live!
                             </h3>
                             <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
-                                <span className="font-semibold text-foreground">{title}</span> is now active on NaijaMarket with verified CAC badge for{' '}
+                                <span className="font-semibold text-foreground">{title}</span> is now active on NaijaMarket with verified Hubnovo badge for{' '}
                                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                                     {business?.name}
                                 </span>
@@ -187,7 +187,7 @@ export default function DigitalStorefrontModal({
                                 </span>
                                 <span className="text-muted-foreground flex items-center gap-1 text-[11px]">
                                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                                    CAC Verified Seller
+                                    Hubnovo Verified Seller
                                 </span>
                             </div>
                             <h4 className="font-bold text-sm text-foreground line-clamp-1">{title}</h4>
@@ -226,7 +226,7 @@ export default function DigitalStorefrontModal({
                             <Sparkles className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                             <div className="text-xs text-muted-foreground leading-relaxed">
                                 <span className="font-bold text-foreground">Verified Merchant Privilege:</span>{' '}
-                                Because <span className="font-bold text-foreground">{business?.name || 'your business'}</span> is CAC registered, your storefront listings receive priority ranking on NaijaMarket and the official Nigerian CAC shield.
+                                Because <span className="font-bold text-foreground">{business?.name || 'your business'}</span> is Hubnovo registered, your storefront listings receive priority ranking on NaijaMarket and the official Hubnovo verified shield.
                             </div>
                         </div>
 
