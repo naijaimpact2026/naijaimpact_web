@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import CreateJobForm from '@/components/app/market/jobs/CreateJobForm'
-import type { User } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,25 +10,15 @@ export const metadata = {
 }
 
 export default async function CreateJobPage() {
-  const supabase = await createClient()
-
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser()
+  const { authUser, profile } = await getCurrentUser()
 
   if (!authUser) {
     redirect('/auth/login?next=/app/market/jobs/create')
   }
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('*')
-    .eq('auth_id', authUser.id)
-    .maybeSingle()
-
   if (!profile) {
     redirect('/auth/login')
   }
 
-  return <CreateJobForm currentUser={profile as User} />
+  return <CreateJobForm currentUser={profile} />
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { toast } from '@/components/toast'
@@ -14,7 +14,7 @@ export function fmt(n: number)
     return `₦${n.toLocaleString('en-NG')}`
 }
 
-export default function ListingCard({ listing }: { listing: NmListingDetail })
+function ListingCard({ listing }: { listing: NmListingDetail })
 {
     const { addItem, items } = useMarketCart()
     const [saved, setSaved] = useState(listing.is_saved)
@@ -149,3 +149,5 @@ export default function ListingCard({ listing }: { listing: NmListingDetail })
         </Link>
     )
 }
+
+export default memo(ListingCard)

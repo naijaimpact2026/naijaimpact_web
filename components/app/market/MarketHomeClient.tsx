@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { toast } from '@/components/toast'
 import
@@ -29,6 +29,14 @@ interface Props
     userEmail: string
     displayName: string
 }
+
+const QUICK_NAV_ITEMS = [
+    { icon: Heart, label: 'Saved', href: '/app/market/saved' },
+    { icon: Users, label: 'Artisans', href: '/app/market/artisans' },
+    { icon: Store, label: 'Stores', href: '/app/market/stores' },
+    { icon: Briefcase, label: 'Jobs', href: '/app/market/jobs' },
+    { icon: ShoppingCart, label: 'My Orders', href: '/app/market/orders' },
+] as const
 
 // ─── Icon + color map — each category keyword gets its own colour pair ───────
 type IconStyle = { bg: string; icon: string; Icon: any }
@@ -107,8 +115,14 @@ export default function MarketHomeClient({
     const [loading, setLoading] = useState(false)
     const [loadingMore, setLoadingMore] = useState(false)
 
+    // Guards against out-of-order responses — e.g. clicking two categories in
+    // quick succession could otherwise let the first (slower) request's
+    // response land after the second and overwrite it with stale listings.
+    const requestIdRef = useRef(0)
+
     const runQuery = useCallback(async (opts: { category?: ServiceCategory | null; search?: string }) =>
     {
+        const myRequestId = ++requestIdRef.current
         setLoading(true)
         try
         {
@@ -117,17 +131,19 @@ export default function MarketHomeClient({
             if (opts.search) filters.search = opts.search
 
             const { listings: fresh, nextCursor: nc } = await fetchListings(filters, 24)
+            if (requestIdRef.current !== myRequestId) return
             setListings(fresh)
             setNextCursor(nc)
         }
         catch (e)
         {
+            if (requestIdRef.current !== myRequestId) return
             console.error(e)
             toast.error('Could not load listings')
         }
         finally
         {
-            setLoading(false)
+            if (requestIdRef.current === myRequestId) setLoading(false)
         }
     }, [])
 
@@ -216,13 +232,7 @@ export default function MarketHomeClient({
 
             {/* ══ QUICK NAV ═════════════════════════════════════════════ */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                {[
-                    { icon: Heart, label: 'Saved', href: '/app/market/saved' },
-                    { icon: Users, label: 'Artisans', href: '/app/market/artisans' },
-                    { icon: Store, label: 'Stores', href: '/app/market/stores' },
-                    { icon: Briefcase, label: 'Jobs', href: '/app/market/jobs' },
-                    { icon: ShoppingCart, label: 'My Orders', href: '/app/market/orders' },
-                ].map(({ icon: Icon, label, href }) => (
+                {QUICK_NAV_ITEMS.map(({ icon: Icon, label, href }) => (
                     <Link key={href} href={href}
                         className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card py-4 transition-colors hover:border-primary/40 hover:bg-primary/5">
                         <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">

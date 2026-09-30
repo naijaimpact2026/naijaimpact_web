@@ -2,7 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { fetchCourseById } from '@/lib/actions/learn'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import EnrolButton from '@/components/app/learn/EnrolButton'
 import { Avatar, AvatarFallback, AvatarImage, } from '@/components/ui/avatar'
 import {
@@ -18,7 +18,7 @@ import {
     Users,
     Video,
 } from 'lucide-react'
-import { toPublicStorageUrl } from '@/lib/supabase-image'
+import { toPublicStorageUrl, shouldSkipImageOptimization } from '@/lib/supabase-image'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,19 +31,9 @@ export default async function CourseDetailPage({ params }: Props)
 {
     const { courseId } = await params
 
-    const supabase = await createClient()
+    const { authUser, profile } = await getCurrentUser()
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) redirect('/auth/login')
-
-    const { data: profile } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_id', user.id)
-        .single()
+    if (!authUser) redirect('/auth/login')
 
     const result = await fetchCourseById(courseId)
 
@@ -291,7 +281,7 @@ export default async function CourseDetailPage({ params }: Props)
                                             720px
                                         "
                                         unoptimized={
-                                            coverUrl.includes('supabase.co')
+                                            shouldSkipImageOptimization(coverUrl)
                                         }
                                     />
                                 ) : (
@@ -771,7 +761,7 @@ export default async function CourseDetailPage({ params }: Props)
                                         className="object-cover"
                                         sizes="360px"
                                         unoptimized={
-                                            coverUrl.includes('supabase.co')
+                                            shouldSkipImageOptimization(coverUrl)
                                         }
                                     />
                                 ) : (

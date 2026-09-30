@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { redirect } from 'next/navigation'
 import { fetchListings, fetchMarketCategories, fetchTopSellers } from '@/lib/actions/marketplace'
 import MarketHomeClient from '@/components/app/market/MarketHomeClient'
@@ -7,15 +7,8 @@ export const dynamic = 'force-dynamic'
 
 export default async function MarketPage()
 {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/auth/login')
-
-    const { data: profile } = await supabase
-        .from('users')
-        .select('id, display_name, fullname')
-        .eq('auth_id', user.id)
-        .single()
+    const { authUser, profile } = await getCurrentUser()
+    if (!authUser) redirect('/auth/login')
 
     const [{ listings, nextCursor }, categories, topSellers] = await Promise.all([
         fetchListings({}, 24),
@@ -31,8 +24,8 @@ export default async function MarketPage()
             initialNextCursor={nextCursor}
             categories={categories}
             topSellers={topSellers}
-            userId={user.id}
-            userEmail={user.email ?? ''}
+            userId={authUser.id}
+            userEmail={authUser.email ?? ''}
             displayName={displayName}
         />
     )

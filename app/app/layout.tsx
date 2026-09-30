@@ -1,40 +1,24 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import AppShell from '@/components/app/AppShell'
-import type { User } from '@/lib/types'
 
 export default async function AppLayout({ children }: { children: React.ReactNode })
 {
-    const supabase = await createClient()
+    const current = await getCurrentUser()
+    const userProfile = current?.profile ?? null
 
-    // Get the authenticated Supabase auth user
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
-
-    // Fetch the corresponding profile row from the users table
-    let userProfile: User | null = null
     let initialNotificationCount = 0
 
-    if (authUser)
+    if (userProfile)
     {
-        const { data } = await supabase
-            .from('users')
-            .select('*')
-            .eq('auth_id', authUser.id)
-            .single()
-        userProfile = data ?? null
+        const supabase = await createClient()
+        const { count } = await supabase
+            .from('notifications')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', userProfile.id)
+            .eq('read', false)
 
-        if (userProfile)
-        {
-            // Fetch initial unread notification count for badge
-            const { count } = await supabase
-                .from('notifications')
-                .select('id', { count: 'exact', head: true })
-                .eq('user_id', userProfile.id)
-                .eq('read', false)
-
-            initialNotificationCount = count ?? 0
-        }
+        initialNotificationCount = count ?? 0
     }
 
     return (

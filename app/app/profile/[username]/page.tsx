@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { fetchUserPostsPage } from '@/lib/actions/posts'
 import ProfileHeader from '@/components/app/profile/ProfileHeader'
 import ProfileTabs from '@/components/app/profile/ProfileTabs'
@@ -22,22 +23,9 @@ export default async function ProfilePage({ params }: ProfilePageProps)
     const { username } = await params
     const supabase = await createClient()
 
-    // ── Current auth user ────────────────────────────────────────────────────
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
-
-    // Get current user's platform profile id
-    let currentUserId = ''
-    if (authUser)
-    {
-        const { data: currentProfile } = await supabase
-            .from('users')
-            .select('id')
-            .eq('auth_id', authUser.id)
-            .single()
-        currentUserId = currentProfile?.id ?? ''
-    }
+    // ── Current auth user (the viewer, not the profile being viewed) ─────────
+    const { profile: viewerProfile } = await getCurrentUser()
+    const currentUserId = viewerProfile?.id ?? ''
 
     // ── Fetch target user profile ─────────────────────────────────────────────
     const { data: profile, error: profileError } = await supabase

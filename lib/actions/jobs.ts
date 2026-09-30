@@ -9,6 +9,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import type {
   Job,
   JobApplication,
@@ -72,18 +73,7 @@ export interface ApplyJobInput {
 
 async function getAuthContext() {
   const supabase = await createClient()
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser()
-
-  if (!authUser) return { supabase, authUser: null, profile: null }
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('id, display_name, fullname, avatar_url, username, email')
-    .eq('auth_id', authUser.id)
-    .maybeSingle()
-
+  const { authUser, profile } = await getCurrentUser()
   return { supabase, authUser, profile }
 }
 

@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
+import Image from 'next/image'
+import { shouldSkipImageOptimization } from '@/lib/supabase-image'
 import type { Channel as StreamChannel, LocalMessage, Attachment } from 'stream-chat'
 import
 {
@@ -413,11 +415,13 @@ export default function SharedMediaDrawer({
                                                 {item.type === 'video' ? (
                                                     <div className="w-full h-full flex items-center justify-center bg-black/40 text-white relative">
                                                         {item.thumbUrl ? (
-                                                            <img
+                                                            <Image
                                                                 src={item.thumbUrl}
-                                                                alt={item.name}
-                                                                className="w-full h-full object-cover"
-                                                                loading="lazy"
+                                                                alt={item.name ?? 'Shared media'}
+                                                                fill
+                                                                unoptimized={shouldSkipImageOptimization(item.thumbUrl)}
+                                                                className="object-cover"
+                                                                sizes="120px"
                                                             />
                                                         ) : (
                                                             <video
@@ -432,11 +436,13 @@ export default function SharedMediaDrawer({
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <img
+                                                    <Image
                                                         src={item.thumbUrl || item.url}
-                                                        alt={item.name}
-                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                                        loading="lazy"
+                                                        alt={item.name ?? 'Shared media'}
+                                                        fill
+                                                        unoptimized={shouldSkipImageOptimization(item.thumbUrl || item.url)}
+                                                        className="object-cover group-hover:scale-105 transition-transform duration-200"
+                                                        sizes="120px"
                                                     />
                                                 )}
                                                 <div className="absolute inset-x-0 bottom-0 p-1 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between text-[10px] text-white">

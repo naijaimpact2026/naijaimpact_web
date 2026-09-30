@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 
 import {
     fetchNotificationsPage,
@@ -14,11 +14,7 @@ import NotificationSummary from '@/components/app/notifications/NotificationSumm
 export const dynamic = 'force-dynamic'
 
 export default async function NotificationsPage() {
-    const supabase = await createClient()
-
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { authUser, profile } = await getCurrentUser()
 
     if (!authUser) {
         redirect('/auth/login')
@@ -27,20 +23,9 @@ export default async function NotificationsPage() {
     const [
         { notifications, nextCursor },
         stats,
-        { data: profile },
     ] = await Promise.all([
         fetchNotificationsPage(),
         getNotificationStats(),
-        supabase
-            .from('users')
-            .select(`
-                notifications_follows,
-                notifications_reactions,
-                notifications_comments,
-                notifications_mentions
-            `)
-            .eq('auth_id', authUser.id)
-            .single(),
     ])
 
     const preferences = {

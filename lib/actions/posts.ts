@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import type { PostWithAuthor } from '@/lib/types'
 
 const DEFAULT_LIMIT = 10
@@ -72,21 +73,11 @@ export async function fetchPostsPage(
 ): Promise<{ posts: PostWithAuthor[]; nextCursor: string | null }> {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const { authUser, profile } = await getCurrentUser()
 
-  if (authError || !user) {
+  if (!authUser) {
     return { posts: [], nextCursor: null }
   }
-
-  // Get the current user's profile id
-  const { data: profile } = await supabase
-    .from('users')
-    .select('id')
-    .eq('auth_id', user.id)
-    .single()
 
   const currentUserId = profile?.id ?? null
 
@@ -170,24 +161,24 @@ export async function fetchPostsPage(
 
   const postIds = pagePosts.map((p) => p.id)
 
-  const { commentCountMap, reactionCountMap, userReactedSet, userSavedSet } = await fetchEngagementMaps(
-    supabase,
-    postIds,
-    currentUserId
-  )
-
   // Which of these authors does the viewer already follow?
   const authorIds = [
     ...new Set(pagePosts.map((p: any) => p.user_id).filter(Boolean)),
   ]
 
-  const { data: followingRows } = currentUserId && authorIds.length > 0
-    ? await supabase
-        .from('user_follows')
-        .select('following_id')
-        .eq('follower_id', currentUserId)
-        .in('following_id', authorIds)
-    : { data: [] }
+  const [
+    { commentCountMap, reactionCountMap, userReactedSet, userSavedSet },
+    { data: followingRows },
+  ] = await Promise.all([
+    fetchEngagementMaps(supabase, postIds, currentUserId),
+    currentUserId && authorIds.length > 0
+      ? supabase
+          .from('user_follows')
+          .select('following_id')
+          .eq('follower_id', currentUserId)
+          .in('following_id', authorIds)
+      : Promise.resolve({ data: [] as { following_id: string }[] }),
+  ])
 
   const followingSet = new Set((followingRows ?? []).map((r: any) => r.following_id))
 
@@ -866,19 +857,8 @@ export async function fetchUserPostsPage(
 
   // Auth is optional — we only need currentUserId for the user_reacted field.
   // Unauthenticated viewers still see posts; user_reacted will be false.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  let currentUserId: string | null = null
-  if (user) {
-    const { data: profile } = await supabase
-      .from('users')
-      .select('id')
-      .eq('auth_id', user.id)
-      .single()
-    currentUserId = profile?.id ?? null
-  }
+  const { profile } = await getCurrentUser()
+  const currentUserId = profile?.id ?? null
 
   let query = supabase
     .from('posts')
@@ -968,16 +948,8 @@ export async function fetchDiscoverPosts(
 ): Promise<{ posts: PostWithAuthor[]; nextCursor: string | null }> {
   const supabase = await createClient()
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return { posts: [], nextCursor: null }
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('id')
-    .eq('auth_id', user.id)
-    .single()
-
-  if (!profile) return { posts: [], nextCursor: null }
+  const { authUser, profile } = await getCurrentUser()
+  if (!authUser || !profile) return { posts: [], nextCursor: null }
 
   // Get IDs the current user follows
   const { data: follows } = await supabase
@@ -1045,16 +1017,8 @@ export async function fetchFollowingPosts(
 ): Promise<{ posts: PostWithAuthor[]; nextCursor: string | null }> {
   const supabase = await createClient()
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return { posts: [], nextCursor: null }
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('id')
-    .eq('auth_id', user.id)
-    .single()
-
-  if (!profile) return { posts: [], nextCursor: null }
+  const { authUser, profile } = await getCurrentUser()
+  if (!authUser || !profile) return { posts: [], nextCursor: null }
 
   const { data: follows } = await supabase
     .from('user_follows')
@@ -1157,19 +1121,9 @@ export async function fetchSuggestedUsers(
 ): Promise<{ id: string; username: string; display_name: string; avatar_url: string | null; verified: boolean; profession: string | null }[]> {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { authUser, profile } = await getCurrentUser()
 
-  if (!user) return []
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('id')
-    .eq('auth_id', user.id)
-    .single()
-
-  if (!profile) return []
+  if (!authUser || !profile) return []
 
   const [{ data: follows }, { data: blocked }] = await Promise.all([
     supabase.from('user_follows').select('following_id').eq('follower_id', profile.id),

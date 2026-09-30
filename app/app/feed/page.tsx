@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { fetchPostsPage } from '@/lib/actions/posts'
 import FeedInfiniteScroll from '@/components/app/feed/FeedInfiniteScroll'
 import CommunityLeftRail from '@/components/app/feed/CommunityLeftRail'
@@ -6,7 +6,6 @@ import CommunityMobileTopics from '@/components/app/feed/CommunityMobileTopics'
 import CommunityRightSidebar from '@/components/app/feed/CommunityRightSidebar'
 import CommunityIllustration from '@/components/illustrations/CommunityIllustration'
 import { Lightbulb, Compass, MessageSquare, Network, Rocket } from 'lucide-react'
-import type { User } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,29 +27,9 @@ export default async function FeedPage({ searchParams }: FeedPageProps)
     const resolvedParams = searchParams ? await searchParams : undefined
     const activeTopic = resolvedParams?.topic?.trim() || null
 
-    const supabase = await createClient()
-
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
-
-    let currentUserId = ''
-    let userProfile: User | null = null
-
-    if (authUser)
-    {
-        const { data: profile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('auth_id', authUser.id)
-            .single()
-
-        if (profile)
-        {
-            currentUserId = profile.id
-            userProfile = profile as User
-        }
-    }
+    const { profile } = await getCurrentUser()
+    const currentUserId = profile?.id ?? ''
+    const userProfile = profile
 
     const { posts: initialPosts, nextCursor: initialCursor } = await fetchPostsPage(null, 10, activeTopic)
 

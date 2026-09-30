@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 
@@ -226,6 +227,18 @@ export type ActionResult<T = void> =
   revalidatePath('/app/feed')
   revalidatePath('/app/profile')
   revalidatePath('/app/settings')
+
+  // Cache the "onboarded" flag in a cookie so middleware can skip the
+  // users.onboarded DB query on future navigations — this flag only ever
+  // flips false -> true, never back, so it's safe to cache indefinitely.
+  const cookieStore = await cookies()
+  cookieStore.set('onboarded', '1', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 365,
+  })
 
   // 9. Redirect
   redirect('/app')
@@ -759,6 +772,7 @@ export async function fetchBlockedUserIds(): Promise<string[]> {
     .from('blocked_users')
     .select('blocked_id')
     .eq('blocker_id', profile.id)
+    .limit(500)
 
   return (data ?? []).map((row) => row.blocked_id)
 }

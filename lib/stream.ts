@@ -1,9 +1,15 @@
-import { StreamChat } from 'stream-chat'
+import type { StreamChat } from 'stream-chat'
 
 let client: StreamChat | null = null
 
 /**
  * Returns a singleton StreamChat client for browser use.
+ *
+ * The `stream-chat` SDK is dynamically imported so it's code-split out of
+ * the initial bundle — ChatProvider (which calls this) is mounted on every
+ * route via AppShell just to drive the sidebar unread badge, so without
+ * this every page load shipped the whole chat SDK whether or not the user
+ * ever opens chat.
  *
  * We use NEXT_PUBLIC_STREAM_API_KEY which must match the server-side
  * STREAM_API_KEY used to sign tokens in /api/stream-token.
@@ -16,13 +22,14 @@ let client: StreamChat | null = null
  * (The old NEXT_PUBLIC_STREAM_KEY=r4cm2z5y42ek was a different app and its
  *  secret was not available, causing JWT validation failures.)
  */
-export function getStreamClient(): StreamChat {
+export async function getStreamClient(): Promise<StreamChat> {
   // Prefer the explicit public alias; fall back to the original env var
   const apiKey =
     process.env.NEXT_PUBLIC_STREAM_API_KEY ||
     process.env.NEXT_PUBLIC_STREAM_KEY!
 
   if (!client) {
+    const { StreamChat } = await import('stream-chat')
     client = StreamChat.getInstance(apiKey)
   }
   return client

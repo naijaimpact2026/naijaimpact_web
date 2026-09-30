@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { shouldSkipImageOptimization } from '@/lib/supabase-image'
 import { toast } from '@/components/toast'
 import { Store, BadgeCheck } from 'lucide-react'
 import { toggleSellerFollow } from '@/lib/actions/marketplace'
@@ -46,7 +47,7 @@ function StoreRow({ seller }: { seller: NmTopSeller })
         <div className="flex items-center gap-2.5 px-4 py-2.5">
             <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-xl bg-primary/10">
                 {seller.logo_url ? (
-                    <Image src={seller.logo_url} alt={seller.business_name ?? 'Store'} fill unoptimized className="object-cover" sizes="36px" />
+                    <Image src={seller.logo_url} alt={seller.business_name ?? 'Store'} fill unoptimized={shouldSkipImageOptimization(seller.logo_url)} className="object-cover" sizes="36px" />
                 ) : (
                     <div className="flex h-full w-full items-center justify-center text-xs font-bold text-primary">
                         {initials}

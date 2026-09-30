@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -56,7 +57,7 @@ function getInitials(name: string | null | undefined): string
     return name.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2)
 }
 
-export default function Sidebar({
+function Sidebar({
     user,
     onSignOut,
     notificationCount = 0,
@@ -238,3 +239,5 @@ export default function Sidebar({
         </>
     )
 }
+
+export default memo(Sidebar)

@@ -1,3 +1,4 @@
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { fetchArtisans, fetchMarketCategories } from '@/lib/actions/marketplace'
@@ -7,9 +8,10 @@ export const dynamic = 'force-dynamic'
 
 export default async function ArtisanMarketPage()
 {
+    const { authUser } = await getCurrentUser()
+    if (!authUser) redirect('/auth/login')
+
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/auth/login')
 
     const [{ artisans, nextCursor }, categories] = await Promise.all([
         fetchArtisans({}),
@@ -23,7 +25,7 @@ export default async function ArtisanMarketPage()
             id, title, description, category_id, price, state, city, tags, is_active,
             listing_images:nm_listing_images(image_url, sort_order)
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', authUser.id)
         .eq('listing_type', 'service')
         .maybeSingle()
 
@@ -48,7 +50,7 @@ export default async function ArtisanMarketPage()
         <ArtisanMarketClient
             initialArtisans={artisans}
             initialNextCursor={nextCursor}
-            currentUserId={user.id}
+            currentUserId={authUser.id}
             categories={categories}
             myArtisanProfile={myArtisanProfile}
         />

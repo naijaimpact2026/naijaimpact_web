@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import InsureDashboard from '@/components/app/fintech/insure/InsureDashboard'
 import
 {
@@ -11,11 +11,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function InsurePage()
 {
-    const supabase = await createClient()
-
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { authUser, profile } = await getCurrentUser()
 
     if (!authUser)
     {
@@ -25,13 +21,6 @@ export default async function InsurePage()
             </main>
         )
     }
-
-    // Resolve platform users.id
-    const { data: profile } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_id', authUser.id)
-        .single()
 
     if (!profile)
     {

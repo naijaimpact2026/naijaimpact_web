@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -91,7 +91,7 @@ interface PostCardProps
     onHide?: (postId: string) => void
 }
 
-export default function PostCard({ post, currentUserId, onReactionToggle, onSaveToggle, onHide }: PostCardProps)
+function PostCard({ post, currentUserId, onReactionToggle, onSaveToggle, onHide }: PostCardProps)
 {
     const router = useRouter()
     const [reacted, setReacted] = useState(post.user_reacted)
@@ -625,3 +625,5 @@ export default function PostCard({ post, currentUserId, onReactionToggle, onSave
         </article>
     )
 }
+
+export default memo(PostCard)

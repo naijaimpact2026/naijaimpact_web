@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import AjoDashboardClient from '@/components/app/fintech/ajo/AjoDashboardClient'
 import type {
     AjoGroup,
@@ -39,11 +40,7 @@ export type OpenDispute = AjoDispute & {
 
 export default async function AjoPage()
 {
-    const supabase = await createClient()
-
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { authUser, profile } = await getCurrentUser()
 
     if (!authUser)
     {
@@ -53,13 +50,6 @@ export default async function AjoPage()
             </main>
         )
     }
-
-    // Resolve platform users.id
-    const { data: profile } = await supabase
-        .from('users')
-        .select('id, username, display_name')
-        .eq('auth_id', authUser.id)
-        .single()
 
     if (!profile)
     {
@@ -71,6 +61,7 @@ export default async function AjoPage()
     }
 
     const userId = profile.id
+    const supabase = await createClient()
 
     // ── Fetch memberships + groups ───────────────────────────────────────────
     const { data: memberships } = await supabase
