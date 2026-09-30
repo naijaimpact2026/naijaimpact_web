@@ -72,7 +72,7 @@ import ChatWallpaper from '@/components/app/chat/ChatWallpaper'
 import { ForwardMessageProvider, useForwardMessage } from '@/components/app/chat/ForwardMessageContext'
 import ForwardMessageModal from '@/components/app/chat/ForwardMessageModal'
 import { CustomMessageActions } from '@/components/app/chat/ForwardMessageAction'
-import { customReactionOptions, CustomReactionSelectorExtendedList } from '@/components/app/chat/chat-emojis'
+import { customReactionOptions, CustomReactionSelector } from '@/components/app/chat/chat-emojis'
 import {
     getUserProfileById,
     leaveGroupChat,
@@ -1151,7 +1151,7 @@ export default function ChannelPage()
                                 ThreadHeader: CustomThreadHeader,
                                 MessageActions: CustomMessageActions,
                                 reactionOptions: customReactionOptions as any,
-                                ReactionSelectorExtendedList: CustomReactionSelectorExtendedList as any,
+                                ReactionSelector: CustomReactionSelector as any,
                             }}
                         >
                             <Window>

@@ -637,83 +637,40 @@ html.dark {
     fill: #38bdf8 !important;
   }
 
-  /* ── Enhanced Stream Chat Reaction Selector & Popover ── */
-  .str-chat__reaction-selector {
-    display: flex !important;
-    align-items: center !important;
-    gap: 4px !important;
-    padding: 4px 8px !important;
-    border-radius: 9999px !important;
-    background: hsl(var(--card) / 0.98) !important;
-    backdrop-filter: blur(12px) !important;
-    border: 1px solid hsl(var(--border) / 0.8) !important;
-    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-    max-width: 92vw !important;
-    overflow-x: auto !important;
-    scrollbar-width: none !important;
-    z-index: 50 !important;
+  /* ── Stream Chat Dialog Overlay & Portal Elevation ── */
+  /* Ensures reaction selector and dialogs always float ABOVE messages, date separators, and headers */
+  .str-chat__dialog-overlay {
+    z-index: 9999 !important;
+    pointer-events: none !important;
   }
-  .str-chat__reaction-selector::-webkit-scrollbar {
-    display: none !important;
+  .str-chat__dialog-contents {
+    z-index: 10000 !important;
+    pointer-events: auto !important;
   }
-  .str-chat__reaction-selector-list {
-    display: flex !important;
-    align-items: center !important;
-    gap: 4px !important;
-    flex-wrap: nowrap !important;
+  .str-chat__li:has(.str-chat__message-options--active),
+  .str-chat__li:has(.str-chat__reaction-selector),
+  .str-chat__li:has([class*="reaction-selector"]) {
+    z-index: 999 !important;
+    position: relative !important;
   }
-  .str-chat__reaction-selector-list__item-button {
-    width: 36px !important;
-    height: 36px !important;
-    min-width: 36px !important;
-    min-height: 36px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border-radius: 9999px !important;
-    background: transparent !important;
-    border: none !important;
-    cursor: pointer !important;
-    font-size: 1.25rem !important;
-    transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease !important;
-  }
-  .str-chat__reaction-selector-list__item-button:hover {
-    transform: scale(1.25) translateY(-2px) !important;
-    background-color: hsl(var(--muted) / 0.8) !important;
-  }
-  .str-chat__reaction-selector-list__item-button:active {
-    transform: scale(0.95) !important;
-  }
-  .str-chat__reaction-selector__add-button {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
-    min-height: 32px !important;
-    border-radius: 9999px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border: 1px solid hsl(var(--border)) !important;
-    background: hsl(var(--muted) / 0.5) !important;
-    color: hsl(var(--muted-foreground)) !important;
-    cursor: pointer !important;
-    transition: all 0.15s ease !important;
-  }
-  .str-chat__reaction-selector__add-button:hover {
-    background: hsl(var(--primary)) !important;
-    color: hsl(var(--primary-foreground)) !important;
-    border-color: hsl(var(--primary)) !important;
-    transform: scale(1.1) !important;
+  .str-chat__date-separator,
+  .str-chat__date-separator--floating {
+    z-index: 1 !important;
   }
 
-  /* Extended list container when opened */
-  .str-chat__reaction-selector:has(.str-chat__reaction-selector-extended-list) {
-    padding: 0 !important;
+  /* ── Enhanced Stream Chat Reaction Selector (Unconstrained container) ── */
+  .str-chat__reaction-selector {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    max-width: none !important;
     max-height: none !important;
     overflow: visible !important;
+    display: flex !important;
+    align-items: center !important;
+    z-index: 10000 !important;
   }
 
   /* ── Enhanced Message Actions & Context Menu ── */
