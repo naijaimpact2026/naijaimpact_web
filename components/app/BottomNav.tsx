@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, Users, MessageCircle, Bell, Menu } from 'lucide-react'
@@ -18,7 +19,7 @@ const navItems = [
     { icon: Bell, label: 'Alerts', href: '/app/notifications', badgeProp: 'notificationCount' as const },
 ]
 
-export default function BottomNav({ messageCount = 0, notificationCount = 0, onMenuToggle }: BottomNavProps)
+function BottomNav({ messageCount = 0, notificationCount = 0, onMenuToggle }: BottomNavProps)
 {
     const pathname = usePathname()
 
@@ -72,3 +73,5 @@ export default function BottomNav({ messageCount = 0, notificationCount = 0, onM
         </nav>
     )
 }
+
+export default memo(BottomNav)

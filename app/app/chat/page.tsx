@@ -289,11 +289,21 @@ export default function ChatPage()
         mountedRef.current = true
         if (!isReady || !client) return
         setChannelsLoading(true)
+
+        // Tracks the channels this effect started watching, so cleanup can
+        // stop watching them instead of leaving them subscribed for the
+        // rest of the session after the user navigates away.
+        let watchedChannels: Awaited<ReturnType<typeof client.queryChannels>> = []
+
         client.queryChannels(
             { type: 'messaging', members: { $in: [client.userID as string] } },
             { last_message_at: -1 },
             { watch: true, state: true, limit: 50 }
-        ).then(chs => { if (mountedRef.current) { setChannels(chs); setChannelsLoading(false) } })
+        ).then(chs =>
+        {
+            watchedChannels = chs
+            if (mountedRef.current) { setChannels(chs); setChannelsLoading(false) }
+        })
             .catch(() => { if (mountedRef.current) setChannelsLoading(false) })
 
         // Live update on new messages
@@ -306,7 +316,12 @@ export default function ChatPage()
             ).then(chs => { if (mountedRef.current) setChannels([...chs]) }).catch(() => { })
         }
         client.on('message.new', handleEvent)
-        return () => { mountedRef.current = false; client.off('message.new', handleEvent) }
+        return () =>
+        {
+            mountedRef.current = false
+            client.off('message.new', handleEvent)
+            watchedChannels.forEach(ch => ch.stopWatching().catch(() => {}))
+        }
     }, [isReady, client])
 
     useEffect(() =>

@@ -1,3 +1,4 @@
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import {
@@ -24,32 +25,19 @@ export default async function LearnPage({
 {
     const params = await searchParams
 
-    const supabase = await createClient()
-
     // ─────────────────────────────────────────────────────────────
-    // AUTHENTICATION
+    // AUTHENTICATION + LEARNER PROFILE
     // ─────────────────────────────────────────────────────────────
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    const { authUser, profile } = await getCurrentUser()
 
-    if (!user)
+    if (!authUser)
     {
         redirect('/auth/login')
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // LEARNER PROFILE
-    // ─────────────────────────────────────────────────────────────
-
-    const { data: profile } = await supabase
-        .from('users')
-        .select('id, display_name, avatar_url')
-        .eq('auth_id', user.id)
-        .single()
-
     const userId = profile?.id ?? ''
+    const supabase = await createClient()
 
     // ─────────────────────────────────────────────────────────────
     // FILTER

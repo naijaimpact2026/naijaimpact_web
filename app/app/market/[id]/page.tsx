@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { redirect, notFound } from 'next/navigation'
 import { fetchListingById, fetchListingReviews, fetchSellerProfile } from '@/lib/actions/marketplace'
 import ListingDetailClient from '@/components/app/market/ListingDetailClient'
@@ -8,9 +8,8 @@ export const dynamic = 'force-dynamic'
 export default async function ListingDetailPage({ params }: { params: Promise<{ id: string }> })
 {
     const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/auth/login')
+    const { authUser, profile } = await getCurrentUser()
+    if (!authUser) redirect('/auth/login')
 
     const [listing, reviews] = await Promise.all([
         fetchListingById(id),
@@ -27,8 +26,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             listing={listing}
             reviews={reviews}
             sellerProfile={sellerProfile}
-            currentUserId={user.id}
-            userEmail={user.email ?? ''}
+            currentUserId={profile?.id ?? ''}
+            userEmail={authUser.email ?? ''}
         />
     )
 }

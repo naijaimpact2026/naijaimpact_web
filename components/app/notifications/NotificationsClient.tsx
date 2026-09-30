@@ -163,15 +163,6 @@ export default function NotificationsClient({
                     return
                 }
 
-                console.log(
-                    '[NotificationsClient] Realtime setup:',
-                    {
-                        authUserId: authUser.id,
-                        profileId: profile.id,
-                        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-                    },
-                )
-                
                 channel = supabase
                     .channel(`notifications:${profile.id}`)
 
@@ -310,11 +301,6 @@ export default function NotificationsClient({
                             table: 'notifications',
                         },
                         (payload) => {
-                            console.log(
-                                '[NotificationsClient] REALTIME INSERT:',
-                                payload,
-                            )
-                    
                             if (cancelled) return
 
                             const deleted =
@@ -346,12 +332,6 @@ export default function NotificationsClient({
                         },
                     )
                     .subscribe((status, err) => {
-                        console.log(
-                            '[NotificationsClient] realtime status:',
-                            status,
-                            err,
-                        )
-                    
                         if (
                             status === 'CHANNEL_ERROR' ||
                             status === 'TIMED_OUT'

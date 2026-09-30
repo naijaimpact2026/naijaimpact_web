@@ -6,6 +6,7 @@ import
     Landmark, Star, AlertCircle, CheckCircle2, Clock,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import type {
     AjoMember, AjoGroup, SafeFlexibleAccount, SafeLockedSavings,
     SafeGoalSavings, TradeCredScore, TradeCredTier, Loan, LoanRepayment, Policy,
@@ -35,15 +36,9 @@ const TIER_LABEL: Record<TradeCredTier, string> = {
 
 export default async function FintechPage()
 {
+    const { profile } = await getCurrentUser()
+    const userId = profile?.id ?? ''
     const supabase = await createClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-
-    let userId = ''
-    if (authUser)
-    {
-        const { data: profile } = await supabase.from('users').select('id').eq('auth_id', authUser.id).single()
-        userId = profile?.id ?? ''
-    }
 
     // ── NaijaAjo ────────────────────────────────────────────────────────────
     let ajoActiveGroups = 0, ajoNextDate: string | null = null, ajoTotalCollected = 0

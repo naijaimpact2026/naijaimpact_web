@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { shouldSkipImageOptimization } from '@/lib/supabase-image'
 import {
   Briefcase,
   MapPin,
@@ -123,14 +124,16 @@ export default function JobCard({ job, onApplyClick, currentUserId }: JobCardPro
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3.5">
             {/* Company Logo or Initial avatar */}
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/80 bg-muted/60 text-base font-bold text-foreground">
+            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/80 bg-muted/60 text-base font-bold text-foreground">
               {job.company_logo_url && !logoError ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={job.company_logo_url}
                   alt={job.company_name}
+                  fill
+                  unoptimized={shouldSkipImageOptimization(job.company_logo_url)}
                   onError={() => setLogoError(true)}
-                  className="h-full w-full object-cover"
+                  className="object-cover"
+                  sizes="48px"
                 />
               ) : (
                 <span className="font-display font-black text-primary">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { shouldSkipImageOptimization } from '@/lib/supabase-image'
 import { ChevronRight, ShoppingBag, GraduationCap } from 'lucide-react'
 import type { PromotedItem } from '@/lib/actions/promoted'
 
@@ -43,7 +44,7 @@ export default function PromotedCarousel({ items }: PromotedCarouselProps)
                         src={item.image_url}
                         alt={item.title}
                         fill
-                        unoptimized
+                        unoptimized={shouldSkipImageOptimization(item.image_url)}
                         className="object-cover"
                         sizes="(max-width: 768px) 100vw, 672px"
                         priority={index === 0}

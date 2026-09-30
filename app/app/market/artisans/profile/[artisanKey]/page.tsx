@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { redirect, notFound } from 'next/navigation'
 import { fetchArtisans } from '@/lib/actions/marketplace'
 import ArtisanProfilePage from '@/components/app/market/ArtisanProfilePage'
@@ -8,9 +8,8 @@ export const dynamic = 'force-dynamic'
 export default async function ArtisanProfileRoute({ params }: { params: Promise<{ artisanKey: string }> })
 {
     const { artisanKey } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/auth/login')
+    const { authUser } = await getCurrentUser()
+    if (!authUser) redirect('/auth/login')
 
     // Fetch all service listings — then filter to this artisan's services
     // artisanKey is seller_id or user_id
@@ -40,7 +39,7 @@ export default async function ArtisanProfileRoute({ params }: { params: Promise<
     return (
         <ArtisanProfilePage
             artisan={artisan}
-            currentUserId={user.id}
+            currentUserId={authUser.id}
         />
     )
 }

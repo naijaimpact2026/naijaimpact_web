@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { CheckCircle2, Clock, AlertCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { Loan, LoanRepayment } from '@/lib/types'
@@ -56,6 +57,24 @@ interface RepaymentScheduleProps
 
 export default function RepaymentSchedule({ loans, repayments }: RepaymentScheduleProps)
 {
+    // Grouped + sorted once per `repayments` change instead of every loan
+    // re-filtering and re-sorting the full array on every render.
+    const repaymentsByLoan = useMemo(() =>
+    {
+        const map = new Map<string, LoanRepayment[]>()
+        for (const r of repayments)
+        {
+            const arr = map.get(r.loan_id)
+            if (arr) arr.push(r)
+            else map.set(r.loan_id, [r])
+        }
+        for (const arr of map.values())
+        {
+            arr.sort((a, b) => a.installment - b.installment)
+        }
+        return map
+    }, [repayments])
+
     if (loans.length === 0)
     {
         return (
@@ -75,9 +94,7 @@ export default function RepaymentSchedule({ loans, repayments }: RepaymentSchedu
         <div className="space-y-6">
             {loans.map((loan) =>
             {
-                const loanRepayments = repayments
-                    .filter((r) => r.loan_id === loan.id)
-                    .sort((a, b) => a.installment - b.installment)
+                const loanRepayments = repaymentsByLoan.get(loan.id) ?? []
 
                 const paidCount = loanRepayments.filter((r) => r.status === 'paid').length
                 const totalCount = loanRepayments.length

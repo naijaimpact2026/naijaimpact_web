@@ -10,7 +10,7 @@ import {
     BookOpen,
     ArrowRight,
 } from 'lucide-react'
-import { toPublicStorageUrl } from '@/lib/supabase-image'
+import { toPublicStorageUrl, shouldSkipImageOptimization } from '@/lib/supabase-image'
 import type { Course } from '@/lib/actions/learn'
 
 export default function CourseCard({ course }: { course: Course })
@@ -67,7 +67,7 @@ export default function CourseCard({ course }: { course: Course })
                                 (max-width: 1024px) 50vw,
                                 25vw
                             "
-                            unoptimized={coverUrl.includes('supabase.co')}
+                            unoptimized={shouldSkipImageOptimization(coverUrl)}
                         />
                     ) : (
                         <div className="

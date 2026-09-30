@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { recalculateScore } from '@/lib/actions/fintech/tradecred'
-import ScoreBreakdown from '@/components/app/fintech/tradecred/ScoreBreakdown'
+import ScoreBreakdown from '@/components/app/fintech/tradecred/ScoreBreakdownLazy'
 import ActivityLog from '@/components/app/fintech/tradecred/ActivityLog'
 import ImprovementTips from '@/components/app/fintech/tradecred/ImprovementTips'
 import type { TradeCredScore, TradeCredActivityLog, TradeCredTier } from '@/lib/types'
@@ -141,11 +142,7 @@ function ScoreGauge({ score, tier }: { score: number; tier: TradeCredTier })
 
 export default async function TradeCredPage()
 {
-    const supabase = await createClient()
-
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { authUser, profile } = await getCurrentUser()
 
     if (!authUser)
     {
@@ -162,13 +159,6 @@ export default async function TradeCredPage()
             </div>
         )
     }
-
-    // Resolve platform users.id
-    const { data: profile } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_id', authUser.id)
-        .single()
 
     if (!profile)
     {
@@ -187,6 +177,7 @@ export default async function TradeCredPage()
     }
 
     const userId = profile.id
+    const supabase = await createClient()
 
     // ── Fetch score and activity in parallel ────────────────────────────────────
     const [{ data: scoreRow }, { data: activityRows }] = await Promise.all([

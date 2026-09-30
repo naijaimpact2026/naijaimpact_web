@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { shouldSkipImageOptimization } from '@/lib/supabase-image'
 import { GraduationCap, ShoppingBag } from 'lucide-react'
 import type { PromotedItem } from '@/lib/actions/promoted'
 import StoryViewer from './StoryViewer'
@@ -49,7 +50,7 @@ export default function StoryRow({ promotedItems = [] }: StoryRowProps)
                                             src={item.image_url}
                                             alt={item.title}
                                             fill
-                                            unoptimized
+                                            unoptimized={shouldSkipImageOptimization(item.image_url)}
                                             className="object-cover"
                                             sizes="56px"
                                         />

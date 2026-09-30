@@ -67,7 +67,7 @@ export default function ServiceDetailClient({
             const { token } = await res.json()
 
             // 2. Get or create Stream client
-            const client = getStreamClient()
+            const client = await getStreamClient()
 
             // 3. Connect user if not already connected
             if (!client.userID)

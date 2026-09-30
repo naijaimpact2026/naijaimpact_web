@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { shouldSkipImageOptimization } from '@/lib/supabase-image'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/components/toast'
 import { ShoppingCart, Minus, Plus, Trash2, Package, Lock } from 'lucide-react'
@@ -119,7 +120,7 @@ export default function CartPanel({ userId, userEmail }: Props)
                             <div key={item.listingId} className="flex items-center gap-2.5 px-4 py-3">
                                 <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-muted">
                                     {item.image ? (
-                                        <Image src={item.image} alt={item.title} fill unoptimized className="object-cover" sizes="44px" />
+                                        <Image src={item.image} alt={item.title} fill unoptimized={shouldSkipImageOptimization(item.image)} className="object-cover" sizes="44px" />
                                     ) : (
                                         <div className="flex h-full w-full items-center justify-center">
                                             <Package className="h-4 w-4 text-muted-foreground" />

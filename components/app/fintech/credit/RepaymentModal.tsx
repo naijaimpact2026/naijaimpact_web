@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { toast } from '@/components/toast'
 import
@@ -47,10 +47,18 @@ export default function RepaymentModal({
 {
     const [paying, setPaying] = useState<string | null>(null)
 
+    // `repayments` is already this loan's own slice (scoped by the parent),
+    // so no loan_id filter is needed here.
+    const sortedRepayments = useMemo(
+        () => [...repayments].sort((a, b) => a.installment - b.installment),
+        [repayments],
+    )
+
     // Filter to unpaid repayments, sorted by installment
-    const unpaidRepayments = repayments
-        .filter((r) => r.loan_id === loan.id && r.status !== 'paid')
-        .sort((a, b) => a.installment - b.installment)
+    const unpaidRepayments = useMemo(
+        () => sortedRepayments.filter((r) => r.status !== 'paid'),
+        [sortedRepayments],
+    )
 
     // The next repayment to pay is the first unpaid/overdue one
     const nextRepayment = unpaidRepayments[0] ?? null
@@ -160,15 +168,13 @@ export default function RepaymentModal({
                     )}
 
                     {/* Full schedule */}
-                    {repayments.filter((r) => r.loan_id === loan.id).length > 0 && (
+                    {sortedRepayments.length > 0 && (
                         <div className="space-y-2">
                             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                 All Installments
                             </p>
                             <div className="divide-y divide-border/50 rounded-lg border border-border/50 overflow-hidden">
-                                {repayments
-                                    .filter((r) => r.loan_id === loan.id)
-                                    .sort((a, b) => a.installment - b.installment)
+                                {sortedRepayments
                                     .map((rep) => (
                                         <div
                                             key={rep.id}

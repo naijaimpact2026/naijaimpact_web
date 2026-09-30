@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 
 // ─────────────────────────────────────────────
 // Types
@@ -134,12 +135,9 @@ export async function fetchCourses(
 }> {
     const supabase = await createClient()
 
-    const {
-        data: { user },
-        error: authError,
-    } = await supabase.auth.getUser()
+    const { authUser } = await getCurrentUser()
 
-    if (authError || !user) {
+    if (!authUser) {
         return {
             courses: [],
             nextCursor: null,
@@ -322,12 +320,9 @@ export async function fetchCourseById(
 } | null> {
     const supabase = await createClient()
 
-    const {
-        data: { user },
-        error: authError,
-    } = await supabase.auth.getUser()
+    const { authUser, profile } = await getCurrentUser()
 
-    if (authError || !user) {
+    if (!authUser) {
         return null
     }
 
@@ -390,18 +385,6 @@ export async function fetchCourseById(
         categoryName =
             category?.name ?? null
     }
-
-    // Current user's profile
-
-    const { data: profile } =
-        await supabase
-            .from('users')
-            .select('id')
-            .eq(
-                'auth_id',
-                user.id
-            )
-            .single()
 
     let enrollment:
         Enrollment | null = null
@@ -756,12 +739,9 @@ export async function fetchLesson(
     const supabase =
         await createClient()
 
-    const {
-        data: { user },
-        error: authError,
-    } = await supabase.auth.getUser()
+    const { authUser, profile } = await getCurrentUser()
 
-    if (authError || !user) {
+    if (!authUser) {
         return null
     }
 
@@ -816,18 +796,6 @@ export async function fetchLesson(
         lessons.length - 1
             ? lessons[index + 1]
             : null
-
-    // User profile
-
-    const { data: profile } =
-        await supabase
-            .from('users')
-            .select('id')
-            .eq(
-                'auth_id',
-                user.id
-            )
-            .single()
 
     let enrollment:
         {

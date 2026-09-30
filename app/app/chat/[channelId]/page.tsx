@@ -999,6 +999,7 @@ export default function ChannelPage()
     {
         if (!isReady || !client || !channelId) return
         let cancelled = false
+        let watchedChannel: ReturnType<typeof client.channel> | null = null
 
         async function loadChannel()
         {
@@ -1008,8 +1009,17 @@ export default function ChannelPage()
                 setError(null)
                 const ch = client!.channel('messaging', channelId as string)
                 await ch.watch()
+                watchedChannel = ch
+                if (cancelled)
+                {
+                    // Unmounted while watch() was in flight — stop watching
+                    // immediately rather than leaving it subscribed for the
+                    // rest of the session.
+                    ch.stopWatching().catch(() => {})
+                    return
+                }
                 await ch.markRead().catch(() => {})
-                if (!cancelled) setChannel(ch)
+                setChannel(ch)
             } catch (err)
             {
                 console.error('[ChannelPage] Failed to load channel:', err)
@@ -1021,7 +1031,11 @@ export default function ChannelPage()
         }
 
         loadChannel()
-        return () => { cancelled = true }
+        return () =>
+        {
+            cancelled = true
+            watchedChannel?.stopWatching().catch(() => {})
+        }
     }, [isReady, client, channelId])
 
     // Mark channel read when window gains focus

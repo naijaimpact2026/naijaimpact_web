@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { Calendar, CreditCard, TrendingDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -54,24 +54,30 @@ interface ActiveLoanCardProps
     repayments: LoanRepayment[]
 }
 
-export default function ActiveLoanCard({ loan, repayments }: ActiveLoanCardProps)
+function ActiveLoanCard({ loan, repayments }: ActiveLoanCardProps)
 {
     const [showModal, setShowModal] = useState(false)
 
-    const loanRepayments = repayments.filter((r) => r.loan_id === loan.id)
+    // `repayments` is already this loan's own slice (grouped once by the
+    // parent), so no loan_id filter is needed here — just the derived stats,
+    // memoized so they don't recompute on every unrelated parent re-render.
+    const { outstandingBalance, nextRepayment, hasOverdue, progress, paidCount, totalCount } = useMemo(() =>
+    {
+        const outstanding = repayments.filter((r) => r.status === 'pending' || r.status === 'overdue')
+        const balance = outstanding.reduce((sum, r) => sum + r.amount + r.late_fee, 0)
+        const next = [...outstanding].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0]
+        const overdue = repayments.some((r) => r.status === 'overdue')
+        const paid = repayments.filter((r) => r.status === 'paid').length
 
-    const outstandingBalance = loanRepayments
-        .filter((r) => r.status === 'pending' || r.status === 'overdue')
-        .reduce((sum, r) => sum + r.amount + r.late_fee, 0)
-
-    const nextRepayment = loanRepayments
-        .filter((r) => r.status === 'pending' || r.status === 'overdue')
-        .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0]
-
-    const hasOverdue = loanRepayments.some((r) => r.status === 'overdue')
-
-    const paidCount = loanRepayments.filter((r) => r.status === 'paid').length
-    const progress = loanRepayments.length > 0 ? (paidCount / loanRepayments.length) * 100 : 0
+        return {
+            outstandingBalance: balance,
+            nextRepayment: next,
+            hasOverdue: overdue,
+            progress: repayments.length > 0 ? (paid / repayments.length) * 100 : 0,
+            paidCount: paid,
+            totalCount: repayments.length,
+        }
+    }, [repayments])
 
     return (
         <>
@@ -117,14 +123,14 @@ export default function ActiveLoanCard({ loan, repayments }: ActiveLoanCardProps
                 </div>
 
                 {/* Progress bar */}
-                {loanRepayments.length > 0 && (
+                {totalCount > 0 && (
                     <div className="space-y-1">
                         <div className="flex justify-between text-[10px] text-muted-foreground">
                             <span className="flex items-center gap-1">
                                 <TrendingDown className="h-3 w-3" />
                                 Repayment progress
                             </span>
-                            <span>{paidCount}/{loanRepayments.length} installments</span>
+                            <span>{paidCount}/{totalCount} installments</span>
                         </div>
                         <div className="h-1.5 w-full rounded-full bg-muted">
                             <div
@@ -156,3 +162,5 @@ export default function ActiveLoanCard({ loan, repayments }: ActiveLoanCardProps
         </>
     )
 }
+
+export default memo(ActiveLoanCard)

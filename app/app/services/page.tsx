@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { redirect } from 'next/navigation'
 import { fetchServices } from '@/lib/actions/services'
 import { getLaunchpadUserData } from '@/lib/actions/launchpad'
@@ -27,17 +28,11 @@ function daysSince(isoDate: string, totalDays: number): number
 
 export default async function ServicesPage()
 {
-    const supabase = await createClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
+    const { authUser, profile } = await getCurrentUser()
     if (!authUser) redirect('/auth/login')
 
-    const { data: profile } = await supabase
-        .from('users')
-        .select('id, display_name, naija_points')
-        .eq('auth_id', authUser.id)
-        .single()
-
     const userId = profile?.id ?? ''
+    const supabase = await createClient()
 
     // ── Fetch data in parallel ────────────────────────────────────────────────
     const [

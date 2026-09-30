@@ -1,23 +1,18 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 
 export async function searchUsers(query: string) {
   const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) throw new Error('Unauthenticated')
-
-  const { data: currentProfile } = await supabase
-    .from('users')
-    .select('id')
-    .eq('auth_id', user.id)
-    .single()
+  const { authUser, profile: currentProfile } = await getCurrentUser()
+  if (!authUser) throw new Error('Unauthenticated')
 
   const { data } = await supabase
     .from('users')
     .select('id, username, display_name, avatar_url, cover_url, verified, profession, location')
     .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
-    .neq('auth_id', user.id)
+    .neq('auth_id', authUser.id)
     .limit(20)
 
   const results = data ?? []
@@ -37,8 +32,8 @@ export async function searchUsers(query: string) {
 
 export async function searchPosts(query: string) {
   const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) throw new Error('Unauthenticated')
+  const { authUser } = await getCurrentUser()
+  if (!authUser) throw new Error('Unauthenticated')
   const { data } = await supabase
     .from('posts')
     .select(`
@@ -77,8 +72,8 @@ export async function searchPosts(query: string) {
 
 export async function searchCourses(query: string) {
   const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) throw new Error('Unauthenticated')
+  const { authUser } = await getCurrentUser()
+  if (!authUser) throw new Error('Unauthenticated')
   const { data } = await supabase
     .from('lms_courses')
     .select(`id, title, cover_image_url, amount, is_free, instructor:users!lms_courses_user_id_fkey(display_name, avatar_url)`)

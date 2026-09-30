@@ -176,23 +176,25 @@ export async function getLaunchpadUserData(): Promise<ActionResult<LaunchpadUser
       }
     }
 
-    // 3. Fetch user wallet balance
-    const { data: walletData } = await supabase
-      .from('user_wallet')
-      .select('balance')
-      .eq('user_id', profile.id)
-      .maybeSingle()
+    // 3 & 4. Wallet balance and savings goals are independent of each other
+    // (and of the business/cac resolution above) — fetch concurrently.
+    const [{ data: walletData }, { data: goalData }] = await Promise.all([
+      supabase
+        .from('user_wallet')
+        .select('balance')
+        .eq('user_id', profile.id)
+        .maybeSingle(),
+
+      supabase
+        .from('fintech_safe_goal_savings')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: true })
+        .limit(20),
+    ])
 
     const walletBalance = Number(walletData?.balance ?? 0)
-
-    // 4. Fetch business savings goal if any
-    const { data: goalData } = await supabase
-      .from('fintech_safe_goal_savings')
-      .select('*')
-      .eq('user_id', profile.id)
-      .eq('status', 'active')
-      .order('created_at', { ascending: true })
-
     const goals = (goalData ?? []) as SafeGoalSavings[]
     const businessGoal =
       goals.find((g) => /business|seed|launchpad|equip/i.test(g.name)) ??

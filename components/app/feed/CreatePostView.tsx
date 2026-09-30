@@ -259,6 +259,10 @@ export default function CreatePostView({ user }: { user: User | null })
                 toast.success('Post created!')
             }
 
+            // The feed route can now be served from the client Router Cache
+            // (staleTimes) — refresh explicitly so the new post is visible
+            // immediately instead of possibly showing a stale cached feed.
+            router.refresh()
             router.push('/app/feed')
         } catch (err)
         {

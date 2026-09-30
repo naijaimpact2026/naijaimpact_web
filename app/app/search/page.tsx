@@ -428,11 +428,17 @@ function SearchPageInner()
     useEffect(() =>
     {
         if (debounced.length < 2) { setUsers([]); setPosts([]); setCourses([]); return }
+        let ignore = false
         setLoading(true)
         Promise.all([searchUsers(debounced), searchPosts(debounced), searchCourses(debounced)])
-            .then(([u, p, c]) => { setUsers(u as UserResult[]); setPosts(p as PostResult[]); setCourses(c as CourseResult[]) })
+            .then(([u, p, c]) =>
+            {
+                if (ignore) return
+                setUsers(u as UserResult[]); setPosts(p as PostResult[]); setCourses(c as CourseResult[])
+            })
             .catch(() => { })
-            .finally(() => setLoading(false))
+            .finally(() => { if (!ignore) setLoading(false) })
+        return () => { ignore = true }
     }, [debounced])
 
     const hasSearched = debounced.length >= 2
