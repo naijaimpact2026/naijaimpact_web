@@ -69,6 +69,10 @@ import GroupInfoModal from '@/components/app/chat/GroupInfoModal'
 import AddMembersModal from '@/components/app/chat/AddMembersModal'
 import SharedMediaDrawer from '@/components/app/chat/SharedMediaDrawer'
 import ChatWallpaper from '@/components/app/chat/ChatWallpaper'
+import { ForwardMessageProvider, useForwardMessage } from '@/components/app/chat/ForwardMessageContext'
+import ForwardMessageModal from '@/components/app/chat/ForwardMessageModal'
+import { CustomMessageActions } from '@/components/app/chat/ForwardMessageAction'
+import { customReactionOptions, CustomReactionSelector } from '@/components/app/chat/chat-emojis'
 import {
     getUserProfileById,
     leaveGroupChat,
@@ -967,6 +971,24 @@ function CustomMessageStatus()
     )
 }
 
+// ─── Forward Modal Host ───────────────────────────────────────────────────────
+
+function ForwardModalHost({ client, currentChannelId }: { client: any; currentChannelId?: string })
+{
+    const { forwardMessage, setForwardMessage } = useForwardMessage()
+    if (!forwardMessage) return null
+
+    return (
+        <ForwardMessageModal
+            isOpen={Boolean(forwardMessage)}
+            onClose={() => setForwardMessage(null)}
+            message={forwardMessage}
+            client={client}
+            currentChannelId={currentChannelId}
+        />
+    )
+}
+
 // ─── Main page ───────────────────────────────────────────────────────────────
 
 export default function ChannelPage()
@@ -1117,33 +1139,39 @@ export default function ChannelPage()
     const streamTheme = resolvedTheme === 'dark' ? 'str-chat__theme-dark' : 'str-chat__theme-light'
 
     return (
-        <div className="relative flex flex-col h-[calc(100dvh-4rem)] w-full overflow-hidden bg-background">
-            <ChatWallpaper />
-            <Chat client={client!} theme={streamTheme}>
-                <Channel channel={channel} doSendMessageRequest={handleSendMessage}>
-                    <ComponentProvider
-                        value={{
-                            MessageStatus: CustomMessageStatus,
-                            PinIndicator: CustomPinIndicator,
-                            ThreadHeader: CustomThreadHeader,
-                        }}
-                    >
-                        <Window>
-                            <CustomChannelHeader
-                                onToggleSearch={() => setIsSearchOpen((v) => !v)}
-                                isSearchOpen={isSearchOpen}
-                            />
-                            {isSearchOpen && (
-                                <InChatSearchBar onClose={() => setIsSearchOpen(false)} />
-                            )}
-                            <PinnedMessageBanner />
-                            <MessageList returnAllReadData />
-                            <MessageComposer />
-                        </Window>
-                        <Thread />
-                    </ComponentProvider>
-                </Channel>
-            </Chat>
-        </div>
+        <ForwardMessageProvider>
+            <div className="relative flex flex-col h-[calc(100dvh-4rem)] w-full overflow-hidden bg-background">
+                <ChatWallpaper />
+                <Chat client={client!} theme={streamTheme}>
+                    <Channel channel={channel} doSendMessageRequest={handleSendMessage}>
+                        <ComponentProvider
+                            value={{
+                                MessageStatus: CustomMessageStatus,
+                                PinIndicator: CustomPinIndicator,
+                                ThreadHeader: CustomThreadHeader,
+                                MessageActions: CustomMessageActions,
+                                reactionOptions: customReactionOptions as any,
+                                ReactionSelector: CustomReactionSelector as any,
+                            }}
+                        >
+                            <Window>
+                                <CustomChannelHeader
+                                    onToggleSearch={() => setIsSearchOpen((v) => !v)}
+                                    isSearchOpen={isSearchOpen}
+                                />
+                                {isSearchOpen && (
+                                    <InChatSearchBar onClose={() => setIsSearchOpen(false)} />
+                                )}
+                                <PinnedMessageBanner />
+                                <MessageList returnAllReadData />
+                                <MessageComposer />
+                            </Window>
+                            <Thread />
+                        </ComponentProvider>
+                    </Channel>
+                </Chat>
+                <ForwardModalHost client={client} currentChannelId={channelId as string} />
+            </div>
+        </ForwardMessageProvider>
     )
 }
