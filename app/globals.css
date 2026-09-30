@@ -636,6 +636,152 @@ html.dark {
     stroke: #38bdf8 !important;
     fill: #38bdf8 !important;
   }
+
+  /* ── Enhanced Stream Chat Reaction Selector & Popover ── */
+  .str-chat__reaction-selector {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 4px 8px !important;
+    border-radius: 9999px !important;
+    background: hsl(var(--card) / 0.98) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid hsl(var(--border) / 0.8) !important;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+    max-width: 92vw !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    z-index: 50 !important;
+  }
+  .str-chat__reaction-selector::-webkit-scrollbar {
+    display: none !important;
+  }
+  .str-chat__reaction-selector-list {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    flex-wrap: nowrap !important;
+  }
+  .str-chat__reaction-selector-list__item-button {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 9999px !important;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer !important;
+    font-size: 1.25rem !important;
+    transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease !important;
+  }
+  .str-chat__reaction-selector-list__item-button:hover {
+    transform: scale(1.25) translateY(-2px) !important;
+    background-color: hsl(var(--muted) / 0.8) !important;
+  }
+  .str-chat__reaction-selector-list__item-button:active {
+    transform: scale(0.95) !important;
+  }
+  .str-chat__reaction-selector__add-button {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    border-radius: 9999px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid hsl(var(--border)) !important;
+    background: hsl(var(--muted) / 0.5) !important;
+    color: hsl(var(--muted-foreground)) !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+  }
+  .str-chat__reaction-selector__add-button:hover {
+    background: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+    border-color: hsl(var(--primary)) !important;
+    transform: scale(1.1) !important;
+  }
+
+  /* Extended list container when opened */
+  .str-chat__reaction-selector:has(.str-chat__reaction-selector-extended-list) {
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* ── Enhanced Message Actions & Context Menu ── */
+  .str-chat__message-actions-box,
+  .str-chat__context-menu {
+    background: hsl(var(--card)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 14px 38px -6px rgba(0, 0, 0, 0.3) !important;
+    padding: 6px !important;
+    min-width: 190px !important;
+    z-index: 50 !important;
+  }
+  .str-chat__context-menu__button,
+  .str-chat__message-actions-list-item-button {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 8px 12px !important;
+    width: 100% !important;
+    border-radius: 10px !important;
+    border: none !important;
+    background: transparent !important;
+    color: hsl(var(--foreground)) !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: background-color 0.12s ease, color 0.12s ease !important;
+    text-align: left !important;
+  }
+  .str-chat__context-menu__button:hover,
+  .str-chat__message-actions-list-item-button:hover {
+    background-color: hsl(var(--muted)) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+  .str-chat__context-menu__button[data-text="delete"]:hover,
+  .str-chat__message-actions-list-item-button[data-text="delete"]:hover {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+    color: #ef4444 !important;
+  }
+
+  /* Quick action bar hover buttons */
+  .str-chat__message-options {
+    background: hsl(var(--card) / 0.95) !important;
+    border: 1px solid hsl(var(--border) / 0.7) !important;
+    border-radius: 9999px !important;
+    padding: 2px 4px !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+  .str-chat__message-actions-box-button {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 9999px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    color: hsl(var(--muted-foreground)) !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+  }
+  .str-chat__message-actions-box-button:hover {
+    background: hsl(var(--muted)) !important;
+    color: hsl(var(--foreground)) !important;
+    transform: scale(1.08) !important;
+  }
 }
 
 @keyframes marquee {
