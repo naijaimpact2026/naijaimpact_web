@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { fetchServiceById } from '@/lib/actions/services'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ArrowLeft, CheckCircle2, BadgeCheck, Tag, Users, Star, MessageCircle, Wrench, Lock } from 'lucide-react'
@@ -25,19 +25,9 @@ export default async function ServiceDetailPage({ params }: ServiceDetailPagePro
     const service = await fetchServiceById(id)
     if (!service) notFound()
 
-    const supabase = await createClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-
-    let currentUserId: string | null = null
-    let currentUserName = ''
-
-    if (authUser)
-    {
-        const { data: profile } = await supabase
-            .from('users').select('id, display_name').eq('auth_id', authUser.id).single()
-        currentUserId = profile?.id ?? null
-        currentUserName = profile?.display_name ?? ''
-    }
+    const { profile } = await getCurrentUser()
+    const currentUserId = profile?.id ?? null
+    const currentUserName = profile?.display_name ?? ''
 
     const isOwner = currentUserId !== null && currentUserId === service.provider_id
     const sortedTiers = [...service.pricing_tiers].sort((a, b) => a.price - b.price)

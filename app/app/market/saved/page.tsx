@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { redirect } from 'next/navigation'
 import { fetchSavedListings } from '@/lib/actions/marketplace'
 import SavedListingsClient from '@/components/app/market/SavedListingsClient'
@@ -7,9 +7,8 @@ export const dynamic = 'force-dynamic'
 
 export default async function SavedListingsPage()
 {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/auth/login')
+    const { authUser } = await getCurrentUser()
+    if (!authUser) redirect('/auth/login')
 
     const listings = await fetchSavedListings()
 

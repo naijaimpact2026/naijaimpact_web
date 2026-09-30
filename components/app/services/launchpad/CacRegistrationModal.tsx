@@ -44,6 +44,13 @@ const NIGERIAN_STATES = [
 
 const SUBSIDIZED_FEE = 5000
 
+const PROGRESS_TABS = [
+    { num: 1, label: 'Names' },
+    { num: 2, label: 'Nature & Address' },
+    { num: 3, label: 'KYC & NIN' },
+    { num: 4, label: 'Payment' },
+] as const
+
 export default function CacRegistrationModal({
     isOpen,
     onClose,
@@ -246,12 +253,7 @@ export default function CacRegistrationModal({
 
                 {/* Progress Tabs */}
                 <div className="grid grid-cols-4 border-b border-border/80 bg-muted/15 text-[11px] font-semibold">
-                    {[
-                        { num: 1, label: 'Names' },
-                        { num: 2, label: 'Nature & Address' },
-                        { num: 3, label: 'KYC & NIN' },
-                        { num: 4, label: 'Payment' },
-                    ].map((t) => (
+                    {PROGRESS_TABS.map((t) => (
                         <button
                             key={t.num}
                             onClick={() => setStep(t.num as any)}

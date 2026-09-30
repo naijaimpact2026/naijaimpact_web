@@ -31,6 +31,13 @@ interface JobsMarketClientProps {
   currentUser: User | null
 }
 
+const JOB_TABS = [
+  { id: 'explore', label: 'Explore Jobs', icon: Briefcase },
+  { id: 'applications', label: 'My Applications', icon: CheckCircle2 },
+  { id: 'my_posts', label: 'My Job Posts', icon: Users },
+  { id: 'saved', label: 'Saved Jobs', icon: Bookmark },
+] as const
+
 export default function JobsMarketClient({
   initialJobs,
   initialNextCursor,
@@ -230,12 +237,7 @@ export default function JobsMarketClient({
       {/* ══ NAVIGATION TABS ═════════════════════════════════════════ */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 pb-3">
         <div className="flex gap-2 overflow-x-auto scrollbar-none">
-          {[
-            { id: 'explore', label: 'Explore Jobs', icon: Briefcase },
-            { id: 'applications', label: 'My Applications', icon: CheckCircle2 },
-            { id: 'my_posts', label: 'My Job Posts', icon: Users },
-            { id: 'saved', label: 'Saved Jobs', icon: Bookmark },
-          ].map((tab) => {
+          {JOB_TABS.map((tab) => {
             const Icon = tab.icon
             const active = activeTab === tab.id
             return (

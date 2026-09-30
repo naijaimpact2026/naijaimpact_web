@@ -4,6 +4,7 @@ import React, {
     createContext,
     useContext,
     useEffect,
+    useMemo,
     useRef,
     useState,
     useCallback,
@@ -91,7 +92,20 @@ export default function ChatProvider({ children }: ChatProviderProps)
 
         if (!profile || !mountedRef.current) return
 
-        const streamClient = getStreamClient()
+        // getStreamClient() dynamically imports the `stream-chat` SDK the
+        // first time it's called — if that chunk fetch fails (offline,
+        // ad-blocker, CDN blip), don't let it throw as an unhandled
+        // rejection out of this fire-and-forget call; degrade to "badge
+        // never populates" rather than anything more visible.
+        let streamClient: Awaited<ReturnType<typeof getStreamClient>>
+        try
+        {
+            streamClient = await getStreamClient()
+        } catch (err)
+        {
+            console.error('[ChatProvider] Failed to load chat SDK:', err)
+            return
+        }
 
         // Helper to register listeners and update state
         const attachListenersAndFinish = () =>
@@ -216,8 +230,10 @@ export default function ChatProvider({ children }: ChatProviderProps)
         )
     }
 
+    const value = useMemo(() => ({ client, isReady, unreadCount }), [client, isReady, unreadCount])
+
     return (
-        <ChatProviderContext.Provider value={{ client, isReady, unreadCount }}>
+        <ChatProviderContext.Provider value={value}>
             {children}
         </ChatProviderContext.Provider>
     )

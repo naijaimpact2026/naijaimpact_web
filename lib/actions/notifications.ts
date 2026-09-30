@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import type { NotificationWithActor } from '@/lib/types'
 
 const PAGE_SIZE = 20
@@ -9,22 +10,13 @@ const PAGE_SIZE = 20
 
 async function getCurrentProfile() {
     const supabase = await createClient()
-
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { authUser, profile } = await getCurrentUser()
 
     if (!authUser) {
         throw new Error('Unauthenticated')
     }
 
-    const { data: profile, error } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_id', authUser.id)
-        .single()
-
-    if (error || !profile) {
+    if (!profile) {
         throw new Error('Profile not found')
     }
 

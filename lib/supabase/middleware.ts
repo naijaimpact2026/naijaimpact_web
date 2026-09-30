@@ -34,21 +34,36 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Onboarding redirect: authenticated user on /app/* who hasn't completed onboarding
+  // Onboarding redirect: authenticated user on /app/* who hasn't completed onboarding.
+  // `onboarded` only ever flips false -> true, never back, so once we've
+  // confirmed it via the DB we cache it in a cookie and skip this query on
+  // every subsequent navigation for as long as the cookie is present.
   if (user && request.nextUrl.pathname.startsWith('/app')) {
     if (!request.nextUrl.pathname.startsWith('/app/settings/onboarding')) {
-      const { data: profile } = await supabase
-        .from('users')
-        .select('onboarded')
-        .eq('auth_id', user.id)
-        .maybeSingle()
+      const alreadyOnboarded = request.cookies.get('onboarded')?.value === '1'
 
-      // No row at all (first-time OAuth sign-in, e.g. Google) counts as
-      // not onboarded too — completeOnboarding() creates the row.
-      if (!profile || !profile.onboarded) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/app/settings/onboarding'
-        return NextResponse.redirect(url)
+      if (!alreadyOnboarded) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('onboarded')
+          .eq('auth_id', user.id)
+          .maybeSingle()
+
+        // No row at all (first-time OAuth sign-in, e.g. Google) counts as
+        // not onboarded too — completeOnboarding() creates the row.
+        if (!profile || !profile.onboarded) {
+          const url = request.nextUrl.clone()
+          url.pathname = '/app/settings/onboarding'
+          return NextResponse.redirect(url)
+        }
+
+        supabaseResponse.cookies.set('onboarded', '1', {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 60 * 60 * 24 * 365,
+        })
       }
     }
   }

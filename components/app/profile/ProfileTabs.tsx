@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { shouldSkipImageOptimization } from '@/lib/supabase-image'
 import { fetchUserPostsPage, fetchSavedPostsPage } from '@/lib/actions/posts'
 import PostCard from '@/components/app/feed/PostCard'
 import type { PostWithAuthor, User } from '@/lib/types'
@@ -198,7 +199,7 @@ function MediaGrid({ posts, type }: { posts: PostWithAuthor[]; type: 'image' | '
                     {type === 'video' ? (
                         <video src={media.url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
                     ) : (
-                        <Image src={media.url} alt={post.caption ?? 'Post media'} fill unoptimized className="object-cover" sizes="(max-width: 640px) 33vw, 300px" />
+                        <Image src={media.url} alt={post.caption ?? 'Post media'} fill unoptimized={shouldSkipImageOptimization(media.url)} className="object-cover" sizes="(max-width: 640px) 33vw, 300px" />
                     )}
                 </Link>
             ))}

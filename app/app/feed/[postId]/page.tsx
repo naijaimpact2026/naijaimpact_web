@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import PostCard from '@/components/app/feed/PostCard'
 import PostDetailComments from '@/components/app/feed/PostDetailComments'
 import PostDetailActions from '@/components/app/feed/PostDetailActions'
@@ -77,28 +78,12 @@ async function getComments(postId: string)
 export default async function PostDetailPage({ params }: PageProps)
 {
     const { postId } = await params
-    const supabase = await createClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
+    const { profile } = await getCurrentUser()
 
-    let currentUserId: string | null = null
-    let currentUserProfile: { username: string; display_name: string; avatar_url: string | null } | null = null
-    if (authUser)
-    {
-        const { data: profile } = await supabase
-            .from('users')
-            .select('id, username, display_name, avatar_url')
-            .eq('auth_id', authUser.id)
-            .single()
-        currentUserId = profile?.id ?? null
-        if (profile)
-        {
-            currentUserProfile = {
-                username: profile.username,
-                display_name: profile.display_name,
-                avatar_url: profile.avatar_url,
-            }
-        }
-    }
+    const currentUserId = profile?.id ?? null
+    const currentUserProfile = profile
+        ? { username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url }
+        : null
 
     const [post, initialComments, recentPosts] = await Promise.all([
         getPost(postId, currentUserId),

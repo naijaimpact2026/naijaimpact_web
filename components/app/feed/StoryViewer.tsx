@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { shouldSkipImageOptimization } from '@/lib/supabase-image'
 import { X, ChevronLeft, ChevronRight, GraduationCap, ShoppingBag, ArrowRight } from 'lucide-react'
 import type { PromotedItem } from '@/lib/actions/promoted'
 
@@ -149,7 +150,7 @@ export default function StoryViewer({ items, startIndex, onClose }: StoryViewerP
                             src={item.image_url}
                             alt={item.title}
                             fill
-                            unoptimized
+                            unoptimized={shouldSkipImageOptimization(item.image_url)}
                             className="object-cover"
                             sizes="448px"
                             priority

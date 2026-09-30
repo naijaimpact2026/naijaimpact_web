@@ -19,6 +19,15 @@ import { Plus, X } from 'lucide-react'
 
 const SUGGESTIONS_AFTER_POST = 5
 
+// Module-level cache — this component remounts on every tab revisit (feed
+// isn't kept mounted across navigation), but this secondary sidebar content
+// doesn't need a fresh fetch every single time. Cached for the lifetime of
+// the page's JS, cleared on a hard refresh. suggestedUsersCache is keyed by
+// user id so a sign-out/sign-in within the same tab can't leak the previous
+// user's suggestions; promotedItemsCache isn't user-specific.
+let suggestedUsersCache: { userId: string; data: SuggestedUser[] } | null = null
+let promotedItemsCache: PromotedItem[] | null = null
+
 interface FeedInfiniteScrollProps
 {
     initialPosts: PostWithAuthor[]
@@ -53,9 +62,11 @@ export default function FeedInfiniteScroll({
         setExhausted(initialCursor === null)
     }, [initialPosts, initialCursor, topic])
     const [tabLoading, setTabLoading] = useState(false)
-    const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([])
+    const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>(
+        suggestedUsersCache?.userId === currentUserId ? suggestedUsersCache.data : []
+    )
     const [suggestionsDismissed, setSuggestionsDismissed] = useState(false)
-    const [promotedItems, setPromotedItems] = useState<PromotedItem[]>([])
+    const [promotedItems, setPromotedItems] = useState<PromotedItem[]>(promotedItemsCache ?? [])
     const [isComposerOpen, setIsComposerOpen] = useState(false)
     const [startWithMedia, setStartWithMedia] = useState(false)
     const [startWithTagging, setStartWithTagging] = useState(false)
@@ -81,17 +92,21 @@ export default function FeedInfiniteScroll({
     const sentinelRef = useRef<HTMLDivElement>(null)
     const loadingRef = useRef(false)
 
-    // Fetch suggested accounts on mount
+    // Fetch suggested accounts on mount — skip if already cached for this user this session
     useEffect(() =>
     {
-        if (!currentUserId) return
-        fetchSuggestedUsers(6).then(setSuggestedUsers).catch(() => { })
+        if (!currentUserId || suggestedUsersCache?.userId === currentUserId) return
+        fetchSuggestedUsers(6).then((data) => {
+            suggestedUsersCache = { userId: currentUserId, data }
+            setSuggestedUsers(data)
+        }).catch(() => { })
     }, [currentUserId])
 
-    // Fetch promoted Marketplace/Learn content on mount
+    // Fetch promoted Marketplace/Learn content on mount — skip if already cached this session
     useEffect(() =>
     {
-        fetchPromotedContent(8).then(setPromotedItems).catch(() => { })
+        if (promotedItemsCache) return
+        fetchPromotedContent(8).then((data) => { promotedItemsCache = data; setPromotedItems(data) }).catch(() => { })
     }, [])
 
     // Fetch function based on active tab
@@ -187,6 +202,33 @@ export default function FeedInfiniteScroll({
 
     const isLoading = loading || tabLoading
 
+    // Stable references so memo(PostCard) can actually skip re-rendering
+    // unaffected cards — passing fresh inline arrows here would defeat it.
+    const handleReactionToggle = useCallback((postId: string, reacted: boolean, delta: number) =>
+    {
+        setPosts((prev) =>
+            prev.map((p) =>
+                p.id === postId
+                    ? { ...p, user_reacted: reacted, reaction_count: Math.max(0, (p.reaction_count || 0) + delta) }
+                    : p
+            )
+        )
+    }, [])
+
+    const handleSaveToggle = useCallback((postId: string, saved: boolean) =>
+    {
+        setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, user_saved: saved } : p)))
+        if (activeTab === 'saved' && !saved)
+        {
+            setPosts((prev) => prev.filter((p) => p.id !== postId))
+        }
+    }, [activeTab])
+
+    const handleHide = useCallback((postId: string) =>
+    {
+        setPosts((prev) => prev.filter((p) => p.id !== postId))
+    }, [])
+
     return (
         <div className="space-y-3">
             {/* Promoted story circles */}
@@ -275,28 +317,9 @@ export default function FeedInfiniteScroll({
                         <PostCard
                             post={post}
                             currentUserId={currentUserId}
-                            onReactionToggle={(postId, reacted, delta) => {
-                                setPosts((prev) =>
-                                    prev.map((p) =>
-                                        p.id === postId
-                                            ? {
-                                                ...p,
-                                                user_reacted: reacted,
-                                                reaction_count: Math.max(0, (p.reaction_count || 0) + delta),
-                                            }
-                                            : p
-                                    )
-                                )
-                            }}
-                            onSaveToggle={(postId, saved) => {
-                                setPosts((prev) =>
-                                    prev.map((p) => (p.id === postId ? { ...p, user_saved: saved } : p))
-                                )
-                                if (activeTab === 'saved' && !saved) {
-                                    setPosts((prev) => prev.filter((p) => p.id !== postId))
-                                }
-                            }}
-                            onHide={(postId) => setPosts((prev) => prev.filter((p) => p.id !== postId))}
+                            onReactionToggle={handleReactionToggle}
+                            onSaveToggle={handleSaveToggle}
+                            onHide={handleHide}
                         />
 
                         {activeTab === 'for-you' &&

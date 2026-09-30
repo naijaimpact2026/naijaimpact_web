@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -207,9 +207,11 @@ export default function GoalsTab({ goals }: GoalsTabProps)
         }
     }
 
-    const totalSaved = goals.reduce((sum, g) => sum + g.current_amount, 0)
-    const activeGoals = goals.filter((g) => g.status === 'active')
-    const achievedGoals = goals.filter((g) => g.status === 'achieved')
+    const { totalSaved, activeGoals, achievedGoals } = useMemo(() => ({
+        totalSaved: goals.reduce((sum, g) => sum + g.current_amount, 0),
+        activeGoals: goals.filter((g) => g.status === 'active'),
+        achievedGoals: goals.filter((g) => g.status === 'achieved'),
+    }), [goals])
 
     return (
         <div className="space-y-6">

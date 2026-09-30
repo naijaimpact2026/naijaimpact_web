@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { fetchCourses } from '@/lib/actions/learn'
 import HomeRightSidebar from '@/components/app/home/HomeRightSidebar'
 import HeroIllustration from '@/components/illustrations/HeroIllustration'
@@ -8,7 +8,6 @@ import CourseIllustration from '@/components/illustrations/CourseIllustration'
 import JobsIllustration from '@/components/illustrations/JobsIllustration'
 import MarketIllustration from '@/components/illustrations/MarketIllustration'
 import FundingIllustration from '@/components/illustrations/FundingIllustration'
-import type { User } from '@/lib/types'
 import
 {
     BookOpen,
@@ -55,26 +54,16 @@ function timeAgo(dateStr: string): string
 
 export default async function HomePage()
 {
-    const supabase = await createClient()
-
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { authUser, profile } = await getCurrentUser()
 
     if (!authUser) redirect('/auth/login')
-
-    const { data: profile } = await supabase
-        .from('users')
-        .select('*')
-        .eq('auth_id', authUser.id)
-        .single()
 
     // No `users` row yet for this auth account — send them to finish onboarding
     // instead of `/auth/login` (which would just bounce them straight back here,
     // since the middleware already treats them as authenticated).
     if (!profile) redirect('/app/settings/onboarding')
 
-    const userProfile = profile as User
+    const userProfile = profile
 
     const { courses: latestCourses } = await fetchCourses(null, 1)
     const featuredCourse = latestCourses[0] ?? null

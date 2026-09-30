@@ -85,7 +85,7 @@ async function computeCategoryBreakdown(
       .eq('user_id', userId),
     supabase
       .from('transactions')
-      .select('id', { count: 'exact', head: false })
+      .select('id')
       .eq('user_id', userId)
       .eq('status', 'success')
       .limit(200),

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -22,7 +22,7 @@ function getInitials(name: string | null | undefined): string
     return name.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2)
 }
 
-export default function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }: TopBarProps)
+function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }: TopBarProps)
 {
     const router = useRouter()
     const [query, setQuery] = useState('')
@@ -145,3 +145,5 @@ export default function TopBar({ user, notificationCount = 0, messageCount = 0, 
         </header>
     )
 }
+
+export default memo(TopBar)

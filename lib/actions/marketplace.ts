@@ -11,6 +11,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import type {
   NmListing, NmListingDetail, NmSellerProfile,
   NmOrder, NmEscrow, NmBooking, NmReview, NmTopSeller,
@@ -23,9 +24,9 @@ const PAGE_SIZE = 24
 
 async function requireAuth() {
   const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) throw new Error('Unauthenticated')
-  return { supabase, authUser: user }
+  const { authUser } = await getCurrentUser()
+  if (!authUser) throw new Error('Unauthenticated')
+  return { supabase, authUser }
 }
 
 /** Get or create nm_seller_profile for current auth user */
@@ -127,13 +128,13 @@ export async function fetchListings(
 
   // Which of these listings has the current viewer already saved? Optional auth —
   // an unauthenticated viewer just sees is_saved: false on everything.
-  const { data: { user } } = await supabase.auth.getUser()
+  const { authUser } = await getCurrentUser()
   const listingIds = page.map((row: any) => row.id)
-  const { data: savedRows } = user && listingIds.length > 0
+  const { data: savedRows } = authUser && listingIds.length > 0
     ? await supabase
         .from('nm_saved_listings')
         .select('listing_id')
-        .eq('user_id', user.id)
+        .eq('user_id', authUser.id)
         .in('listing_id', listingIds)
     : { data: [] as { listing_id: string }[] }
   const savedSet = new Set((savedRows ?? []).map((r) => r.listing_id))
@@ -205,12 +206,12 @@ export async function fetchListingById(id: string): Promise<NmListingDetail | nu
     .eq('id', id)
     .then(() => {})
 
-  const { data: { user } } = await supabase.auth.getUser()
-  const isSaved = user
+  const { authUser } = await getCurrentUser()
+  const isSaved = authUser
     ? !!(await supabase
         .from('nm_saved_listings')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', authUser.id)
         .eq('listing_id', id)
         .maybeSingle()).data
     : false
@@ -455,10 +456,10 @@ export async function fetchTopSellers(limit = 4): Promise<NmTopSeller[]> {
 
   const sellerIds = sellers.map((s: any) => s.id)
 
-  const [{ data: listingRows }, { data: followRows }, { data: { user } }] = await Promise.all([
+  const [{ data: listingRows }, { data: followRows }, { authUser: user }] = await Promise.all([
     supabase.from('nm_listings').select('seller_id, category:services_categories(name)').in('seller_id', sellerIds).eq('is_active', true),
     supabase.from('nm_seller_follows').select('seller_id, follower_id').in('seller_id', sellerIds),
-    supabase.auth.getUser(),
+    getCurrentUser(),
   ])
 
   // Dominant category per seller = most frequent category among their active listings.
@@ -899,17 +900,23 @@ export async function fetchStorefronts(cursor?: string): Promise<{
   const page = (data ?? []).slice(0, 20)
   const hasMore = (data ?? []).length > 20
 
-  // Attach listing count to each storefront
-  const storefronts = await Promise.all(
-    page.map(async (sp: any) => {
-      const { count } = await supabase
+  // Attach listing count to each storefront — one grouped query instead of
+  // one count query per storefront.
+  const sellerIds = page.map((sp: any) => sp.id)
+  const { data: listingRows } = sellerIds.length > 0
+    ? await supabase
         .from('nm_listings')
-        .select('id', { count: 'exact', head: true })
-        .eq('seller_id', sp.id)
+        .select('seller_id')
+        .in('seller_id', sellerIds)
         .eq('is_active', true)
-      return { ...sp, product_count: count ?? 0 }
-    })
-  )
+    : { data: [] as { seller_id: string }[] }
+
+  const countMap = new Map<string, number>()
+  for (const row of (listingRows ?? []) as { seller_id: string }[]) {
+    countMap.set(row.seller_id, (countMap.get(row.seller_id) ?? 0) + 1)
+  }
+
+  const storefronts = page.map((sp: any) => ({ ...sp, product_count: countMap.get(sp.id) ?? 0 }))
 
   return {
     storefronts,

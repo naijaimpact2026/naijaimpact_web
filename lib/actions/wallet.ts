@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { revalidatePath } from 'next/cache'
 import bcrypt from 'bcryptjs'
 import type { Transaction, Wallet } from '@/lib/types'
@@ -13,25 +14,31 @@ export type ActionResult<T = void> =
 // Helpers
 // ─────────────────────────────────────────────
 
-/** Resolve the platform users.id from the auth session. */
-async function resolveProfile(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+/**
+ * Resolve the platform users.id + full profile from the auth session.
+ *
+ * Previously this returned a hardcoded `wallet_pin: null` stub instead of
+ * the real column — which meant every `profile.wallet_pin` check below
+ * (in sendFunds/requestWithdrawal) always saw "no PIN set", regardless of
+ * whether the user actually had one. Using the real profile row fixes that.
+ *
+ * `wallet_pin_locked_until`/`wallet_pin_attempts` aren't declared on the
+ * `User` type in lib/types.ts even though the columns exist — same gap as
+ * `naija_points` elsewhere — hence the local cast.
+ */
+async function resolveProfile() {
+  const { authUser, profile } = await getCurrentUser()
 
-  if (authError || !user) throw new Error('Unauthenticated')
+  if (!authUser) throw new Error('Unauthenticated')
+  if (!profile) throw new Error('User profile not found')
 
-  const { data: profile, error: profileError } = await supabase
-    .from('users')
-    .select('id')
-    .eq('auth_id', user.id)
-    .single()
-
-  if (profileError || !profile) throw new Error('User profile not found')
-
-  // wallet_pin may not exist yet — return null safely
-  return { authUser: user, profile: { ...profile, wallet_pin: null } }
+  return {
+    authUser,
+    profile: profile as typeof profile & {
+      wallet_pin_locked_until: string | null
+      wallet_pin_attempts: number | null
+    },
+  }
 }
 
 /** Get or create the wallet row for a given users.id. */
@@ -73,16 +80,17 @@ export async function fetchWallet(limit = 10): Promise<{
   transactions: Transaction[]
 }> {
   const supabase = await createClient()
-  const { profile } = await resolveProfile(supabase)
+  const { profile } = await resolveProfile()
 
-  const wallet = await getOrCreateWallet(supabase, profile.id)
-
-  const { data: transactions } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('user_id', profile.id)
-    .order('created_at', { ascending: false })
-    .limit(limit)
+  const [wallet, { data: transactions }] = await Promise.all([
+    getOrCreateWallet(supabase, profile.id),
+    supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', profile.id)
+      .order('created_at', { ascending: false })
+      .limit(limit),
+  ])
 
   return {
     wallet,
@@ -143,7 +151,7 @@ export async function sendFunds(
   }
 
   const supabase = await createClient()
-  const { authUser, profile } = await resolveProfile(supabase)
+  const { authUser, profile } = await resolveProfile()
 
   // ── PIN lockout check ─────────────────────────────────────────────────────
   const lockedUntil = profile.wallet_pin_locked_until
@@ -314,7 +322,7 @@ export async function requestWithdrawal(
   }
 
   const supabase = await createClient()
-  const { profile } = await resolveProfile(supabase)
+  const { profile } = await resolveProfile()
 
   // ── PIN lockout check ─────────────────────────────────────────────────────
   const lockedUntil = profile.wallet_pin_locked_until

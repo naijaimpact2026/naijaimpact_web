@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { shouldSkipImageOptimization } from '@/lib/supabase-image'
 import
 {
     Carousel,
@@ -54,7 +55,7 @@ export default function MediaDisplay({ medias, caption }: MediaDisplayProps)
                     src={media.url}
                     alt={altText}
                     fill
-                    unoptimized
+                    unoptimized={shouldSkipImageOptimization(media.url)}
                     className="object-cover"
                     sizes="(max-width: 768px) 100vw, 600px"
                 />
@@ -84,7 +85,7 @@ export default function MediaDisplay({ medias, caption }: MediaDisplayProps)
                                         src={media.url}
                                         alt={`${altText} ${index + 1}`}
                                         fill
-                                        unoptimized
+                                        unoptimized={shouldSkipImageOptimization(media.url)}
                                         className="object-cover"
                                         sizes="(max-width: 768px) 100vw, 600px"
                                     />

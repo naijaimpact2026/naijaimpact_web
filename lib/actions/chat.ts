@@ -3,6 +3,7 @@
 import { StreamClient } from '@stream-io/node-sdk'
 import { StreamChat } from 'stream-chat'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 
 function getStreamServerClient(): StreamChat {
   const apiKey = process.env.STREAM_API_KEY || process.env.NEXT_PUBLIC_STREAM_KEY!
@@ -91,17 +92,8 @@ export async function fetchFollowingForChat(): Promise<
   Array<{ id: string; username: string; display_name: string; avatar_url: string | null }>
 > {
   const supabase = await createClient()
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser()
-  if (!authUser) return []
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('id')
-    .eq('auth_id', authUser.id)
-    .single()
-  if (!profile) return []
+  const { authUser, profile } = await getCurrentUser()
+  if (!authUser || !profile) return []
 
   const { data } = await supabase
     .from('user_follows')
@@ -122,33 +114,24 @@ export async function fetchSuggestedUsers(): Promise<
   Array<{ id: string; username: string; display_name: string; avatar_url: string | null; isFollowing: boolean }>
 > {
   const supabase = await createClient()
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser()
-  if (!authUser) return []
+  const { authUser, profile } = await getCurrentUser()
+  if (!authUser || !profile) return []
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('id')
-    .eq('auth_id', authUser.id)
-    .single()
-  if (!profile) return []
-
-  // People already followed
-  const { data: follows } = await supabase
-    .from('user_follows')
-    .select('following_id')
-    .eq('follower_id', profile.id)
+  // People already followed + recent active posters — independent queries, run concurrently
+  const [{ data: follows }, { data: posts }] = await Promise.all([
+    supabase
+      .from('user_follows')
+      .select('following_id')
+      .eq('follower_id', profile.id),
+    supabase
+      .from('posts')
+      .select('author_id, author:users!posts_author_id_fkey(id, username, display_name, avatar_url)')
+      .neq('author_id', profile.id)
+      .order('created_at', { ascending: false })
+      .limit(100),
+  ])
 
   const followedIds = new Set((follows ?? []).map((f: any) => f.following_id))
-
-  // Recent active posters excluding current user and already followed
-  const { data: posts } = await supabase
-    .from('posts')
-    .select('author_id, author:users!posts_author_id_fkey(id, username, display_name, avatar_url)')
-    .neq('author_id', profile.id)
-    .order('created_at', { ascending: false })
-    .limit(100)
 
   const seen = new Set<string>()
   const suggestions: Array<{ id: string; username: string; display_name: string; avatar_url: string | null; isFollowing: boolean }> = []

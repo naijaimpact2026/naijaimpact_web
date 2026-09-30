@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import
     {
@@ -124,6 +124,12 @@ interface WalletPanelProps
     naijaPoints?: number
 }
 
+const INSURANCE_TYPES = [
+    { label: 'Health', icon: ShieldCheck, href: '/app/fintech/insure' },
+    { label: 'Business', icon: Building2, href: '/app/fintech/insure' },
+    { label: 'Asset', icon: CreditCard, href: '/app/fintech/insure' },
+] as const
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function WalletPanel({
@@ -138,6 +144,15 @@ export default function WalletPanel({
     const [depositOpen, setDepositOpen] = useState(false)
     const [sendOpen, setSendOpen] = useState(false)
     const [withdrawOpen, setWithdrawOpen] = useState(false)
+
+    // useState setters are stable, so this only recomputes if they somehow
+    // changed identity — effectively a one-time array instead of a fresh
+    // one (with fresh closures) on every render.
+    const walletActions = useMemo(() => [
+        { label: 'Deposit', icon: ArrowDownLeft, action: () => setDepositOpen(true), primary: true },
+        { label: 'Send', icon: ArrowUpRight, action: () => setSendOpen(true), primary: false },
+        { label: 'Withdraw', icon: Banknote, action: () => setWithdrawOpen(true), primary: false },
+    ], [setDepositOpen, setSendOpen, setWithdrawOpen])
 
     const balance = wallet?.balance ?? 0
 
@@ -207,11 +222,7 @@ export default function WalletPanel({
 
                     {/* Action row */}
                     <div className="grid grid-cols-3 gap-3">
-                        {[
-                            { label: 'Deposit', icon: ArrowDownLeft, action: () => setDepositOpen(true), primary: true },
-                            { label: 'Send', icon: ArrowUpRight, action: () => setSendOpen(true), primary: false },
-                            { label: 'Withdraw', icon: Banknote, action: () => setWithdrawOpen(true), primary: false },
-                        ].map(({ label, icon: Icon, action, primary }) => (
+                        {walletActions.map(({ label, icon: Icon, action, primary }) => (
                             <button
                                 key={label}
                                 onClick={action}
@@ -354,11 +365,7 @@ export default function WalletPanel({
                                 <p className="text-sm font-bold text-gray-900">Insurance Center</p>
                             </div>
                             <div className="grid grid-cols-3 divide-x divide-gray-50">
-                                {[
-                                    { label: 'Health', icon: ShieldCheck, href: '/app/fintech/insure' },
-                                    { label: 'Business', icon: Building2, href: '/app/fintech/insure' },
-                                    { label: 'Asset', icon: CreditCard, href: '/app/fintech/insure' },
-                                ].map(({ label, icon: Icon, href }) => (
+                                {INSURANCE_TYPES.map(({ label, icon: Icon, href }) => (
                                     <Link
                                         key={label}
                                         href={href}
