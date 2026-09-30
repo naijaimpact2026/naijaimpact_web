@@ -41,6 +41,7 @@ import type { FundingAd } from '@/lib/actions/funding-ads'
 import { toPublicStorageUrl } from '@/lib/supabase-image'
 
 interface Props {
+    userId: string | null
     initialCourses: Course[]
     initialNextCursor: string | null
     categories: Category[]
@@ -291,7 +292,7 @@ function coursePopularityScore(course: Course): number {
 function fmtCompactAmount(value: unknown): string | null {
     const amount = Number(value)
     if (!Number.isFinite(amount) || amount <= 0) return null
-    if (amount >= 1_000_000) return `₦${(amount / 1_000_000).toFixed(amount >= 10_000_000 ? 1 : 1)}M`
+    if (amount >= 1_000_000) return `₦${(amount / 1_000_000).toFixed(amount >= 10_000_000 ? 1 : 2)}M`
     if (amount >= 1_000) return `₦${Math.round(amount / 1_000)}k`
     return `₦${amount.toLocaleString('en-NG')}`
 }
@@ -516,6 +517,7 @@ function EmptyDashboard({ text, onClick }: { text: string; onClick: () => void }
 }
 
 export default function LearnHubHome({
+    userId,
     initialCourses,
     initialNextCursor,
     categories,
@@ -547,31 +549,109 @@ export default function LearnHubHome({
         (view as ViewMode) || 'catalogue'
     )
 
+    const selectedCategoryId =
+        activeCategory === null
+            ? null
+            : categories.find(
+                (category) =>
+                    category.name.toLowerCase() ===
+                    activeCategory.toLowerCase()
+            )?.id ?? null
+
+            console.log(
+                'Available categories:',
+                categories.map((category) => ({
+                    id: category.id,
+                    name: category.name,
+                }))
+            )        
+
+            useEffect(() => {
+                let cancelled = false
+            
+                async function loadCategoryCourses() {
+                    setLoadingMore(true)
+            
+                    try {
+                        const result = await fetchCourses(
+                            null,
+                            24,
+                            selectedCategoryId
+                        )
+            
+                        if (cancelled) return
+            
+                        setCourses(result.courses)
+                        setNextCursor(result.nextCursor)
+                    } catch (error) {
+                        if (!cancelled) {
+                            console.error(
+                                'Failed to load category courses:',
+                                error
+                            )
+                        }
+                    } finally {
+                        if (!cancelled) {
+                            setLoadingMore(false)
+                        }
+                    }
+                }
+            
+                void loadCategoryCourses()
+            
+                return () => {
+                    cancelled = true
+                }
+            }, [selectedCategoryId])       
+
     const savedStorageKey = useMemo(
-        () => `hubnovo:saved-courses:${displayName.trim().toLowerCase() || 'user'}`,
-        [displayName]
+        () => userId ? `hubnovo:saved-courses:${userId}`: null,
+        [userId]
     )
 
     const [savedCourseIds, setSavedCourseIds] = useState<string[]>([])
 
     useEffect(() => {
+        if (!savedStorageKey) {
+            setSavedCourseIds([])
+            return
+        }
+    
         try {
             const stored = window.localStorage.getItem(savedStorageKey)
-            setSavedCourseIds(stored ? JSON.parse(stored) : [])
-        } catch {
+            const parsed: unknown = stored ? JSON.parse(stored) : []
+    
+            if (
+                Array.isArray(parsed) &&
+                parsed.every((id): id is string => typeof id === 'string')
+            ) {
+                setSavedCourseIds(parsed)
+            } else {
+                setSavedCourseIds([])
+            }
+        } catch (error) {
+            console.warn('Failed to load saved courses:', error)
             setSavedCourseIds([])
         }
     }, [savedStorageKey])
 
     function toggleSavedCourse(courseId: string) {
-        setSavedCourseIds((current) => {
-            const next = current.includes(courseId)
-                ? current.filter((id) => id !== courseId)
-                : [...current, courseId]
+        if (!savedStorageKey) return
 
-            window.localStorage.setItem(savedStorageKey, JSON.stringify(next))
-            return next
-        })
+        const next = savedCourseIds.includes(courseId)
+            ? savedCourseIds.filter((id) => id !== courseId)
+            : [...savedCourseIds, courseId]
+    
+        setSavedCourseIds(next)
+    
+        try {
+            window.localStorage.setItem(
+                savedStorageKey,
+                JSON.stringify(next)
+            )
+        } catch (error) {
+            console.warn('Failed to save courses to localStorage:', error)
+        }
     }
 
     const enrolledSet = useMemo(
@@ -596,14 +676,13 @@ export default function LearnHubHome({
         }
 
         if (activeCategory) {
-            const categoryQuery = activeCategory.toLowerCase()
-            result = result.filter((course) =>
-                [course.category_name, course.title, course.description]
-                    .filter(Boolean)
-                    .join(' ')
-                    .toLowerCase()
-                    .includes(categoryQuery)
-            )
+            if (!selectedCategoryId) {
+                result = []
+            } else {
+                result = result.filter(
+                    (course) => course.category_id === selectedCategoryId
+                )
+            }
         }
 
         if (timeRange === 'week') {
@@ -625,7 +704,7 @@ export default function LearnHubHome({
         })
 
         return result
-    }, [courses, activeTrack, activeCategory, search, sortMode, timeRange])
+    }, [courses, activeTrack, activeCategory, selectedCategoryId, search, sortMode, timeRange])
 
     // Real course counts per track — no fabricated numbers.
     const trackCourseCounts = useMemo(() => {
@@ -831,7 +910,7 @@ export default function LearnHubHome({
             const result = await fetchCourses(
                 nextCursor,
                 24,
-                activeCategoryId
+                selectedCategoryId
             )
 
             setCourses((current) => {
@@ -967,7 +1046,120 @@ export default function LearnHubHome({
                             </DashboardPanel>
                         </div>
 
-                        <section><div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h2 className="text-xl font-display font-extrabold">Explore courses</h2><p className="mt-1 text-xs text-white/55">Learn practical skills from experienced instructors.</p></div><div className="flex flex-wrap gap-2"><select value={sortMode} onChange={(event) => setSortMode(event.target.value as 'popular' | 'newest')} className="rounded-lg border border-white/10 bg-[#0b223d] px-3 py-2 text-xs font-semibold text-white/80 outline-none transition hover:border-blue-400/30"><option value="popular">Sort by: Most Popular</option><option value="newest">Sort by: Newest</option></select><select value={timeRange} onChange={(event) => setTimeRange(event.target.value as 'all' | 'week')} className="rounded-lg border border-white/10 bg-[#0b223d] px-3 py-2 text-xs font-semibold text-white/80 outline-none transition hover:border-blue-400/30"><option value="all">All time</option><option value="week">This week</option></select></div></div><div className="mb-4 flex gap-2 overflow-x-auto pb-1"><button type="button" onClick={()=>{setActiveTrack(null);setActiveCategory(null)}} className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold ${!activeCategory?'bg-blue-500 text-white':'bg-[#0b223d] text-white/60'}`}>All</button>{['Business','Design','Marketing','Trading','Technology','Finance'].map(x=><button key={x} type="button" onClick={()=>{setActiveTrack(null);setActiveCategory(x)}} className={`shrink-0 rounded-full border border-white/10 px-3.5 py-1.5 text-xs transition ${activeCategory===x?'border-blue-400/30 bg-blue-500 text-white':'bg-[#0b223d] text-white/60 hover:border-blue-400/30 hover:text-white'}`}>{x}</button>)}</div>{filteredCourses.length ? <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{filteredCourses.map(course=><CourseCard key={course.id} course={course} enrolled={enrolledSet.has(course.id)} completed={completedSet.has(course.id)} saved={savedCourseIds.includes(course.id)} onToggleSaved={toggleSavedCourse} />)}</div> : <EmptyDashboard text="No courses found. Clear your filters to continue." onClick={()=>{setSearch('');setActiveTrack(null);setActiveCategory(null);setTimeRange('all')}} />}{nextCursor && <div className="mt-6 flex justify-center"><button type="button" onClick={loadMore} disabled={loadingMore} className="rounded-lg border border-white/10 bg-[#0b223d] px-5 py-2.5 text-xs font-bold disabled:opacity-50">{loadingMore?'Loading...':'Load more courses'}</button></div>}</section>
+                        <section>
+                            <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                                <div>
+                                    <h2 className="text-xl font-display font-extrabold">
+                                        Explore courses
+                                    </h2>
+                                    <p className="mt-1 text-xs text-white/55">
+                                        Learn practical skills from experienced instructors.
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                    <select
+                                        value={sortMode}
+                                        onChange={(event) =>
+                                            setSortMode(event.target.value as 'popular' | 'newest')
+                                        }
+                                        className="rounded-lg border border-white/10 bg-[#0b223d] px-3 py-2 text-xs font-semibold text-white/80 outline-none transition hover:border-blue-400/30"
+                                    >
+                                        <option value="popular">Sort by: Most Popular</option>
+                                        <option value="newest">Sort by: Newest</option>
+                                    </select>
+
+                                    <select
+                                        value={timeRange}
+                                        onChange={(event) =>
+                                            setTimeRange(event.target.value as 'all' | 'week')
+                                        }
+                                        className="rounded-lg border border-white/10 bg-[#0b223d] px-3 py-2 text-xs font-semibold text-white/80 outline-none transition hover:border-blue-400/30"
+                                    >
+                                        <option value="all">All time</option>
+                                        <option value="week">This week</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Category filters */}
+                            <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setActiveTrack(null)
+                                        setActiveCategory(null)
+                                    }}
+                                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold ${
+                                        !activeCategory
+                                            ? 'bg-blue-500 text-white'
+                                            : 'bg-[#0b223d] text-white/60'
+                                    }`}
+                                >
+                                    All
+                                </button>
+
+                                {['Business', 'Design', 'Marketing', 'Trading', 'Technology', 'Finance'].map(
+                                    (name) => (
+                                        <button
+                                            key={name}
+                                            type="button"
+                                            onClick={() => {
+                                                setActiveTrack(null)
+                                                setActiveCategory(name)
+                                            }}
+                                            className={`shrink-0 rounded-full border border-white/10 px-3.5 py-1.5 text-xs transition ${
+                                                activeCategory === name
+                                                    ? 'border-blue-400/30 bg-blue-500 text-white'
+                                                    : 'bg-[#0b223d] text-white/60 hover:border-blue-400/30 hover:text-white'
+                                            }`}
+                                        >
+                                            {name}
+                                        </button>
+                                    )
+                                )}
+                            </div>
+
+                            {/* Course grid */}
+                            {filteredCourses.length ? (
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                    {filteredCourses.map((course) => (
+                                        <CourseCard
+                                            key={course.id}
+                                            course={course}
+                                            enrolled={enrolledSet.has(course.id)}
+                                            completed={completedSet.has(course.id)}
+                                            saved={savedCourseIds.includes(course.id)}
+                                            onToggleSaved={toggleSavedCourse}
+                                        />
+                                    ))}
+                                </div>
+                            ) : (
+                                <EmptyDashboard
+                                    text="No courses found. Clear your filters to continue."
+                                    onClick={() => {
+                                        setSearch('')
+                                        setActiveTrack(null)
+                                        setActiveCategory(null)
+                                        setTimeRange('all')
+                                    }}
+                                />
+                            )}
+
+                            {/* Pagination */}
+                            {nextCursor && (
+                                <div className="mt-6 flex justify-center">
+                                    <button
+                                        type="button"
+                                        onClick={loadMore}
+                                        disabled={loadingMore}
+                                        className="rounded-lg border border-white/10 bg-[#0b223d] px-5 py-2.5 text-xs font-bold disabled:opacity-50"
+                                    >
+                                        {loadingMore ? 'Loading...' : 'Load more courses'}
+                                    </button>
+                                </div>
+                            )}
+                        </section>
 
                         {/* Learn-to-Earn */}
                         <section className="overflow-hidden rounded-2xl border border-blue-400/20 bg-gradient-to-br from-[#0d3b73] via-[#0b2d59] to-[#081b35]">
@@ -1031,7 +1223,7 @@ export default function LearnHubHome({
                             )}
                             <button type="button" onClick={() => setView('certificates')} className="mt-3 w-full rounded-lg bg-blue-500/20 py-2 text-xs font-bold text-blue-300 transition hover:bg-blue-500/30 hover:text-white">View all certificates <ArrowUpRight className="ml-1 inline h-3.5 w-3.5" /></button>
                         </DashboardPanel>
-                        <DashboardPanel title="Saved Courses" action="View all" onAction={()=>setView('saved-courses')}>{savedCourses.slice(0,2).map(course=><Link key={course.id} href={`/app/learn/${course.id}`} className="flex items-center gap-2 border-b border-white/10 py-2.5 last:border-0"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/15"><Bookmark className="h-4 w-4 fill-current text-blue-300" /></div><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold">{course.title}</p><p className="text-[10px] text-white/45">{course.instructor?.display_name ?? 'Hubnovo Instructor'}</p></div></Link>)}{!savedCourses.length&&<p className="py-5 text-center text-xs text-white/45">No saved courses yet.</p>}</DashboardPanel>
+                        <DashboardPanel title="Saved Courses" action="View all" onAction={()=>setView('saved-courses')}>{savedCourses.map(course=><Link key={course.id} href={`/app/learn/${course.id}`} className="flex items-center gap-2 border-b border-white/10 py-2.5 last:border-0"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/15"><Bookmark className="h-4 w-4 fill-current text-blue-300" /></div><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold">{course.title}</p><p className="text-[10px] text-white/45">{course.instructor?.display_name ?? 'Hubnovo Instructor'}</p></div></Link>)}{!savedCourses.length&&<p className="py-5 text-center text-xs text-white/45">No saved courses yet.</p>}</DashboardPanel>
                         <DashboardPanel title="Funding Opportunities" action="View all" onAction={() => { window.location.href = '/app/funding' }}>
                             {featuredFunding.length > 0 ? (
                                 <div className="space-y-3">

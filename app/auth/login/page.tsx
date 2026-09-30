@@ -11,7 +11,6 @@ import {
     EyeOff,
     Mail,
     Lock,
-    ArrowRight,
     Users,
     FolderCheck,
     MapPin,

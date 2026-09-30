@@ -18,7 +18,6 @@ import {
     GraduationCap,
     Store,
     Bell,
-    ArrowRight,
     Ellipsis,
     Eye,
     Trash2,

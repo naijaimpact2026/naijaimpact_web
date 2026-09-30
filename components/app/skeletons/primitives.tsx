@@ -16,6 +16,7 @@ export function SkeletonAvatar({
     return (
         <Skeleton
             delay={delay}
+            base="bg-white/10"
             className={cn('rounded-full shrink-0', className)}
             style={{ width: size, height: size }}
         />
@@ -36,6 +37,7 @@ export function SkeletonLine({
     return (
         <Skeleton
             delay={delay}
+            base="bg-white/10"
             className={cn('rounded-full', className)}
             style={{ width, height }}
         />
@@ -52,7 +54,7 @@ export function SkeletonBlock({
     delay?: number
     base?: string
 }) {
-    return <Skeleton delay={delay} base={base} className={cn('rounded-2xl', className)} />
+    return <Skeleton delay={delay} base={base ?? 'bg-white/10'} className={cn('rounded-2xl', className)} />
 }
 
 export function SkeletonPill({
@@ -62,7 +64,7 @@ export function SkeletonPill({
     className?: string
     delay?: number
 }) {
-    return <Skeleton delay={delay} className={cn('h-8 w-24 rounded-full', className)} />
+    return <Skeleton delay={delay} base="bg-white/10" className={cn('h-8 w-24 rounded-full', className)} />
 }
 
 /** A bordered card shell matching `bg-card` surfaces used throughout the app. */
@@ -77,7 +79,7 @@ export function SkeletonCard({
 }) {
     return (
         <div
-            className={cn('rounded-2xl border border-border bg-card p-4', className)}
+            className={cn('rounded-2xl border border-white/10 bg-[#081b2f] p-4', className)}
             style={{ animationDelay: `${delay}ms` }}
         >
             {children}
