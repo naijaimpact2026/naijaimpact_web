@@ -36,7 +36,7 @@ function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }:
     }
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center gap-3 px-4 sm:px-6 bg-card border-b border-border">
+        <header className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center gap-3 px-4 sm:px-6 bg-card border-b-0">
             {/* Hamburger — mobile/tablet only, sidebar is a persistent rail on lg+ */}
             <button
                 onClick={onMenuToggle}
@@ -143,7 +143,7 @@ function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }:
                         rounded-xl
                         px-2
                         transition-all
-                        hover:bg-white/10
+                        hover:bg-muted
                     "
                 >
                     <Avatar
@@ -174,11 +174,11 @@ function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }:
                     </Avatar>
 
                     <div className="hidden min-w-0 text-left md:block">
-                        <p className="max-w-[90px] truncate text-sm font-semibold text-white">
+                        <p className="max-w-[90px] truncate text-sm font-semibold text-foreground">
                             {user?.display_name?.split(' ')[0] ?? 'Profile'}
                         </p>
 
-                        <p className="max-w-[90px] truncate text-[10px] text-white/40">
+                        <p className="max-w-[90px] truncate text-[10px] text-muted-foreground">
                             @{user?.username ?? 'user'}
                         </p>
                     </div>
