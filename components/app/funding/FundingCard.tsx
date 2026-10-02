@@ -36,7 +36,7 @@ export default function FundingCard({ campaign }: FundingCardProps) {
       href={`/app/funding/${campaign.id}`}
       className="group block h-full focus-visible:outline-none"
     >
-      <div className="relative flex flex-col h-full overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-b from-card to-card/95 text-card-foreground shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-600/10 hover:border-emerald-500/40">
+      <div className="relative flex flex-col h-full overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-b from-card to-card/95 text-card-foreground shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40">
         {/* Cover Media */}
         <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted shrink-0">
           {coverUrl ? (
@@ -48,7 +48,7 @@ export default function FundingCard({ campaign }: FundingCardProps) {
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-800 via-teal-900 to-emerald-950 text-white">
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#0c2237] via-[#102a43] to-[#081827] text-white">
               <span className="text-5xl opacity-40">
                 {isCampaign ? '📣' : '🚀'}
               </span>
@@ -105,7 +105,7 @@ export default function FundingCard({ campaign }: FundingCardProps) {
             <div className="flex items-center gap-2">
               <Avatar className="h-5 w-5 shrink-0 ring-1 ring-border">
                 <AvatarImage src={campaign.creator.avatar_url ?? undefined} />
-                <AvatarFallback className="text-[9px] font-bold bg-emerald-500/10 text-emerald-600">
+                <AvatarFallback className="text-[9px] font-bold bg-primary/10 text-primary">
                   {campaign.creator.username?.charAt(0).toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
@@ -114,12 +114,12 @@ export default function FundingCard({ campaign }: FundingCardProps) {
                   {campaign.creator.display_name || campaign.creator.username}
                 </span>
                 {campaign.creator.verified && (
-                  <BadgeCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <BadgeCheck className="w-3.5 h-3.5 text-primary shrink-0" />
                 )}
               </div>
             </div>
 
-            <h3 className="font-bold text-base text-foreground line-clamp-2 leading-snug group-hover:text-emerald-600 transition-colors">
+            <h3 className="font-bold text-base text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
               {campaign.title}
             </h3>
 
@@ -162,7 +162,7 @@ export default function FundingCard({ campaign }: FundingCardProps) {
             {/* Bottom Meta & Action Link */}
             <div className="flex items-center justify-between text-xs pt-0.5">
               <span className="inline-flex items-center gap-1 text-muted-foreground font-medium">
-                <Users className="w-3.5 h-3.5 text-emerald-600" />
+                <Users className="w-3.5 h-3.5 text-primary" />
                 {campaign.donor_count.toLocaleString()} {campaign.donor_count === 1 ? 'donor' : 'donors'}
               </span>
 

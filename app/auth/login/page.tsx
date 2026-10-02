@@ -32,6 +32,7 @@ export default function LoginPage() {
     const searchParams = useSearchParams()
     const [showPassword, setShowPassword] = useState(false)
     const [serverError, setServerError] = useState('')
+    const [unconfirmedEmail, setUnconfirmedEmail] = useState('')
     const [googleLoading, setGoogleLoading] = useState(false)
 
     // Where to land after a successful sign-in — set by middleware when it
@@ -71,6 +72,7 @@ export default function LoginPage() {
 
     const onSubmit = async (values: LoginFormValues) => {
         setServerError('')
+        setUnconfirmedEmail('')
 
         const result = await signIn({
             email: values.email,
@@ -78,7 +80,12 @@ export default function LoginPage() {
         })
 
         if (result?.error) {
-            setServerError('Invalid email or password')
+            if (result.error.toLowerCase().includes('email not confirmed')) {
+                setUnconfirmedEmail(values.email)
+                setServerError('Your email address has not been verified yet.')
+            } else {
+                setServerError('Invalid email or password')
+            }
         } else if (result?.success) {
             // Use client-side navigation — server-action redirect()
             // is unreliable on iOS Safari/Chrome due to cookies + redirects.
@@ -387,7 +394,17 @@ export default function LoginPage() {
                     {/* Server error */}
                     {serverError && (
                         <div className="mb-6 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-                            {serverError}
+                            <p>{serverError}</p>
+                            {unconfirmedEmail && (
+                                <div className="mt-2.5 pt-2 border-t border-red-500/20">
+                                    <Link
+                                        href={`/auth/verify?email=${encodeURIComponent(unconfirmedEmail)}`}
+                                        className="font-semibold text-cyan-300 hover:text-cyan-200 underline inline-flex items-center gap-1 text-xs"
+                                    >
+                                        Enter your 6-digit verification code &rarr;
+                                    </Link>
+                                </div>
+                            )}
                         </div>
                     )}
 

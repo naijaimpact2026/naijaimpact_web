@@ -149,6 +149,7 @@ export async function fetchCampaigns(
       goal_amount,
       impact,
       description,
+      status,
       created_at,
       updated_at,
       funding_categories (
@@ -186,7 +187,9 @@ export async function fetchCampaigns(
     query = query.lt('created_at', cursor)
   }
 
-  query = query.limit(limit + 1)
+  // If post-filtering by status or sorting by calculated most_funded, fetch extra to avoid starving the page
+  const fetchLimit = statusFilter !== 'all' || sort === 'most_funded' ? Math.max(limit * 2, 24) : limit
+  query = query.limit(fetchLimit + 1)
 
   const { data, error } = await query
 
@@ -195,8 +198,8 @@ export async function fetchCampaigns(
     return { campaigns: [], nextCursor: null }
   }
 
-  const hasMore = data.length > limit
-  const pageData = hasMore ? data.slice(0, limit) : data
+  const hasMoreRaw = data.length > fetchLimit
+  const pageData = hasMoreRaw ? data.slice(0, fetchLimit) : data
 
   // Extract unique creator user_ids
   const userIds = Array.from(new Set(pageData.map((row: any) => row.user_id).filter(Boolean)))
@@ -273,10 +276,12 @@ export async function fetchCampaigns(
     campaigns.sort((a, b) => b.amount_raised - a.amount_raised)
   }
 
+  const hasMore = campaigns.length > limit || hasMoreRaw
+  const paginatedCampaigns = campaigns.slice(0, limit)
   const lastItem = pageData[pageData.length - 1]
   const nextCursor = hasMore && lastItem ? lastItem.created_at : null
 
-  return { campaigns, nextCursor }
+  return { campaigns: paginatedCampaigns, nextCursor }
 }
 
 // ─────────────────────────────────────────────

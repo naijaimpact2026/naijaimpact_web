@@ -553,6 +553,12 @@ export async function applyForJob(
 
   if (appErr) {
     console.error('applyForJob error:', appErr)
+    if (appErr.message?.includes('schema cache') || appErr.message?.includes('cover_letter') || appErr.code === '23503') {
+      return {
+        success: false,
+        error: "Job applications table needs to be updated. Please run migration 20261002170000_recreate_job_applications_for_jobs.sql in your Supabase SQL editor.",
+      }
+    }
     return { success: false, error: appErr.message || 'Failed to submit application.' }
   }
 

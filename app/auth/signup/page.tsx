@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Eye, EyeOff, Mail } from 'lucide-react'
+import { Eye, EyeOff, Mail, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import { signUp } from '@/lib/actions/auth'
 import { signInWithGoogle } from '@/lib/auth/google'
@@ -31,13 +31,13 @@ const signupSchema = z.object({
 type SignupFormValues = z.infer<typeof signupSchema>
 
 export default function SignupPage() {
+            const router = useRouter()
             const searchParams = useSearchParams()
             const [showPassword, setShowPassword] = useState(false)
             const [serverError, setServerError] = useState('')
-            const [successEmail, setSuccessEmail] = useState('')
             const [googleLoading, setGoogleLoading] = useState(false)
 
-            const next = searchParams.get('next') || '/app'
+            const next = searchParams.get('next') || '/app/settings/onboarding'
 
             const {
                 register,
@@ -75,34 +75,8 @@ export default function SignupPage() {
                     setServerError(result.error)
                 } else
                 {
-                    setSuccessEmail(values.email)
+                    router.push(`/auth/verify?email=${encodeURIComponent(values.email)}&next=${encodeURIComponent(next)}`)
                 }
-            }
-        
-            // Email confirmation success screen
-            if (successEmail)
-            {
-                return (
-                    <div className="min-h-screen flex items-center justify-center bg-background p-6">
-                        <div className="text-center space-y-4 max-w-sm">
-                            <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mx-auto">
-                                <Mail className="w-7 h-7 text-emerald-600" />
-                            </div>
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Check your email</h2>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm">
-                                We sent a confirmation link to{' '}
-                                <strong className="text-gray-700 dark:text-gray-200">{successEmail}</strong>. Click it
-                                to activate your account.
-                            </p>
-                            <Link
-                                href="/auth/login"
-                                className="inline-block px-6 py-2.5 bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-xl text-sm"
-                            >
-                                Go to Login
-                            </Link>
-                        </div>
-                    </div>
-                )
             }
         
             return (
