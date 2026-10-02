@@ -28,19 +28,31 @@ export default function NotificationActionButton({
       case 'ajo_contribution':
         return '/app/ajo'
 
+      case 'funding_contribution':
+      case 'funding_milestone':
+      case 'funding_ended':
+        return referenceId ? `/app/funding/${referenceId}` : '/app/funding'
+
       default:
         return '/app'
     }
   }
 
-  const label = {
+  const labels: Partial<Record<NotificationType, string>> = {
     follow: 'View Profile',
+    new_follower: 'View Profile',
     reaction: 'View Post',
+    post_reaction: 'View Post',
     comment: 'View Post',
+    post_comment: 'View Post',
     mention: 'View Post',
     loan_approved: 'View Loan',
     ajo_contribution: 'View Ajo',
-  }[type] ?? 'Open'
+    funding_contribution: 'View Campaign',
+    funding_milestone: 'View Campaign',
+  }
+
+  const label = labels[type] ?? 'Open'
 
   return (
     <Link

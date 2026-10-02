@@ -1,13 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Shield, FileText, ShoppingBag, Calendar } from 'lucide-react'
 import InsureProductCard from './InsureProductCard'
 import PolicyCard from './PolicyCard'
 import ClaimsList from './ClaimsList'
 import PurchasePolicyModal from './PurchasePolicyModal'
-import type { InsureProduct, Policy, Claim } from '@/lib/types'
+import type { InsureProduct } from '@/lib/types'
+import type { PolicyWithProduct, ClaimWithPolicy } from '@/lib/actions/fintech/insure'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -30,8 +32,8 @@ function formatNGN(amount: number): string
 interface InsureDashboardClientProps
 {
     products: InsureProduct[]
-    policies: (Policy & { product: Pick<InsureProduct, 'name' | 'category'> | null })[]
-    claims: (Claim & { policy: Pick<Policy, 'status'> | null })[]
+    policies: PolicyWithProduct[]
+    claims: ClaimWithPolicy[]
     activePoliciesCount: number
     pendingClaimsCount: number
     nextPremiumDue: string | null
@@ -52,16 +54,11 @@ export default function InsureDashboardClient({
     userId,
 }: InsureDashboardClientProps)
 {
+    const router = useRouter()
     const [selectedProduct, setSelectedProduct] = useState<InsureProduct | null>(null)
     const [activeTab, setActiveTab] = useState('browse')
 
-    // Build list of active policy summaries for claim filing
-    const activePolicySummaries = policies
-        .filter((p) => p.status === 'active')
-        .map((p) => ({
-            id: p.id,
-            name: p.product?.name ?? 'Policy',
-        }))
+    const activePolicies = policies.filter((p) => p.status === 'active')
 
     return (
         <div className="space-y-8">
@@ -177,7 +174,11 @@ export default function InsureDashboardClient({
 
                 {/* ── Claims tab ─────────────────────────────────────────────────────── */}
                 <TabsContent value="claims" className="mt-6">
-                    <ClaimsList claims={claims} activePolicies={activePolicySummaries} />
+                    <ClaimsList
+                        claims={claims}
+                        activePolicies={activePolicies}
+                        onClaimFiled={() => router.refresh()}
+                    />
                 </TabsContent>
             </Tabs>
 

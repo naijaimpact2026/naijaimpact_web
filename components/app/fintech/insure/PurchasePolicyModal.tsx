@@ -14,25 +14,6 @@ import { Button } from '@/components/ui/button'
 import { purchasePolicy } from '@/lib/actions/fintech/insure'
 import type { InsureProduct } from '@/lib/types'
 
-// Paystack global type declaration
-declare global
-{
-    interface Window
-    {
-        PaystackPop: {
-            setup(config: {
-                key: string
-                email: string
-                amount: number
-                ref: string
-                metadata?: Record<string, unknown>
-                onSuccess: (transaction: { reference: string }) => void
-                onClose: () => void
-            }): { openIframe(): void }
-        }
-    }
-}
-
 function formatNGN(amount: number): string
 {
     return `₦${amount.toLocaleString('en-NG', {
@@ -47,7 +28,8 @@ interface PurchasePolicyModalProps
     onOpenChange: (open: boolean) => void
     product: InsureProduct | null
     userEmail: string
-    onSuccess: () => void
+    userId?: string
+    onSuccess?: () => void
 }
 
 export default function PurchasePolicyModal({
@@ -55,6 +37,7 @@ export default function PurchasePolicyModal({
     onOpenChange,
     product,
     userEmail,
+    userId: _userId,
     onSuccess,
 }: PurchasePolicyModalProps)
 {
@@ -103,7 +86,7 @@ export default function PurchasePolicyModal({
                     {
                         onOpenChange(false)
                         setSuccessMessage(null)
-                        onSuccess()
+                        onSuccess?.()
                     }, 2000)
                 },
                 onClose: () =>

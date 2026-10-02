@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
   const { data: existing } = await supabase
     .from('transactions')
     .select('id')
-    .eq('paystack_ref', paystackRef)
+    .eq('ref', paystackRef)
     .maybeSingle()
 
   if (existing) {
@@ -82,57 +82,61 @@ export async function POST(request: NextRequest) {
 
   try {
     if (type === 'campaign_donation' && referenceId) {
-      // 1. Insert transaction
-      const { error: txError } = await supabase.from('transactions').insert({
-        user_id: userId,
-        type: 'campaign_donation',
-        amount: amountNGN,
-        status: 'success',
-        reference_id: referenceId,
-        paystack_ref: paystackRef,
-        description: `Donation to campaign`,
-      })
-
-      if (txError) {
-        console.error('Paystack webhook: transaction insert error', txError)
-        return NextResponse.json({ error: 'DB error' }, { status: 500 })
-      }
-
-      // 2. Credit wallet (upsert)
-      const { data: wallet } = await supabase
-        .from('wallet')
-        .select('id, balance')
-        .eq('user_id', userId)
-        .maybeSingle()
-
-      if (wallet) {
-        await supabase
-          .from('wallet')
-          .update({ balance: wallet.balance + amountNGN, updated_at: new Date().toISOString() })
-          .eq('id', wallet.id)
-      } else {
-        await supabase.from('wallet').insert({
-          user_id: userId,
-          balance: amountNGN,
-        })
-      }
-
-      // 3. Update campaign amount_raised and donor_count
+      // 1. Fetch campaign to verify existence and get creator/title
       const { data: campaign } = await supabase
         .from('funding')
-        .select('amount_raised, donor_count')
+        .select('id, title, user_id, funding_type')
         .eq('id', referenceId)
         .maybeSingle()
 
-      if (campaign) {
-        await supabase
-          .from('funding')
-          .update({
-            amount_raised: campaign.amount_raised + amountNGN,
-            donor_count: campaign.donor_count + 1,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', referenceId)
+      // Check if already in funding_transactions
+      const { data: existingFt } = await supabase
+        .from('funding_transactions')
+        .select('id')
+        .eq('reference', paystackRef)
+        .maybeSingle()
+
+      // 2. Insert record in funding_transactions if not present
+      if (!existingFt) {
+        const resolvedUserId = (userId && userId !== 'anonymous') ? userId : campaign?.user_id
+        const { error: ftError } = await supabase.from('funding_transactions').insert({
+          funding_id: referenceId,
+          funding_type: (campaign as any)?.funding_type || 'campaign',
+          user_id: resolvedUserId,
+          amount: amountNGN,
+          reference: paystackRef,
+          transaction_status: 'success',
+        })
+
+        if (ftError) {
+          console.error('Paystack webhook: funding_transactions insert error', ftError)
+        }
+      }
+
+      // 3. Insert donor ledger transaction
+      if (userId && userId !== 'anonymous') {
+        const { error: txError } = await supabase.from('transactions').insert({
+          user_id: userId,
+          type: 'campaign_donation',
+          amount: amountNGN,
+          status: 'success',
+          ref: paystackRef,
+        })
+
+        if (txError) {
+          console.error('Paystack webhook: transaction insert error', txError)
+        }
+      }
+
+      // 4. Notify campaign creator
+      if (campaign?.user_id && campaign.user_id !== userId) {
+        await supabase.from('notifications').insert({
+          user_id: campaign.user_id,
+          actor_id: userId !== 'anonymous' ? userId : null,
+          type: 'funding_contribution',
+          reference_id: referenceId,
+          read: false,
+        })
       }
     } else if (type === 'deposit') {
       // 1. Insert deposit transaction
@@ -141,8 +145,7 @@ export async function POST(request: NextRequest) {
         type: 'deposit',
         amount: amountNGN,
         status: 'success',
-        paystack_ref: paystackRef,
-        description: 'Wallet deposit via Paystack',
+        ref: paystackRef,
       })
 
       if (txError) {
@@ -150,20 +153,20 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'DB error' }, { status: 500 })
       }
 
-      // 2. Credit wallet
+      // 2. Credit user_wallet
       const { data: wallet } = await supabase
-        .from('wallet')
+        .from('user_wallet')
         .select('id, balance')
         .eq('user_id', userId)
         .maybeSingle()
 
       if (wallet) {
         await supabase
-          .from('wallet')
-          .update({ balance: wallet.balance + amountNGN, updated_at: new Date().toISOString() })
+          .from('user_wallet')
+          .update({ balance: Number(wallet.balance) + amountNGN })
           .eq('id', wallet.id)
       } else {
-        await supabase.from('wallet').insert({
+        await supabase.from('user_wallet').insert({
           user_id: userId,
           balance: amountNGN,
         })
@@ -175,9 +178,7 @@ export async function POST(request: NextRequest) {
         type: 'course_purchase',
         amount: amountNGN,
         status: 'success',
-        reference_id: referenceId,
-        paystack_ref: paystackRef,
-        description: 'Course purchase',
+        ref: paystackRef,
       })
 
       // Enrol user in the course
@@ -192,9 +193,6 @@ export async function POST(request: NextRequest) {
       )
     } else if (type === 'marketplace_purchase') {
       // Cart checkout creates one real nm_orders/nm_escrow row per line item
-      // (see createEscrowOrder / nm_create_escrow_order RPC) before this single
-      // combined charge is made, then passes every order id through here.
-      // referenceId is kept as a fallback for the older single-order shape.
       const orderIds: string[] = Array.isArray(metadata.orderIds)
         ? (metadata.orderIds as unknown[]).filter((id): id is string => typeof id === 'string')
         : referenceId ? [referenceId] : []
@@ -206,8 +204,6 @@ export async function POST(request: NextRequest) {
           .eq('id', orderId)
           .maybeSingle()
 
-        // Skip silently: already processed, or not a real pending order —
-        // never blind-write an escrow/order row we can't confirm the shape of.
         if (!order || order.status !== 'pending') continue
 
         // 1. Insert buyer transaction
@@ -216,9 +212,7 @@ export async function POST(request: NextRequest) {
           type: 'transfer_debit',
           amount: order.total_amount,
           status: 'success',
-          reference_id: orderId,
-          paystack_ref: paystackRef,
-          description: 'Marketplace purchase, escrow held',
+          ref: paystackRef,
         })
 
         // 2. Confirm the order (paid — escrow held, not yet released to seller)
@@ -239,8 +233,7 @@ export async function POST(request: NextRequest) {
             .eq('id', escrow.id)
         }
 
-        // 4. Notify the seller — nm_orders.seller_id is the seller PROFILE id,
-        // notifications.user_id needs the seller's actual auth uid.
+        // 4. Notify the seller
         const sellerUserId = (order as { seller_profile?: { user_id?: string } | null }).seller_profile?.user_id
         if (sellerUserId) {
           await supabase.from('notifications').insert({
@@ -266,13 +259,10 @@ export async function POST(request: NextRequest) {
           type: 'insurance_premium',
           amount: amountNGN,
           status: 'success',
-          reference_id: referenceId,
-          paystack_ref: paystackRef,
-          description: 'Insurance premium payment',
+          ref: paystackRef,
         })
 
         // Fetch the product to determine policy duration
-        // DB column is `duration_months` (per schema); also check `coverage_months` as fallback
         const { data: product } = await supabase
           .from('fintech_insure_products')
           .select('duration_months, coverage_months')

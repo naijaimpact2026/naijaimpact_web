@@ -99,31 +99,127 @@ export async function fetchWallet(limit = 10): Promise<{
 }
 
 // ─────────────────────────────────────────────
-// depositCallback
+// verifyAndProcessDeposit (Paystack Verification & Recovery)
 // ─────────────────────────────────────────────
 
 /**
- * Record a Paystack reference after the popup onSuccess callback.
- * The actual balance update is handled by the Paystack webhook.
- * This action is used for client-side confirmation display only.
+ * Verifies a deposit with Paystack API, updates user_wallet, and records the transaction idempotently.
+ */
+export async function verifyAndProcessDeposit(
+  reference: string
+): Promise<ActionResult<{ reference: string; amount: number; newBalance: number; alreadyProcessed?: boolean }>> {
+  try {
+    const supabase = await createClient()
+    const { profile } = await resolveProfile()
+
+    if (!reference || !reference.trim()) {
+      return { success: false, error: 'A valid transaction reference is required' }
+    }
+
+    const cleanRef = reference.trim()
+    const wallet = await getOrCreateWallet(supabase, profile.id)
+
+    // 1. Idempotency: Check if already credited in transactions
+    const { data: existingTx } = await supabase
+      .from('transactions')
+      .select('id, amount')
+      .eq('ref', cleanRef)
+      .eq('type', 'deposit')
+      .maybeSingle()
+
+    if (existingTx) {
+      revalidatePath('/app/wallet')
+      return {
+        success: true,
+        data: {
+          reference: cleanRef,
+          amount: Number(existingTx.amount) || 0,
+          newBalance: wallet.balance,
+          alreadyProcessed: true,
+        },
+      }
+    }
+
+    // 2. Verify with Paystack API
+    const paystackSecret = process.env.PAYSTACK_SECRET_KEY
+    if (!paystackSecret) {
+      return { success: false, error: 'Paystack secret key is missing on the server' }
+    }
+
+    const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(cleanRef)}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${paystackSecret}`,
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    })
+
+    const payload = await res.json()
+    if (!payload.status || !payload.data) {
+      return { success: false, error: payload.message || 'Transaction not found on Paystack' }
+    }
+
+    const data = payload.data
+    if (data.status !== 'success') {
+      return { success: false, error: data.gateway_response || `Payment status is ${data.status}` }
+    }
+
+    // 3. Mathematics: Kobo to Naira
+    const amountKobo = Number(data.amount) || 0
+    if (amountKobo <= 0) {
+      return { success: false, error: 'Invalid deposit amount reported by Paystack' }
+    }
+    const amountNGN = Math.round(amountKobo) / 100
+
+    if (amountNGN < 100) {
+      return { success: false, error: 'Deposit amount is below minimum (₦100)' }
+    }
+
+    // 4. Update wallet balance
+    const newBalance = Number(wallet.balance) + amountNGN
+    const { error: wErr } = await supabase
+      .from('user_wallet')
+      .update({ balance: newBalance })
+      .eq('id', wallet.id)
+
+    if (wErr) {
+      console.error('Wallet balance update error:', wErr)
+      return { success: false, error: 'Failed to credit wallet balance' }
+    }
+
+    // 5. Insert transaction record (valid schema: user_id, type, amount, status, ref)
+    await supabase.from('transactions').insert({
+      user_id: profile.id,
+      type: 'deposit',
+      amount: amountNGN,
+      status: 'success',
+      ref: cleanRef,
+    })
+
+    revalidatePath('/app/wallet')
+
+    return {
+      success: true,
+      data: {
+        reference: cleanRef,
+        amount: amountNGN,
+        newBalance,
+      },
+    }
+  } catch (err: any) {
+    console.error('verifyAndProcessDeposit error:', err)
+    return { success: false, error: err.message || 'Deposit verification failed' }
+  }
+}
+
+/**
+ * Record and verify a Paystack reference after the popup onSuccess callback.
  */
 export async function depositCallback(
   reference: string
-): Promise<ActionResult<{ reference: string }>> {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return { success: false, error: 'Unauthenticated' }
-  }
-
-  // Just return success — actual crediting happens in webhook
-  revalidatePath('/app/wallet')
-  return { success: true, data: { reference } }
+): Promise<ActionResult<{ reference: string; amount?: number; newBalance?: number }>> {
+  return verifyAndProcessDeposit(reference)
 }
 
 // ─────────────────────────────────────────────
@@ -240,7 +336,6 @@ export async function sendFunds(
     .from('user_wallet')
     .update({
       balance: senderWallet.balance - amountNGN,
-      updated_at: new Date().toISOString(),
     })
     .eq('id', senderWallet.id)
 
@@ -256,7 +351,6 @@ export async function sendFunds(
     .from('user_wallet')
     .update({
       balance: recipientWallet.balance + amountNGN,
-      updated_at: new Date().toISOString(),
     })
     .eq('id', recipientWallet.id)
 
@@ -265,7 +359,7 @@ export async function sendFunds(
     // Best-effort rollback
     await supabase
       .from('user_wallet')
-      .update({ balance: senderWallet.balance, updated_at: new Date().toISOString() })
+      .update({ balance: senderWallet.balance })
       .eq('id', senderWallet.id)
 
     return { success: false, error: 'Transfer failed. Please try again.' }
@@ -273,6 +367,7 @@ export async function sendFunds(
 
   // ── Insert transaction rows ───────────────────────────────────────────────
   const now = new Date().toISOString()
+  const transferRef = `TRF-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
 
   await supabase.from('transactions').insert([
     {
@@ -280,7 +375,7 @@ export async function sendFunds(
       type: 'transfer_debit',
       amount: amountNGN,
       status: 'success',
-      description: `Transfer to @${recipient.username}`,
+      ref: transferRef,
       created_at: now,
     },
     {
@@ -288,7 +383,7 @@ export async function sendFunds(
       type: 'transfer_credit',
       amount: amountNGN,
       status: 'success',
-      description: `Transfer from @${authUser.email?.split('@')[0] ?? 'user'}`,
+      ref: transferRef,
       created_at: now,
     },
   ])
@@ -395,7 +490,6 @@ export async function requestWithdrawal(
     .from('user_wallet')
     .update({
       balance: wallet.balance - amountNGN,
-      updated_at: new Date().toISOString(),
     })
     .eq('id', wallet.id)
 
@@ -405,12 +499,13 @@ export async function requestWithdrawal(
   }
 
   // ── Insert pending transaction ────────────────────────────────────────────
+  const withdrawalRef = `WTH-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
   const { error: txError } = await supabase.from('transactions').insert({
     user_id: profile.id,
     type: 'withdrawal',
     amount: amountNGN,
     status: 'pending',
-    description: `Withdrawal to ${bankName} – ${accountNumber} (${accountName})`,
+    ref: withdrawalRef,
   })
 
   if (txError) {
@@ -418,7 +513,7 @@ export async function requestWithdrawal(
     // Rollback the balance debit
     await supabase
       .from('user_wallet')
-      .update({ balance: wallet.balance, updated_at: new Date().toISOString() })
+      .update({ balance: wallet.balance })
       .eq('id', wallet.id)
     return { success: false, error: 'Withdrawal request failed. Please try again.' }
   }
