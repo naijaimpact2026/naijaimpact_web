@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, useCallback, useRef, useMemo, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Chat } from 'stream-chat-react'
 import type { Channel } from 'stream-chat'
 import { MessageCircle, Users, Search, UserPlus, UserCheck, Loader2, Plus, Sparkles, MessagesSquare } from 'lucide-react'
@@ -268,11 +268,14 @@ function TabBtn({ label, active, onClick, badge }: { label: string; active: bool
     )
 }
 
-// ─── Main page ────────────────────────────────────────────────────────────────
-export default function ChatPage()
+// ─── Main page content ────────────────────────────────────────────────────────
+function ChatPageContent()
 {
     const { client, isReady } = useChatClient()
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const targetUserId = searchParams.get('to') || searchParams.get('user')
+    const [openingTargetChat, setOpeningTargetChat] = useState(false)
     const [activeTab, setActiveTab] = useState<ActiveTab>('chats')
     const [searchQuery, setSearchQuery] = useState('')
     const [channels, setChannels] = useState<Channel[]>([])
@@ -282,6 +285,38 @@ export default function ChatPage()
     const [loadingPeople, setLoadingPeople] = useState(false)
     const [startingDm, setStartingDm] = useState<string | null>(null)
     const mountedRef = useRef(true)
+
+    // Automatically open DM with target user when redirected from artisan/seller profile
+    useEffect(() =>
+    {
+        if (!isReady || !client || !targetUserId) return
+        if (targetUserId === client.userID) return
+
+        let cancelled = false
+        async function connectWithTarget()
+        {
+            setOpeningTargetChat(true)
+            try
+            {
+                const { channelId } = await startDmChat(targetUserId!)
+                if (!cancelled)
+                {
+                    router.replace(`/app/chat/${channelId}`)
+                }
+            }
+            catch (err: any)
+            {
+                if (!cancelled)
+                {
+                    console.error('Failed to open chat with user:', err)
+                    toast.error(err?.message || 'Could not start chat with artisan')
+                    setOpeningTargetChat(false)
+                }
+            }
+        }
+        connectWithTarget()
+        return () => { cancelled = true }
+    }, [isReady, client, targetUserId, router])
 
     // Query channels directly — no ChannelList component
     useEffect(() =>
@@ -408,6 +443,13 @@ export default function ChatPage()
                     </div>
                     <CreateGroupChatModal />
                 </div>
+
+                {/* Connecting banner when arriving from artisan / seller CTA */}
+                {openingTargetChat && (
+                    <div className="flex items-center justify-center gap-2 bg-primary/10 border-b border-primary/20 py-2.5 px-4 text-xs font-bold text-primary animate-pulse">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Opening chat with artisan…
+                    </div>
+                )}
 
                 {/* ── Search ── */}
                 <div className="px-4 py-3 bg-card border-b border-border">
@@ -581,5 +623,14 @@ export default function ChatPage()
                 </button>
             </div>
         </Chat>
+    )
+}
+
+export default function ChatPage()
+{
+    return (
+        <Suspense fallback={<ChatSkeleton />}>
+            <ChatPageContent />
+        </Suspense>
     )
 }

@@ -39,13 +39,46 @@ export async function startDmChat(targetUserId: string): Promise<{ channelId: st
 
   if (profile.id === targetUserId) throw new Error('Cannot DM yourself')
 
-  const { data: targetProfile, error: targetError } = await supabase
+  let targetProfile: { id: string; display_name: string; avatar_url: string | null } | null = null
+
+  // 1. Try finding target by users.id
+  const { data: byId } = await supabase
     .from('users')
     .select('id, display_name, avatar_url')
     .eq('id', targetUserId)
-    .single()
+    .maybeSingle()
 
-  if (targetError || !targetProfile) throw new Error('Target user not found')
+  if (byId) {
+    targetProfile = byId
+  } else {
+    // 2. Try finding target by users.auth_id
+    const { data: byAuth } = await supabase
+      .from('users')
+      .select('id, display_name, avatar_url')
+      .eq('auth_id', targetUserId)
+      .maybeSingle()
+
+    if (byAuth) {
+      targetProfile = byAuth
+    } else {
+      // 3. Try finding target by seller_profile (e.g. demo vendors or business profiles)
+      const { data: seller } = await supabase
+        .from('nm_seller_profiles')
+        .select('id, business_name, logo_url, user_id')
+        .or(`id.eq.${targetUserId},user_id.eq.${targetUserId}`)
+        .maybeSingle()
+
+      if (seller) {
+        targetProfile = {
+          id: seller.user_id || seller.id,
+          display_name: seller.business_name || 'Artisan Seller',
+          avatar_url: seller.logo_url ?? null,
+        }
+      }
+    }
+  }
+
+  if (!targetProfile) throw new Error('Artisan or user profile not found')
 
   const apiKey = process.env.STREAM_API_KEY || process.env.NEXT_PUBLIC_STREAM_KEY!
   const apiSecret = process.env.STREAM_SECRET_KEY || process.env.STREAM_API_SECRET!
@@ -71,14 +104,14 @@ export async function startDmChat(targetUserId: string): Promise<{ channelId: st
   ])
 
   // Deterministic channel id — always same pair, same channel
-  const sortedIds = [profile.id, targetUserId].sort()
+  const sortedIds = [profile.id, targetProfile.id].sort()
   const channelId = `dm_${sortedIds[0].slice(0, 8)}_${sortedIds[1].slice(0, 8)}`
 
   const channel = streamServerClient.chat.channel('messaging', channelId)
   await channel.getOrCreate({
     data: {
       created_by_id: profile.id,
-      members: [{ user_id: profile.id }, { user_id: targetUserId }],
+      members: [{ user_id: profile.id }, { user_id: targetProfile.id }],
     },
   })
 

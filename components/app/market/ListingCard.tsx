@@ -4,7 +4,7 @@ import { useState, memo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { toast } from '@/components/toast'
-import { Package, Heart, Star, MapPin, ShoppingCart } from 'lucide-react'
+import { Package, Heart, Star, MapPin, ShoppingCart, Calendar, Wrench } from 'lucide-react'
 import { toggleSavedListing } from '@/lib/actions/marketplace'
 import { useMarketCart } from './MarketCartProvider'
 import type { NmListingDetail } from '@/lib/types'
@@ -74,8 +74,11 @@ function ListingCard({ listing }: { listing: NmListingDetail })
         toast.success('Added to cart')
     }
 
+    const isService = listing.listing_type === 'service'
+    const targetHref = isService ? `/app/market/artisans/${listing.id}` : `/app/market/${listing.id}`
+
     return (
-        <Link href={`/app/market/${listing.id}`}
+        <Link href={targetHref}
             className="group flex h-full flex-col cursor-pointer overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-lg">
             <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-muted">
                 {coverImg ? (
@@ -84,15 +87,23 @@ function ListingCard({ listing }: { listing: NmListingDetail })
                         sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 22vw" />
                 ) : (
                     <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                        <Package className="h-10 w-10 text-muted-foreground/30" />
+                        {isService ? (
+                            <Wrench className="h-10 w-10 text-primary/30" />
+                        ) : (
+                            <Package className="h-10 w-10 text-muted-foreground/30" />
+                        )}
                     </div>
                 )}
 
-                {listing.condition && (
+                {isService ? (
+                    <span className="absolute left-2 top-2 rounded-full bg-primary/90 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm backdrop-blur">
+                        Service
+                    </span>
+                ) : listing.condition ? (
                     <span className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${conditionColors[listing.condition] ?? 'bg-gray-400 text-white'}`}>
                         {listing.condition === 'fairly_used' ? 'Fairly Used' : listing.condition === 'new' ? 'New' : 'Used'}
                     </span>
-                )}
+                ) : null}
 
                 <button
                     onClick={handleSaveToggle}
@@ -124,7 +135,9 @@ function ListingCard({ listing }: { listing: NmListingDetail })
                         </p>
                     )}
 
-                    <p className="truncate text-sm font-black text-foreground" title={fmt(listing.price)}>{fmt(listing.price)}</p>
+                    <p className="truncate text-sm font-black text-foreground" title={fmt(listing.price)}>
+                        {isService && listing.price > 0 ? `From ${fmt(listing.price)}` : fmt(listing.price)}
+                    </p>
                     {listing.negotiable && (
                         <p className="mt-0.5 text-[10px] font-semibold text-emerald">Negotiable</p>
                     )}
@@ -136,15 +149,21 @@ function ListingCard({ listing }: { listing: NmListingDetail })
                     )}
                 </div>
 
-                <button
-                    onClick={handleAddToCart}
-                    disabled={listing.stock <= 0}
-                    className={`mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-colors disabled:opacity-50 ${inCart ? 'bg-primary/10 text-primary' : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                        }`}
-                >
-                    <ShoppingCart className="h-3.5 w-3.5" />
-                    {listing.stock <= 0 ? 'Out of Stock' : inCart ? 'Added' : 'Add to Cart'}
-                </button>
+                {isService ? (
+                    <span className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary/10 py-2 text-xs font-bold text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                        <Calendar className="h-3.5 w-3.5" /> Book Service
+                    </span>
+                ) : (
+                    <button
+                        onClick={handleAddToCart}
+                        disabled={listing.stock <= 0}
+                        className={`mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-colors disabled:opacity-50 ${inCart ? 'bg-primary/10 text-primary' : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                            }`}
+                    >
+                        <ShoppingCart className="h-3.5 w-3.5" />
+                        {listing.stock <= 0 ? 'Out of Stock' : inCart ? 'Added' : 'Add to Cart'}
+                    </button>
+                )}
             </div>
         </Link>
     )

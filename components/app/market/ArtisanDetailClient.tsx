@@ -11,13 +11,16 @@ import
         CheckCircle2, Tag, Eye, TrendingUp,
     } from 'lucide-react'
 import { toggleSavedListing } from '@/lib/actions/marketplace'
-import type { NmListingDetail, NmReview } from '@/lib/types'
-import { Heart } from 'lucide-react'
+import type { NmListingDetail, NmReview, ServiceCategory } from '@/lib/types'
+import { Heart, Edit3 } from 'lucide-react'
+import EscrowOrderModal from './EscrowOrderModal'
+import ArtisanProfileModal from './ArtisanProfileModal'
 
 interface Props
 {
     listing: NmListingDetail
     reviews: NmReview[]
+    categories?: ServiceCategory[]
     currentUserId: string
     userEmail: string
 }
@@ -27,12 +30,14 @@ function fmt(n: number)
     return `₦${n.toLocaleString('en-NG')}`
 }
 
-export default function ArtisanDetailClient({ listing, reviews, currentUserId, userEmail }: Props)
+export default function ArtisanDetailClient({ listing, reviews, categories = [], currentUserId, userEmail }: Props)
 {
     const router = useRouter()
     const [imgIdx, setImgIdx] = useState(0)
     const [saved, setSaved] = useState(listing.is_saved)
     const [savingToggle, setSavingToggle] = useState(false)
+    const [editModalOpen, setEditModalOpen] = useState(false)
+    const [orderModalOpen, setOrderModalOpen] = useState(false)
 
     const images = listing.image_urls?.length > 0 ? listing.image_urls : (listing.cover_image_url ? [listing.cover_image_url] : [])
     const isOwner = listing.user_id === currentUserId
@@ -58,8 +63,9 @@ export default function ArtisanDetailClient({ listing, reviews, currentUserId, u
 
     function handleContact()
     {
-        if (!listing.user_id) { toast.error('Unable to contact this artisan'); return }
-        router.push(`/app/chat?to=${listing.user_id}`)
+        const target = listing.user_id || listing.seller_id
+        if (!target) { toast.error('Unable to contact this artisan'); return }
+        router.push(`/app/chat?to=${target}`)
     }
 
     return (
@@ -328,9 +334,10 @@ export default function ArtisanDetailClient({ listing, reviews, currentUserId, u
             {/* ── Fixed bottom CTA ── */}
             <div className="fixed bottom-16 lg:bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-sm border-t border-border px-4 py-3 flex gap-3 max-w-3xl mx-auto">
                 {isOwner ? (
-                    <button className="flex-1 py-3 rounded-2xl text-sm font-black text-center text-primary-foreground bg-primary transition-colors hover:bg-primary/90"
-                        onClick={() => router.push(`/app/market/${listing.id}`)}>
-                        View / Edit Service Listing
+                    <button
+                        onClick={() => setEditModalOpen(true)}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-black text-center text-primary-foreground bg-primary transition-colors hover:bg-primary/90">
+                        <Edit3 className="w-4 h-4" /> Edit Service Listing
                     </button>
                 ) : (
                     <>
@@ -340,14 +347,44 @@ export default function ArtisanDetailClient({ listing, reviews, currentUserId, u
                         </button>
                         {listing.price > 0 && (
                             <button
-                                onClick={() => router.push(`/app/market/${listing.id}`)}
-                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-black text-primary-foreground bg-primary transition-colors hover:bg-primary/90">
-                                <Calendar className="w-4 h-4" /> Book / Order
+                                onClick={() => setOrderModalOpen(true)}
+                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-black text-primary-foreground bg-primary transition-colors hover:bg-primary/90 active:scale-95">
+                                <Calendar className="w-4 h-4" /> Book Service
                             </button>
                         )}
                     </>
                 )}
             </div>
+
+            {/* Direct Booking Modal */}
+            <EscrowOrderModal
+                open={orderModalOpen}
+                onOpenChange={setOrderModalOpen}
+                listing={listing}
+                userEmail={userEmail}
+                userId={currentUserId}
+            />
+
+            {/* In-place Service Edit Modal */}
+            {isOwner && (
+                <ArtisanProfileModal
+                    open={editModalOpen}
+                    onOpenChange={setEditModalOpen}
+                    categories={categories}
+                    existing={{
+                        id: listing.id,
+                        title: listing.title,
+                        description: listing.description,
+                        category_id: listing.category_id,
+                        price: listing.price,
+                        state: listing.state,
+                        city: listing.city,
+                        tags: listing.tags,
+                        is_active: listing.is_active,
+                        image_urls: listing.image_urls,
+                    }}
+                />
+            )}
         </div>
     )
 }

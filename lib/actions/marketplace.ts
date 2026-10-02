@@ -964,11 +964,14 @@ export async function fetchStorefrontBySlug(slug: string): Promise<any | null> {
 
 export async function fetchArtisans(filters: {
   category_id?: string
+  service_type?: string
   state?: string
   search?: string
   cursor?: string
+  limit?: number
 } = {}): Promise<{ artisans: any[]; nextCursor: string | null }> {
   const supabase = await createClient()
+  const pageSize = filters.limit ?? 50
 
   let query = supabase
     .from('nm_listings')
@@ -976,15 +979,15 @@ export async function fetchArtisans(filters: {
       id, seller_id, user_id, title, description, price, state, city,
       rating, review_count, is_active, tags, created_at,
       seller_profile:nm_seller_profiles!nm_listings_seller_id_fkey(
-        id, business_name, bio, logo_url, is_verified, tradecred_score, rating
+        id, business_name, bio, logo_url, is_verified, tradecred_score, rating, user_id
       ),
       listing_images:nm_listing_images(image_url, sort_order),
-      category:services_categories(id, name)
+      category:services_categories(id, name, service_type)
     `)
     .eq('listing_type', 'service')
     .eq('is_active', true)
     .order('created_at', { ascending: false })
-    .limit(25)
+    .limit(pageSize + 1)
 
   if (filters.category_id) query = query.eq('category_id', filters.category_id)
   if (filters.state) query = query.eq('state', filters.state)
@@ -992,10 +995,18 @@ export async function fetchArtisans(filters: {
   if (filters.cursor) query = (query as any).lt('created_at', filters.cursor)
 
   const { data, error } = await query
-  if (error) return { artisans: [], nextCursor: null }
+  if (error || !data) {
+    console.error('fetchArtisans error:', error)
+    return { artisans: [], nextCursor: null }
+  }
 
-  const hasMore = (data ?? []).length >= 25
-  const page = (data ?? []).slice(0, 25)
+  let filtered = data
+  if (filters.service_type) {
+    filtered = filtered.filter((row: any) => row.category?.service_type === filters.service_type)
+  }
+
+  const hasMore = filtered.length > pageSize
+  const page = hasMore ? filtered.slice(0, pageSize) : filtered
 
   const artisans = page.map((row: any) => {
     const imgs = (row.listing_images ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order)
@@ -1009,6 +1020,7 @@ export async function fetchArtisans(filters: {
       seller_bio: sp.bio ?? null,
       seller_logo_url: sp.logo_url ?? null,
       category_name: row.category?.name ?? null,
+      service_type: row.category?.service_type ?? 'artisan',
       seller_profile: undefined,
       listing_images: undefined,
       category: undefined,
@@ -1018,8 +1030,79 @@ export async function fetchArtisans(filters: {
   return { artisans, nextCursor: hasMore ? page[page.length - 1].created_at : null }
 }
 
+/** Fetch a single artisan profile and their services by seller_id, user_id, or listing id */
+export async function fetchArtisanByKey(artisanKey: string): Promise<any | null> {
+  const supabase = await createClient()
+
+  // Query service listings matching this key
+  const { data: listings, error } = await supabase
+    .from('nm_listings')
+    .select(`
+      id, seller_id, user_id, title, description, price, state, city,
+      rating, review_count, is_active, tags, created_at,
+      seller_profile:nm_seller_profiles!nm_listings_seller_id_fkey(
+        id, business_name, bio, logo_url, is_verified, tradecred_score, rating, user_id
+      ),
+      listing_images:nm_listing_images(image_url, sort_order),
+      category:services_categories(id, name, service_type)
+    `)
+    .eq('listing_type', 'service')
+    .or(`seller_id.eq.${artisanKey},user_id.eq.${artisanKey},id.eq.${artisanKey}`)
+    .order('created_at', { ascending: false })
+
+  if (error || !listings || listings.length === 0) {
+    return null
+  }
+
+  const first = listings[0]
+  const rawSp = first.seller_profile as any
+  const sp = (Array.isArray(rawSp) ? rawSp[0] : rawSp) ?? {}
+  const targetUserId = first.user_id || sp.user_id
+
+  let userProfileName: string | null = null
+  let userAvatar: string | null = null
+
+  if (targetUserId) {
+    const { data: u } = await supabase
+      .from('users')
+      .select('display_name, avatar_url, username')
+      .or(`id.eq.${targetUserId},auth_id.eq.${targetUserId}`)
+      .maybeSingle()
+    if (u) {
+      userProfileName = u.display_name
+      userAvatar = u.avatar_url
+    }
+  }
+
+  const mappedServices = listings.map((row: any) => {
+    const imgs = (row.listing_images ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order)
+    return {
+      ...row,
+      cover_image_url: imgs[0]?.image_url ?? null,
+      image_urls: imgs.map((i: any) => i.image_url),
+      category_name: row.category?.name ?? null,
+      service_type: row.category?.service_type ?? 'artisan',
+    }
+  })
+
+  const displayName = sp.business_name || userProfileName || first.title || 'Artisan Professional'
+  const avatarUrl = sp.logo_url || userAvatar || mappedServices[0]?.cover_image_url || null
+
+  return {
+    artisanKey,
+    displayName,
+    avatarUrl,
+    isVerified: sp.is_verified ?? false,
+    bio: sp.bio ?? first.description ?? null,
+    location: [first.city, first.state].filter(Boolean).join(', ') || null,
+    userId: targetUserId || null,
+    services: mappedServices,
+  }
+}
+
 /** Create/update an artisan service listing */
 export async function createOrUpdateArtisanProfile(data: {
+  id?: string
   title?: string
   description?: string
   category_id?: string
@@ -1033,52 +1116,76 @@ export async function createOrUpdateArtisanProfile(data: {
   const { supabase, authUser } = await requireAuth()
   const sellerId = await getOrCreateSellerProfile(supabase, authUser.id)
 
-  // Check if user already has a service listing
-  const { data: existing } = await supabase
-    .from('nm_listings')
-    .select('id')
-    .eq('user_id', authUser.id)
-    .eq('listing_type', 'service')
-    .maybeSingle()
-
   let listingId: string
 
-  if (existing) {
-    listingId = existing.id
-    await supabase.from('nm_listings')
+  if (data.id) {
+    // Specifically updating an existing service listing
+    const { error: updateErr } = await supabase.from('nm_listings')
       .update({
         ...(data.title && { title: data.title }),
-        ...(data.description && { description: data.description }),
+        ...(data.description !== undefined && { description: data.description }),
         ...(data.category_id !== undefined && { category_id: data.category_id }),
-        ...(data.price && { price: data.price }),
-        ...(data.state && { state: data.state }),
-        ...(data.city && { city: data.city }),
-        ...(data.tags && { tags: data.tags }),
+        ...(data.price !== undefined && { price: data.price }),
+        ...(data.state !== undefined && { state: data.state }),
+        ...(data.city !== undefined && { city: data.city }),
+        ...(data.tags !== undefined && { tags: data.tags }),
         ...(data.is_active !== undefined && { is_active: data.is_active }),
         updated_at: new Date().toISOString(),
       })
-      .eq('id', existing.id)
-  } else {
-    const { data: created, error } = await supabase.from('nm_listings').insert({
-      seller_id: sellerId,
-      user_id: authUser.id,
-      title: data.title ?? 'My Services',
-      description: data.description ?? '',
-      listing_type: 'service',
-      price: data.price ?? 0,
-      category_id: data.category_id ?? null,
-      state: data.state ?? null,
-      city: data.city ?? null,
-      tags: data.tags ?? [],
-      delivery_option: 'none',
-      is_active: data.is_active ?? true,
-    }).select('id').single()
+      .eq('id', data.id)
+      .eq('user_id', authUser.id)
 
-    if (error || !created) throw new Error('Failed to create artisan profile')
-    listingId = created.id
+    if (updateErr) throw new Error('Failed to update service listing: ' + updateErr.message)
+    listingId = data.id
+  } else {
+    // Check if user has an existing service listing to update, or create a new one
+    const { data: existingRows } = await supabase
+      .from('nm_listings')
+      .select('id')
+      .eq('user_id', authUser.id)
+      .eq('listing_type', 'service')
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    const existing = existingRows?.[0]
+
+    // If existing and user did not specify a new title, update the most recent one
+    if (existing && !data.title) {
+      listingId = existing.id
+      await supabase.from('nm_listings')
+        .update({
+          ...(data.description !== undefined && { description: data.description }),
+          ...(data.category_id !== undefined && { category_id: data.category_id }),
+          ...(data.price !== undefined && { price: data.price }),
+          ...(data.state !== undefined && { state: data.state }),
+          ...(data.city !== undefined && { city: data.city }),
+          ...(data.tags !== undefined && { tags: data.tags }),
+          ...(data.is_active !== undefined && { is_active: data.is_active }),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id)
+    } else {
+      const { data: created, error } = await supabase.from('nm_listings').insert({
+        seller_id: sellerId,
+        user_id: authUser.id,
+        title: data.title ?? 'My Services',
+        description: data.description ?? '',
+        listing_type: 'service',
+        price: data.price ?? 0,
+        category_id: data.category_id ?? null,
+        state: data.state ?? null,
+        city: data.city ?? null,
+        tags: data.tags ?? [],
+        delivery_option: 'none',
+        is_active: data.is_active ?? true,
+      }).select('id').single()
+
+      if (error || !created) throw new Error('Failed to create artisan profile')
+      listingId = created.id
+    }
   }
 
-  // Re-sync portfolio images if provided (same pattern as updateListing)
+  // Re-sync portfolio images if provided
   if (data.images) {
     await supabase.from('nm_listing_images').delete().eq('listing_id', listingId)
     if (data.images.length > 0) {
@@ -1089,6 +1196,7 @@ export async function createOrUpdateArtisanProfile(data: {
   }
 
   revalidatePath('/app/market/artisans')
+  revalidatePath(`/app/market/artisans/${listingId}`)
   return { id: listingId }
 }
 

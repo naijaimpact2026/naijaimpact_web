@@ -157,10 +157,10 @@ export default function ArtisanProfilePage({ artisan, currentUserId }: Props)
                             </div>
                             {/* Action buttons */}
                             <div className="flex gap-2">
-                                {!isOwner && artisan.userId && (
-                                    <Link href={`/app/chat?to=${artisan.userId}`}
+                                {!isOwner && (
+                                    <Link href={`/app/chat?to=${artisan.userId || artisan.artisanKey}`}
                                         className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-primary-foreground bg-primary transition-colors hover:bg-primary/90">
-                                        <MessageCircle className="w-4 h-4" /> Chat
+                                        <MessageCircle className="w-4 h-4" /> Chat Artisan
                                     </Link>
                                 )}
                                 {isOwner && (
