@@ -3,9 +3,10 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { BadgeCheck, Users, Sparkles, Megaphone, Rocket, ArrowRight } from 'lucide-react'
+import { BadgeCheck, Users, Sparkles, Megaphone, Rocket, ArrowRight, Clock } from 'lucide-react'
 import type { CampaignWithCreator } from '@/lib/types'
 import { toPublicStorageUrl } from '@/lib/supabase-image'
+import { formatDistanceToNow } from 'date-fns'
 
 function formatNGN(amount: number): string {
   if (amount >= 1_000_000_000) return `₦${(amount / 1_000_000_000).toFixed(1)}B`
@@ -101,22 +102,34 @@ export default function FundingCard({ campaign }: FundingCardProps) {
         {/* Card Body */}
         <div className="flex flex-col gap-3.5 p-5 flex-1 justify-between">
           <div className="space-y-2">
-            {/* Creator Profile */}
-            <div className="flex items-center gap-2">
-              <Avatar className="h-5 w-5 shrink-0 ring-1 ring-border">
-                <AvatarImage src={campaign.creator.avatar_url ?? undefined} />
-                <AvatarFallback className="text-[9px] font-bold bg-primary/10 text-primary">
-                  {campaign.creator.username?.charAt(0).toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex items-center gap-1">
-                <span className="text-xs text-muted-foreground truncate font-medium">
-                  {campaign.creator.display_name || campaign.creator.username}
-                </span>
-                {campaign.creator.verified && (
-                  <BadgeCheck className="w-3.5 h-3.5 text-primary shrink-0" />
-                )}
+            {/* Creator Profile & Timestamp */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Avatar className="h-5 w-5 shrink-0 ring-1 ring-border">
+                  <AvatarImage src={campaign.creator.avatar_url ?? undefined} />
+                  <AvatarFallback className="text-[9px] font-bold bg-primary/10 text-primary">
+                    {campaign.creator.username?.charAt(0).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground truncate font-medium">
+                    {campaign.creator.display_name || campaign.creator.username}
+                  </span>
+                  {campaign.creator.verified && (
+                    <BadgeCheck className="w-3.5 h-3.5 text-primary shrink-0" />
+                  )}
+                </div>
               </div>
+
+              {campaign.created_at && (
+                <span
+                  suppressHydrationWarning
+                  className="inline-flex items-center gap-1 text-[11px] text-muted-foreground shrink-0 font-medium"
+                >
+                  <Clock className="w-3 h-3 text-muted-foreground/70" />
+                  {formatDistanceToNow(new Date(campaign.created_at), { addSuffix: true })}
+                </span>
+              )}
             </div>
 
             <h3 className="font-bold text-base text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors">
