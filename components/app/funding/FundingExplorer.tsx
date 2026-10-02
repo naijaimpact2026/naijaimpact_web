@@ -81,7 +81,7 @@ export default function FundingExplorer({
 
   const sentinelRef = useRef<HTMLDivElement>(null)
   const requestIdRef = useRef(0)
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Sync state to URL bar without causing a blocking full-page server round-trip
   const syncUrl = useCallback(
