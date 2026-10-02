@@ -79,6 +79,7 @@ export default function ArtisanProfileModal({ open, onOpenChange, categories, ex
         try
         {
             await createOrUpdateArtisanProfile({
+                id: existing?.id,
                 title: values.title,
                 description: values.description,
                 category_id: values.category_id,
@@ -89,7 +90,7 @@ export default function ArtisanProfileModal({ open, onOpenChange, categories, ex
                 is_active: values.is_active,
                 images: portfolioImages,
             })
-            toast.success(existing ? 'Profile updated!' : 'Artisan profile created!')
+            toast.success(existing ? 'Service listing updated!' : 'Artisan service created!')
             onOpenChange(false)
             router.refresh()
         } catch (err)

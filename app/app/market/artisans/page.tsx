@@ -27,6 +27,8 @@ export default async function ArtisanMarketPage()
         `)
         .eq('user_id', authUser.id)
         .eq('listing_type', 'service')
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle()
 
     const myArtisanProfile = myServiceListing
