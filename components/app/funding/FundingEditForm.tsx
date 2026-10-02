@@ -1,433 +1,336 @@
 'use client'
 
-// import { useState } from 'react'
-// import { useRouter } from 'next/navigation'
-// import { useForm } from 'react-hook-form'
-// import { zodResolver } from '@hookform/resolvers/zod'
-// import { z } from 'zod'
-// import Image from 'next/image'
-// import { Button } from '@/components/ui/button'
-// import { Input } from '@/components/ui/input'
-// import { Label } from '@/components/ui/label'
-// import { Textarea } from '@/components/ui/textarea'
-// import
-//     {
-//         ArrowLeft,
-//         ArrowRight,
-//         Megaphone,
-//         FolderKanban,
-//         CheckCircle2,
-//         Loader2,
-//     } from 'lucide-react'
-// import { MediaUploader, UploadedFile } from '@/components/app/MediaUploader'
-// import { updateCampaign } from '@/lib/actions/funding'
-// import { toast } from 'sonner'
-// import { cn } from '@/lib/utils'
-// import type { Campaign } from '@/lib/types'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import Image from 'next/image'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  ArrowLeft,
+  Megaphone,
+  Rocket,
+  Loader2,
+  Trash2,
+  ImageIcon,
+} from 'lucide-react'
+import { MediaUploader, type UploadedFile } from '@/components/app/MediaUploader'
+import { updateCampaign, deleteCampaign } from '@/lib/actions/funding'
+import { toast } from 'sonner'
+import type { Campaign, FundingCategory, FundingType } from '@/lib/types'
+import { toPublicStorageUrl } from '@/lib/supabase-image'
 
-// // ─── Zod schema ───────────────────────────────────────────────────────────────
+const editCampaignSchema = z.object({
+  title: z
+    .string()
+    .min(3, 'Title must be at least 3 characters')
+    .max(120, 'Title must be 120 characters or less'),
+  funding_type: z.enum(['campaign', 'project']),
+  category_id: z.string().optional(),
+  goal_amount: z
+    .number({ invalid_type_error: 'Goal amount is required' })
+    .min(1000, 'Goal must be at least ₦1,000'),
+  impact: z.string().max(300, 'Impact summary must be 300 characters or less').optional(),
+  description: z.string().max(8000, 'Description must be 8000 characters or less').optional(),
+})
 
-// const step2Schema = z.object({
-//     title: z
-//         .string()
-//         .min(1, 'Title is required')
-//         .max(100, 'Title must be 100 characters or less'),
-//     description: z.string().max(5000, 'Description must be 5000 characters or less'),
-//     goal_amount: z
-//         .number({ invalid_type_error: 'Goal amount is required' })
-//         .min(1000, 'Goal must be at least ₦1,000'),
-//     deadline: z.string().refine((val) =>
-//     {
-//         if (!val) return false
-//         const date = new Date(val)
-//         return date > new Date()
-//     }, 'Deadline must be a future date'),
-// })
+type EditCampaignFormValues = z.infer<typeof editCampaignSchema>
 
-// type Step2Data = z.infer<typeof step2Schema>
+interface FundingEditFormProps {
+  campaign: Campaign
+  categories: FundingCategory[]
+}
 
-// // ─── Step indicator ───────────────────────────────────────────────────────────
+export default function FundingEditForm({ campaign, categories }: FundingEditFormProps) {
+  const router = useRouter()
+  const [coverUrl, setCoverUrl] = useState<string | null>(
+    campaign.cover_image_url || campaign.cover_url || null
+  )
+  const [submitting, setSubmitting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
-// function StepIndicator({ current, total }: { current: number; total: number })
-// {
-//     return (
-//         <div className="flex items-center gap-2 mb-6">
-//             {Array.from({ length: total }).map((_, i) => (
-//                 <div
-//                     key={i}
-//                     className={cn(
-//                         'h-2 flex-1 rounded-full transition-all duration-300',
-//                         i < current ? 'bg-primary' : i === current ? 'bg-primary/60' : 'bg-muted'
-//                     )}
-//                 />
-//             ))}
-//             <span className="text-sm text-muted-foreground ml-2 shrink-0">
-//                 {current + 1} of {total}
-//             </span>
-//         </div>
-//     )
-// }
+  const form = useForm<EditCampaignFormValues>({
+    resolver: zodResolver(editCampaignSchema),
+    defaultValues: {
+      title: campaign.title || '',
+      funding_type: campaign.funding_type || 'campaign',
+      category_id: campaign.category_id || '',
+      goal_amount: campaign.goal_amount || 50000,
+      impact: campaign.impact || '',
+      description: campaign.description || '',
+    },
+  })
 
-// // ─── Props ────────────────────────────────────────────────────────────────────
+  const currentType = form.watch('funding_type')
 
-// interface FundingEditFormProps
-// {
-//     campaign: Campaign
-// }
+  const handleMediaUpload = (files: UploadedFile[]) => {
+    if (files.length > 0) {
+      setCoverUrl(files[0].secure_url)
+      toast.success('Cover image uploaded!')
+    }
+  }
 
-// // ─── Main component ───────────────────────────────────────────────────────────
+  async function onSubmit(values: EditCampaignFormValues) {
+    setSubmitting(true)
+    try {
+      await updateCampaign(campaign.id, {
+        title: values.title,
+        funding_type: values.funding_type as FundingType,
+        category_id: values.category_id === '__others__' ? null : values.category_id || null,
+        goal_amount: values.goal_amount,
+        impact: values.impact || null,
+        description: values.description || null,
+        cover_image_url: coverUrl,
+      })
 
-// export default function FundingEditForm({ campaign }: FundingEditFormProps)
-// {
-//     const router = useRouter()
-//     const [step, setStep] = useState(0)
-//     const [campaignType, setCampaignType] = useState<'campaign' | 'project'>(campaign.type)
-//     // Pre-populate cover from existing data; null means cleared
-//     const [coverFile, setCoverFile] = useState<UploadedFile | null>(
-//         campaign.cover_url
-//             ? { secure_url: campaign.cover_url, public_id: '', mediaType: 'image' }
-//             : null
-//     )
-//     const [submitting, setSubmitting] = useState(false)
+      toast.success('Campaign updated successfully!')
+      router.push(`/app/funding/${campaign.id}`)
+      router.refresh()
+    } catch (err: any) {
+      console.error('Update campaign error:', err)
+      toast.error(err.message || 'Failed to update campaign')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
-//     const form = useForm<Step2Data>({
-//         resolver: zodResolver(step2Schema),
-//         defaultValues: {
-//             title: campaign.title,
-//             description: campaign.description ?? '',
-//             goal_amount: campaign.goal_amount,
-//             // Deadline from DB may be "YYYY-MM-DD" — use directly
-//             deadline: campaign.deadline.substring(0, 10),
-//         },
-//     })
+  async function handleDelete() {
+    if (!window.confirm('Are you sure you want to delete this campaign? This cannot be undone.')) {
+      return
+    }
 
-//     const { register, watch, trigger, formState: { errors } } = form
-//     const titleValue = watch('title') ?? ''
-//     const descValue = watch('description') ?? ''
+    setDeleting(true)
+    try {
+      await deleteCampaign(campaign.id)
+      toast.success('Campaign removed')
+      router.push('/app/funding')
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete campaign')
+      setDeleting(false)
+    }
+  }
 
-//     // ── Navigation ───────────────────────────────────────────────────────────────
+  const previewCover = toPublicStorageUrl(coverUrl)
 
-//     async function handleNext()
-//     {
-//         if (step === 0)
-//         {
-//             setStep(1)
-//         } else if (step === 1)
-//         {
-//             const valid = await trigger()
-//             if (valid) setStep(2)
-//         } else if (step === 2)
-//         {
-//             setStep(3)
-//         }
-//     }
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      {/* Type Selector */}
+      <div className="space-y-2">
+        <Label className="text-sm font-semibold">Initiative Type</Label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => form.setValue('funding_type', 'campaign')}
+            className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
+              currentType === 'campaign'
+                ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-100 ring-2 ring-emerald-600/30'
+                : 'border-border bg-card text-foreground hover:border-emerald-600/40'
+            }`}
+          >
+            <div className="p-2.5 rounded-lg bg-emerald-600 text-white shrink-0">
+              <Megaphone className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Campaign</p>
+              <p className="text-xs text-muted-foreground">Community causes & emergency relief</p>
+            </div>
+          </button>
 
-//     function handleBack()
-//     {
-//         if (step > 0) setStep((s) => s - 1)
-//     }
+          <button
+            type="button"
+            onClick={() => form.setValue('funding_type', 'project')}
+            className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
+              currentType === 'project'
+                ? 'border-amber-600 bg-amber-50/50 dark:bg-amber-950/20 text-amber-900 dark:text-amber-100 ring-2 ring-amber-600/30'
+                : 'border-border bg-card text-foreground hover:border-amber-600/40'
+            }`}
+          >
+            <div className="p-2.5 rounded-lg bg-amber-600 text-white shrink-0">
+              <Rocket className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Project</p>
+              <p className="text-xs text-muted-foreground">Creative, business & tech ventures</p>
+            </div>
+          </button>
+        </div>
+      </div>
 
-//     // ── Submit ───────────────────────────────────────────────────────────────────
+      {/* Title & Category */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="title" className="text-sm font-semibold">
+            Campaign Title <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="title"
+            placeholder="e.g. Solar Power for Lagos Tech Hub"
+            {...form.register('title')}
+            className="rounded-xl"
+          />
+          {form.formState.errors.title && (
+            <p className="text-xs text-destructive">{form.formState.errors.title.message}</p>
+          )}
+        </div>
 
-//     async function handleFinalSubmit()
-//     {
-//         const values = form.getValues()
-//         setSubmitting(true)
-//         try
-//         {
-//             await updateCampaign(campaign.id, {
-//                 type: campaignType,
-//                 title: values.title,
-//                 description: values.description,
-//                 goal_amount: values.goal_amount,
-//                 deadline: values.deadline,
-//                 cover_url: coverFile?.secure_url ?? null,
-//             })
-//             toast.success('Campaign updated successfully!')
-//             router.push(`/app/funding/${campaign.id}`)
-//         } catch (err: any)
-//         {
-//             toast.error(err?.message ?? 'Failed to update campaign')
-//             setSubmitting(false)
-//         }
-//     }
+        <div className="space-y-1.5">
+          <Label className="text-sm font-semibold">Category</Label>
+          <Select
+            value={form.watch('category_id') || undefined}
+            onValueChange={(val) => form.setValue('category_id', val)}
+          >
+            <SelectTrigger className="rounded-xl">
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+              <SelectItem value="__others__">Others</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-//     // ── Render ───────────────────────────────────────────────────────────────────
+      {/* Goal Amount */}
+      <div className="space-y-1.5">
+        <Label htmlFor="goal_amount" className="text-sm font-semibold">
+          Target Goal Amount (₦) <span className="text-destructive">*</span>
+        </Label>
+        <div className="relative">
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">
+            ₦
+          </span>
+          <Input
+            id="goal_amount"
+            type="number"
+            min={1000}
+            className="pl-8 rounded-xl font-bold"
+            value={form.watch('goal_amount') ?? ''}
+            onChange={(e) => form.setValue('goal_amount', Number(e.target.value))}
+          />
+        </div>
+        {form.formState.errors.goal_amount && (
+          <p className="text-xs text-destructive">{form.formState.errors.goal_amount.message}</p>
+        )}
+      </div>
 
-//     return (
-//         <div className="bento-card noise-bg p-6">
-//             <StepIndicator current={step} total={4} />
+      {/* Impact Pitch */}
+      <div className="space-y-1.5">
+        <Label htmlFor="impact" className="text-sm font-semibold">
+          Impact Pitch <span className="text-xs text-muted-foreground font-normal">(One-liner pitch)</span>
+        </Label>
+        <Input
+          id="impact"
+          placeholder="What specific impact will this project deliver?"
+          {...form.register('impact')}
+          className="rounded-xl"
+        />
+        {form.formState.errors.impact && (
+          <p className="text-xs text-destructive">{form.formState.errors.impact.message}</p>
+        )}
+      </div>
 
-//             {/* Step 0 — Type */}
-//             {step === 0 && (
-//                 <div className="space-y-4">
-//                     <h2 className="text-lg font-semibold">Campaign type</h2>
-//                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-//                         <button
-//                             type="button"
-//                             onClick={() => setCampaignType('campaign')}
-//                             className={cn(
-//                                 'bento-card noise-bg p-5 text-left border-2 transition-all duration-200 rounded-xl',
-//                                 campaignType === 'campaign'
-//                                     ? 'border-primary bg-primary/5'
-//                                     : 'border-border hover:border-primary/40'
-//                             )}
-//                         >
-//                             <div className="flex items-center gap-3 mb-3">
-//                                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-//                                     <Megaphone className="h-5 w-5 text-primary" />
-//                                 </div>
-//                                 <span className="font-semibold">Campaign</span>
-//                                 {campaignType === 'campaign' && (
-//                                     <CheckCircle2 className="h-5 w-5 text-primary ml-auto" />
-//                                 )}
-//                             </div>
-//                             <p className="text-sm text-muted-foreground">
-//                                 Raise funds for a personal cause, emergency, or social impact initiative.
-//                             </p>
-//                         </button>
+      {/* Story / Description */}
+      <div className="space-y-1.5">
+        <Label htmlFor="description" className="text-sm font-semibold">
+          Full Story & Plan
+        </Label>
+        <Textarea
+          id="description"
+          rows={6}
+          placeholder="Share background, execution timeline, budget breakdown, and how donors can track progress..."
+          {...form.register('description')}
+          className="rounded-xl leading-relaxed resize-y"
+        />
+        {form.formState.errors.description && (
+          <p className="text-xs text-destructive">{form.formState.errors.description.message}</p>
+        )}
+      </div>
 
-//                         <button
-//                             type="button"
-//                             onClick={() => setCampaignType('project')}
-//                             className={cn(
-//                                 'bento-card noise-bg p-5 text-left border-2 transition-all duration-200 rounded-xl',
-//                                 campaignType === 'project'
-//                                     ? 'border-primary bg-primary/5'
-//                                     : 'border-border hover:border-primary/40'
-//                             )}
-//                         >
-//                             <div className="flex items-center gap-3 mb-3">
-//                                 <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center">
-//                                     <FolderKanban className="h-5 w-5 text-secondary" />
-//                                 </div>
-//                                 <span className="font-semibold">Project</span>
-//                                 {campaignType === 'project' && (
-//                                     <CheckCircle2 className="h-5 w-5 text-primary ml-auto" />
-//                                 )}
-//                             </div>
-//                             <p className="text-sm text-muted-foreground">
-//                                 Fund a community initiative or creative project with a clear deliverable.
-//                             </p>
-//                         </button>
-//                     </div>
-//                 </div>
-//             )}
+      {/* Cover Image */}
+      <div className="space-y-3 pt-2 border-t border-border">
+        <Label className="text-sm font-semibold">Cover Media</Label>
 
-//             {/* Step 1 — Details */}
-//             {step === 1 && (
-//                 <div className="space-y-5">
-//                     <h2 className="text-lg font-semibold">Campaign details</h2>
+        {previewCover ? (
+          <div className="relative aspect-[16/9] w-full max-w-lg rounded-2xl overflow-hidden border border-border bg-muted">
+            <Image
+              src={previewCover}
+              alt="Campaign cover preview"
+              fill
+              className="object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => setCoverUrl(null)}
+              className="absolute top-3 right-3 p-2 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors shadow-md"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <MediaUploader
+              onUploadComplete={handleMediaUpload}
+              maxImages={1}
+              maxVideos={0}
+              className="rounded-2xl"
+            />
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <ImageIcon className="w-3.5 h-3.5" /> High-resolution JPG or PNG recommended (16:9 ratio).
+            </p>
+          </div>
+        )}
+      </div>
 
-//                     <div className="space-y-1.5">
-//                         <div className="flex items-center justify-between">
-//                             <Label htmlFor="title">Title</Label>
-//                             <span className="text-xs text-muted-foreground">{titleValue.length}/100</span>
-//                         </div>
-//                         <Input
-//                             id="title"
-//                             placeholder="Give your campaign a clear, compelling title"
-//                             {...register('title')}
-//                             aria-invalid={!!errors.title}
-//                         />
-//                         {errors.title && (
-//                             <p className="text-xs text-destructive">{errors.title.message}</p>
-//                         )}
-//                     </div>
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border">
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={handleDelete}
+          disabled={deleting || submitting}
+          className="w-full sm:w-auto gap-2"
+        >
+          {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+          Delete Campaign
+        </Button>
 
-//                     <div className="space-y-1.5">
-//                         <div className="flex items-center justify-between">
-//                             <Label htmlFor="description">Description</Label>
-//                             <span className="text-xs text-muted-foreground">{descValue.length}/5000</span>
-//                         </div>
-//                         <Textarea
-//                             id="description"
-//                             placeholder="Tell your story"
-//                             rows={6}
-//                             {...register('description')}
-//                             aria-invalid={!!errors.description}
-//                         />
-//                         {errors.description && (
-//                             <p className="text-xs text-destructive">{errors.description.message}</p>
-//                         )}
-//                     </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+            disabled={submitting || deleting}
+            className="w-full sm:w-auto rounded-xl"
+          >
+            Cancel
+          </Button>
 
-//                     <div className="space-y-1.5">
-//                         <Label htmlFor="goal_amount">Goal amount</Label>
-//                         <div className="relative">
-//                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
-//                                 ₦
-//                             </span>
-//                             <Input
-//                                 id="goal_amount"
-//                                 type="number"
-//                                 min={1000}
-//                                 step={1}
-//                                 placeholder="10000"
-//                                 className="pl-7"
-//                                 {...register('goal_amount', { valueAsNumber: true })}
-//                                 aria-invalid={!!errors.goal_amount}
-//                             />
-//                         </div>
-//                         {errors.goal_amount && (
-//                             <p className="text-xs text-destructive">{errors.goal_amount.message}</p>
-//                         )}
-//                     </div>
-
-//                     <div className="space-y-1.5">
-//                         <Label htmlFor="deadline">Deadline</Label>
-//                         <Input
-//                             id="deadline"
-//                             type="date"
-//                             min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
-//                             {...register('deadline')}
-//                             aria-invalid={!!errors.deadline}
-//                         />
-//                         {errors.deadline && (
-//                             <p className="text-xs text-destructive">{errors.deadline.message}</p>
-//                         )}
-//                     </div>
-//                 </div>
-//             )}
-
-//             {/* Step 2 — Cover image */}
-//             {step === 2 && (
-//                 <div className="space-y-4">
-//                     <div>
-//                         <h2 className="text-lg font-semibold">Cover image</h2>
-//                         <p className="text-sm text-muted-foreground mt-1">
-//                             Update or keep the existing cover image. You can also remove it.
-//                         </p>
-//                     </div>
-
-//                     {coverFile ? (
-//                         <div className="space-y-3">
-//                             <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-muted">
-//                                 <Image
-//                                     src={coverFile.secure_url}
-//                                     alt="Cover preview"
-//                                     fill
-//                                     className="object-cover"
-//                                     sizes="(max-width: 768px) 100vw, 672px"
-//                                 />
-//                             </div>
-//                             <Button
-//                                 type="button"
-//                                 variant="outline"
-//                                 size="sm"
-//                                 onClick={() => setCoverFile(null)}
-//                             >
-//                                 Remove image
-//                             </Button>
-//                         </div>
-//                     ) : (
-//                         <MediaUploader
-//                             maxImages={1}
-//                             maxVideos={0}
-//                             onUploadComplete={(files) =>
-//                             {
-//                                 if (files.length > 0) setCoverFile(files[0])
-//                             }}
-//                         />
-//                     )}
-//                 </div>
-//             )}
-
-//             {/* Step 3 — Review */}
-//             {step === 3 && (
-//                 <div className="space-y-5">
-//                     <h2 className="text-lg font-semibold">Review your changes</h2>
-
-//                     {coverFile && (
-//                         <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-muted">
-//                             <Image
-//                                 src={coverFile.secure_url}
-//                                 alt="Campaign cover"
-//                                 fill
-//                                 className="object-cover"
-//                                 sizes="(max-width: 768px) 100vw, 672px"
-//                             />
-//                         </div>
-//                     )}
-
-//                     <div className="space-y-3 text-sm">
-//                         <div className="flex items-start gap-3">
-//                             <span className="text-muted-foreground w-28 shrink-0">Type</span>
-//                             <span className="font-medium capitalize">{campaignType}</span>
-//                         </div>
-//                         <div className="flex items-start gap-3">
-//                             <span className="text-muted-foreground w-28 shrink-0">Title</span>
-//                             <span className="font-medium">{form.getValues('title')}</span>
-//                         </div>
-//                         <div className="flex items-start gap-3">
-//                             <span className="text-muted-foreground w-28 shrink-0">Description</span>
-//                             <span className="line-clamp-4">{form.getValues('description') || '—'}</span>
-//                         </div>
-//                         <div className="flex items-start gap-3">
-//                             <span className="text-muted-foreground w-28 shrink-0">Goal</span>
-//                             <span className="font-medium">
-//                                 ₦{form.getValues('goal_amount')?.toLocaleString('en-NG')}
-//                             </span>
-//                         </div>
-//                         <div className="flex items-start gap-3">
-//                             <span className="text-muted-foreground w-28 shrink-0">Deadline</span>
-//                             <span className="font-medium">
-//                                 {new Date(form.getValues('deadline')).toLocaleDateString('en-NG', {
-//                                     day: 'numeric',
-//                                     month: 'long',
-//                                     year: 'numeric',
-//                                 })}
-//                             </span>
-//                         </div>
-//                         <div className="flex items-start gap-3">
-//                             <span className="text-muted-foreground w-28 shrink-0">Cover</span>
-//                             <span>{coverFile ? 'Set' : 'None'}</span>
-//                         </div>
-//                     </div>
-//                 </div>
-//             )}
-
-//             {/* Navigation */}
-//             <div className="flex items-center justify-between mt-8 pt-5 border-t border-border">
-//                 <Button
-//                     type="button"
-//                     variant="outline"
-//                     onClick={handleBack}
-//                     disabled={step === 0 || submitting}
-//                     className="gap-2"
-//                 >
-//                     <ArrowLeft className="h-4 w-4" />
-//                     Back
-//                 </Button>
-
-//                 {step < 3 ? (
-//                     <Button
-//                         type="button"
-//                         onClick={handleNext}
-//                         disabled={submitting}
-//                         className="gradient-primary text-white gap-2"
-//                     >
-//                         {step === 2 ? 'Review' : 'Next'}
-//                         <ArrowRight className="h-4 w-4" />
-//                     </Button>
-//                 ) : (
-//                     <Button
-//                         type="button"
-//                         onClick={handleFinalSubmit}
-//                         disabled={submitting}
-//                         className="gradient-primary text-white gap-2"
-//                     >
-//                         {submitting ? (
-//                             <>
-//                                 <Loader2 className="h-4 w-4 animate-spin" />
-//                                 Saving...
-//                             </>
-//                         ) : (
-//                             'Save Changes'
-//                         )}
-//                     </Button>
-//                 )}
-//             </div>
-//         </div>
-//     )
-// }
+          <Button
+            type="submit"
+            disabled={submitting || deleting}
+            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl gap-2"
+          >
+            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            Save Changes
+          </Button>
+        </div>
+      </div>
+    </form>
+  )
+}

@@ -24,27 +24,9 @@ import
         FormLabel,
         FormMessage,
     } from '@/components/ui/form'
-import { depositCallback } from '@/lib/actions/wallet'
-
-// ─── PaystackPop global type ──────────────────────────────────────────────────
-
-declare global
-{
-    interface Window
-    {
-        PaystackPop: {
-            setup(config: {
-                key: string
-                email: string
-                amount: number
-                ref: string
-                metadata?: Record<string, unknown>
-                onSuccess: (transaction: { reference: string }) => void
-                onClose: () => void
-            }): { openIframe(): void }
-        }
-    }
-}
+import { depositCallback, verifyAndProcessDeposit } from '@/lib/actions/wallet'
+import { ArrowLeft, RefreshCw } from 'lucide-react'
+import { Label } from '@/components/ui/label'
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -72,6 +54,9 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
 {
     const [inFlight, setInFlight] = useState(false)
     const [success, setSuccess] = useState(false)
+    const [recoveryMode, setRecoveryMode] = useState(false)
+    const [recoveryRef, setRecoveryRef] = useState('')
+    const [recovering, setRecovering] = useState(false)
 
     const form = useForm<DepositFormValues>({
         resolver: zodResolver(depositSchema),
@@ -98,20 +83,26 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
                 ref,
                 metadata: {
                     type: 'deposit',
-                    userId: undefined, // webhook resolves via email/user lookup; userId populated server-side
                 },
                 onSuccess: async (transaction) =>
                 {
-                    // Notify server-side (actual crediting done by webhook)
-                    await depositCallback(transaction.reference)
+                    setInFlight(true)
+                    const res = await verifyAndProcessDeposit(transaction.reference)
                     setInFlight(false)
-                    setSuccess(true)
-                    form.reset()
-                    setTimeout(() =>
+                    if (res.success)
                     {
-                        setSuccess(false)
-                        onOpenChange(false)
-                    }, 2500)
+                        setSuccess(true)
+                        form.reset()
+                        setTimeout(() =>
+                        {
+                            setSuccess(false)
+                            onOpenChange(false)
+                        }, 2500)
+                    }
+                    else
+                    {
+                        form.setError('root', { message: res.error || 'Verification failed. Use recovery with your reference.' })
+                    }
                 },
                 onClose: () =>
                 {
@@ -128,6 +119,29 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
         }
     }
 
+    async function handleRecover()
+    {
+        if (!recoveryRef.trim()) return
+        setRecovering(true)
+        const res = await verifyAndProcessDeposit(recoveryRef.trim())
+        setRecovering(false)
+        if (res.success)
+        {
+            setSuccess(true)
+            setTimeout(() =>
+            {
+                setSuccess(false)
+                setRecoveryMode(false)
+                setRecoveryRef('')
+                onOpenChange(false)
+            }, 2500)
+        }
+        else
+        {
+            form.setError('root', { message: res.error || 'Could not verify this deposit reference' })
+        }
+    }
+
     function handleOpenChange(val: boolean)
     {
         if (inFlight) return // block close while payment popup is open
@@ -135,6 +149,8 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
         {
             form.reset()
             setSuccess(false)
+            setRecoveryMode(false)
+            setRecoveryRef('')
         }
         onOpenChange(val)
     }
@@ -150,10 +166,73 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
                 {success ? (
                     <div className="py-10 text-center space-y-2">
                         <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
-                        <p className="font-semibold text-emerald-600">Deposit initiated!</p>
+                        <p className="font-semibold text-emerald-600 text-base">Deposit Verified & Credited!</p>
                         <p className="text-sm text-muted-foreground">
-                            Your balance will be updated shortly after payment confirmation.
+                            Your wallet balance has been updated immediately.
                         </p>
+                    </div>
+                ) : recoveryMode ? (
+                    <div className="space-y-4 pt-1">
+                        <div className="flex items-center gap-2 pb-2 border-b border-border">
+                            <button
+                                type="button"
+                                onClick={() => setRecoveryMode(false)}
+                                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                            </button>
+                            <div>
+                                <h4 className="text-sm font-bold text-foreground">Recover Uncredited Deposit</h4>
+                                <p className="text-[11px] text-muted-foreground">
+                                    Verify a completed Paystack transaction to credit your wallet
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold">Paystack Reference</Label>
+                                <Input
+                                    placeholder="e.g. DEP-1740000000000-XXXXX"
+                                    value={recoveryRef}
+                                    onChange={(e) => setRecoveryRef(e.target.value)}
+                                    className="font-mono text-sm"
+                                />
+                            </div>
+
+                            {form.formState.errors.root && (
+                                <p className="text-sm text-destructive" role="alert">
+                                    {form.formState.errors.root.message}
+                                </p>
+                            )}
+
+                            <Button
+                                type="button"
+                                onClick={handleRecover}
+                                disabled={recovering || !recoveryRef.trim()}
+                                className="w-full gradient-primary text-white"
+                            >
+                                {recovering ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                        Verifying deposit…
+                                    </>
+                                ) : (
+                                    <>
+                                        <RefreshCw className="h-4 w-4 mr-2" />
+                                        Verify & Credit Wallet
+                                    </>
+                                )}
+                            </Button>
+
+                            <button
+                                type="button"
+                                onClick={() => setRecoveryMode(false)}
+                                className="w-full text-xs text-muted-foreground hover:text-foreground text-center py-2"
+                            >
+                                Back to regular deposit
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     <Form {...form}>
@@ -224,6 +303,16 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
                                     'Deposit now'
                                 )}
                             </Button>
+
+                            <div className="text-center pt-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setRecoveryMode(true)}
+                                    className="text-xs text-muted-foreground hover:text-primary underline transition-colors"
+                                >
+                                    Already debited? Recover uncredited deposit
+                                </button>
+                            </div>
 
                             <p className="text-xs text-center text-muted-foreground">
                                 Secured by Paystack. Your payment is safe.
