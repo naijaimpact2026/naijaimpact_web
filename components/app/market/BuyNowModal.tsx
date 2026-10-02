@@ -7,24 +7,6 @@ import { X, ShoppingCart, MapPin, Truck, Package, Lock } from 'lucide-react'
 import { createOrder } from '@/lib/actions/marketplace'
 import type { ProductWithSeller } from '@/lib/types'
 
-declare global
-{
-    interface Window
-    {
-        PaystackPop: {
-            setup(config: {
-                key: string
-                email: string
-                amount: number
-                currency: string
-                ref: string
-                metadata: Record<string, unknown>
-                onClose: () => void
-                callback: (response: { reference: string }) => void
-            }): { openIframe: () => void }
-        }
-    }
-}
 
 interface Props
 {
@@ -71,11 +53,16 @@ export default function BuyNowModal({ open, onOpenChange, product, userEmail, us
             })
 
             const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ?? ''
+            if (!window.PaystackPop) {
+                toast.error('Payment service is still loading. Please try again in a moment.')
+                setLoading(false)
+                return
+            }
 
             const handler = window.PaystackPop.setup({
                 key: paystackKey,
                 email: userEmail,
-                amount: total * 100, // kobo
+                amount: Math.round(total * 100), // kobo
                 currency: 'NGN',
                 ref: paystack_ref,
                 metadata: {

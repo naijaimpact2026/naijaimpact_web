@@ -104,21 +104,73 @@ export type UserFollow = {
 // Funding / Payments Tables
 // ─────────────────────────────────────────────
 
+export type FundingType = 'campaign' | 'project'
+
+export type FundingCategory = {
+  id: string
+  name: string
+  description: string | null
+  created_at: string
+}
+
+export type FundingTransaction = {
+  id: string
+  funding_id: string
+  user_id: string
+  amount: number
+  reference: string
+  created_at: string
+}
+
 export type Campaign = {
   id: string
-  creator_id: string
-  type: 'campaign' | 'project'
+  user_id: string
   title: string
-  description: string | null
-  cover_url: string | null
+  funding_type: FundingType
+  category_id: string | null
+  cover_image_url: string | null
   goal_amount: number
-  amount_raised: number
-  deadline: string          // ISO date string (DATE column)
-  status: 'active' | 'completed' | 'cancelled'
-  donor_count: number
+  impact: string | null
+  description: string | null
+  created_at: string
+  updated_at: string
+  status?: 'active' | 'closed' | 'completed'
+  // Backward compatibility / convenience aliases
+  creator_id?: string
+  type?: FundingType
+  cover_url?: string | null
+}
+
+export type FundingPayoutDestination = 'wallet' | 'bank'
+export type FundingPayoutStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+
+export type FundingPayout = {
+  id: string
+  funding_id: string
+  user_id: string
+  amount: number
+  destination: FundingPayoutDestination
+  status: FundingPayoutStatus
+  reference: string
+  bank_name?: string | null
+  account_number?: string | null
+  account_name?: string | null
+  bank_code?: string | null
+  paystack_transfer_code?: string | null
+  notes?: string | null
   created_at: string
   updated_at: string
 }
+
+export type CampaignWithdrawalSummary = {
+  campaignId: string
+  amountRaised: number
+  totalWithdrawn: number
+  availableBalance: number
+  hasPin: boolean
+  pastPayouts: FundingPayout[]
+}
+
 
 export type Wallet = {
   id: string
@@ -151,9 +203,10 @@ export type Transaction = {
   type: TransactionType
   amount: number
   status: 'pending' | 'success' | 'failed'
-  reference_id: string | null
-  paystack_ref: string | null
-  description: string | null
+  ref?: string | null
+  reference_id?: string | null
+  paystack_ref?: string | null
+  description?: string | null
   created_at: string
 }
 
@@ -757,8 +810,18 @@ export type PostWithAuthor = Post & {
 }
 
 export type CampaignWithCreator = Campaign & {
-  creator: Pick<User, 'username' | 'avatar_url'>
+  creator: Pick<User, 'id' | 'username' | 'display_name' | 'avatar_url' | 'verified' | 'bio' | 'profession'>
+  category?: Pick<FundingCategory, 'id' | 'name'> | null
+  amount_raised: number
+  donor_count: number
+  recent_donations?: {
+    id: string
+    amount: number
+    created_at: string
+    donor?: Pick<User, 'id' | 'username' | 'display_name' | 'avatar_url'> | null
+  }[]
 }
+
 
 export type CourseWithInstructor = Course & {
   instructor: Pick<User, 'display_name' | 'avatar_url'>

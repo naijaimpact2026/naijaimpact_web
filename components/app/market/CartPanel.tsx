@@ -64,6 +64,11 @@ export default function CartPanel({ userId, userEmail }: Props)
         const orderIds = succeeded.map((s) => s.order_id)
         const total = succeeded.reduce((sum, s) => sum + s.item.price * s.item.quantity, 0)
         const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ?? ''
+        if (!window.PaystackPop) {
+            toast.error('Payment service is still loading. Please try again in a moment.')
+            setCheckingOut(false)
+            return
+        }
 
         const handler = window.PaystackPop.setup({
             key: paystackKey,
