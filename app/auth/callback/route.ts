@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import type { EmailOtpType } from '@supabase/supabase-js'
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
 
     const code = searchParams.get('code')
+    const token_hash = searchParams.get('token_hash')
+    const type = searchParams.get('type') as EmailOtpType | null
     const requestedNext = searchParams.get('next') ?? '/app'
 
-    // Resolve against origin and require it to stay same-origin — a plain
-    // startsWith('/') check lets protocol-relative URLs like "//evil.com"
-    // through, which browsers treat as an absolute redirect to another host.
+    // Resolve against origin and require it to stay same-origin
     let next = '/app'
     try {
         const resolved = new URL(requestedNext, origin)
@@ -20,11 +21,23 @@ export async function GET(request: Request) {
         // Malformed next value — fall back to '/app'
     }
 
-    if (code) {
-        const supabase = await createClient()
+    const supabase = await createClient()
 
-        const { error } =
-            await supabase.auth.exchangeCodeForSession(code)
+    // 1. Handle token_hash from email confirmation links
+    if (token_hash && type) {
+        const { error } = await supabase.auth.verifyOtp({
+            token_hash,
+            type,
+        })
+
+        if (!error) {
+            return NextResponse.redirect(`${origin}${next}`)
+        }
+    }
+
+    // 2. Handle PKCE code from OAuth (e.g. Google) or auth links
+    if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
 
         if (!error) {
             return NextResponse.redirect(`${origin}${next}`)

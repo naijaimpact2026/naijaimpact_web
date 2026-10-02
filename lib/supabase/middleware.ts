@@ -69,10 +69,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Redirect authenticated users away from auth pages
-  // Exception: allow /auth/reset-password so users can set their new password
-  // after OTP verification (Supabase signs them in during verifyOtp)
+  // Exception: allow /auth/reset-password and /auth/verify so users can complete
+  // OTP verification and onboarding transition
   if (user && request.nextUrl.pathname.startsWith('/auth')) {
-    if (request.nextUrl.pathname.startsWith('/auth/reset-password')) {
+    if (
+      request.nextUrl.pathname.startsWith('/auth/reset-password') ||
+      request.nextUrl.pathname.startsWith('/auth/verify')
+    ) {
       return supabaseResponse
     }
     const url = request.nextUrl.clone()
