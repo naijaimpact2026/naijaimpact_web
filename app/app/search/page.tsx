@@ -11,10 +11,11 @@ import
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { searchUsers, searchPosts, searchCourses } from '@/lib/actions/search'
+import { searchAll } from '@/lib/actions/search'
 import { fetchSuggestedUsers } from '@/lib/actions/posts'
 import { followUser, unfollowUser } from '@/lib/actions/profile'
 import { toPublicStorageUrl } from '@/lib/supabase-image'
+import { stripPostMeta } from '@/lib/post-helpers'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SkeletonLine, WAVE_STEP } from '@/components/app/skeletons/primitives'
 
@@ -25,8 +26,9 @@ type UserResult = {
 }
 type PostResult = {
     id: string; caption: string | null; created_at: string; cover_url: string | null
+    media_count?: number; has_video?: boolean
     reaction_count: number; comment_count: number
-    author: { username: string; display_name: string; avatar_url: string | null } | null
+    author: { id?: string; username: string; display_name: string; avatar_url: string | null; verified?: boolean; profession?: string | null } | null
 }
 type CourseResult = { id: string; title: string; thumbnail_url: string | null; price: number; instructor: { display_name: string; avatar_url: string | null } | null }
 type SuggestedUser = { id: string; username: string; display_name: string; avatar_url: string | null; verified: boolean; profession: string | null }
@@ -51,12 +53,36 @@ function timeAgo(d: string)
 
 function parseCaption(caption: string)
 {
-    const parts = caption.split(/(#\w+)/g)
+    const cleaned = stripPostMeta(caption)
+    const parts = cleaned.split(/(#\w+|@\w+)/g)
     return parts.map((part, i) =>
-        part.startsWith('#')
-            ? <span key={i} className="text-primary font-medium">{part}</span>
-            : <span key={i}>{part}</span>
-    )
+    {
+        if (part.startsWith('#'))
+        {
+            return (
+                <Link
+                    key={i}
+                    href={`/app/feed?topic=${encodeURIComponent(part.slice(1))}`}
+                    className="text-primary font-semibold hover:underline"
+                >
+                    {part}
+                </Link>
+            )
+        }
+        if (part.startsWith('@'))
+        {
+            return (
+                <Link
+                    key={i}
+                    href={`/app/profile/${part.slice(1)}`}
+                    className="text-primary font-medium hover:underline"
+                >
+                    {part}
+                </Link>
+            )
+        }
+        return <span key={i}>{part}</span>
+    })
 }
 
 // ── Skeletons / empty states ────────────────────────────────────────────────
@@ -177,45 +203,113 @@ function TopResultCard({ user }: { user: UserResult })
     )
 }
 
-// ── Latest Posts — image card grid ──────────────────────────────────────────
+// ── Latest Posts — rich social post card ────────────────────────────────────
 
 function LatestPostCard({ post }: { post: PostResult })
 {
+    const cleanCaption = stripPostMeta(post.caption)
+    const authorName = post.author?.display_name || 'Community Member'
+    const authorUsername = post.author?.username || ''
+    const isVerified = post.author?.verified ?? false
+
     return (
-        <Link
-            href={`/app/feed/${post.id}`}
-            className="rounded-2xl bg-card border border-border overflow-hidden hover:shadow-md hover:border-primary/30 transition-all flex flex-col"
-        >
-            <div className="relative aspect-square overflow-hidden bg-muted">
-                {post.cover_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={post.cover_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                ) : (
-                    <div className="absolute inset-0 flex items-center justify-center p-4 bg-gradient-to-br from-muted to-card">
-                        <p className="text-xs text-foreground/70 text-center line-clamp-5">{post.caption}</p>
+        <article className="group rounded-2xl bg-card border border-border hover:border-primary/40 hover:shadow-md transition-all flex flex-col justify-between overflow-hidden">
+            {/* Header: Author info */}
+            <div className="p-4 pb-2.5">
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        <Link href={`/app/profile/${authorUsername}`} className="shrink-0">
+                            <Avatar className="h-9 w-9 ring-1 ring-border group-hover:ring-primary/40 transition-all">
+                                <AvatarImage src={post.author?.avatar_url ?? undefined} alt={authorName} />
+                                <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                                    {getInitials(authorName)}
+                                </AvatarFallback>
+                            </Avatar>
+                        </Link>
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-1">
+                                <Link
+                                    href={`/app/profile/${authorUsername}`}
+                                    className="text-xs font-bold text-foreground hover:text-primary transition-colors truncate"
+                                >
+                                    {authorName}
+                                </Link>
+                                {isVerified && (
+                                    <BadgeCheck className="h-3.5 w-3.5 text-primary shrink-0 fill-primary/15" />
+                                )}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                {authorUsername && <span className="truncate">@{authorUsername}</span>}
+                                <span>·</span>
+                                <span className="shrink-0">{timeAgo(post.created_at)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <Link
+                        href={`/app/feed/${post.id}`}
+                        className="text-[11px] font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity hover:underline shrink-0"
+                    >
+                        View post →
+                    </Link>
+                </div>
+
+                {/* Caption / Content */}
+                {cleanCaption && (
+                    <div className="mt-3 text-xs sm:text-sm text-foreground/90 leading-relaxed break-words line-clamp-4">
+                        {parseCaption(cleanCaption)}
                     </div>
                 )}
             </div>
-            <div className="p-3 flex-1 flex flex-col">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                    <Avatar className="h-5 w-5 shrink-0">
-                        <AvatarImage src={post.author?.avatar_url ?? undefined} />
-                        <AvatarFallback className="bg-primary/10 text-primary text-[9px] font-bold">{getInitials(post.author?.display_name)}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-[11px] font-semibold text-foreground truncate">{post.author?.display_name ?? 'Unknown'}</span>
-                    <span className="text-[10px] text-muted-foreground shrink-0">· {timeAgo(post.created_at)}</span>
+
+            {/* Media Attachment if available */}
+            {post.cover_url && (
+                <Link href={`/app/feed/${post.id}`} className="block px-4 pb-2">
+                    <div className="relative rounded-xl overflow-hidden bg-muted aspect-video max-h-56 border border-border">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={post.cover_url}
+                            alt=""
+                            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                        />
+                        {(post.media_count ?? 1) > 1 && (
+                            <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-black/60 text-white text-[10px] font-bold backdrop-blur-xs">
+                                +{(post.media_count ?? 1) - 1} more
+                            </span>
+                        )}
+                    </div>
+                </Link>
+            )}
+
+            {/* Footer Stats & Actions */}
+            <div className="px-4 py-2.5 mt-auto border-t border-border/60 bg-muted/20 flex items-center justify-between text-muted-foreground text-xs">
+                <div className="flex items-center gap-4">
+                    <Link
+                        href={`/app/feed/${post.id}`}
+                        className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                    >
+                        <Heart className="h-3.5 w-3.5" />
+                        <span className="font-semibold text-[11px]">{post.reaction_count}</span>
+                    </Link>
+                    <Link
+                        href={`/app/feed/${post.id}`}
+                        className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                    >
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        <span className="font-semibold text-[11px]">{post.comment_count}</span>
+                    </Link>
                 </div>
-                {post.caption && post.cover_url && (
-                    <p className="text-xs text-foreground/80 line-clamp-2 leading-relaxed mb-2">{parseCaption(post.caption)}</p>
-                )}
-                <div className="mt-auto flex items-center gap-3 text-muted-foreground">
-                    <span className="flex items-center gap-1 text-[11px]"><Heart className="h-3.5 w-3.5" /> {post.reaction_count}</span>
-                    <span className="flex items-center gap-1 text-[11px]"><MessageCircle className="h-3.5 w-3.5" /> {post.comment_count}</span>
-                    <Share2 className="h-3.5 w-3.5 ml-auto" />
-                    <Bookmark className="h-3.5 w-3.5" />
+
+                <div className="flex items-center gap-2">
+                    <Link
+                        href={`/app/feed/${post.id}`}
+                        className="text-[11px] font-medium text-muted-foreground hover:text-primary transition-colors"
+                    >
+                        Read discussion
+                    </Link>
                 </div>
             </div>
-        </Link>
+        </article>
     )
 }
 
@@ -408,40 +502,79 @@ function SuggestedForYou()
 function SearchPageInner()
 {
     const searchParams = useSearchParams()
-    const initialQuery = searchParams.get('q') ?? ''
+    const urlQuery = searchParams.get('q') ?? ''
 
-    const [query, setQuery] = useState(initialQuery)
-    const [debounced, setDebounced] = useState(initialQuery)
+    const [query, setQuery] = useState(urlQuery)
+    const [debounced, setDebounced] = useState(urlQuery)
     const [loading, setLoading] = useState(false)
     const [tab, setTab] = useState<Tab>('all')
     const [users, setUsers] = useState<UserResult[]>([])
     const [posts, setPosts] = useState<PostResult[]>([])
     const [courses, setCourses] = useState<CourseResult[]>([])
     const inputRef = useRef<HTMLInputElement>(null)
+    const lastFetchedRef = useRef<string>('')
 
     useEffect(() =>
     {
-        const t = setTimeout(() => setDebounced(query), 300)
+        if (urlQuery !== query)
+        {
+            setQuery(urlQuery)
+            setDebounced(urlQuery)
+        }
+    }, [urlQuery])
+
+    useEffect(() =>
+    {
+        const t = setTimeout(() => setDebounced(query), 250)
         return () => clearTimeout(t)
     }, [query])
 
     useEffect(() =>
     {
-        if (debounced.length < 2) { setUsers([]); setPosts([]); setCourses([]); return }
+        const term = debounced.trim()
+        if (term.length < 2)
+        {
+            setUsers([])
+            setPosts([])
+            setCourses([])
+            setLoading(false)
+            lastFetchedRef.current = ''
+            return
+        }
+
+        if (lastFetchedRef.current === term)
+        {
+            return
+        }
+
         let ignore = false
         setLoading(true)
-        Promise.all([searchUsers(debounced), searchPosts(debounced), searchCourses(debounced)])
-            .then(([u, p, c]) =>
+        lastFetchedRef.current = term
+
+        searchAll(term)
+            .then((res) =>
             {
                 if (ignore) return
-                setUsers(u as UserResult[]); setPosts(p as PostResult[]); setCourses(c as CourseResult[])
+                setUsers(res.users as UserResult[])
+                setPosts(res.posts as PostResult[])
+                setCourses(res.courses as CourseResult[])
             })
-            .catch(() => { })
-            .finally(() => { if (!ignore) setLoading(false) })
-        return () => { ignore = true }
+            .catch((err) =>
+            {
+                console.error('Search failed:', err)
+            })
+            .finally(() =>
+            {
+                if (!ignore) setLoading(false)
+            })
+
+        return () =>
+        {
+            ignore = true
+        }
     }, [debounced])
 
-    const hasSearched = debounced.length >= 2
+    const hasSearched = debounced.trim().length >= 2
     const totalResults = users.length + posts.length + courses.length
     const counts: Record<Tab, number> = { all: totalResults, people: users.length, posts: posts.length, courses: courses.length }
 
@@ -496,7 +629,7 @@ function SearchPageInner()
                             {(tab === 'all' || tab === 'posts') && posts.length > 0 && (
                                 <div>
                                     <SectionHeader label="Latest Posts" count={posts.length} onSeeAll={tab === 'all' && posts.length > 4 ? () => setTab('posts') : undefined} />
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {posts.slice(0, tab === 'all' ? 4 : 20).map(p => <LatestPostCard key={p.id} post={p} />)}
                                     </div>
                                 </div>

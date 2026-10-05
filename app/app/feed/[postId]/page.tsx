@@ -8,7 +8,7 @@ import PostDetailActions from '@/components/app/feed/PostDetailActions'
 import { ArrowLeft, Clock, ImageIcon, Rocket } from 'lucide-react'
 import type { PostWithAuthor } from '@/lib/types'
 import { fetchRecentPostsPreviews } from '@/lib/actions/posts'
-import { toPostWithAuthor } from '@/lib/post-helpers'
+import { toPostWithAuthor, stripPostMeta } from '@/lib/post-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -155,20 +155,23 @@ export default async function PostDetailPage({ params }: PageProps)
                                 </Link>
                             </div>
                             <div className="space-y-1">
-                                {otherRecentPosts.map((rp: any) => (
-                                    <Link key={rp.id} href={`/app/feed/${rp.id}`}
-                                        className="block p-2.5 rounded-xl hover:bg-muted transition-colors group">
-                                        <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-relaxed">
-                                            {rp.caption
-                                                ? (rp.caption.length > 65 ? `${rp.caption.slice(0, 65)}…` : rp.caption)
-                                                : <span className="inline-flex items-center gap-1"><ImageIcon className="w-3 h-3" /> Media post</span>}
-                                        </p>
-                                        <div className="flex items-center justify-between mt-1">
-                                            <span className="text-[10px] text-muted-foreground font-medium truncate">{rp.author_name}</span>
-                                            <span className="text-[10px] text-muted-foreground shrink-0 ml-2">{timeAgo(rp.created_at)}</span>
-                                        </div>
-                                    </Link>
-                                ))}
+                                {otherRecentPosts.map((rp: any) => {
+                                    const text = stripPostMeta(rp.caption)
+                                    return (
+                                        <Link key={rp.id} href={`/app/feed/${rp.id}`}
+                                            className="block p-2.5 rounded-xl hover:bg-muted transition-colors group">
+                                            <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-relaxed">
+                                                {text
+                                                    ? (text.length > 65 ? `${text.slice(0, 65)}…` : text)
+                                                    : <span className="inline-flex items-center gap-1"><ImageIcon className="w-3 h-3" /> Media post</span>}
+                                            </p>
+                                            <div className="flex items-center justify-between mt-1">
+                                                <span className="text-[10px] text-muted-foreground font-medium truncate">{rp.author_name}</span>
+                                                <span className="text-[10px] text-muted-foreground shrink-0 ml-2">{timeAgo(rp.created_at)}</span>
+                                            </div>
+                                        </Link>
+                                    )
+                                })}
                             </div>
                         </div>
                     )}
@@ -201,20 +204,23 @@ export default async function PostDetailPage({ params }: PageProps)
                         <Link href="/app/feed" className="text-xs text-primary font-medium hover:underline">See all</Link>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                        {otherRecentPosts.map((rp: any) => (
-                            <Link key={rp.id} href={`/app/feed/${rp.id}`}
-                                className="block p-2.5 rounded-xl hover:bg-muted transition-colors group">
-                                <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                                    {rp.caption
-                                        ? (rp.caption.length > 55 ? `${rp.caption.slice(0, 55)}…` : rp.caption)
-                                        : <span className="inline-flex items-center gap-1"><ImageIcon className="w-3 h-3" /> Media post</span>}
-                                </p>
-                                <div className="flex items-center justify-between mt-1">
-                                    <span className="text-[10px] text-muted-foreground truncate">{rp.author_name}</span>
-                                    <span className="text-[10px] text-muted-foreground shrink-0 ml-1">{timeAgo(rp.created_at)}</span>
-                                </div>
-                            </Link>
-                        ))}
+                        {otherRecentPosts.map((rp: any) => {
+                            const text = stripPostMeta(rp.caption)
+                            return (
+                                <Link key={rp.id} href={`/app/feed/${rp.id}`}
+                                    className="block p-2.5 rounded-xl hover:bg-muted transition-colors group">
+                                    <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                                        {text
+                                            ? (text.length > 55 ? `${text.slice(0, 55)}…` : text)
+                                            : <span className="inline-flex items-center gap-1"><ImageIcon className="w-3 h-3" /> Media post</span>}
+                                    </p>
+                                    <div className="flex items-center justify-between mt-1">
+                                        <span className="text-[10px] text-muted-foreground truncate">{rp.author_name}</span>
+                                        <span className="text-[10px] text-muted-foreground shrink-0 ml-1">{timeAgo(rp.created_at)}</span>
+                                    </div>
+                                </Link>
+                            )
+                        })}
                     </div>
                 </div>
             )}

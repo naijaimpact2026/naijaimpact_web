@@ -249,12 +249,20 @@ export default function FeedInfiniteScroll({
                         <span className="text-muted-foreground text-xs font-medium">Community:</span>
                         <span className="font-bold text-primary truncate">#{topic}</span>
                     </div>
-                    <Link
-                        href="/app/feed"
-                        className="text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors px-2.5 py-1 rounded-lg hover:bg-muted shrink-0"
-                    >
-                        <X className="w-3.5 h-3.5" /> Clear filter
-                    </Link>
+                    <div className="flex items-center gap-3 shrink-0">
+                        <Link
+                            href={`/app/search?q=${encodeURIComponent('#' + topic)}`}
+                            className="text-xs text-primary hover:underline font-semibold hidden sm:inline"
+                        >
+                            Search all Hubnovo →
+                        </Link>
+                        <Link
+                            href="/app/feed"
+                            className="text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors px-2.5 py-1 rounded-lg hover:bg-muted"
+                        >
+                            <X className="w-3.5 h-3.5" /> Clear filter
+                        </Link>
+                    </div>
                 </div>
             )}
 

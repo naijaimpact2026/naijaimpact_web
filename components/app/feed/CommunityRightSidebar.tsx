@@ -20,7 +20,7 @@ export default async function CommunityRightSidebar()
                         {trending.map((t, i) => (
                             <Link
                                 key={t.tag}
-                                href={`/app/search?q=%23${t.tag}`}
+                                href={`/app/feed?topic=${encodeURIComponent(t.tag)}`}
                                 className="flex items-center gap-2.5 group"
                             >
                                 <span className="text-xs font-bold text-muted-foreground/50 w-3 shrink-0">{i + 1}</span>
