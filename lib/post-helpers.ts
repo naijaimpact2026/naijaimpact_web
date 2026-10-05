@@ -9,7 +9,14 @@ export interface PostOptions {
   group_id?: string | null
 }
 
-const META_REGEX = /\n\n<!--hubnovo:post_meta ({[\s\S]*?})-->$/
+const META_REGEX = /(?:\r?\n|\s)*<!--\s*hubnovo:post_meta\s*({[\s\S]*?})\s*-->\s*$/i
+const STRIP_META_REGEX = /(?:\r?\n|\s)*<!--\s*hubnovo:post_meta[\s\S]*?-->\s*/gi
+
+/** Strip any internal metadata comment from post content */
+export function stripPostMeta(rawContent: string | null): string {
+  if (!rawContent) return ''
+  return rawContent.replace(STRIP_META_REGEX, '').trim()
+}
 
 export function encodePostContent(caption: string, options?: PostOptions): string {
   if (!options) return caption
@@ -28,23 +35,26 @@ export function encodePostContent(caption: string, options?: PostOptions): strin
 export function parsePostContent(rawContent: string | null): { caption: string | null; options: PostOptions } {
   if (!rawContent) return { caption: null, options: { allow_comments: true, allow_sharing: true, audience: 'public' } }
   const match = rawContent.match(META_REGEX)
-  if (!match) return { caption: rawContent, options: { allow_comments: true, allow_sharing: true, audience: 'public' } }
-  try {
-    const options = JSON.parse(match[1]) as PostOptions
-    const cleanCaption = rawContent.replace(META_REGEX, '').trim()
-    return {
-      caption: cleanCaption || null,
-      options: {
-        allow_comments: options.allow_comments ?? true,
-        allow_sharing: options.allow_sharing ?? true,
-        is_featured: options.is_featured ?? false,
-        audience: options.audience ?? 'public',
-        scheduled_at: options.scheduled_at ?? null,
-        group_id: options.group_id ?? null,
-      },
-    }
-  } catch {
-    return { caption: rawContent, options: { allow_comments: true, allow_sharing: true, audience: 'public' } }
+  let options: PostOptions = { allow_comments: true, allow_sharing: true, audience: 'public' }
+
+  if (match) {
+    try {
+      const parsed = JSON.parse(match[1]) as PostOptions
+      options = {
+        allow_comments: parsed.allow_comments ?? true,
+        allow_sharing: parsed.allow_sharing ?? true,
+        is_featured: parsed.is_featured ?? false,
+        audience: parsed.audience ?? 'public',
+        scheduled_at: parsed.scheduled_at ?? null,
+        group_id: parsed.group_id ?? null,
+      }
+    } catch {}
+  }
+
+  const cleanCaption = stripPostMeta(rawContent)
+  return {
+    caption: cleanCaption || null,
+    options,
   }
 }
 

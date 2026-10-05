@@ -3,15 +3,20 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/supabase/auth'
 
+import { parsePostContent } from '@/lib/post-helpers'
+
 export async function searchUsers(query: string) {
   const supabase = await createClient()
   const { authUser, profile: currentProfile } = await getCurrentUser()
   if (!authUser) throw new Error('Unauthenticated')
 
+  const clean = query.trim().replace(/^[@#]/, '')
+  if (!clean) return []
+
   const { data } = await supabase
     .from('users')
     .select('id, username, display_name, avatar_url, cover_url, verified, profession, location')
-    .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
+    .or(`username.ilike.%${clean}%,display_name.ilike.%${clean}%`)
     .neq('auth_id', authUser.id)
     .limit(20)
 
@@ -34,14 +39,19 @@ export async function searchPosts(query: string) {
   const supabase = await createClient()
   const { authUser } = await getCurrentUser()
   if (!authUser) throw new Error('Unauthenticated')
+
+  const clean = query.trim().replace(/^#/, '')
+  if (!clean) return []
+
   const { data } = await supabase
     .from('posts')
     .select(`
       id, content, created_at,
-      author:users!posts_user_id_fkey(username, display_name, avatar_url),
+      author:users!posts_user_id_fkey(id, username, display_name, avatar_url, verified, profession),
       medias:post_medias(id, media_url, media_type)
     `)
-    .ilike('content', `%${query}%`)
+    .or(`content.ilike.%#${clean}%,content.ilike.%${clean}%`)
+    .order('created_at', { ascending: false })
     .limit(20)
 
   const posts = data ?? []
@@ -59,26 +69,38 @@ export async function searchPosts(query: string) {
   const commentCountMap: Record<string, number> = {}
   for (const c of comments ?? []) commentCountMap[c.post_id] = (commentCountMap[c.post_id] ?? 0) + 1
 
-  return posts.map((p: any) => ({
-    id: p.id,
-    caption: p.content ?? null,
-    created_at: p.created_at,
-    author: p.author ?? null,
-    cover_url: p.medias?.find((m: any) => m.media_type === 'image')?.media_url ?? null,
-    reaction_count: reactionCountMap[p.id] ?? 0,
-    comment_count: commentCountMap[p.id] ?? 0,
-  }))
+  return posts.map((p: any) => {
+    const { caption } = parsePostContent(p.content)
+    const images = (p.medias ?? []).filter((m: any) => m.media_type === 'image')
+    const videos = (p.medias ?? []).filter((m: any) => m.media_type === 'video')
+    return {
+      id: p.id,
+      caption,
+      created_at: p.created_at,
+      author: p.author ?? null,
+      cover_url: images[0]?.media_url ?? null,
+      media_count: (p.medias ?? []).length,
+      has_video: videos.length > 0,
+      reaction_count: reactionCountMap[p.id] ?? 0,
+      comment_count: commentCountMap[p.id] ?? 0,
+    }
+  })
 }
 
 export async function searchCourses(query: string) {
   const supabase = await createClient()
   const { authUser } = await getCurrentUser()
   if (!authUser) throw new Error('Unauthenticated')
+
+  const clean = query.trim().replace(/^#/, '')
+  if (!clean) return []
+
   const { data } = await supabase
     .from('lms_courses')
     .select(`id, title, cover_image_url, amount, is_free, instructor:users!lms_courses_user_id_fkey(display_name, avatar_url)`)
-    .ilike('title', `%${query}%`)
+    .ilike('title', `%${clean}%`)
     .limit(20)
+
   return (data ?? []).map((c: any) => ({
     id: c.id,
     title: c.title,
@@ -87,3 +109,17 @@ export async function searchCourses(query: string) {
     instructor: c.instructor ?? null,
   }))
 }
+
+export async function searchAll(query: string) {
+  const clean = query?.trim() ?? ''
+  if (clean.length < 2) {
+    return { users: [], posts: [], courses: [] }
+  }
+  const [users, posts, courses] = await Promise.all([
+    searchUsers(clean),
+    searchPosts(clean),
+    searchCourses(clean),
+  ])
+  return { users, posts, courses }
+}
+
