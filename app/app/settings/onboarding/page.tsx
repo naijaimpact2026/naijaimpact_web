@@ -36,9 +36,10 @@ const schema = z.object({
         .min(3, 'Username must be at least 3 characters')
         .max(30, 'Username must be 30 characters or fewer')
         .regex(
-            /^[a-z0-9_]+$/,
-            'Username: lowercase letters, numbers, and underscores only',
-        ),
+            /^[a-zA-Z0-9_]+$/,
+            'Username: letters, numbers, and underscores only',
+        )
+        .transform((v) => v.toLowerCase()),
     bio: z.string().max(160, 'Bio must be 160 characters or fewer').optional(),
     profession: z.string().max(100).optional(),
     avatar_url: z.string().optional(),
@@ -75,10 +76,11 @@ function useUsernameCheck(username: string)
             {
                 const { data: { user: authUser } } = await supabase.auth.getUser()
 
+                const clean = username.trim().toLowerCase()
                 const { data, error } = await supabase
                     .from('users')
                     .select('id, auth_id')
-                    .eq('username', username)
+                    .ilike('username', clean)
                     .maybeSingle()
 
                 if (error)
@@ -88,10 +90,8 @@ function useUsernameCheck(username: string)
                 }
                 else
                 {
-                    // A row matching your OWN auth account isn't "taken" — it's
-                    // just your current username. Mirrors the server-side check
-                    // in completeOnboarding, which already excludes self.
-                    const takenByOther = !!data && data.auth_id !== authUser?.id
+                    // A row matching your OWN account isn't "taken"
+                    const takenByOther = !!data && data.auth_id !== authUser?.id && data.id !== authUser?.id
                     setStatus(takenByOther ? 'taken' : 'available')
                 }
             }
@@ -215,6 +215,44 @@ export default function OnboardingPage()
     const [submitting, setSubmitting] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
+    // Pre-fill form from existing profile or auth metadata (e.g. Google sign-in or earlier registration)
+    useEffect(() => {
+        let mounted = true
+        async function loadInitial() {
+            try {
+                const supabase = createClient()
+                const { data: { user } } = await supabase.auth.getUser()
+                if (!user) return
+
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('display_name, fullname, username, bio, profession, avatar_url')
+                    .or(`auth_id.eq.${user.id},id.eq.${user.id}`)
+                    .maybeSingle()
+
+                if (!mounted) return
+
+                const name = profile?.display_name || profile?.fullname || user.user_metadata?.full_name || user.user_metadata?.name || ''
+                let uname = profile?.username || user.user_metadata?.username || ''
+                if (uname.startsWith('user_') && user.email) {
+                    const candidate = user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '')
+                    if (candidate.length >= 3) uname = candidate
+                }
+                const avatar = profile?.avatar_url || user.user_metadata?.avatar_url || user.user_metadata?.picture || ''
+
+                if (name && !form.getValues('display_name')) form.setValue('display_name', name)
+                if (uname && !form.getValues('username')) form.setValue('username', uname.toLowerCase())
+                if (profile?.bio && !form.getValues('bio')) form.setValue('bio', profile.bio)
+                if (profile?.profession && !form.getValues('profession')) form.setValue('profession', profile.profession)
+                if (avatar && !form.getValues('avatar_url')) form.setValue('avatar_url', avatar)
+            } catch (err) {
+                console.error('Error prefilling onboarding:', err)
+            }
+        }
+        loadInitial()
+        return () => { mounted = false }
+    }, [form])
+
     async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>)
     {
         const file = e.target.files?.[0]
@@ -321,9 +359,9 @@ export default function OnboardingPage()
                         className="relative w-24 h-24 rounded-full border-2 border-dashed border-primary/50 hover:border-primary transition-colors overflow-hidden bg-muted flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         aria-label="Upload avatar"
                     >
-                        {preview ? (
+                        {preview || form.watch('avatar_url') ? (
                             <Image
-                                src={preview}
+                                src={preview || form.watch('avatar_url')!}
                                 alt="Avatar preview"
                                 fill
                                 className="object-cover"
@@ -343,7 +381,7 @@ export default function OnboardingPage()
                         className="text-sm text-primary hover:underline flex items-center gap-1"
                     >
                         <Upload className="w-3.5 h-3.5" />
-                        {preview ? 'Change photo' : 'Upload photo'}
+                        {preview || form.watch('avatar_url') ? 'Change photo' : 'Upload photo'}
                     </button>
                     <input
                         ref={fileInputRef}
@@ -389,6 +427,9 @@ export default function OnboardingPage()
                                                 className="pl-7 pr-9"
                                                 placeholder="amaka_obi"
                                                 autoComplete="username"
+                                                autoCapitalize="none"
+                                                autoCorrect="off"
+                                                spellCheck={false}
                                                 {...field}
                                                 onChange={(e) => field.onChange(e.target.value.toLowerCase())}
                                             />

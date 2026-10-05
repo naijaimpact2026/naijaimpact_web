@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import type { EmailOtpType } from '@supabase/supabase-js'
+import { ensureUserRow } from '@/lib/actions/auth'
+import type { EmailOtpType, SupabaseClient } from '@supabase/supabase-js'
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
@@ -9,6 +10,27 @@ export async function GET(request: Request) {
     const token_hash = searchParams.get('token_hash')
     const type = searchParams.get('type') as EmailOtpType | null
     const requestedNext = searchParams.get('next') ?? '/app'
+
+    // If this is a password recovery attempt, direct user to reset password page
+    if (type === 'recovery') {
+        const supabase = await createClient()
+        if (token_hash) {
+            const { error } = await supabase.auth.verifyOtp({
+                token_hash,
+                type: 'recovery',
+            })
+            if (!error) {
+                return NextResponse.redirect(`${origin}/auth/reset-password`)
+            }
+        }
+        if (code) {
+            const { error } = await supabase.auth.exchangeCodeForSession(code)
+            if (!error) {
+                return NextResponse.redirect(`${origin}/auth/reset-password`)
+            }
+        }
+        return NextResponse.redirect(`${origin}/auth/reset-password?error=invalid_code`)
+    }
 
     // Resolve against origin and require it to stay same-origin
     let next = '/app'
@@ -31,6 +53,10 @@ export async function GET(request: Request) {
         })
 
         if (!error) {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                await ensureUserRow(user, supabase as unknown as SupabaseClient)
+            }
             return NextResponse.redirect(`${origin}${next}`)
         }
     }
@@ -40,6 +66,10 @@ export async function GET(request: Request) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
 
         if (!error) {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                await ensureUserRow(user, supabase as unknown as SupabaseClient)
+            }
             return NextResponse.redirect(`${origin}${next}`)
         }
     }

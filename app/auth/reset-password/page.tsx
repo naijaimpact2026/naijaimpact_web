@@ -6,7 +6,7 @@
 // Step 1: enter the code to verify identity.
 // Step 2: set a new password.
 
-import { useState, useRef, KeyboardEvent, ClipboardEvent, Suspense } from 'react'
+import { useState, useEffect, useRef, KeyboardEvent, ClipboardEvent, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
@@ -120,6 +120,23 @@ function ResetPasswordContent()
 
     const inputCls =
         'w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all'
+
+    // Automatically advance to password step if the user arrived via a verified recovery link
+    useEffect(() => {
+        const supabase = createClient()
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user) {
+                setStep('password')
+            }
+        })
+    }, [])
+
+    useEffect(() => {
+        if (searchParams.get('error') === 'invalid_code') {
+            setOtpError('The reset link is invalid or has expired. Please request a new one.')
+        }
+    }, [searchParams])
+
 
     // ── Step 1: verify OTP ────────────────────────────────────────────────────
 

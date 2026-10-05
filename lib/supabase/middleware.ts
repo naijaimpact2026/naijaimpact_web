@@ -45,16 +45,35 @@ export async function updateSession(request: NextRequest) {
       if (!alreadyOnboarded) {
         const { data: profile } = await supabase
           .from('users')
-          .select('onboarded')
-          .eq('auth_id', user.id)
+          .select('id, auth_id, onboarded, display_name, fullname, username')
+          .or(`auth_id.eq.${user.id},id.eq.${user.id}`)
           .maybeSingle()
 
-        // No row at all (first-time OAuth sign-in, e.g. Google) counts as
-        // not onboarded too — completeOnboarding() creates the row.
-        if (!profile || !profile.onboarded) {
+        // Check if user is truly onboarded:
+        // Either onboarded flag is true, OR user has an existing active profile
+        // (a custom username not starting with user_ and a display/full name).
+        const isOnboarded = Boolean(
+          profile && (
+            profile.onboarded ||
+            (profile.username && !profile.username.startsWith('user_') && (profile.display_name || profile.fullname))
+          )
+        )
+
+        // No row at all (first-time OAuth sign-in, e.g. Google) or incomplete
+        // profile counts as not onboarded — send to onboarding.
+        if (!isOnboarded) {
           const url = request.nextUrl.clone()
           url.pathname = '/app/settings/onboarding'
           return NextResponse.redirect(url)
+        }
+
+        // Auto-heal in background if profile.onboarded was false or auth_id was unlinked
+        if (profile && (!profile.onboarded || profile.auth_id !== user.id)) {
+          supabase
+            .from('users')
+            .update({ onboarded: true, auth_id: user.id })
+            .eq('id', profile.id)
+            .then(() => {})
         }
 
         supabaseResponse.cookies.set('onboarded', '1', {

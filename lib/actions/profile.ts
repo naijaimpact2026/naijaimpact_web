@@ -19,9 +19,10 @@ const onboardingSchema = z.object({
     .min(3, 'Username must be at least 3 characters')
     .max(30, 'Username must be 30 characters or fewer')
     .regex(
-      /^[a-z0-9_]+$/,
-      'Username may only contain lowercase letters, numbers, and underscores',
-    ),
+      /^[a-zA-Z0-9_]+$/,
+      'Username may only contain letters, numbers, and underscores',
+    )
+    .transform((v) => v.toLowerCase()),
   bio: z
     .string()
     .max(160, 'Bio must be 160 characters or fewer')
@@ -117,11 +118,12 @@ export type ActionResult<T = void> =
     avatar_url,
   } = parsed.data
 
-  // 3. Check whether this user already has a profile
+  // 3. Check whether this user already has a profile (by auth_id, id, or email)
+  const cleanEmail = (user.email || '').trim().toLowerCase()
   const { data: existingProfile, error: profileCheckError } = await supabase
     .from('users')
-    .select('id, auth_id, username')
-    .eq('auth_id', user.id)
+    .select('id, auth_id, username, email')
+    .or(`auth_id.eq.${user.id},id.eq.${user.id}${cleanEmail ? `,email.eq.${cleanEmail}` : ''}`)
     .maybeSingle()
 
   if (profileCheckError) {
@@ -133,11 +135,11 @@ export type ActionResult<T = void> =
     }
   }
 
-  // 4. Check username uniqueness
+  // 4. Check username uniqueness (case-insensitive)
   const { data: existingUsername, error: usernameError } = await supabase
     .from('users')
-    .select('id, auth_id')
-    .eq('username', username)
+    .select('id, auth_id, username')
+    .ilike('username', username)
     .maybeSingle()
 
   if (usernameError) {
@@ -151,7 +153,9 @@ export type ActionResult<T = void> =
 
   if (
     existingUsername &&
-    existingUsername.auth_id !== user.id
+    existingUsername.auth_id !== user.id &&
+    existingUsername.id !== user.id &&
+    (!existingProfile || existingUsername.id !== existingProfile.id)
   ) {
     return {
       success: false,
@@ -162,11 +166,13 @@ export type ActionResult<T = void> =
   // 5. Data to save
   const profileData = {
     display_name,
+    fullname: display_name,
     username,
     bio: bio || null,
     profession: profession || null,
     avatar_url: avatar_url || null,
     onboarded: true,
+    auth_id: user.id,
     updated_at: new Date().toISOString(),
   }
 
@@ -177,29 +183,27 @@ export type ActionResult<T = void> =
     const result = await supabase
       .from('users')
       .update(profileData)
-      .eq('auth_id', user.id)
+      .eq('id', existingProfile.id)
 
     updateError = result.error
 
     if (updateError) {
-      console.error('completeOnboarding insert error:', updateError)
-  
+      console.error('completeOnboarding update error:', updateError)
+
       return {
-          success: false,
-          error: `Profile creation failed: ${updateError.message}`,
+        success: false,
+        error: `Profile update failed: ${updateError.message}`,
       }
-  }
+    }
   }
 
   // 7. Create profile if it doesn't exist
   else {
     const result = await supabase
-    .from('users')
-    .insert({
-      id: user.id,
-      auth_id: user.id,
-      email: user.email ?? '',
-      fullname: display_name,
+      .from('users')
+      .insert({
+        id: user.id,
+        email: cleanEmail,
         ...profileData,
       })
 
@@ -211,7 +215,7 @@ export type ActionResult<T = void> =
       if (updateError.code === '23505') {
         return {
           success: false,
-          error: 'That username is already taken. Please choose another.',
+          error: 'That username or account already exists. Please try signing in.',
         }
       }
 
