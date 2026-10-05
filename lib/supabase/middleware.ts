@@ -47,8 +47,10 @@ export async function updateSession(request: NextRequest) {
   // If Supabase redirects an OAuth callback (e.g. Google) to the Site URL root '/' with '?code=...',
   // intercept it immediately and forward to '/auth/callback' so it exchanges the code for a session
   // and redirects straight to /app!
+  // Only the root: that's where Supabase's Site URL fallback lands. Catching
+  // `?code=` on every path would hijack any other page using a `code` param.
   const code = request.nextUrl.searchParams.get('code')
-  if (code && !request.nextUrl.pathname.startsWith('/auth/callback')) {
+  if (code && request.nextUrl.pathname === '/') {
     const callbackUrl = request.nextUrl.clone()
     callbackUrl.pathname = '/auth/callback'
     return redirectWithCookies(callbackUrl)
