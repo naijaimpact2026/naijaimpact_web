@@ -21,6 +21,39 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
+  // Helper to ensure ALL session and refresh cookies are preserved on redirect responses
+  const redirectWithCookies = (destination: URL | string) => {
+    let target: URL
+    if (typeof destination === 'string') {
+      target = request.nextUrl.clone()
+      if (destination.startsWith('/')) {
+        const [path, query] = destination.split('?')
+        target.pathname = path
+        target.search = query ? `?${query}` : ''
+      } else {
+        target = new URL(destination)
+      }
+    } else {
+      target = destination
+    }
+    const response = NextResponse.redirect(target)
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      response.cookies.set(cookie.name, cookie.value, cookie)
+    })
+    return response
+  }
+
+  // 1. OAuth code catch-all:
+  // If Supabase redirects an OAuth callback (e.g. Google) to the Site URL root '/' with '?code=...',
+  // intercept it immediately and forward to '/auth/callback' so it exchanges the code for a session
+  // and redirects straight to /app!
+  const code = request.nextUrl.searchParams.get('code')
+  if (code && !request.nextUrl.pathname.startsWith('/auth/callback')) {
+    const callbackUrl = request.nextUrl.clone()
+    callbackUrl.pathname = '/auth/callback'
+    return redirectWithCookies(callbackUrl)
+  }
+
   const { data: { user } } = await supabase.auth.getUser()
 
   // Protect /app routes — carry the original destination through as `next`
@@ -31,7 +64,7 @@ export async function updateSession(request: NextRequest) {
     url.pathname = '/auth/login'
     url.search = ''
     url.searchParams.set('next', originalDestination)
-    return NextResponse.redirect(url)
+    return redirectWithCookies(url)
   }
 
   // Onboarding redirect: authenticated user on /app/* who hasn't completed onboarding.
@@ -64,7 +97,7 @@ export async function updateSession(request: NextRequest) {
         if (!isOnboarded) {
           const url = request.nextUrl.clone()
           url.pathname = '/app/settings/onboarding'
-          return NextResponse.redirect(url)
+          return redirectWithCookies(url)
         }
 
         // Auto-heal in background if profile.onboarded was false or auth_id was unlinked
@@ -87,20 +120,30 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Redirect authenticated users away from auth pages
+  // Redirect authenticated users away from auth pages and landing page root '/'
   // Exception: allow /auth/reset-password and /auth/verify so users can complete
   // OTP verification and onboarding transition
-  if (user && request.nextUrl.pathname.startsWith('/auth')) {
-    if (
-      request.nextUrl.pathname.startsWith('/auth/reset-password') ||
-      request.nextUrl.pathname.startsWith('/auth/verify')
-    ) {
-      return supabaseResponse
+  if (user) {
+    if (request.nextUrl.pathname.startsWith('/auth')) {
+      if (
+        request.nextUrl.pathname.startsWith('/auth/reset-password') ||
+        request.nextUrl.pathname.startsWith('/auth/verify')
+      ) {
+        return supabaseResponse
+      }
+      const url = request.nextUrl.clone()
+      url.pathname = '/app'
+      return redirectWithCookies(url)
     }
-    const url = request.nextUrl.clone()
-    url.pathname = '/app'
-    return NextResponse.redirect(url)
+
+    // If already authenticated and landing on the root page '/', navigate directly to /app
+    if (request.nextUrl.pathname === '/') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/app'
+      return redirectWithCookies(url)
+    }
   }
 
   return supabaseResponse
 }
+

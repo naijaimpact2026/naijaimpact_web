@@ -87,10 +87,8 @@ export default function LoginPage() {
                 setServerError('Invalid email or password')
             }
         } else if (result?.success) {
-            // Use client-side navigation — server-action redirect()
-            // is unreliable on iOS Safari/Chrome due to cookies + redirects.
-            router.push(next)
-            router.refresh()
+            // Full document navigation ensures the browser immediately persists all auth cookies
+            window.location.href = next
         }
     }
 

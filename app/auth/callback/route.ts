@@ -5,6 +5,9 @@ import type { EmailOtpType, SupabaseClient } from '@supabase/supabase-js'
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
+    const forwardedHost = request.headers.get('x-forwarded-host')
+    const forwardedProto = request.headers.get('x-forwarded-proto') || 'https'
+    const publicOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : origin
 
     const code = searchParams.get('code')
     const token_hash = searchParams.get('token_hash')
@@ -20,27 +23,32 @@ export async function GET(request: Request) {
                 type: 'recovery',
             })
             if (!error) {
-                return NextResponse.redirect(`${origin}/auth/reset-password`)
+                return NextResponse.redirect(`${publicOrigin}/auth/reset-password`)
             }
         }
         if (code) {
             const { error } = await supabase.auth.exchangeCodeForSession(code)
             if (!error) {
-                return NextResponse.redirect(`${origin}/auth/reset-password`)
+                return NextResponse.redirect(`${publicOrigin}/auth/reset-password`)
             }
         }
-        return NextResponse.redirect(`${origin}/auth/reset-password?error=invalid_code`)
+        return NextResponse.redirect(`${publicOrigin}/auth/reset-password?error=invalid_code`)
     }
 
-    // Resolve against origin and require it to stay same-origin
+    // Resolve against publicOrigin and require it to stay same-origin
     let next = '/app'
     try {
-        const resolved = new URL(requestedNext, origin)
-        if (resolved.origin === origin) {
+        const resolved = new URL(requestedNext, publicOrigin)
+        if (resolved.origin === publicOrigin) {
             next = `${resolved.pathname}${resolved.search}${resolved.hash}`
         }
     } catch {
         // Malformed next value — fall back to '/app'
+    }
+
+    // Always send authenticated users to /app, never let them get stranded on the root landing page
+    if (!next || next === '/') {
+        next = '/app'
     }
 
     const supabase = await createClient()
@@ -57,7 +65,7 @@ export async function GET(request: Request) {
             if (user) {
                 await ensureUserRow(user, supabase as unknown as SupabaseClient)
             }
-            return NextResponse.redirect(`${origin}${next}`)
+            return NextResponse.redirect(`${publicOrigin}${next}`)
         }
     }
 
@@ -70,11 +78,11 @@ export async function GET(request: Request) {
             if (user) {
                 await ensureUserRow(user, supabase as unknown as SupabaseClient)
             }
-            return NextResponse.redirect(`${origin}${next}`)
+            return NextResponse.redirect(`${publicOrigin}${next}`)
         }
     }
 
     return NextResponse.redirect(
-        `${origin}/auth/login?error=oauth`
+        `${publicOrigin}/auth/login?error=oauth`
     )
 }
