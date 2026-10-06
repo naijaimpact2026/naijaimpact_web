@@ -1,0 +1,4 @@
+allowBuilds:
+  sharp: false
+  stream-chat: false
+  stream-chat-react: false

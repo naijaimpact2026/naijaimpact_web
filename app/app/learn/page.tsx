@@ -159,6 +159,7 @@ export default async function LearnPage({
 
     return (
         <LearnHubHome
+            userId={authUser?.id ?? null}
             initialCourses={initialCourses}
             initialNextCursor={nextCursor}
             categories={categories}

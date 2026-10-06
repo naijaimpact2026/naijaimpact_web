@@ -7,29 +7,122 @@ const TABS = ['All Courses', 'My Learning', 'Career Tracks', 'Categories', 'Cert
 export default function LearnSkeleton() {
     return (
         <div>
-            <section className="border-b border-border bg-card">
-                <div className="mx-auto max-w-[1600px] px-4 py-10 sm:px-6 lg:px-8">
-                    <div className="grid gap-10 lg:grid-cols-[1fr_360px] lg:items-center">
-                        <div className="max-w-3xl space-y-4">
-                            <Skeleton className="h-7 w-52 rounded-full" />
-                            <SkeletonLine width="85%" height={32} delay={WAVE_STEP} />
-                            <SkeletonLine width="60%" height={16} delay={WAVE_STEP * 2} />
-                            <div className="flex gap-3 pt-3">
-                                <Skeleton className="h-11 w-40 rounded-lg" delay={WAVE_STEP * 3} />
-                                <Skeleton className="h-11 w-36 rounded-lg" delay={WAVE_STEP * 4} />
-                            </div>
+            
+            {/* Hero and learning statistics skeleton */}
+            <section className="relative isolate mb-6 min-h-[320px] overflow-hidden rounded-2xl border border-white/10 bg-[#061525] text-white sm:min-h-[340px]">
+                <div
+                    className="absolute inset-0 -z-10 bg-cover bg-center"
+                    style={{
+                        backgroundImage: "url('/learn-dashboard-hero.png')",
+                    }}
+                />
+
+                <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#061525]/95 via-[#061525]/85 to-[#061525]/65" />
+
+                <div className="relative grid min-h-[320px] items-center gap-7 p-5 sm:min-h-[340px] sm:p-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:p-9">
+                    {/* Greeting, heading, description and actions */}
+                    <div className="min-w-0 space-y-4">
+                        <SkeletonLine
+                            width={135}
+                            height={12}
+                            base="bg-white/15"
+                        />
+
+                        <div className="space-y-3">
+                            <SkeletonLine
+                                width="min(100%, 310px)"
+                                height={38}
+                                base="bg-white/20"
+                            />
+                            <SkeletonLine
+                                width="min(80%, 245px)"
+                                height={30}
+                                base="bg-blue-400/25"
+                            />
                         </div>
 
+                        <div className="space-y-2 pt-1">
+                            <SkeletonLine
+                                width="min(100%, 390px)"
+                                height={11}
+                                base="bg-white/15"
+                            />
+                            <SkeletonLine
+                                width="min(82%, 320px)"
+                                height={11}
+                                base="bg-white/15"
+                            />
+                        </div>
+
+                        <div className="flex flex-wrap gap-3 pt-2">
+                            <SkeletonBlock
+                                className="h-11 w-36 rounded-xl"
+                                base="bg-blue-500/30"
+                            />
+                            <SkeletonBlock
+                                className="h-11 w-32 rounded-xl"
+                                base="bg-white/10"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Learning overview */}
+                    <div className="rounded-2xl border border-white/10 bg-[#061525]/80 p-4 shadow-2xl backdrop-blur-md sm:p-5">
+                        <SkeletonLine
+                            width={175}
+                            height={10}
+                            base="bg-blue-200/20"
+                            className="mb-4"
+                        />
+
                         <div className="grid grid-cols-2 gap-3">
-                            <SkeletonBlock className="h-28 w-full" />
-                            <SkeletonBlock className="h-28 w-full" delay={WAVE_STEP} />
-                            <SkeletonBlock className="col-span-2 h-14 w-full" delay={WAVE_STEP * 2} />
+                            {[
+                                { key: 'courses', icon: 'bg-emerald-400/25' },
+                                { key: 'certificates', icon: 'bg-violet-400/25' },
+                                { key: 'streak', icon: 'bg-orange-400/25' },
+                                { key: 'hours', icon: 'bg-sky-400/25' },
+                            ].map((stat, index) => (
+                                <div
+                                    key={stat.key}
+                                    className="min-h-[112px] rounded-xl border border-white/10 bg-white/[0.04] p-3"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <SkeletonBlock
+                                            className={`h-8 w-8 rounded-lg ${stat.icon}`}
+                                            base="bg-white/10"
+                                            delay={index * WAVE_STEP}
+                                        />
+                                        <SkeletonBlock
+                                            className="h-5 w-5 rounded-full"
+                                            base="bg-white/10"
+                                            delay={index * WAVE_STEP}
+                                        />
+                                    </div>
+
+                                    <SkeletonLine
+                                        width={44}
+                                        height={22}
+                                        base="bg-white/20"
+                                        className="mt-3"
+                                        delay={index * WAVE_STEP}
+                                    />
+
+                                    <SkeletonLine
+                                        width="85%"
+                                        height={9}
+                                        base="bg-white/10"
+                                        className="mt-2"
+                                        delay={index * WAVE_STEP}
+                                    />
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
             </section>
 
-            <main className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-8">
+
+            <main className="min-h-screen bg-[#061525] px-4 py-8 text-white sm:px-6 lg:px-8">
                 <div className="flex gap-6 items-start">
                     <div className="flex-1 min-w-0">
                         <div className="mb-8 flex gap-4 overflow-x-auto border-b border-border pb-3">
@@ -38,7 +131,6 @@ export default function LearnSkeleton() {
                             ))}
                         </div>
 
-                        <Skeleton className="h-10 w-full max-w-md rounded-lg mb-8" />
 
                         <div className="flex items-end justify-between gap-4 mb-6">
                             <div className="space-y-2">
@@ -55,7 +147,7 @@ export default function LearnSkeleton() {
 
                         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {Array.from({ length: 8 }).map((_, i) => (
-                                <div key={i} className="rounded-2xl border border-border bg-card overflow-hidden">
+                                <div key={i} className="overflow-hidden rounded-2xl border border-white/10 bg-[#081b2f]">
                                     <Skeleton className="h-36 w-full rounded-none" delay={i * WAVE_STEP} />
                                     <div className="p-4 space-y-2">
                                         <SkeletonLine width={60} height={9} delay={i * WAVE_STEP} />
