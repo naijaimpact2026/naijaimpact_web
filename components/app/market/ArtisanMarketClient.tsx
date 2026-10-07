@@ -179,7 +179,7 @@ function ArtisanCard({ group }: { group: ArtisanGroup })
         .filter(Boolean) as string[]
 
     return (
-        <Link href={`/app/market/artisans/profile/${group.artisanKey}`}
+        <Link href={`/app/artisans/profile/${group.artisanKey}`}
             className="group cursor-pointer overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:border-primary/40 hover:shadow-lg">
 
             {/* Image collage top */}
@@ -297,9 +297,9 @@ export default function ArtisanMarketClient({ initialArtisans, initialNextCursor
             <section className="relative overflow-hidden rounded-3xl"
                 style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}>
                 <div className="px-6 py-8 sm:px-10 sm:py-10">
-                    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-cyan-200">Hubnovo Marketplace</p>
-                    <h1 className="font-display text-3xl font-black text-white">Artisan Marketplace</h1>
-                    <p className="mt-1 text-sm text-white/70">Find verified skilled professionals near you</p>
+                    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-cyan-200">Hubnovo Artisans & Pros</p>
+                    <h1 className="font-display text-3xl font-black text-white">Artisans & Skilled Trades</h1>
+                    <p className="mt-1 text-sm text-white/70">Find and hire verified skilled professionals near you</p>
                     <button onClick={() => setProfileModalOpen(true)}
                         className="mt-5 flex items-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-sm font-black text-secondary shadow-lg transition-colors hover:bg-white/90">
                         <Plus className="h-4 w-4" />

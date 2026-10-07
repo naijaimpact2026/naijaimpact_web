@@ -23,6 +23,8 @@ import
     ShoppingBag,
     Sprout,
     ArrowRight,
+    Wrench,
+    Rocket,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { User as UserType } from '@/lib/types'
@@ -42,8 +44,10 @@ const navItems = [
     { icon: Search, label: 'Search', href: '/app/search' },
     { icon: Users, label: 'Community', href: '/app/feed' },
     { icon: ShoppingBag, label: 'Marketplace', href: '/app/market' },
+    { icon: Briefcase, label: 'Jobs & Careers', href: '/app/jobs' },
+    { icon: Wrench, label: 'Artisans & Pros', href: '/app/artisans' },
+    { icon: Rocket, label: 'Business LaunchPad', href: '/app/services' },
     { icon: BookOpen, label: 'Learn', href: '/app/learn' },
-    { icon: Briefcase, label: 'Business LaunchPad', href: '/app/services' },
     { icon: Wallet, label: 'Wallet & Save', href: '/app/wallet' },
     { icon: HandCoins, label: 'Crowdfunding', href: '/app/funding' },
     { icon: LayoutGrid, label: 'Fintech', href: '/app/fintech' },

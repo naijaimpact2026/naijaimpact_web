@@ -55,7 +55,7 @@ function ServiceCard({ service }: { service: ServiceItem })
     const img = service.image_urls?.[0] ?? service.cover_image_url ?? null
 
     return (
-        <Link href={`/app/market/artisans/${service.id}`}
+        <Link href={`/app/artisans/${service.id}`}
             className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden hover:border-primary/40 hover:shadow-md transition-all group">
             {/* Image */}
             <div className="relative aspect-square overflow-hidden bg-primary/5">

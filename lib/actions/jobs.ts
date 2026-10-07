@@ -392,6 +392,7 @@ export async function createJob(
       .eq('id', profile.id)
   } catch {}
 
+  revalidatePath('/app/jobs')
   revalidatePath('/app/market/jobs')
   revalidatePath('/app/market')
 
@@ -454,6 +455,8 @@ export async function updateJob(
     return { success: false, error: error.message }
   }
 
+  revalidatePath('/app/jobs')
+  revalidatePath(`/app/jobs/${id}`)
   revalidatePath('/app/market/jobs')
   revalidatePath(`/app/market/jobs/${id}`)
   return { success: true }
@@ -478,6 +481,7 @@ export async function deleteJob(id: string): Promise<{ success: boolean; error?:
     return { success: false, error: error.message }
   }
 
+  revalidatePath('/app/jobs')
   revalidatePath('/app/market/jobs')
   return { success: true }
 }
@@ -583,6 +587,8 @@ export async function applyForJob(
     console.warn('Could not insert application notification:', err)
   }
 
+  revalidatePath(`/app/jobs/${input.job_id}`)
+  revalidatePath('/app/jobs')
   revalidatePath(`/app/market/jobs/${input.job_id}`)
   revalidatePath('/app/market/jobs')
 
@@ -781,6 +787,7 @@ export async function updateApplicationStatus(
     })
   } catch {}
 
+  revalidatePath('/app/jobs')
   revalidatePath('/app/market/jobs')
   return { success: true }
 }
@@ -802,6 +809,7 @@ export async function toggleSaveJob(jobId: string): Promise<{ isSaved: boolean; 
 
   if (existing) {
     await supabase.from('job_bookmarks').delete().eq('id', existing.id)
+    revalidatePath('/app/jobs')
     revalidatePath('/app/market/jobs')
     return { isSaved: false }
   } else {
@@ -809,6 +817,7 @@ export async function toggleSaveJob(jobId: string): Promise<{ isSaved: boolean; 
       user_id: profile.id,
       job_id: jobId,
     })
+    revalidatePath('/app/jobs')
     revalidatePath('/app/market/jobs')
     return { isSaved: true }
   }

@@ -31,11 +31,10 @@ interface Props
 }
 
 const QUICK_NAV_ITEMS = [
-    { icon: Heart, label: 'Saved', href: '/app/market/saved' },
-    { icon: Users, label: 'Artisans', href: '/app/market/artisans' },
     { icon: Store, label: 'Stores', href: '/app/market/stores' },
-    { icon: Briefcase, label: 'Jobs', href: '/app/market/jobs' },
     { icon: ShoppingCart, label: 'My Orders', href: '/app/market/orders' },
+    { icon: Heart, label: 'Saved Items', href: '/app/market/saved' },
+    { icon: Plus, label: 'Sell / List Item', href: '/app/market/create' },
 ] as const
 
 // ─── Icon + color map — each category keyword gets its own colour pair ───────
@@ -231,7 +230,7 @@ export default function MarketHomeClient({
             </section>
 
             {/* ══ QUICK NAV ═════════════════════════════════════════════ */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {QUICK_NAV_ITEMS.map(({ icon: Icon, label, href }) => (
                     <Link key={href} href={href}
                         className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card py-4 transition-colors hover:border-primary/40 hover:bg-primary/5">
@@ -241,6 +240,27 @@ export default function MarketHomeClient({
                         <span className="text-[11px] font-semibold text-foreground">{label}</span>
                     </Link>
                 ))}
+            </div>
+
+            {/* ══ STANDALONE HUBS DISCOVERY BANNER ═════════════════════════ */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-border/80 bg-gradient-to-r from-primary/5 via-card to-card p-4">
+                <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Briefcase className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <p className="text-xs font-bold text-foreground">Explore Employment & Skilled Services</p>
+                        <p className="text-[11px] text-muted-foreground">Jobs & Career Opportunities and Verified Artisans are now standalone hubs.</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Link href="/app/jobs" className="flex-1 sm:flex-none text-center rounded-xl bg-card border border-border px-3.5 py-2 text-xs font-bold text-foreground hover:border-primary/50 hover:text-primary transition-colors">
+                        Browse Jobs
+                    </Link>
+                    <Link href="/app/artisans" className="flex-1 sm:flex-none text-center rounded-xl bg-primary px-3.5 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors">
+                        Hire Artisans
+                    </Link>
+                </div>
             </div>
 
             {/* ══ CATEGORY STRIP ════════════════════════════════════════ */}

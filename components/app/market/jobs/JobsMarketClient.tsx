@@ -224,7 +224,7 @@ export default function JobsMarketClient({
 
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              href="/app/market/jobs/create"
+              href="/app/jobs/create"
               className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-secondary shadow-lg transition-transform active:scale-95 hover:bg-white/90"
             >
               <Plus className="h-4 w-4" />
