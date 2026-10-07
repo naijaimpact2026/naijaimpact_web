@@ -57,6 +57,7 @@ import
   type PostOptions,
   encodePostContent,
   parsePostContent,
+  stripPostMeta,
   toPostWithAuthor,
 } from '@/lib/post-helpers'
 
@@ -1179,12 +1180,15 @@ export async function fetchRecentPostsPreviews(
 
   if (error || !data) return []
 
-  return (data as any[]).map((p) => ({
-    id: p.id,
-    caption: p.content ?? null,
-    author_name: p.author?.display_name ?? 'Unknown',
-    created_at: p.created_at,
-  }))
+  return (data as any[]).map((p) => {
+    const { caption } = parsePostContent(p.content)
+    return {
+      id: p.id,
+      caption,
+      author_name: p.author?.display_name ?? 'Unknown',
+      created_at: p.created_at,
+    }
+  })
 }
 
 /**
@@ -1207,7 +1211,8 @@ export async function fetchTrendingHashtags(
 
   const counts: Record<string, number> = {}
   for (const row of data as { content: string | null }[]) {
-    const matches = row.content?.match(/#(\w+)/g) ?? []
+    const cleanContent = stripPostMeta(row.content)
+    const matches = cleanContent?.match(/#(\w+)/g) ?? []
     for (const raw of matches) {
       const tag = raw.slice(1).toLowerCase()
       counts[tag] = (counts[tag] ?? 0) + 1

@@ -22,9 +22,10 @@ const signupSchema = z.object({
                 .string()
                 .min(3, 'Username must be at least 3 characters')
                 .regex(
-                    /^[a-z0-9_]+$/,
-                    'Username can only contain lowercase letters, numbers, and underscores'
-                ),
+                    /^[a-zA-Z0-9_]+$/,
+                    'Username can only contain letters, numbers, and underscores'
+                )
+                .transform((v) => v.toLowerCase()),
             ...authFields,
         })
 
@@ -216,6 +217,9 @@ export default function SignupPage() {
                                         <input
                                             type="text"
                                             placeholder="chioma_builds"
+                                            autoCapitalize="none"
+                                            autoCorrect="off"
+                                            spellCheck={false}
                                             {...register('username')}
                                             className="w-full h-[50px] rounded-xl border border-[#3A5D87] bg-[#132541] pl-10 pr-4 text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10 hover:border-[#5278A5]"
                                         />
@@ -245,6 +249,9 @@ export default function SignupPage() {
                                         <input
                                             type="email"
                                             placeholder="you@example.com"
+                                            autoCapitalize="none"
+                                            autoCorrect="off"
+                                            spellCheck={false}
                                             {...register('email')}
                                             className="w-full h-[50px] rounded-xl border border-[#3A5D87] bg-[#132541] pl-12 pr-4 text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10 hover:border-[#5278A5]"
                                         />

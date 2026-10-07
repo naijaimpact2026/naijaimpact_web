@@ -87,10 +87,8 @@ export default function LoginPage() {
                 setServerError('Invalid email or password')
             }
         } else if (result?.success) {
-            // Use client-side navigation — server-action redirect()
-            // is unreliable on iOS Safari/Chrome due to cookies + redirects.
-            router.push(next)
-            router.refresh()
+            // Full document navigation ensures the browser immediately persists all auth cookies
+            window.location.href = next
         }
     }
 
@@ -431,6 +429,9 @@ export default function LoginPage() {
                                 <input
                                     type="email"
                                     placeholder="you@example.com"
+                                    autoCapitalize="none"
+                                    autoCorrect="off"
+                                    spellCheck={false}
                                     {...register('email')}
                                     className="w-full h-[56px] rounded-xl border border-[#3A5D87] bg-[#132541] pl-12 pr-4 text-sm text-white placeholder:text-slate-500 outline-none transition-all focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10 hover:border-[#5278A5]"
                                 />
