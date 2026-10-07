@@ -1195,6 +1195,7 @@ export async function createOrUpdateArtisanProfile(data: {
     }
   }
 
+  revalidatePath('/app/artisans')
   revalidatePath('/app/market/artisans')
   revalidatePath(`/app/market/artisans/${listingId}`)
   return { id: listingId }

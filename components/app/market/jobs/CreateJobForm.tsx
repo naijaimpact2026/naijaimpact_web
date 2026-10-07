@@ -189,7 +189,7 @@ export default function CreateJobForm({ currentUser }: CreateJobFormProps) {
         toast.error(res.error || 'Failed to post job')
       } else {
         toast.success('Job opening posted successfully!')
-        router.push(`/app/market/jobs/${res.job.id}`)
+        router.push(`/app/jobs/${res.job.id}`)
       }
     } catch {
       toast.error('An unexpected error occurred while posting this job.')
@@ -203,7 +203,7 @@ export default function CreateJobForm({ currentUser }: CreateJobFormProps) {
       {/* Back button */}
       <div>
         <Link
-          href="/app/market/jobs"
+          href="/app/jobs"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />

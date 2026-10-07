@@ -24,9 +24,9 @@ interface HomeRightSidebarProps
 }
 
 const QUICK_ACTIONS = [
-    { icon: Briefcase, label: 'Post a Job', href: null },
-    { icon: ShoppingBag, label: 'List a Product', href: '/app/market' },
-    { icon: Wrench, label: 'Request an Artisan', href: '/app/services' },
+    { icon: Briefcase, label: 'Post a Job', href: '/app/jobs/create' },
+    { icon: ShoppingBag, label: 'List a Product', href: '/app/market/create' },
+    { icon: Wrench, label: 'Request an Artisan', href: '/app/artisans' },
     { icon: HandCoins, label: 'Start a Campaign', href: '/app/funding' },
     { icon: CalendarPlus, label: 'Create an Event', href: null },
 ]

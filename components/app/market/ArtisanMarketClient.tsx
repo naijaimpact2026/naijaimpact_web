@@ -301,7 +301,7 @@ function ArtisanCard({ group }: { group: ArtisanGroup })
         .filter(Boolean) as string[]
 
     return (
-        <Link href={`/app/market/artisans/profile/${group.artisanKey}`}
+        <Link href={`/app/artisans/profile/${group.artisanKey}`}
             className="group cursor-pointer overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:border-primary/40 hover:shadow-lg">
 
             {/* Collage preview */}
@@ -462,31 +462,45 @@ export default function ArtisanMarketClient({ initialArtisans, initialNextCursor
     }, [filteredServices])
 
     return (
-        <div className="w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8">
-            {/* ══ HERO BANNER ════════════════════════════════════════════ */}
-            <section className="relative overflow-hidden rounded-3xl"
-                style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}>
-                <div className="px-6 py-8 sm:px-10 sm:py-10">
-                    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-cyan-200">Hubnovo Marketplace</p>
-                    <h1 className="font-display text-3xl font-black text-white sm:text-4xl">
-                        Artisans & Professional Services
-                    </h1>
-                    <p className="mt-1.5 max-w-xl text-sm text-white/70">
-                        Hire verified skilled artisans, technicians, and licensed professional consultants across Nigeria with escrow protection.
-                    </p>
-                    <div className="mt-5 flex flex-wrap items-center gap-3">
-                        <button onClick={() => setProfileModalOpen(true)}
-                            className="flex items-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-sm font-black text-secondary shadow-lg transition-transform active:scale-95 hover:bg-white/90">
-                            <Plus className="h-4 w-4" />
-                            {myArtisanProfile ? 'Update My Service Listing' : 'List My Services'}
-                        </button>
-                        <Link href="/app/market/create"
-                            className="flex items-center gap-2 rounded-2xl border-2 border-white/30 bg-white/10 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-white/20">
-                            Create New Listing
-                        </Link>
-                    </div>
-                </div>
-            </section>
+{/* ══ HERO BANNER ════════════════════════════════════════════ */}
+<section
+  className="relative overflow-hidden rounded-3xl"
+  style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}
+>
+  <div className="px-6 py-8 sm:px-10 sm:py-10">
+    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-cyan-200">
+      Hubnovo Marketplace
+    </p>
+
+    <h1 className="font-display text-3xl font-black text-white sm:text-4xl">
+      Artisans & Professional Services
+    </h1>
+
+    <p className="mt-1.5 max-w-xl text-sm text-white/70">
+      Hire verified skilled artisans, technicians, and licensed professional
+      consultants across Nigeria with escrow protection.
+    </p>
+
+    <div className="mt-5 flex flex-wrap items-center gap-3">
+      <button
+        onClick={() => setProfileModalOpen(true)}
+        className="flex items-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-sm font-black text-secondary shadow-lg transition-transform active:scale-95 hover:bg-white/90"
+      >
+        <Plus className="h-4 w-4" />
+        {myArtisanProfile
+          ? 'Update My Service Listing'
+          : 'List My Services'}
+      </button>
+
+      <Link
+        href="/app/market/create"
+        className="flex items-center gap-2 rounded-2xl border-2 border-white/30 bg-white/10 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-white/20"
+      >
+        Create New Listing
+      </Link>
+    </div>
+  </div>
+</section>
 
             {/* ══ SERVICE TYPE TABS + SEARCH ═════════════════════════════ */}
             <div className="space-y-3">

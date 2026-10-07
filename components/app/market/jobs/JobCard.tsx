@@ -144,7 +144,7 @@ export default function JobCard({ job, onApplyClick, currentUserId }: JobCardPro
 
             <div>
               <Link
-                href={`/app/market/jobs/${job.id}`}
+                href={`/app/jobs/${job.id}`}
                 className="font-display text-base font-bold text-foreground transition-colors hover:text-primary line-clamp-1"
               >
                 {job.title}
@@ -254,7 +254,7 @@ export default function JobCard({ job, onApplyClick, currentUserId }: JobCardPro
           </span>
 
           <Link
-            href={`/app/market/jobs/${job.id}`}
+            href={`/app/jobs/${job.id}`}
             className="inline-flex items-center gap-1 rounded-xl bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition-transform active:scale-95 hover:bg-primary/90"
           >
             {job.has_applied ? 'View Details' : 'Details & Apply'}

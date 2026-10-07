@@ -1,20 +1,19 @@
-import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { createClient } from '@/lib/supabase/server'
-import {
-  fetchArtisans,
-  fetchMarketCategories,
-} from '@/lib/actions/marketplace'
+import { redirect } from 'next/navigation'
+import { fetchArtisans, fetchMarketCategories } from '@/lib/actions/marketplace'
 import ArtisanMarketClient from '@/components/app/market/ArtisanMarketClient'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ArtisanMarketPage() {
-  const { authUser } = await getCurrentUser()
+export const metadata = {
+  title: 'Artisans & Pros | Hubnovo',
+  description: 'Find and hire verified skilled artisans and trade professionals across Nigeria on Hubnovo.',
+}
 
-  if (!authUser) {
-    redirect('/auth/login')
-  }
+export default async function ArtisansPage() {
+  const { authUser } = await getCurrentUser()
+  if (!authUser) redirect('/auth/login?next=/app/artisans')
 
   const supabase = await createClient()
 
@@ -27,24 +26,11 @@ export default async function ArtisanMarketPage() {
   const { data: myServiceListing } = await supabase
     .from('nm_listings')
     .select(`
-      id,
-      title,
-      description,
-      category_id,
-      price,
-      state,
-      city,
-      tags,
-      is_active,
-      listing_images:nm_listing_images(
-        image_url,
-        sort_order
-      )
+      id, title, description, category_id, price, state, city, tags, is_active,
+      listing_images:nm_listing_images(image_url, sort_order)
     `)
     .eq('user_id', authUser.id)
     .eq('listing_type', 'service')
-    .order('created_at', { ascending: false })
-    .limit(1)
     .maybeSingle()
 
   const myArtisanProfile = myServiceListing
