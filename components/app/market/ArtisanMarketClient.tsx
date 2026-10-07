@@ -462,17 +462,18 @@ export default function ArtisanMarketClient({ initialArtisans, initialNextCursor
     }, [filteredServices])
 
     return (
-{/* ══ HERO BANNER ════════════════════════════════════════════ */}
-<section
-  className="relative overflow-hidden rounded-3xl"
-  style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}
->
-  <div className="px-6 py-8 sm:px-10 sm:py-10">
-    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-cyan-200">
-      Hubnovo Marketplace
-    </p>
+        <div className="w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8">
+            {/* ══ HERO BANNER ════════════════════════════════════════════ */}
+            <section
+                className="relative overflow-hidden rounded-3xl"
+                style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}
+            >
+                <div className="px-6 py-8 sm:px-10 sm:py-10">
+                    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-cyan-200">
+                        Hubnovo Artisans & Pros
+                    </p>
 
-    <h1 className="font-display text-3xl font-black text-white sm:text-4xl">
+                    <h1 className="font-display text-3xl font-black text-white sm:text-4xl">
       Artisans & Professional Services
     </h1>
 
