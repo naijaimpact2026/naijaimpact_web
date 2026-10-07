@@ -4,6 +4,9 @@ import Features from '@/components/Features'
 import FintechSection from '@/components/FintechSection'
 import About from '@/components/About'
 import Testimonials from '@/components/Testimonials'
+import HowItWorks from '@/components/HowItWorks'
+import Security from '@/components/Security'
+import FAQ from '@/components/FAQ'
 import Contact from '@/components/Contact'
 import Footer from '@/components/Footer'
 import { createClient } from '@/lib/supabase/server'
@@ -33,14 +36,18 @@ export default async function Home({ searchParams }: HomePageProps) {
     redirect('/app')
   }
 
+  // Landing is light-locked: explicit bg/text so html.dark tokens never leak in.
   return (
-    <main>
+    <main className="bg-white text-ink [color-scheme:light]">
       <Header />
       <Hero />
-      <Features />
       <FintechSection />
-      <About />
+      <Features />
+      <HowItWorks />
+      <Security />
       <Testimonials />
+      <About />
+      <FAQ />
       <Contact />
       <Footer />
     </main>

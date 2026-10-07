@@ -1,19 +1,20 @@
 import type { Metadata, Viewport } from 'next'
-import { Manrope, Inter } from 'next/font/google'
+import { Archivo, Public_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { ToastViewport } from '@/components/toast'
 import './globals.css'
 
-const manrope = Manrope({
-  weight: ['400', '500', '600', '700', '800'],
-  subsets: ['latin'],
-  variable: '--font-manrope',
+// Both families ship the Naira sign (₦), but only in their latin-ext
+// subset — dropping 'latin-ext' makes every ₦ fall back to a system font.
+const archivo = Archivo({
+  subsets: ['latin', 'latin-ext'],
+  variable: '--font-heading',
 })
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
+const publicSans = Public_Sans({
+  subsets: ['latin', 'latin-ext'],
+  variable: '--font-body',
 })
 
 export const metadata: Metadata = {
@@ -54,7 +55,7 @@ export default function RootLayout({
 }>)
 {
   return (
-    <html lang="en" className={`${manrope.variable} ${inter.variable}`} suppressHydrationWarning data-scroll-behavior="smooth">
+    <html lang="en" className={`${archivo.variable} ${publicSans.variable}`} suppressHydrationWarning data-scroll-behavior="smooth">
       <body className="font-sans antialiased bg-background text-foreground">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           {children}
