@@ -12,13 +12,17 @@ import
     MessageCircle,
     Bell,
     Menu,
+    Clapperboard,
+    Wrench,
+    Rocket,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SkeletonAvatar, SkeletonBlock, SkeletonLine, WAVE_STEP } from './primitives'
 
+// Same order as navItems in components/app/Sidebar.tsx.
 const NAV_ITEMS = [
-    Home, Search, Users, ShoppingBag, BookOpen, Briefcase,
-    Wallet, HandCoins, LayoutGrid, MessageCircle, Bell,
+    Home, Search, Users, Clapperboard, ShoppingBag, Briefcase, Wrench, Rocket,
+    BookOpen, Wallet, HandCoins, LayoutGrid, MessageCircle, Bell,
 ]
 
 /**

@@ -43,7 +43,7 @@ const DURATIONS: Record<ToastType, number | null> = {
     info: 4_000,
     success: 5_000,
     warning: 7_000,
-    error: null,
+    error: 8_000,
 }
 
 let toasts: ToastItem[] = []
@@ -178,11 +178,15 @@ export function resume(id: string)
     scheduleTimer(updated)
 }
 
-/** Error toasts don't start their exit countdown until the user acknowledges (clicks) them. */
+/**
+ * A sticky (duration: null) error doesn't start its exit countdown until the
+ * user acknowledges (clicks) it. Errors auto-dismiss by default now, so this
+ * only applies if one is ever made sticky again.
+ */
 export function acknowledge(id: string)
 {
     const item = toasts.find((t) => t.id === id)
-    if (!item || item.leaving || item.type !== 'error' || item.acknowledged) return
+    if (!item || item.leaving || item.type !== 'error' || item.acknowledged || item.duration != null) return
 
     const updated: ToastItem = {
         ...item,
