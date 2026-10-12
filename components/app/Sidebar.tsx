@@ -25,6 +25,7 @@ import
     ArrowRight,
     Wrench,
     Rocket,
+    Clapperboard,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { User as UserType } from '@/lib/types'
@@ -43,6 +44,7 @@ const navItems = [
     { icon: Home, label: 'Home', href: '/app' },
     { icon: Search, label: 'Search', href: '/app/search' },
     { icon: Users, label: 'Community', href: '/app/feed' },
+    { icon: Clapperboard, label: 'ModusHive', href: '/app/modushive' },
     { icon: ShoppingBag, label: 'Marketplace', href: '/app/market' },
     { icon: Briefcase, label: 'Jobs & Careers', href: '/app/jobs' },
     { icon: Wrench, label: 'Artisans & Pros', href: '/app/artisans' },
@@ -133,80 +135,84 @@ function Sidebar({
                     </button>
                 </div>
 
-                {/* Navigation */}
-                <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
-                    {navItems.map(({ icon: Icon, label, href, badgeProp }) =>
-                    {
-                        const active = isActive(href)
-                        const count = badgeProp ? badgeCounts[badgeProp] : 0
-                        return (
-                            <Link
-                                key={href + label}
-                                href={href}
-                                onClick={onClose}
-                                title={label}
-                                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all lg:justify-center xl:justify-start ${active
-                                    ? 'bg-primary/10 text-primary'
-                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                                    }`}
-                            >
-                                <span className="relative shrink-0">
-                                    <Icon className="w-5 h-5" strokeWidth={active ? 2.4 : 1.9} />
+                {/* Nav + invite card share one scroll area, so on short screens the
+                    card scrolls below Settings instead of covering the last items. */}
+                <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+                    {/* Navigation */}
+                    <nav className="px-2 py-3 space-y-0.5">
+                        {navItems.map(({ icon: Icon, label, href, badgeProp }) =>
+                        {
+                            const active = isActive(href)
+                            const count = badgeProp ? badgeCounts[badgeProp] : 0
+                            return (
+                                <Link
+                                    key={href + label}
+                                    href={href}
+                                    onClick={onClose}
+                                    title={label}
+                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all lg:justify-center xl:justify-start ${active
+                                        ? 'bg-primary/10 text-primary'
+                                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                        }`}
+                                >
+                                    <span className="relative shrink-0">
+                                        <Icon className="w-5 h-5" strokeWidth={active ? 2.4 : 1.9} />
+                                        {count > 0 && (
+                                            <span className="lg:flex xl:hidden absolute -top-1.5 -right-2 items-center justify-center min-w-[16px] h-4 px-0.5 rounded-full bg-destructive text-white text-[9px] font-bold leading-none">
+                                                {count > 99 ? '99+' : count}
+                                            </span>
+                                        )}
+                                    </span>
+                                    <span className="flex-1 lg:hidden xl:inline">{label}</span>
                                     {count > 0 && (
-                                        <span className="lg:flex xl:hidden absolute -top-1.5 -right-2 items-center justify-center min-w-[16px] h-4 px-0.5 rounded-full bg-destructive text-white text-[9px] font-bold leading-none">
+                                        <span className="hidden xl:flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-white text-[10px] font-bold leading-none shrink-0">
                                             {count > 99 ? '99+' : count}
                                         </span>
                                     )}
-                                </span>
-                                <span className="flex-1 lg:hidden xl:inline">{label}</span>
-                                {count > 0 && (
-                                    <span className="hidden xl:flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-white text-[10px] font-bold leading-none shrink-0">
-                                        {count > 99 ? '99+' : count}
-                                    </span>
-                                )}
-                            </Link>
-                        )
-                    })}
+                                </Link>
+                            )
+                        })}
 
-                    <Link
-                        href={profileHref}
-                        onClick={onClose}
-                        title="Profile"
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all lg:justify-center xl:justify-start ${pathname.startsWith('/app/profile')
-                            ? 'bg-primary/10 text-primary'
-                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                            }`}
-                    >
-                        <User className="w-5 h-5 shrink-0" strokeWidth={pathname.startsWith('/app/profile') ? 2.4 : 1.9} />
-                        <span className="lg:hidden xl:inline">Profile</span>
-                    </Link>
-
-                    <Link
-                        href="/app/settings"
-                        onClick={onClose}
-                        title="Settings"
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all lg:justify-center xl:justify-start ${pathname.startsWith('/app/settings')
-                            ? 'bg-primary/10 text-primary'
-                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                            }`}
-                    >
-                        <Settings className="w-5 h-5 shrink-0" strokeWidth={pathname.startsWith('/app/settings') ? 2.4 : 1.9} />
-                        <span className="lg:hidden xl:inline">Settings</span>
-                    </Link>
-                </nav>
-
-                {/* Invite friends — full sidebar (xl+) only */}
-                <div className="hidden xl:block px-3 pb-3">
-                    <div className="relative overflow-hidden rounded-2xl p-4 text-white" style={{ background: 'linear-gradient(135deg, #0A1E33 0%, #102A43 55%, #00688A 100%)' }}>
-                        <Sprout className="absolute -right-2 -bottom-2 w-16 h-16 opacity-20" />
-                        <p className="relative font-display font-bold text-sm leading-tight">A Brighter Tomorrow Together</p>
-                        <p className="relative text-[11px] text-white/80 mt-1">People. Opportunities. Prosperity.</p>
-                        <button
-                            onClick={handleInviteFriends}
-                            className="relative mt-3 inline-flex items-center gap-1.5 bg-white text-secondary text-xs font-bold px-3.5 py-2 rounded-full hover:bg-white/90 transition-colors"
+                        <Link
+                            href={profileHref}
+                            onClick={onClose}
+                            title="Profile"
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all lg:justify-center xl:justify-start ${pathname.startsWith('/app/profile')
+                                ? 'bg-primary/10 text-primary'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                }`}
                         >
-                            Invite Friends <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
+                            <User className="w-5 h-5 shrink-0" strokeWidth={pathname.startsWith('/app/profile') ? 2.4 : 1.9} />
+                            <span className="lg:hidden xl:inline">Profile</span>
+                        </Link>
+
+                        <Link
+                            href="/app/settings"
+                            onClick={onClose}
+                            title="Settings"
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all lg:justify-center xl:justify-start ${pathname.startsWith('/app/settings')
+                                ? 'bg-primary/10 text-primary'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                }`}
+                        >
+                            <Settings className="w-5 h-5 shrink-0" strokeWidth={pathname.startsWith('/app/settings') ? 2.4 : 1.9} />
+                            <span className="lg:hidden xl:inline">Settings</span>
+                        </Link>
+                    </nav>
+
+                    {/* Invite friends — full sidebar (xl+) only */}
+                    <div className="hidden xl:block px-3 pb-3">
+                        <div className="relative overflow-hidden rounded-2xl p-4 text-white" style={{ background: 'linear-gradient(135deg, #0A1E33 0%, #102A43 55%, #00688A 100%)' }}>
+                            <Sprout className="absolute -right-2 -bottom-2 w-16 h-16 opacity-20" />
+                            <p className="relative font-display font-bold text-sm leading-tight">A Brighter Tomorrow Together</p>
+                            <p className="relative text-[11px] text-white/80 mt-1">People. Opportunities. Prosperity.</p>
+                            <button
+                                onClick={handleInviteFriends}
+                                className="relative mt-3 inline-flex items-center gap-1.5 bg-white text-secondary text-xs font-bold px-3.5 py-2 rounded-full hover:bg-white/90 transition-colors"
+                            >
+                                Invite Friends <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
                     </div>
                 </div>
 

@@ -126,7 +126,7 @@ export default function ToastCard({ toast: item, index, targetY, onHeight }: Toa
     {
         if (dragStartRef.current) return
         if (Math.abs(dragX) > 4) return
-        if (item.type === 'error' && !item.acknowledged) acknowledge(item.id)
+        if (item.type === 'error' && item.duration == null) acknowledge(item.id)
     }
 
     const exitX = item.leaving && item.exitDirection
@@ -168,7 +168,7 @@ export default function ToastCard({ toast: item, index, targetY, onHeight }: Toa
                     transition: dragging ? 'none' : `transform ${item.leaving ? '260ms' : '320ms'} cubic-bezier(0.34, 1.56, 0.64, 1)`,
                     background: config.tint,
                     borderLeft: `4px solid ${config.color}`,
-                    cursor: item.type === 'error' && !item.acknowledged ? 'pointer' : 'grab',
+                    cursor: item.type === 'error' && item.duration == null ? 'pointer' : 'grab',
                 }}
             >
                 <span
@@ -180,7 +180,7 @@ export default function ToastCard({ toast: item, index, targetY, onHeight }: Toa
 
                 <div className="flex-1 min-w-0 pt-0.5">
                     <p className="text-sm font-medium text-foreground leading-snug break-words">{item.message}</p>
-                    {item.type === 'error' && !item.acknowledged && (
+                    {item.type === 'error' && item.duration == null && (
                         <p className="text-[10px] font-medium text-muted-foreground mt-1">Tap to dismiss</p>
                     )}
                 </div>

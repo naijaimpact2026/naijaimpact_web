@@ -37,6 +37,8 @@ export type User = {
   people_trained: number
   jobs_created: number
   communities_impacted: number
+  // ModusHive (2026-10-09 migration) — optional until it's applied everywhere
+  role?: 'user' | 'creator' | 'admin'
   created_at: string
   updated_at: string
 }
@@ -1220,4 +1222,64 @@ export interface CacApplication {
   updated_at: string
   business?: BusinessProfile | null
 }
-
+
+// ── ModusHive ───────────────────────────────────────────────
+
+export type PlaybackPolicy = 'public' | 'signed'
+
+export type PlaybackTokens = {
+  playback: string
+  thumbnail: string
+  storyboard: string
+}
+
+export type VideoOwner = Pick<User, 'id' | 'username' | 'display_name' | 'avatar_url' | 'verified'>
+
+export type Video = {
+  id: string
+  owner_id: string
+  title: string
+  description: string | null
+  kind: 'short' | 'live_replay'
+  status: 'uploading' | 'processing' | 'ready' | 'errored'
+  provider: string
+  provider_asset_id: string | null
+  playback_id: string | null
+  playback_policy: PlaybackPolicy
+  source_r2_key: string | null
+  source_size_bytes: number | null
+  duration_s: number | null
+  aspect_ratio: string | null
+  error_message: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** A video as listing/detail pages render it: owner joined, thumbnail pre-signed. */
+export type VideoWithOwner = Video & {
+  owner: VideoOwner | null
+  thumbnail_url: string | null
+}
+
+export type LiveStream = {
+  id: string
+  host_id: string
+  title: string
+  description: string | null
+  status: 'idle' | 'live' | 'ended'
+  provider: string
+  provider_stream_id: string | null
+  playback_id: string | null
+  playback_policy: PlaybackPolicy
+  chat_channel_id: string | null
+  replay_video_id: string | null
+  started_at: string | null
+  ended_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type LiveStreamWithHost = LiveStream & {
+  host: VideoOwner | null
+  thumbnail_url: string | null
+}
