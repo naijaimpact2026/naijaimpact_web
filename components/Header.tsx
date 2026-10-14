@@ -3,137 +3,119 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Menu, X, ArrowRight } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
+
+const navItems = [
+  { label: 'Products', href: '#products' },
+  { label: 'Community', href: '#community' },
+  { label: 'Security', href: '#security' },
+  { label: 'About', href: '#about' },
+  { label: 'FAQs', href: '#faq' },
+]
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', onScroll)
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const navItems = [
-    { label: 'Features', href: '#features' },
-    { label: 'About', href: '#about' },
-    { label: 'Fintech', href: '#fintech' },
-    { label: 'Community', href: '#testimonials' },
-  ]
-
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'py-2' : 'py-3'
-        }`}
+      className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${
+        scrolled || isOpen
+          ? 'border-b border-line bg-white/95 backdrop-blur'
+          : 'border-b border-transparent bg-transparent'
+      }`}
     >
-      <div className="container-gutter mx-auto max-w-7xl">
-        <nav
-          className={`flex items-center justify-between px-5 h-14 rounded-2xl transition-all duration-500 ${scrolled
-            ? 'bg-white/95 backdrop-blur-xl border border-gray-200 shadow-lg shadow-black/5'
-            : 'bg-white/90 backdrop-blur-md border border-gray-200/70 shadow-sm'
-            }`}
-        >
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-            <Image
-              src="/logo.png"
-              alt="Hubnovo"
-              width={36}
-              height={36}
-              className="rounded-lg"
-              priority
-            />
-            <Image
-              src="/logo-wordmark.png"
-              alt="Hubnovo"
-              width={96}
-              height={32}
-              className="h-7 w-auto hidden sm:inline"
-              priority
-            />
-          </Link>
+      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:h-[72px] lg:px-8">
+        <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="Hubnovo home">
+          <Image src="/logo-mark.png" alt="" width={34} height={32} priority />
+          <Image
+            src="/logo-wordmark.png"
+            alt="Hubnovo"
+            width={90}
+            height={30}
+            className="h-[30px] w-auto"
+            priority
+          />
+        </Link>
 
-          {/* Desktop nav links */}
-          <div className="hidden md:flex items-center gap-1 bg-gray-100 rounded-xl px-2 py-1.5">
+        <div className="hidden items-center gap-8 lg:flex">
+          {navItems.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className="text-[15px] font-medium text-ink-soft transition-colors hover:text-ink"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+
+        <div className="hidden items-center gap-2 lg:flex">
+          <Link
+            href="/auth/login"
+            className="rounded-lg px-4 py-2.5 text-[15px] font-semibold text-ink transition-colors hover:bg-ink/5"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/auth/signup"
+            className="rounded-lg bg-brand px-5 py-2.5 text-[15px] font-semibold text-white transition-colors hover:bg-brand-deep"
+          >
+            Create free account
+          </Link>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsOpen((prev) => !prev)}
+          className="-mr-2 rounded-lg p-2 text-ink transition-colors hover:bg-ink/5 lg:hidden"
+          aria-label={isOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={isOpen}
+          aria-controls="mobile-menu"
+        >
+          {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </button>
+      </nav>
+
+      {isOpen && (
+        <div id="mobile-menu" className="border-t border-line bg-white lg:hidden">
+          <div className="mx-auto max-w-7xl space-y-1 px-4 py-4 sm:px-6">
             {navItems.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}
-                className="px-4 py-1.5 rounded-lg text-sm font-medium text-gray-700 hover:text-secondary hover:bg-white transition-all duration-200"
+                onClick={() => setIsOpen(false)}
+                className="block rounded-lg px-3 py-3 text-base font-medium text-ink transition-colors hover:bg-mist"
               >
                 {item.label}
               </Link>
             ))}
-          </div>
-
-          {/* Desktop CTAs */}
-          <div className="hidden md:flex items-center gap-2">
-            <Link
-              href="/auth/login"
-              className="px-4 py-2 text-sm font-semibold text-secondary hover:bg-gray-100 rounded-xl transition-colors duration-200"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/auth/signup"
-              className="inline-flex items-center gap-1.5 px-5 py-2 bg-secondary text-white text-sm font-semibold rounded-xl hover:bg-secondary/90 transition-colors duration-200"
-            >
-              Get Started
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          {/* Mobile menu toggle */}
-          <button
-            type="button"
-            onClick={() => setIsOpen((prev) => !prev)}
-            className="md:hidden p-2.5 text-secondary hover:bg-gray-100 rounded-xl transition-colors touch-manipulation"
-            aria-label={isOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={isOpen}
-            aria-controls="mobile-menu"
-          >
-            {isOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
-        </nav>
-
-        {/* Mobile menu */}
-        {isOpen && (
-          <div
-            id="mobile-menu"
-            className="md:hidden mt-2 bg-white/95 backdrop-blur-xl border border-gray-200 rounded-2xl shadow-xl overflow-hidden"
-          >
-            <div className="p-3 space-y-1">
-              {navItems.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className="block px-4 py-2.5 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors text-sm font-medium touch-manipulation"
-                  onClick={() => setIsOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
-              <div className="pt-1 border-t border-gray-100 mt-1 space-y-1">
-                <Link
-                  href="/auth/login"
-                  className="block px-4 py-2.5 text-secondary hover:bg-gray-100 rounded-xl text-sm font-semibold text-center touch-manipulation"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/auth/signup"
-                  className="block px-4 py-2.5 bg-secondary text-white font-semibold rounded-xl text-center text-sm touch-manipulation"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Create Free Account
-                </Link>
-              </div>
+            <div className="grid grid-cols-2 gap-3 pt-3">
+              <Link
+                href="/auth/login"
+                onClick={() => setIsOpen(false)}
+                className="rounded-lg border border-line px-4 py-3 text-center text-sm font-semibold text-ink"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/auth/signup"
+                onClick={() => setIsOpen(false)}
+                className="rounded-lg bg-brand px-4 py-3 text-center text-sm font-semibold text-white"
+              >
+                Create account
+              </Link>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </header>
   )
 }

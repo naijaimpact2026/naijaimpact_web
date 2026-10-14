@@ -51,8 +51,18 @@ html {
   --color-ring: hsl(212, 88%, 46%);
   --color-destructive: hsl(0, 72%, 51%);
   --color-destructive-foreground: hsl(0, 0%, 100%);
-  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
-  --font-display: var(--font-manrope), system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-body), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-heading), system-ui, -apple-system, sans-serif;
+
+  /* ── Marketing / auth palette ──
+     Fixed values that are NOT overridden under html.dark, so the landing and
+     auth pages stay light-locked regardless of the visitor's OS theme. */
+  --color-ink: #0b1b2e; /* headlines, dark sections */
+  --color-ink-soft: #475569; /* body copy on light */
+  --color-brand: hsl(212, 88%, 46%); /* same blue as light-mode primary */
+  --color-brand-deep: hsl(212, 88%, 38%); /* hover/pressed */
+  --color-mist: #f2f6fb; /* soft blue-grey section background */
+  --color-line: #e2e8f0; /* hairlines/borders on light */
 }
 
 /* ── Dark mode CSS variable overrides ─────────────────────────────────────────
