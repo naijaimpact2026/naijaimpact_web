@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Share2, Check, Link2 } from 'lucide-react'
+import { Share2, Check, Link2, Flag } from 'lucide-react'
 import { toast } from '@/components/toast'
+import ReportPostModal from './ReportPostModal'
 
 interface Props
 {
@@ -26,6 +27,7 @@ export default function PostDetailActions({
 }: Props)
 {
     const [copied, setCopied] = useState(false)
+    const [reportModalOpen, setReportModalOpen] = useState(false)
 
     async function handleShare()
     {
@@ -96,6 +98,21 @@ export default function PostDetailActions({
                     <><Share2 className="w-3.5 h-3.5" /> Share this post</>
                 )}
             </button>
+
+            <button
+                type="button"
+                onClick={() => setReportModalOpen(true)}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-destructive/20 text-xs font-medium text-destructive/80 hover:bg-destructive/5 hover:text-destructive transition-colors"
+            >
+                <Flag className="w-3.5 h-3.5" /> Report this post
+            </button>
+
+            <ReportPostModal
+                open={reportModalOpen}
+                onOpenChange={setReportModalOpen}
+                postId={postId}
+                authorUsername={authorUsername}
+            />
         </div>
     )
 }

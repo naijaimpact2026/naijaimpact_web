@@ -238,6 +238,11 @@ html.dark {
     --str-chat__border-radius-sm: 8px;
     --str-chat__border-radius-md: 12px;
     --str-chat__border-radius-lg: 16px;
+    --str-chat__background-core-elevation-0: #ffffff;
+    --str-chat__background-core-elevation-1: #ffffff;
+    --str-chat__background-core-elevation-2: #ffffff;
+    --str-chat__background-core-surface-card: #ffffff;
+    --str-chat__background-core-surface-default: #ffffff;
   }
 
   html.dark .str-chat,
@@ -258,6 +263,11 @@ html.dark {
     --str-chat__cta-button-text-color: #06111c;
     --str-chat__text-color: #e7ecf3;
     --str-chat__text-low-emphasis-color: #93a4bb;
+    --str-chat__background-core-elevation-0: #0a1420;
+    --str-chat__background-core-elevation-1: #0d1e32;
+    --str-chat__background-core-elevation-2: #0f2238;
+    --str-chat__background-core-surface-card: #0f2238;
+    --str-chat__background-core-surface-default: #0d1e32;
   }
 
   /* ── Stream Chat Full Responsive Layout & Theme ── */
@@ -537,6 +547,173 @@ html.dark {
     color: var(--color-primary) !important;
     background-color: color-mix(in srgb, var(--color-primary) 10%, transparent) !important;
     transform: scale(1.05) !important;
+  }
+
+  /* ── Remove Command option from + attachment menu ── */
+  .str-chat .str-chat__context-menu .str-chat__attachment-selector-actions-menu__commands-button,
+  .str-chat .str-chat__attachment-selector-actions-menu__commands-button,
+  .str-chat__attachment-selector-actions-menu__commands-button,
+  .str-chat__context-menu--commands,
+  [data-text="selectCommand"],
+  li:has(.str-chat__attachment-selector-actions-menu__commands-button),
+  .str-chat__context-menu-item:has([class*="commands-button"]),
+  .str-chat__context-menu button:has(.str-chat__icon--command),
+  .str-chat__context-menu button.str-chat__attachment-selector-actions-menu__commands-button {
+    display: none !important;
+  }
+
+  /* ── Stream Chat Attachment Actions Menu & Context Menu: 100% Solid Background ── */
+  .str-chat .str-chat__context-menu,
+  .str-chat__context-menu,
+  .str-chat .str-chat__attachment-selector-actions-menu,
+  .str-chat__attachment-selector-actions-menu,
+  [data-str-chat-placement] > .str-chat__context-menu,
+  [data-str-chat-dialog-state] > .str-chat__context-menu,
+  .str-chat__dialog-contents .str-chat__context-menu,
+  .str-chat .str-chat__context-menu__body,
+  .str-chat__context-menu__body,
+  [data-testid="attachment-selector-actions-menu"] {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 16px 40px -6px rgba(15, 23, 42, 0.2), 0 2px 8px rgba(15, 23, 42, 0.08) !important;
+    overflow: hidden !important;
+    z-index: 1000 !important;
+  }
+
+  html.dark .str-chat .str-chat__context-menu,
+  html.dark .str-chat__context-menu,
+  html.dark .str-chat .str-chat__attachment-selector-actions-menu,
+  html.dark .str-chat__attachment-selector-actions-menu,
+  html.dark [data-str-chat-placement] > .str-chat__context-menu,
+  html.dark [data-str-chat-dialog-state] > .str-chat__context-menu,
+  html.dark .str-chat__dialog-contents .str-chat__context-menu,
+  html.dark .str-chat .str-chat__context-menu__body,
+  html.dark .str-chat__context-menu__body,
+  html.dark [data-testid="attachment-selector-actions-menu"],
+  .str-chat__theme-dark .str-chat__context-menu,
+  .str-chat__theme-dark .str-chat__attachment-selector-actions-menu,
+  .str-chat__theme-dark [data-str-chat-placement] > .str-chat__context-menu {
+    background-color: #0f2238 !important;
+    background: #0f2238 !important;
+    opacity: 1 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 20px 48px -6px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .str-chat .str-chat__context-menu .str-chat__context-menu__body,
+  .str-chat__context-menu .str-chat__context-menu__body {
+    background-color: transparent !important;
+    background: transparent !important;
+    padding: 6px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+  }
+
+  .str-chat .str-chat__context-menu .str-chat__context-menu__button,
+  .str-chat__context-menu .str-chat__context-menu__button,
+  .str-chat .str-chat__attachment-selector-actions-menu__button,
+  .str-chat__attachment-selector-actions-menu__button {
+    background-color: transparent !important;
+    background: transparent !important;
+    color: var(--color-foreground) !important;
+    border-radius: 10px !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    width: 100% !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .str-chat .str-chat__context-menu .str-chat__context-menu__button:hover,
+  .str-chat__context-menu .str-chat__context-menu__button:hover,
+  .str-chat .str-chat__attachment-selector-actions-menu__button:hover,
+  .str-chat__attachment-selector-actions-menu__button:hover {
+    background-color: var(--color-muted) !important;
+    color: var(--color-foreground) !important;
+  }
+
+  html.dark .str-chat .str-chat__context-menu .str-chat__context-menu__button,
+  html.dark .str-chat__context-menu .str-chat__context-menu__button,
+  html.dark .str-chat .str-chat__attachment-selector-actions-menu__button,
+  html.dark .str-chat__attachment-selector-actions-menu__button,
+  .str-chat__theme-dark .str-chat__context-menu .str-chat__context-menu__button {
+    color: #f1f5f9 !important;
+  }
+
+  html.dark .str-chat .str-chat__context-menu .str-chat__context-menu__button:hover,
+  html.dark .str-chat__context-menu .str-chat__context-menu__button:hover,
+  html.dark .str-chat .str-chat__attachment-selector-actions-menu__button:hover,
+  html.dark .str-chat__attachment-selector-actions-menu__button:hover,
+  .str-chat__theme-dark .str-chat__context-menu .str-chat__context-menu__button:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+  }
+
+  .str-chat .str-chat__context-menu .str-chat__context-menu__button .str-chat__context-menu__button__icon,
+  .str-chat__context-menu .str-chat__context-menu__button .str-chat__context-menu__button__icon,
+  .str-chat .str-chat__attachment-selector-actions-menu__button .str-chat__context-menu__button__icon,
+  .str-chat__attachment-selector-actions-menu__button .str-chat__context-menu__button__icon {
+    color: var(--color-muted-foreground) !important;
+    width: 20px !important;
+    height: 20px !important;
+    transition: color 0.15s ease !important;
+  }
+
+  .str-chat .str-chat__context-menu .str-chat__context-menu__button:hover .str-chat__context-menu__button__icon,
+  .str-chat__context-menu .str-chat__context-menu__button:hover .str-chat__context-menu__button__icon,
+  .str-chat .str-chat__attachment-selector-actions-menu__button:hover .str-chat__context-menu__button__icon,
+  .str-chat__attachment-selector-actions-menu__button:hover .str-chat__context-menu__button__icon {
+    color: var(--color-primary) !important;
+  }
+
+  html.dark .str-chat .str-chat__context-menu .str-chat__context-menu__button .str-chat__context-menu__button__icon,
+  html.dark .str-chat__context-menu .str-chat__context-menu__button .str-chat__context-menu__button__icon,
+  html.dark .str-chat .str-chat__attachment-selector-actions-menu__button .str-chat__context-menu__button__icon,
+  html.dark .str-chat__attachment-selector-actions-menu__button .str-chat__context-menu__button__icon,
+  .str-chat__theme-dark .str-chat__context-menu .str-chat__context-menu__button .str-chat__context-menu__button__icon {
+    color: #94a3b8 !important;
+  }
+
+  html.dark .str-chat .str-chat__context-menu .str-chat__context-menu__button:hover .str-chat__context-menu__button__icon,
+  html.dark .str-chat__context-menu .str-chat__context-menu__button:hover .str-chat__context-menu__button__icon,
+  html.dark .str-chat .str-chat__attachment-selector-actions-menu__button:hover .str-chat__context-menu__button__icon,
+  html.dark .str-chat__attachment-selector-actions-menu__button:hover .str-chat__context-menu__button__icon,
+  .str-chat__theme-dark .str-chat__context-menu .str-chat__context-menu__button:hover .str-chat__context-menu__button__icon {
+    color: hsl(212, 90%, 62%) !important;
+  }
+
+  /* ── Adjust reaction container so it does not become excessively tall on image messages ── */
+  .str-chat__reaction-list,
+  .str-chat__message-reactions-container,
+  [class*="reaction-list"],
+  .str-chat__message-reactions {
+    max-height: 38px !important;
+    height: auto !important;
+    flex-shrink: 0 !important;
+    overflow: visible !important;
+  }
+
+  .str-chat__message:has(.str-chat__gallery) .str-chat__reaction-list,
+  .str-chat__message:has(img) .str-chat__reaction-list,
+  .str-chat__message-attachment--image ~ .str-chat__reaction-list,
+  .str-chat__gallery + .str-chat__reaction-list {
+    position: relative !important;
+    margin-top: 4px !important;
+    max-height: 36px !important;
+    align-self: flex-start !important;
   }
 
   @media (max-width: 640px) {
@@ -946,4 +1123,88 @@ html.dark {
     animation: none !important;
   }
 }
+
+/* ── CTA Subtle Heartbeat Animation ── */
+@keyframes cta-heartbeat {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+  14% {
+    transform: scale(1.03);
+    box-shadow: 0 0 16px 2px rgba(255, 255, 255, 0.25), 0 4px 16px 0 rgba(0, 0, 0, 0.15);
+  }
+  28% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+  42% {
+    transform: scale(1.018);
+    box-shadow: 0 0 10px 1px rgba(255, 255, 255, 0.18), 0 2px 10px 0 rgba(0, 0, 0, 0.1);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+.animate-heartbeat {
+  animation: cta-heartbeat 3.2s ease-in-out infinite;
+}
+
+.animate-heartbeat:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-heartbeat {
+    animation: none !important;
+  }
+}
+
+/* ── Stream Chat Context Menu & Attachment Popup Solid Background ── */
+.str-chat .str-chat__context-menu,
+.str-chat__context-menu,
+.str-chat .str-chat__attachment-selector-actions-menu,
+.str-chat__attachment-selector-actions-menu,
+[data-str-chat-placement] > .str-chat__context-menu,
+[data-str-chat-dialog-state] > .str-chat__context-menu,
+.str-chat__dialog-contents .str-chat__context-menu,
+.str-chat .str-chat__context-menu__body,
+.str-chat__context-menu__body,
+[data-testid="attachment-selector-actions-menu"] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid hsl(214, 24%, 88%) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 40px -6px rgba(15, 23, 42, 0.2), 0 2px 8px rgba(15, 23, 42, 0.08) !important;
+  overflow: hidden !important;
+  z-index: 1000 !important;
+}
+
+html.dark .str-chat .str-chat__context-menu,
+html.dark .str-chat__context-menu,
+html.dark .str-chat .str-chat__attachment-selector-actions-menu,
+html.dark .str-chat__attachment-selector-actions-menu,
+html.dark [data-str-chat-placement] > .str-chat__context-menu,
+html.dark [data-str-chat-dialog-state] > .str-chat__context-menu,
+html.dark .str-chat__dialog-contents .str-chat__context-menu,
+html.dark .str-chat .str-chat__context-menu__body,
+html.dark .str-chat__context-menu__body,
+html.dark [data-testid="attachment-selector-actions-menu"],
+.str-chat__theme-dark .str-chat__context-menu,
+.str-chat__theme-dark .str-chat__attachment-selector-actions-menu,
+.str-chat__theme-dark [data-str-chat-placement] > .str-chat__context-menu {
+  background-color: #0f2238 !important;
+  background: #0f2238 !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 20px 48px -6px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
 

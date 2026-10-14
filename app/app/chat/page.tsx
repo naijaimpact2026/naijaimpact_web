@@ -7,7 +7,7 @@ import type { Channel } from 'stream-chat'
 import { MessageCircle, Users, Search, UserPlus, UserCheck, Loader2, Plus, Sparkles, MessagesSquare } from 'lucide-react'
 import { useChatClient } from '@/components/app/ChatProvider'
 import CreateGroupChatModal from '@/components/app/chat/CreateGroupChatModal'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { followUser, unfollowUser } from '@/lib/actions/profile'
 import { startDmChat, fetchFollowingForChat, fetchSuggestedUsers } from '@/lib/actions/chat'
@@ -130,8 +130,10 @@ function ChannelRow({ channel, onClick }: { channel: Channel; onClick: () => voi
     const channelImage = typeof rawData?.image === 'string' ? rawData.image : typeof customData?.image === 'string' ? customData.image : undefined
     const members = Object.values(channel.state.members)
     const otherMembers = members.filter(m => m.user?.id !== channel._client.userID)
+    const otherMember = otherMembers[0]
     const isGroup = isGroupChannel(channel)
     const name = channelName || otherMembers.map(m => m.user?.name ?? '?').join(', ') || (isGroup ? 'Group Chat' : 'Unknown')
+    const displayImage = channelImage || (!isGroup ? ((otherMember?.user?.image as string | undefined) || (otherMember?.user as any)?.avatar_url) : undefined)
     const unread = channel.countUnread()
 
     return (
@@ -140,14 +142,14 @@ function ChannelRow({ channel, onClick }: { channel: Channel; onClick: () => voi
             className="flex items-center gap-3 w-full px-4 py-3.5 hover:bg-muted/50 active:bg-muted transition-colors text-left border-b border-border last:border-0"
         >
             <div className="relative shrink-0">
-                <div className={`h-12 w-12 rounded-full overflow-hidden border-2 flex items-center justify-center text-sm font-bold ${unread > 0 ? 'border-primary ring-2 ring-primary/20' : 'border-border'}`}>
-                    {channelImage
-                        ? <img src={channelImage} alt={name} className="w-full h-full object-cover" />
-                        : <div className={`w-full h-full flex items-center justify-center text-sm font-bold ${isGroup ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                            {isGroup ? <Users className="w-4 h-4" /> : getInitials(name)}
-                        </div>
-                    }
-                </div>
+                <Avatar className={`h-12 w-12 rounded-full border-2 flex items-center justify-center text-sm font-bold ${unread > 0 ? 'border-primary ring-2 ring-primary/20' : 'border-border'}`}>
+                    {displayImage && (
+                        <AvatarImage src={displayImage} alt={name} className="w-full h-full object-cover" />
+                    )}
+                    <AvatarFallback className={`w-full h-full flex items-center justify-center text-sm font-bold ${isGroup ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                        {isGroup ? <Users className="w-4 h-4" /> : getInitials(name)}
+                    </AvatarFallback>
+                </Avatar>
                 {unread > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center shadow-sm">
                         {unread > 99 ? '99+' : unread}

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Store, Plus, Star, BadgeCheck } from 'lucide-react'
 import CreateStorefrontModal from './CreateStorefrontModal'
+import StorefrontsHeroCarousel from './StorefrontsHeroCarousel'
 
 interface StorefrontSummary
 {
@@ -32,29 +33,11 @@ export default function StorefrontsClient({ initialStorefronts, myStorefront }: 
 
     return (
         <div className="w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8">
-            {/* Hero */}
-            <section className="relative overflow-hidden rounded-3xl"
-                style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}>
-                <div className="px-6 py-7 sm:px-8">
-                    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-cyan-200">Hubnovo Marketplace</p>
-                    <h1 className="font-display text-3xl font-black text-white">Storefronts</h1>
-                    <p className="mt-1 text-sm text-white/70">Mini online stores from Nigerian businesses</p>
-                    <div className="mt-5 flex gap-3">
-                        {myStorefront ? (
-                            <Link href={`/app/market/stores/${myStorefront.id}`}
-                                className="flex items-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-sm font-bold text-secondary shadow-lg transition-colors hover:bg-white/90">
-                                <Store className="h-4 w-4" /> My Store: {myStorefront.business_name}
-                            </Link>
-                        ) : (
-                            <button
-                                onClick={() => setCreateOpen(true)}
-                                className="flex items-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-sm font-bold text-secondary shadow-lg transition-colors hover:bg-white/90">
-                                <Plus className="h-4 w-4" /> Create Your Store
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </section>
+            {/* Hero Carousel */}
+            <StorefrontsHeroCarousel
+                myStorefront={myStorefront}
+                onCreateOpen={() => setCreateOpen(true)}
+            />
 
             {initialStorefronts.length === 0 ? (
                 <div className="rounded-3xl border border-border bg-card py-16 text-center">

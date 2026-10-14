@@ -33,6 +33,7 @@ import type { Course, Category } from '@/lib/actions/learn'
 import type { FundingAd } from '@/lib/actions/funding-ads'
 import { toPublicStorageUrl } from '@/lib/supabase-image'
 import LearnRightSidebar from './LearnRightSidebar'
+import CourseVideoPreview from './CourseVideoPreview'
 
 interface Props {
     initialCourses: Course[]
@@ -278,11 +279,14 @@ function CourseCard({
     enrolled: boolean
     completed: boolean
 }) {
+    const [isHovered, setIsHovered] = useState(false)
     const imageUrl = getCourseImage(course)
 
     return (
         <Link
             href={`/app/learn/${course.id}`}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
             className="
                 group
                 flex
@@ -295,52 +299,22 @@ function CourseCard({
                 bg-card
                 shadow-sm
                 transition-all
-                duration-200
-                hover:-translate-y-0.5
-                hover:border-primary/30
-                hover:shadow-md
+                duration-300
+                hover:-translate-y-1
+                hover:border-primary/40
+                hover:shadow-xl
             "
         >
-            {/* Cover */}
-
+            {/* Cover / Video on Hover */}
             <div className="relative aspect-video overflow-hidden bg-muted">
-                {imageUrl ? (
-                    <Image
-                        src={imageUrl}
-                        alt={course.title}
-                        fill
-                        sizes="
-                            (max-width: 640px) 100vw,
-                            (max-width: 1024px) 50vw,
-                            25vw
-                        "
-                        className="
-                            object-cover
-                            transition-transform
-                            duration-300
-                            group-hover:scale-105
-                        "
-                    />
-                ) : (
-                    <div
-                        className="
-                            flex
-                            h-full
-                            w-full
-                            items-center
-                            justify-center
-                            bg-gradient-to-br
-                            from-primary/10
-                            to-muted
-                        "
-                    >
-                        <GraduationCap className="h-12 w-12 text-primary/40" />
-                    </div>
-                )}
+                <CourseVideoPreview
+                    course={course}
+                    coverUrl={imageUrl}
+                    isHovered={isHovered}
+                />
 
                 {/* Free / price */}
-
-                <div className="absolute right-2 top-2">
+                <div className="absolute right-2 top-2 z-20">
                     <span
                         className="
                             rounded-md
@@ -361,9 +335,8 @@ function CourseCard({
                 </div>
 
                 {/* Completed */}
-
                 {completed && (
-                    <div className="absolute left-2 top-2">
+                    <div className="absolute left-2 top-2 z-20">
                         <span
                             className="
                                 inline-flex
@@ -384,41 +357,6 @@ function CourseCard({
                         </span>
                     </div>
                 )}
-
-                {/* Play overlay */}
-
-                <div
-                    className="
-                        absolute
-                        inset-0
-                        flex
-                        items-center
-                        justify-center
-                        bg-slate-950/0
-                        transition-colors
-                        group-hover:bg-slate-950/20
-                    "
-                >
-                    <div
-                        className="
-                            flex
-                            h-11
-                            w-11
-                            scale-90
-                            items-center
-                            justify-center
-                            rounded-full
-                            bg-card
-                            opacity-0
-                            shadow-lg
-                            transition-all
-                            group-hover:scale-100
-                            group-hover:opacity-100
-                        "
-                    >
-                        <Play className="ml-0.5 h-5 w-5 fill-primary text-primary" />
-                    </div>
-                </div>
             </div>
 
             {/* Content */}
@@ -779,6 +717,7 @@ export default function LearnHubHome({
                                         text-white
                                         shadow-sm
                                         hover:bg-primary/90
+                                        animate-heartbeat
                                         sm:w-auto
                                     "
                                 >
@@ -1069,10 +1008,9 @@ export default function LearnHubHome({
                                 className="
                                     grid
                                     grid-cols-1
-                                    gap-5
+                                    gap-6
                                     sm:grid-cols-2
                                     lg:grid-cols-3
-                                    xl:grid-cols-4
                                 "
                             >
                                 {filteredCourses.map((course) => (
@@ -1290,10 +1228,9 @@ export default function LearnHubHome({
                                 className="
                                     grid
                                     grid-cols-1
-                                    gap-5
+                                    gap-6
                                     sm:grid-cols-2
                                     lg:grid-cols-3
-                                    xl:grid-cols-4
                                 "
                             >
                                 {myCourses.map((course) => (
@@ -1428,7 +1365,7 @@ export default function LearnHubHome({
                             </h2>
                         </div>
 
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                             {categories.map((category, i) => (
                                 <Link
                                     key={category.id}

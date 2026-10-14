@@ -150,7 +150,7 @@ export default async function HomeRightSidebar({ user }: HomeRightSidebarProps)
                 </p>
                 <Link
                     href="/app/funding"
-                    className="inline-flex items-center bg-white text-secondary text-xs font-bold px-4 py-1.5 rounded-full hover:bg-white/90 transition-colors"
+                    className="inline-flex items-center bg-white text-secondary text-xs font-bold px-4 py-1.5 rounded-full hover:bg-white/90 transition-colors animate-heartbeat shadow-sm"
                 >
                     Make an Impact →
                 </Link>

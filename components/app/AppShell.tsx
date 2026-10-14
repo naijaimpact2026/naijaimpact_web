@@ -66,7 +66,9 @@ function AppShellInner({ children, user }: AppShellInnerProps)
 
             {/* Main content — full width, no left margin offset */}
             <main className={`flex-1 min-h-screen pt-16 ${isChatConversation ? 'pb-0' : 'pb-16'} lg:pb-0 overflow-x-hidden`}>
-                {children}
+                <div key={pathname} className="w-full animate-in fade-in duration-200 slide-in-from-bottom-1">
+                    {children}
+                </div>
             </main>
 
             {/* Mobile bottom nav — hide inside active chat conversations so composer is unobstructed */}

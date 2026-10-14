@@ -8,6 +8,7 @@ import CourseIllustration from '@/components/illustrations/CourseIllustration'
 import JobsIllustration from '@/components/illustrations/JobsIllustration'
 import MarketIllustration from '@/components/illustrations/MarketIllustration'
 import FundingIllustration from '@/components/illustrations/FundingIllustration'
+import EcosystemTeaserBanner from '@/components/app/home/EcosystemTeaserBanner'
 import
 {
     BookOpen,
@@ -26,22 +27,22 @@ export const dynamic = 'force-dynamic'
 
 const QUICK_ACTIONS = [
     { icon: BookOpen, label: 'Learn', href: '/app/learn', tint: 'bg-primary/10 text-primary' },
-    { icon: Briefcase, label: 'Jobs', href: null, tint: 'bg-cyan/10 text-cyan' },
+    { icon: Briefcase, label: 'Jobs', href: '/app/jobs', tint: 'bg-cyan/10 text-cyan' },
     { icon: ShoppingBag, label: 'Marketplace', href: '/app/market', tint: 'bg-amber-500/10 text-amber-600' },
     { icon: Rocket, label: 'Business LaunchPad', href: '/app/services', tint: 'bg-secondary/10 text-secondary' },
     { icon: Wallet, label: 'Save & Wallet', href: '/app/wallet', tint: 'bg-lime/20 text-emerald' },
     { icon: Users, label: 'Community', href: '/app/feed', tint: 'bg-cyan/10 text-cyan' },
-    { icon: Wrench, label: 'Artisans & Services', href: '/app/services', tint: 'bg-rose-500/10 text-rose-600' },
+    { icon: Wrench, label: 'Artisans & Services', href: '/app/artisans', tint: 'bg-rose-500/10 text-rose-600' },
     { icon: HandCoins, label: 'Crowdfunding', href: '/app/funding', tint: 'bg-secondary/10 text-secondary' },
 ]
 
 const TODAY_CARDS = [
-    { icon: BookOpen, title: 'Learn a Skill', sub: 'Access free and premium courses', href: '/app/learn', tint: 'bg-primary/10 text-primary' },
-    { icon: Briefcase, title: 'Find a Job', sub: 'Explore thousands of opportunities', href: null, tint: 'bg-cyan/10 text-cyan' },
-    { icon: ShoppingBag, title: 'Shop Products', sub: 'Buy from trusted sellers', href: '/app/market', tint: 'bg-amber-500/10 text-amber-600' },
-    { icon: Rocket, title: 'Start a Business', sub: 'Get tools, funding and support', href: '/app/services', tint: 'bg-secondary/10 text-secondary' },
-    { icon: Wrench, title: 'Hire an Artisan', sub: 'Find skilled professionals', href: '/app/services', tint: 'bg-rose-500/10 text-rose-600' },
-    { icon: Wallet, title: 'Save & Grow', sub: 'Build your financial future', href: '/app/wallet', tint: 'bg-lime/20 text-emerald' },
+    { icon: BookOpen, title: 'Learn a Skill', sub: 'Access free and premium courses', href: '/app/learn', tint: 'bg-primary/10 text-primary', bannerGradient: 'from-blue-600/20 via-indigo-600/10 to-transparent' },
+    { icon: Briefcase, title: 'Find a Job', sub: 'Explore thousands of opportunities', href: '/app/jobs', tint: 'bg-cyan/10 text-cyan', bannerGradient: 'from-cyan-600/20 via-sky-600/10 to-transparent' },
+    { icon: ShoppingBag, title: 'Shop Products', sub: 'Buy from trusted sellers', href: '/app/market', tint: 'bg-amber-500/10 text-amber-600', bannerGradient: 'from-amber-600/20 via-orange-600/10 to-transparent' },
+    { icon: Rocket, title: 'Start a Business', sub: 'Get tools, funding and support', href: '/app/services', tint: 'bg-secondary/10 text-secondary', bannerGradient: 'from-purple-600/20 via-pink-600/10 to-transparent' },
+    { icon: Wrench, title: 'Hire an Artisan', sub: 'Find skilled professionals', href: '/app/artisans', tint: 'bg-rose-500/10 text-rose-600', bannerGradient: 'from-rose-600/20 via-orange-600/10 to-transparent' },
+    { icon: Wallet, title: 'Save & Grow', sub: 'Build your financial future', href: '/app/wallet', tint: 'bg-lime/20 text-emerald', bannerGradient: 'from-emerald-600/20 via-teal-600/10 to-transparent' },
 ]
 
 function timeAgo(dateStr: string): string
@@ -93,8 +94,8 @@ export default async function HomePage()
                                 </p>
                                 <div className="mt-6 flex flex-wrap items-center gap-3">
                                     <Link
-                                        href="/app/feed"
-                                        className="inline-flex items-center gap-1.5 bg-secondary text-white font-bold text-sm px-5 py-2.5 rounded-full hover:bg-secondary/90 transition-colors"
+                                        href="/app/explore"
+                                        className="inline-flex items-center gap-1.5 bg-secondary text-white font-bold text-sm px-5 py-2.5 rounded-full hover:bg-secondary/90 transition-all shadow-xs animate-heartbeat"
                                     >
                                         Explore Opportunities <ArrowRight className="w-4 h-4" />
                                     </Link>
@@ -118,7 +119,7 @@ export default async function HomePage()
                     <section>
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="font-display text-lg font-bold text-foreground">What would you like to do today?</h2>
-                            <Link href="/app/services" className="text-xs font-medium text-primary hover:underline shrink-0">View All</Link>
+                            <Link href="/app/explore" className="text-xs font-semibold text-primary hover:underline shrink-0">View All</Link>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {TODAY_CARDS.map((card) => (
@@ -131,11 +132,12 @@ export default async function HomePage()
                     <section>
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="font-display text-lg font-bold text-foreground">Featured Opportunities</h2>
-                            <Link href="/app/feed" className="text-xs font-medium text-primary hover:underline shrink-0">See All</Link>
+                            <Link href="/app/explore" className="text-xs font-semibold text-primary hover:underline shrink-0">See All</Link>
                         </div>
                         <div className="grid sm:grid-cols-2 gap-4">
                             <OpportunityCard
                                 illustration={<CourseIllustration className="w-full h-full" />}
+                                bannerGradient="from-blue-700 via-indigo-800 to-sky-900"
                                 tag="Trending"
                                 tagClass="bg-primary text-white"
                                 title={featuredCourse ? featuredCourse.title : 'Free Digital Skills Training'}
@@ -146,6 +148,7 @@ export default async function HomePage()
                             />
                             <OpportunityCard
                                 illustration={<JobsIllustration className="w-full h-full" />}
+                                bannerGradient="from-rose-700 via-orange-800 to-amber-900"
                                 tag="Hot"
                                 tagClass="bg-destructive text-white"
                                 title="Remote Job Opportunities"
@@ -156,6 +159,7 @@ export default async function HomePage()
                             />
                             <OpportunityCard
                                 illustration={<MarketIllustration className="w-full h-full" />}
+                                bannerGradient="from-emerald-800 via-teal-800 to-cyan-900"
                                 tag="Featured"
                                 tagClass="bg-cyan text-white"
                                 title="Support Small Businesses"
@@ -166,6 +170,7 @@ export default async function HomePage()
                             />
                             <OpportunityCard
                                 illustration={<FundingIllustration className="w-full h-full" />}
+                                bannerGradient="from-purple-800 via-indigo-900 to-slate-900"
                                 tag="Impact"
                                 tagClass="bg-secondary text-white"
                                 title="Fund a Community Project"
@@ -176,6 +181,9 @@ export default async function HomePage()
                             />
                         </div>
                     </section>
+
+                    {/* Ecosystem Discovery Section linking to /app/explore */}
+                    <EcosystemTeaserBanner />
                 </div>
 
                 <HomeRightSidebar user={userProfile} />
@@ -211,19 +219,37 @@ function QuickActionTile({ icon: Icon, label, href, tint }: { icon: typeof BookO
     )
 }
 
-function TodayCard({ icon: Icon, title, sub, href, tint }: { icon: typeof BookOpen; title: string; sub: string; href: string | null; tint: string })
+function TodayCard({
+    icon: Icon,
+    title,
+    sub,
+    href,
+    tint,
+    bannerGradient,
+}: {
+    icon: typeof BookOpen
+    title: string
+    sub: string
+    href: string | null
+    tint: string
+    bannerGradient?: string
+})
 {
     const content = (
-        <div className="h-full rounded-2xl border border-border bg-card p-4 flex flex-col gap-3 hover:border-primary/40 hover:shadow-md transition-all">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tint}`}>
+        <div className="group relative h-full rounded-2xl border border-border bg-card p-4 flex flex-col gap-3 hover:border-primary/50 hover:shadow-md transition-all overflow-hidden">
+            {/* Background subtle gradient banner */}
+            {bannerGradient && (
+                <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${bannerGradient.replace('/20', '/80').replace('/10', '/60')}`} />
+            )}
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tint} transition-transform group-hover:scale-105`}>
                 <Icon className="w-5 h-5" />
             </div>
             <div>
-                <p className="text-sm font-bold text-foreground leading-tight">{title}</p>
+                <p className="text-sm font-bold text-foreground leading-tight group-hover:text-primary transition-colors">{title}</p>
                 <p className="text-xs text-muted-foreground mt-1 leading-snug">{sub}</p>
             </div>
             <span className={`mt-auto inline-flex items-center gap-1 text-xs font-semibold ${href ? 'text-primary' : 'text-muted-foreground'}`}>
-                {href ? 'Get Started' : 'Coming Soon'} {href && <ArrowRight className="w-3 h-3" />}
+                {href ? 'Get Started' : 'Coming Soon'} {href && <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />}
             </span>
         </div>
     )
@@ -235,6 +261,7 @@ function TodayCard({ icon: Icon, title, sub, href, tint }: { icon: typeof BookOp
 
 function OpportunityCard({
     illustration,
+    bannerGradient,
     tag,
     tagClass,
     title,
@@ -244,6 +271,7 @@ function OpportunityCard({
     href,
 }: {
     illustration: React.ReactNode
+    bannerGradient?: string
     tag: string
     tagClass: string
     title: string
@@ -254,15 +282,20 @@ function OpportunityCard({
 })
 {
     return (
-        <div className="rounded-2xl border border-border bg-card overflow-hidden hover:shadow-md transition-shadow">
-            <div className="relative h-32 w-full">
-                {illustration}
-                <span className={`absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${tagClass}`}>
+        <div className="group rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all duration-300">
+            {/* Graphic Background Banner with illustration */}
+            <div className={`relative h-36 w-full overflow-hidden bg-gradient-to-tr ${bannerGradient || 'from-slate-800 to-slate-900'} p-3`}>
+                {/* Decorative glow */}
+                <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+                <div className="relative w-full h-full flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                    {illustration}
+                </div>
+                <span className={`absolute top-3 left-3 z-10 text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-md ${tagClass}`}>
                     {tag}
                 </span>
             </div>
             <div className="p-4">
-                <h3 className="text-sm font-bold text-foreground leading-tight">{title}</h3>
+                <h3 className="text-sm font-bold text-foreground leading-tight group-hover:text-primary transition-colors">{title}</h3>
                 <p className="text-xs text-muted-foreground mt-1 leading-snug line-clamp-2">{sub}</p>
                 <div className="flex items-center gap-3 mt-2.5 text-[11px] text-muted-foreground">
                     {meta.map((m) => <span key={m}>{m}</span>)}
@@ -270,12 +303,12 @@ function OpportunityCard({
                 {href ? (
                     <Link
                         href={href}
-                        className="mt-3 inline-flex w-full items-center justify-center bg-primary text-primary-foreground text-xs font-bold px-4 py-2 rounded-full hover:bg-primary/90 transition-colors"
+                        className="mt-3 inline-flex w-full items-center justify-center bg-primary text-primary-foreground text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-primary/90 transition-all shadow-xs group-hover:shadow-md animate-heartbeat"
                     >
                         {cta}
                     </Link>
                 ) : (
-                    <span className="mt-3 inline-flex w-full items-center justify-center bg-muted text-muted-foreground text-xs font-bold px-4 py-2 rounded-full cursor-default">
+                    <span className="mt-3 inline-flex w-full items-center justify-center bg-muted text-muted-foreground text-xs font-bold px-4 py-2.5 rounded-xl cursor-default">
                         {cta}
                     </span>
                 )}

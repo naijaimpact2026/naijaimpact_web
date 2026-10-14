@@ -4,18 +4,9 @@ import FeedInfiniteScroll from '@/components/app/feed/FeedInfiniteScroll'
 import CommunityLeftRail from '@/components/app/feed/CommunityLeftRail'
 import CommunityMobileTopics from '@/components/app/feed/CommunityMobileTopics'
 import CommunityRightSidebar from '@/components/app/feed/CommunityRightSidebar'
-import CommunityIllustration from '@/components/illustrations/CommunityIllustration'
-import { Lightbulb, Compass, MessageSquare, Network, Rocket } from 'lucide-react'
+import CommunityGuidanceCarousel from '@/components/app/feed/CommunityGuidanceCarousel'
 
 export const dynamic = 'force-dynamic'
-
-const HERO_ACTIONS = [
-    { icon: Lightbulb, label: 'Share Ideas' },
-    { icon: Compass, label: 'Find Opportunities' },
-    { icon: MessageSquare, label: 'Join Discussions' },
-    { icon: Network, label: 'Build Networks' },
-    { icon: Rocket, label: 'Create Impact' },
-]
 
 interface FeedPageProps
 {
@@ -35,34 +26,8 @@ export default async function FeedPage({ searchParams }: FeedPageProps)
 
     return (
         <div className="w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
-            {/* Hero */}
-            <section
-                className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border px-4 py-5 sm:px-9 sm:py-8"
-                style={{ background: 'linear-gradient(120deg, #EAF3FE 0%, #F8FAFC 55%, #E6F7FB 100%)' }}
-            >
-                <div className="relative z-10 flex items-center justify-between gap-8">
-                    <div className="max-w-md">
-                        <p className="text-xs font-bold tracking-wide text-emerald uppercase mb-1.5">Community</p>
-                        <h1 className="font-display text-xl sm:text-3xl font-extrabold leading-tight text-secondary">
-                            People. Ideas. Opportunities. A Brighter Tomorrow.
-                        </h1>
-                        <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                            Connect, share, learn and grow with a global community on Hubnovo.
-                        </p>
-                    </div>
-                    <div className="hidden md:flex items-center gap-6 shrink-0">
-                        <CommunityIllustration className="w-52 h-40" />
-                        <ul className="space-y-2.5">
-                            {HERO_ACTIONS.map((a) => (
-                                <li key={a.label} className="flex items-center gap-2 text-xs font-semibold text-secondary">
-                                    <a.icon className="w-3.5 h-3.5 text-primary shrink-0" />
-                                    {a.label}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                </div>
-            </section>
+            {/* Top Showcase Guidance Carousel (Promoted to top header) */}
+            <CommunityGuidanceCarousel />
 
             {/* Mobile / Tablet Discover Communities Bar */}
             <div className="lg:hidden">

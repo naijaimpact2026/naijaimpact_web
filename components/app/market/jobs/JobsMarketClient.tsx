@@ -20,6 +20,7 @@ import JobCard from './JobCard'
 import JobFilters from './JobFilters'
 import ApplyJobModal from './ApplyJobModal'
 import EmployerATSModal from './EmployerATSModal'
+import JobsHeroCarousel from './JobsHeroCarousel'
 import { fetchJobs, fetchMyApplications, fetchEmployerJobsWithApplicants, fetchSavedJobs } from '@/lib/actions/jobs'
 import { toast } from '@/components/toast'
 import type { Job, JobApplication, JobType, WorkplaceType, User } from '@/lib/types'
@@ -204,35 +205,8 @@ export default function JobsMarketClient({
 
   return (
     <div className="w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      {/* ══ HERO BANNER ═════════════════════════════════════════════ */}
-      <section
-        className="relative overflow-hidden rounded-3xl p-6 sm:p-10 text-white"
-        style={{ background: 'linear-gradient(135deg, #091E3A 0%, #102A43 50%, #0E6EDC 120%)' }}
-      >
-        <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center">
-          <div className="max-w-xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-400/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200">
-              <Briefcase className="h-3.5 w-3.5" /> Hubnovo Opportunities
-            </span>
-            <h1 className="mt-3 font-display text-3xl font-black leading-tight sm:text-4xl text-white">
-              Discover Jobs & Hire Top Talent
-            </h1>
-            <p className="mt-2 text-sm leading-relaxed text-white/80">
-              Connect with leading companies, local enterprises, and innovative projects. Apply in one click or post your roles to reach verified candidates.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/app/jobs/create"
-              className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-secondary shadow-lg transition-transform active:scale-95 hover:bg-white/90"
-            >
-              <Plus className="h-4 w-4" />
-              Post a Job Opening
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* ══ HERO BANNER SLIDER ═════════════════════════════════════ */}
+      <JobsHeroCarousel />
 
       {/* ══ NAVIGATION TABS ═════════════════════════════════════════ */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 pb-3">

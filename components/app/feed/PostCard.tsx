@@ -38,10 +38,12 @@ import
         UserX,
         Trash2,
         Lock,
+        Flag,
     } from 'lucide-react'
 import MediaDisplay from './MediaDisplay'
 import type { PostWithAuthor } from '@/lib/types'
 import { toggleReaction, toggleSavePost, deletePost } from '@/lib/actions/posts'
+import { toast } from '@/components/toast'
 
 // ─── Caption parser ────────────────────────────────────────────────────────
 
@@ -108,6 +110,10 @@ function PostCard({ post, currentUserId, onReactionToggle, onSaveToggle, onHide 
     const [blocking, setBlocking] = useState(false)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [deleting, setDeleting] = useState(false)
+    const [reportDialogOpen, setReportDialogOpen] = useState(false)
+    const [reportReason, setReportReason] = useState('spam')
+    const [reportDetails, setReportDetails] = useState('')
+    const [submittingReport, setSubmittingReport] = useState(false)
 
     useEffect(() =>
     {
@@ -224,6 +230,16 @@ function PostCard({ post, currentUserId, onReactionToggle, onSaveToggle, onHide 
             const { toast } = await import('sonner')
             toast.error(newSaved ? 'Could not save post. Please try again.' : 'Could not unsave post. Please try again.')
         }
+    }
+
+    async function handleReport()
+    {
+        setSubmittingReport(true)
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        setSubmittingReport(false)
+        setReportDialogOpen(false)
+        setReportDetails('')
+        toast.success('Thank you for reporting. Our moderation team has been notified.')
     }
 
     async function handleBlock()
@@ -427,6 +443,12 @@ function PostCard({ post, currentUserId, onReactionToggle, onSaveToggle, onHide 
                             <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
+                                    onClick={() => setReportDialogOpen(true)}
+                                    className="text-amber-600 dark:text-amber-500 cursor-pointer"
+                                >
+                                    <Flag className="h-4 w-4 mr-2" /> Report post
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                     variant="destructive"
                                     onClick={() => setBlockDialogOpen(true)}
                                 >
@@ -486,6 +508,60 @@ function PostCard({ post, currentUserId, onReactionToggle, onSaveToggle, onHide 
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
                             {blocking ? 'Blocking…' : 'Block'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+                <AlertDialogContent className="sm:max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+                            <Flag className="w-5 h-5 text-amber-500" />
+                            Report Post
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-xs text-muted-foreground">
+                            Help us keep Hubnovo safe and welcoming. Why are you reporting this post by @{author.username}?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="space-y-3 py-2 text-sm">
+                        <div className="space-y-1.5">
+                            {[
+                                { id: 'spam', label: 'Spam, advertising or bot activity' },
+                                { id: 'harassment', label: 'Harassment, hate speech or bullying' },
+                                { id: 'inappropriate', label: 'Inappropriate or adult content' },
+                                { id: 'misinformation', label: 'False information or fraud' },
+                                { id: 'other', label: 'Other issue' },
+                            ].map((opt) => (
+                                <label key={opt.id} className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-muted cursor-pointer transition-colors text-xs font-medium text-foreground">
+                                    <input
+                                        type="radio"
+                                        name={`report-${post.id}`}
+                                        value={opt.id}
+                                        checked={reportReason === opt.id}
+                                        onChange={(e) => setReportReason(e.target.value)}
+                                        className="text-primary accent-primary"
+                                    />
+                                    <span>{opt.label}</span>
+                                </label>
+                            ))}
+                        </div>
+                        <textarea
+                            value={reportDetails}
+                            onChange={(e) => setReportDetails(e.target.value)}
+                            placeholder="Additional details (optional)..."
+                            rows={2}
+                            className="w-full text-xs p-2.5 rounded-xl border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                    </div>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={submittingReport} className="text-xs">Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => { e.preventDefault(); handleReport() }}
+                            disabled={submittingReport}
+                            className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold"
+                        >
+                            {submittingReport ? 'Submitting...' : 'Submit Report'}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

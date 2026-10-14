@@ -22,22 +22,23 @@ function getStreamServerClient(): StreamChat {
  */
 export async function startDmChat(targetUserId: string): Promise<{ channelId: string }> {
   const supabase = await createClient()
-  const {
-    data: { user: authUser },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const { authUser, profile } = await getCurrentUser()
 
-  if (authError || !authUser) throw new Error('Unauthorized')
+  if (!authUser) throw new Error('Unauthorized')
 
-  const { data: profile, error: profileError } = await supabase
-    .from('users')
-    .select('id, display_name, avatar_url')
-    .eq('auth_id', authUser.id)
-    .single()
+  const currentUserId = profile?.id || authUser.id
+  const currentDisplayName =
+    profile?.display_name ||
+    authUser.user_metadata?.full_name ||
+    authUser.user_metadata?.name ||
+    authUser.email?.split('@')[0] ||
+    'User'
+  const currentAvatarUrl =
+    profile?.avatar_url ||
+    authUser.user_metadata?.avatar_url ||
+    null
 
-  if (profileError || !profile) throw new Error('User profile not found')
-
-  if (profile.id === targetUserId) throw new Error('Cannot DM yourself')
+  if (currentUserId === targetUserId) throw new Error('Cannot DM yourself')
 
   let targetProfile: { id: string; display_name: string; avatar_url: string | null } | null = null
 
@@ -92,9 +93,9 @@ export async function startDmChat(targetUserId: string): Promise<{ channelId: st
   // Ensure both users exist in Stream Chat before creating/getting channel
   await streamServerClient.upsertUsers([
     {
-      id: profile.id,
-      name: profile.display_name || 'User',
-      image: profile.avatar_url ?? undefined,
+      id: currentUserId,
+      name: currentDisplayName,
+      image: currentAvatarUrl ?? undefined,
     },
     {
       id: targetProfile.id,
@@ -104,14 +105,14 @@ export async function startDmChat(targetUserId: string): Promise<{ channelId: st
   ])
 
   // Deterministic channel id — always same pair, same channel
-  const sortedIds = [profile.id, targetProfile.id].sort()
+  const sortedIds = [currentUserId, targetProfile.id].sort()
   const channelId = `dm_${sortedIds[0].slice(0, 8)}_${sortedIds[1].slice(0, 8)}`
 
   const channel = streamServerClient.chat.channel('messaging', channelId)
   await channel.getOrCreate({
     data: {
-      created_by_id: profile.id,
-      members: [{ user_id: profile.id }, { user_id: targetProfile.id }],
+      created_by_id: currentUserId,
+      members: [{ user_id: currentUserId }, { user_id: targetProfile.id }],
     },
   })
 
@@ -192,25 +193,13 @@ export async function fetchSuggestedUsers(): Promise<
  */
 export async function createGroupChat(name: string, memberIds: string[]) {
   const supabase = await createClient()
-  const {
-    data: { user: authUser },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const { authUser, profile } = await getCurrentUser()
 
-  if (authError || !authUser) {
+  if (!authUser) {
     throw new Error('Unauthorized')
   }
 
-  // Fetch current user's platform profile
-  const { data: profile, error: profileError } = await supabase
-    .from('users')
-    .select('id, display_name, avatar_url')
-    .eq('auth_id', authUser.id)
-    .single()
-
-  if (profileError || !profile) {
-    throw new Error('User profile not found')
-  }
+  const currentUserId = profile?.id || authUser.id
 
   if (!name.trim()) {
     throw new Error('Group name is required')
@@ -230,7 +219,7 @@ export async function createGroupChat(name: string, memberIds: string[]) {
   const streamServerClient = new StreamClient(apiKey, apiSecret)
 
   // Include the creator in the members list
-  const allMemberIds = Array.from(new Set([profile.id, ...memberIds]))
+  const allMemberIds = Array.from(new Set([currentUserId, ...memberIds]))
 
   // Fetch all member details from Supabase so we can upsert them in Stream
   const { data: memberProfiles } = await supabase
@@ -249,13 +238,13 @@ export async function createGroupChat(name: string, memberIds: string[]) {
   }
 
   // Build channel id — deterministic based on timestamp + creator
-  const channelId = `group_${Date.now()}_${profile.id.slice(0, 8)}`
+  const channelId = `group_${Date.now()}_${currentUserId.slice(0, 8)}`
 
   // Use the chat sub-client to create the channel
   const channel = streamServerClient.chat.channel('messaging', channelId)
   await channel.getOrCreate({
     data: {
-      created_by_id: profile.id,
+      created_by_id: currentUserId,
       members: allMemberIds.map((id) => ({ user_id: id })),
       custom: { name: name.trim() },
     },
@@ -295,18 +284,11 @@ export async function getChannelMembersProfiles(userIds: string[]) {
  */
 export async function addMembersToGroupChat(channelId: string, memberIds: string[]) {
   const supabase = await createClient()
-  const {
-    data: { user: authUser },
-    error: authError,
-  } = await supabase.auth.getUser()
-  if (authError || !authUser) throw new Error('Unauthorized')
+  const { authUser, profile } = await getCurrentUser()
+  if (!authUser) throw new Error('Unauthorized')
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('id, display_name')
-    .eq('auth_id', authUser.id)
-    .single()
-  if (!profile) throw new Error('User profile not found')
+  const currentUserId = profile?.id || authUser.id
+  const currentDisplayName = profile?.display_name || 'A member'
 
   if (!memberIds || memberIds.length === 0) {
     throw new Error('No members selected')
@@ -335,8 +317,8 @@ export async function addMembersToGroupChat(channelId: string, memberIds: string
   const names = memberProfiles?.map((m) => m.display_name).filter(Boolean).join(', ') || 'new members'
   
   await channel.addMembers(memberIds, {
-    text: `${profile.display_name || 'A member'} added ${names} to the group`,
-    user_id: profile.id,
+    text: `${currentDisplayName} added ${names} to the group`,
+    user_id: currentUserId,
   })
 
   return { success: true }
@@ -347,18 +329,11 @@ export async function addMembersToGroupChat(channelId: string, memberIds: string
  */
 export async function removeMemberFromGroupChat(channelId: string, targetUserId: string) {
   const supabase = await createClient()
-  const {
-    data: { user: authUser },
-    error: authError,
-  } = await supabase.auth.getUser()
-  if (authError || !authUser) throw new Error('Unauthorized')
+  const { authUser, profile } = await getCurrentUser()
+  if (!authUser) throw new Error('Unauthorized')
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('id, display_name')
-    .eq('auth_id', authUser.id)
-    .single()
-  if (!profile) throw new Error('User profile not found')
+  const currentUserId = profile?.id || authUser.id
+  const currentDisplayName = profile?.display_name || 'Admin'
 
   const serverClient = getStreamServerClient()
   const channel = serverClient.channel('messaging', channelId)
@@ -369,8 +344,8 @@ export async function removeMemberFromGroupChat(channelId: string, targetUserId:
     (channelState.channel.created_by as any)?.id ||
     (channelState.channel as any).created_by_id
 
-  const isCreator = createdById === profile.id
-  const isSelf = targetUserId === profile.id
+  const isCreator = createdById === currentUserId
+  const isSelf = targetUserId === currentUserId
 
   if (!isCreator && !isSelf) {
     throw new Error('Only the group admin can remove members')
@@ -386,9 +361,9 @@ export async function removeMemberFromGroupChat(channelId: string, targetUserId:
 
   await channel.removeMembers([targetUserId], {
     text: isSelf
-      ? `${profile.display_name || 'A member'} left the group`
-      : `${profile.display_name || 'Admin'} removed ${targetName} from the group`,
-    user_id: profile.id,
+      ? `${currentDisplayName} left the group`
+      : `${currentDisplayName} removed ${targetName} from the group`,
+    user_id: currentUserId,
   })
 
   return { success: true }
@@ -399,25 +374,18 @@ export async function removeMemberFromGroupChat(channelId: string, targetUserId:
  */
 export async function leaveGroupChat(channelId: string) {
   const supabase = await createClient()
-  const {
-    data: { user: authUser },
-    error: authError,
-  } = await supabase.auth.getUser()
-  if (authError || !authUser) throw new Error('Unauthorized')
+  const { authUser, profile } = await getCurrentUser()
+  if (!authUser) throw new Error('Unauthorized')
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('id, display_name')
-    .eq('auth_id', authUser.id)
-    .single()
-  if (!profile) throw new Error('User profile not found')
+  const currentUserId = profile?.id || authUser.id
+  const currentDisplayName = profile?.display_name || 'A member'
 
   const serverClient = getStreamServerClient()
   const channel = serverClient.channel('messaging', channelId)
 
-  await channel.removeMembers([profile.id], {
-    text: `${profile.display_name || 'A member'} left the group`,
-    user_id: profile.id,
+  await channel.removeMembers([currentUserId], {
+    text: `${currentDisplayName} left the group`,
+    user_id: currentUserId,
   })
 
   return { success: true }

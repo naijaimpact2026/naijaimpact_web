@@ -13,6 +13,8 @@ import
         CheckCircle2, ArrowRight
     } from 'lucide-react'
 import ArtisanProfileModal from './ArtisanProfileModal'
+import FeaturedArtisansCarousel from './FeaturedArtisansCarousel'
+import ArtisanHeroCarousel from './ArtisanHeroCarousel'
 import type { ServiceCategory } from '@/lib/types'
 
 export interface ArtisanItem
@@ -212,40 +214,43 @@ function ServiceListingCard({ service }: { service: ArtisanItem })
     const isProfessional = service.service_type === 'professional'
 
     return (
-        <Link href={`/app/market/artisans/${service.id}`}
-            className="group flex h-full flex-col cursor-pointer overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-lg">
+        <Link href={`/app/artisans/${service.id}`}
+            className="group flex h-full flex-col cursor-pointer overflow-hidden rounded-3xl border border-border bg-card transition-all hover:border-primary/50 hover:shadow-xl">
             
-            {/* Top image or gradient illustration */}
-            <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-muted">
+            {/* Top image or gradient illustration — enlarged */}
+            <div className="relative h-48 sm:h-52 w-full shrink-0 overflow-hidden bg-muted">
                 {img ? (
                     <Image src={img} alt={service.title} fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" />
                 ) : (
                     <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 via-primary/5 to-primary/20">
                         {isProfessional ? (
-                            <Briefcase className="h-10 w-10 text-primary/40" />
+                            <Briefcase className="h-12 w-12 text-primary/40" />
                         ) : (
-                            <Wrench className="h-10 w-10 text-primary/40" />
+                            <Wrench className="h-12 w-12 text-primary/40" />
                         )}
                     </div>
                 )}
 
+                {/* Ambient dark gradient for legibility */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+
                 {/* Service Type badge */}
-                <span className="absolute left-2.5 top-2.5 rounded-full bg-black/60 backdrop-blur-md px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                <span className="absolute left-3 top-3 rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-[10px] font-bold text-white shadow-sm">
                     {isProfessional ? 'Professional' : 'Artisan'}
                 </span>
 
                 {/* Price tag pill */}
                 {price > 0 && (
-                    <span className="absolute right-2.5 bottom-2.5 rounded-xl bg-card/95 backdrop-blur-md px-2.5 py-1 text-xs font-black text-foreground shadow-sm border border-border/50">
+                    <span className="absolute right-3 bottom-3 rounded-xl bg-card/95 backdrop-blur-md px-3 py-1 text-xs font-black text-foreground shadow-md border border-border/50">
                         From {fmt(price)}
                     </span>
                 )}
             </div>
 
             {/* Info details */}
-            <div className="flex flex-1 flex-col justify-between p-4">
+            <div className="flex flex-1 flex-col justify-between p-4 sm:p-5">
                 <div>
                     {service.category_name && (
                         <p className="text-[11px] font-bold text-primary truncate mb-1">
@@ -257,7 +262,7 @@ function ServiceListingCard({ service }: { service: ArtisanItem })
                     </h3>
 
                     {/* Provider row */}
-                    <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <div className="mt-2.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                         <span className="truncate font-semibold text-foreground/80">{providerName}</span>
                         {service.seller_is_verified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-primary" />}
                     </div>
@@ -265,14 +270,14 @@ function ServiceListingCard({ service }: { service: ArtisanItem })
                     {/* Location & rating */}
                     <div className="mt-2 flex items-center justify-between gap-2 text-xs">
                         {location ? (
-                            <span className="flex items-center gap-0.5 truncate text-[11px] text-muted-foreground">
+                            <span className="flex items-center gap-1 truncate text-[11px] text-muted-foreground">
                                 <MapPin className="h-3 w-3 shrink-0" />
                                 <span className="truncate">{location}</span>
                             </span>
                         ) : <span />}
 
                         {rating > 0 && (
-                            <span className="flex items-center gap-0.5 shrink-0 text-[11px] font-bold text-foreground">
+                            <span className="flex items-center gap-1 shrink-0 text-[11px] font-bold text-foreground bg-amber-500/10 px-2 py-0.5 rounded-lg">
                                 <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                                 {rating.toFixed(1)}
                             </span>
@@ -302,96 +307,108 @@ function ArtisanCard({ group }: { group: ArtisanGroup })
 
     return (
         <Link href={`/app/artisans/profile/${group.artisanKey}`}
-            className="group cursor-pointer overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:border-primary/40 hover:shadow-lg">
+            className="group cursor-pointer overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-all hover:border-primary/50 hover:shadow-xl flex flex-col justify-between">
 
-            {/* Collage preview */}
-            <div className="relative h-28 overflow-hidden bg-primary/5">
-                {previewImgs.length >= 3 ? (
-                    <div className="absolute inset-0 grid grid-cols-3 gap-0.5">
-                        {previewImgs.map((img, i) => (
-                            <div key={i} className="relative overflow-hidden">
-                                <Image src={img} alt="" fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="100px" />
+            <div>
+                {/* Enlarged Prominent Collage preview */}
+                <div className="relative h-48 sm:h-56 overflow-hidden bg-primary/5">
+                    {previewImgs.length >= 3 ? (
+                        <div className="absolute inset-0 grid grid-cols-3 gap-1">
+                            {previewImgs.map((img, i) => (
+                                <div key={i} className="relative overflow-hidden bg-muted">
+                                    <Image src={img} alt="" fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="150px" />
+                                </div>
+                            ))}
+                        </div>
+                    ) : previewImgs.length > 0 ? (
+                        <Image src={previewImgs[0]} alt="" fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="400px" />
+                    ) : (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/20">
+                            <span className="text-6xl font-black text-primary/40">
+                                {group.displayName.charAt(0).toUpperCase()}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Gradient shadow for contrast */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+
+                    {/* Service count badge */}
+                    <span className="absolute right-3 top-3 rounded-full bg-black/60 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold text-white shadow-sm">
+                        {group.services.length} service{group.services.length !== 1 ? 's' : ''}
+                    </span>
+                </div>
+
+                {/* Avatar + info */}
+                <div className="flex items-center gap-3 px-4 sm:px-5 pb-3 pt-4">
+                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border-2 border-card bg-primary/10 shadow-md">
+                        {group.avatarUrl ? (
+                            <Image src={group.avatarUrl} alt={group.displayName} width={56} height={56}
+                                className="h-full w-full object-cover" />
+                        ) : (
+                            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/20 text-xl font-black text-primary">
+                                {group.displayName.charAt(0).toUpperCase()}
                             </div>
+                        )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                            <p className="truncate text-base font-black text-foreground group-hover:text-primary transition-colors">{group.displayName}</p>
+                            {group.isVerified && <BadgeCheck className="h-4 w-4 shrink-0 text-primary" />}
+                        </div>
+                        {group.location && (
+                            <p className="flex items-center gap-1 truncate text-xs text-muted-foreground mt-0.5">
+                                <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                <span className="truncate">{group.location}</span>
+                            </p>
+                        )}
+                        {group.totalReviews > 0 && (
+                            <div className="mt-1 flex items-center gap-1">
+                                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                                <span className="text-xs font-bold text-foreground">{group.avgRating.toFixed(1)}</span>
+                                <span className="text-[10px] text-muted-foreground">({group.totalReviews})</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Starting price */}
+                {group.minPrice != null && (
+                    <div className="px-4 sm:px-5 pb-2">
+                        <span className="text-[11px] text-muted-foreground">Starting from </span>
+                        <span className="text-sm font-black text-primary">{fmt(group.minPrice)}</span>
+                    </div>
+                )}
+
+                {/* Services preview tags */}
+                {group.services.length > 0 && (
+                    <div className="px-4 sm:px-5 pb-2">
+                        <p className="text-xs font-medium text-muted-foreground line-clamp-1">
+                            {group.services.map(s => s.title).join(' · ')}
+                        </p>
+                    </div>
+                )}
+
+                {/* Category tags */}
+                {group.categoryNames.length > 0 && (
+                    <div className="flex flex-wrap gap-1 px-4 sm:px-5 pb-3">
+                        {group.categoryNames.slice(0, 3).map(cat => (
+                            <span key={cat} className="rounded-lg bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                                {cat}
+                            </span>
                         ))}
                     </div>
-                ) : previewImgs.length > 0 ? (
-                    <Image src={previewImgs[0]} alt="" fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="300px" />
-                ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/20">
-                        <span className="text-5xl font-black text-primary">
-                            {group.displayName.charAt(0).toUpperCase()}
-                        </span>
-                    </div>
                 )}
-                {/* Service count badge */}
-                <span className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white">
-                    {group.services.length} service{group.services.length !== 1 ? 's' : ''}
+            </div>
+
+            {/* Profile Action Link */}
+            <div className="mt-2 flex items-center justify-between border-t border-border px-4 sm:px-5 py-3 bg-muted/20">
+                <span className="flex items-center gap-1 text-xs font-bold text-primary group-hover:underline">
+                    View Profile & Portfolio
                 </span>
+                <ArrowRight className="h-3.5 w-3.5 text-primary transition-transform group-hover:translate-x-1" />
             </div>
-
-            {/* Avatar + info */}
-            <div className="flex items-center gap-3 px-4 pb-3 pt-4">
-                <div className="h-11 w-11 shrink-0 overflow-hidden rounded-2xl border-2 border-card bg-primary/10 shadow-md">
-                    {group.avatarUrl ? (
-                        <Image src={group.avatarUrl} alt={group.displayName} width={44} height={44}
-                            className="h-full w-full object-cover" />
-                    ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/20 text-lg font-black text-primary">
-                            {group.displayName.charAt(0).toUpperCase()}
-                        </div>
-                    )}
-                </div>
-                <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                        <p className="truncate text-sm font-black text-foreground">{group.displayName}</p>
-                        {group.isVerified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-primary" />}
-                    </div>
-                    {group.location && (
-                        <p className="flex items-center gap-0.5 truncate text-[10px] text-muted-foreground">
-                            <MapPin className="h-2.5 w-2.5 shrink-0" />{group.location}
-                        </p>
-                    )}
-                    {group.totalReviews > 0 && (
-                        <div className="mt-0.5 flex items-center gap-0.5">
-                            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                            <span className="text-[10px] font-bold text-foreground">{group.avgRating.toFixed(1)}</span>
-                            <span className="text-[10px] text-muted-foreground">({group.totalReviews})</span>
-                        </div>
-                    )}
-                </div>
-                {group.minPrice != null && (
-                    <div className="shrink-0 text-right">
-                        <p className="text-[10px] text-muted-foreground">From</p>
-                        <p className="text-sm font-black text-primary">{fmt(group.minPrice)}</p>
-                    </div>
-                )}
-            </div>
-
-            {/* Services preview tags */}
-            {group.services.length > 0 && (
-                <div className="px-4 pb-2">
-                    <p className="text-[11px] font-medium text-muted-foreground line-clamp-1">
-                        {group.services.map(s => s.title).join(' · ')}
-                    </p>
-                </div>
-            )}
-
-            {/* Category tags */}
-            {group.categoryNames.length > 0 && (
-                <div className="flex flex-wrap gap-1 px-4 pb-4">
-                    {group.categoryNames.slice(0, 3).map(cat => (
-                        <span key={cat} className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-semibold text-primary">
-                            {cat}
-                        </span>
-                    ))}
-                    {group.categoryNames.length > 3 && (
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[9px] font-semibold text-muted-foreground">
-                            +{group.categoryNames.length - 3}
-                        </span>
-                    )}
-                </div>
-            )}
         </Link>
     )
 }
@@ -463,45 +480,14 @@ export default function ArtisanMarketClient({ initialArtisans, initialNextCursor
 
     return (
         <div className="w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8">
-            {/* ══ HERO BANNER ════════════════════════════════════════════ */}
-            <section
-                className="relative overflow-hidden rounded-3xl"
-                style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}
-            >
-                <div className="px-6 py-8 sm:px-10 sm:py-10">
-                    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-cyan-200">
-                        Hubnovo Artisans & Pros
-                    </p>
+            {/* ══ HERO BANNER SLIDER ════════════════════════════════════ */}
+            <ArtisanHeroCarousel
+                myArtisanProfile={myArtisanProfile}
+                onOpenProfileModal={() => setProfileModalOpen(true)}
+            />
 
-                    <h1 className="font-display text-3xl font-black text-white sm:text-4xl">
-      Artisans & Professional Services
-    </h1>
-
-    <p className="mt-1.5 max-w-xl text-sm text-white/70">
-      Hire verified skilled artisans, technicians, and licensed professional
-      consultants across Nigeria with escrow protection.
-    </p>
-
-    <div className="mt-5 flex flex-wrap items-center gap-3">
-      <button
-        onClick={() => setProfileModalOpen(true)}
-        className="flex items-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-sm font-black text-secondary shadow-lg transition-transform active:scale-95 hover:bg-white/90"
-      >
-        <Plus className="h-4 w-4" />
-        {myArtisanProfile
-          ? 'Update My Service Listing'
-          : 'List My Services'}
-      </button>
-
-      <Link
-        href="/app/market/create"
-        className="flex items-center gap-2 rounded-2xl border-2 border-white/30 bg-white/10 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-white/20"
-      >
-        Create New Listing
-      </Link>
-    </div>
-  </div>
-</section>
+            {/* ══ FEATURED ARTISANS CAROUSEL ═════════════════════════════ */}
+            <FeaturedArtisansCarousel artisans={groups} currentUserId={currentUserId} />
 
             {/* ══ SERVICE TYPE TABS + SEARCH ═════════════════════════════ */}
             <div className="space-y-3">
@@ -662,7 +648,7 @@ export default function ArtisanMarketClient({ initialArtisans, initialNextCursor
                     ))}
                 </div>
             ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                     {groups.map(group => <ArtisanCard key={group.artisanKey} group={group} />)}
                 </div>
             )}
