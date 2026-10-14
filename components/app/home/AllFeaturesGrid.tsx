@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
     BookOpen,
     Briefcase,
@@ -35,6 +36,7 @@ export interface PlatformFeature {
     checkBg: string
     checkText: string
     ctaColor: string
+    imageUrl: string
 }
 
 export const PLATFORM_FEATURES: PlatformFeature[] = [
@@ -59,6 +61,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         checkBg: 'bg-amber-500/15 dark:bg-amber-500/25',
         checkText: 'text-amber-500 dark:text-amber-400',
         ctaColor: 'bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-orange-950/20',
+        imageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80',
     },
     {
         id: 'community-feed',
@@ -81,6 +84,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         checkBg: 'bg-blue-500/15 dark:bg-blue-500/25',
         checkText: 'text-blue-500 dark:text-blue-400',
         ctaColor: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-950/20',
+        imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=80',
     },
     {
         id: 'marketplace',
@@ -103,6 +107,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         checkBg: 'bg-teal-500/15 dark:bg-teal-500/25',
         checkText: 'text-teal-500 dark:text-teal-400',
         ctaColor: 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white shadow-teal-950/20',
+        imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=800&q=80',
     },
     {
         id: 'learn',
@@ -125,6 +130,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         checkBg: 'bg-violet-500/15 dark:bg-violet-500/25',
         checkText: 'text-violet-500 dark:text-violet-400',
         ctaColor: 'bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white shadow-purple-950/20',
+        imageUrl: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80',
     },
     {
         id: 'jobs',
@@ -147,9 +153,9 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         checkBg: 'bg-sky-500/15 dark:bg-sky-500/25',
         checkText: 'text-sky-500 dark:text-sky-400',
         ctaColor: 'bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white shadow-sky-950/20',
+        imageUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=800&q=80',
     },
     {
-
         id: 'launchpad',
         title: 'Business LaunchPad',
         subtitle: 'CAC registration & enterprise toolkits',
@@ -170,6 +176,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         checkBg: 'bg-rose-500/15 dark:bg-rose-500/25',
         checkText: 'text-rose-500 dark:text-rose-400',
         ctaColor: 'bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white shadow-rose-950/20',
+        imageUrl: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=800&q=80',
     },
     {
         id: 'wallet',
@@ -192,6 +199,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         checkBg: 'bg-emerald-500/15 dark:bg-emerald-500/25',
         checkText: 'text-emerald-500 dark:text-emerald-400',
         ctaColor: 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-950/20',
+        imageUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=800&q=80',
     },
     {
         id: 'funding',
@@ -214,6 +222,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         checkBg: 'bg-cyan-500/15 dark:bg-cyan-500/25',
         checkText: 'text-cyan-500 dark:text-cyan-400',
         ctaColor: 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-950/20',
+        imageUrl: 'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=800&q=80',
     },
     {
         id: 'chat',
@@ -236,6 +245,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         checkBg: 'bg-indigo-500/15 dark:bg-indigo-500/25',
         checkText: 'text-indigo-500 dark:text-indigo-400',
         ctaColor: 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-indigo-950/20',
+        imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
     },
 ]
 
@@ -322,17 +332,19 @@ export default function AllFeaturesGrid({ showHeader = true }: AllFeaturesGridPr
                     <button
                         key={tab.id}
                         onClick={() => setSelectedCategory(tab.id as CategoryFilter)}
-                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${selectedCategory === tab.id
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                            selectedCategory === tab.id
                                 ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 scale-[1.02]'
                                 : 'bg-card/70 border border-border/70 text-muted-foreground hover:bg-muted/80 hover:text-foreground'
-                            }`}
+                        }`}
                     >
                         <span>{tab.label}</span>
                         <span
-                            className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${selectedCategory === tab.id
+                            className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                selectedCategory === tab.id
                                     ? 'bg-white/20 text-white'
                                     : 'bg-muted text-muted-foreground'
-                                }`}
+                            }`}
                         >
                             {tab.count}
                         </span>
@@ -340,51 +352,61 @@ export default function AllFeaturesGrid({ showHeader = true }: AllFeaturesGridPr
                 ))}
             </div>
 
-            {/* Two-Tone Vibrant Feature Cards Grid - 3 Columns */}
+            {/* Premium Photographic Feature Cards Grid - 3 Columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredFeatures.map((item, index) => {
                     const Icon = item.icon
                     return (
                         <div
                             key={item.id}
-                            className="group relative flex flex-col rounded-3xl overflow-hidden border border-border/80 bg-card hover:border-white/30 dark:hover:border-white/20 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl shadow-sm"
+                            className="group relative flex flex-col rounded-3xl overflow-hidden border border-border/80 bg-card hover:border-primary/50 dark:hover:border-primary/40 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl shadow-sm"
                         >
-                            {/* TOP VIBRANT GRADIENT HEADER ("Like this" from the reference image, refined) */}
-                            <div
-                                className="relative p-6 pb-5 text-white overflow-hidden"
-                                style={{ background: item.headerGradient }}
-                            >
-                                {/* Decorative lighting overlays */}
-                                <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-black/25 pointer-events-none" />
-                                <div className="absolute -top-10 -right-10 w-36 h-36 rounded-full bg-white/20 blur-xl pointer-events-none" />
-                                <div className="absolute bottom-0 right-1/4 w-28 h-28 rounded-full bg-black/15 blur-lg pointer-events-none" />
+                            {/* TOP REALISTIC PHOTOGRAPHIC HEADER */}
+                            <div className="relative h-56 w-full overflow-hidden text-white flex flex-col justify-between p-5">
+                                {/* Realistic Background Photography */}
+                                <Image
+                                    src={item.imageUrl}
+                                    alt={item.title}
+                                    fill
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                    priority={index < 3}
+                                    className="object-cover object-center transition-transform duration-700 ease-out group-hover:scale-110"
+                                />
+
+                                {/* Dual-Layer Gradient & Contrast Overlays */}
+                                <div
+                                    className="absolute inset-0 opacity-75 group-hover:opacity-65 transition-opacity duration-500 mix-blend-multiply"
+                                    style={{ background: item.headerGradient }}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/25 pointer-events-none" />
+                                <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
                                 {/* Top Badges Row */}
-                                <div className="relative z-10 flex items-center justify-between gap-2 mb-4">
-                                    {/* Category Pill */}
-                                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/40 backdrop-blur-md text-white/95 border border-white/20 shadow-xs">
+                                <div className="relative z-10 flex items-center justify-between gap-2">
+                                    {/* Category Pill with Frosted Glass */}
+                                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/50 backdrop-blur-md text-white border border-white/20 shadow-xs">
                                         {item.categoryLabel}
                                     </span>
 
                                     {/* Status Badge Pill */}
                                     {item.badgeText && (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold bg-white text-slate-900 shadow-md backdrop-blur-md whitespace-nowrap">
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold bg-white/95 text-slate-900 shadow-md backdrop-blur-md whitespace-nowrap">
                                             <span className={`w-2 h-2 rounded-full ${item.accentDot} animate-pulse`} />
                                             {item.badgeText}
                                         </span>
                                     )}
                                 </div>
 
-                                {/* Icon & Title Row */}
-                                <div className="relative z-10 flex items-center gap-3.5">
-                                    <div className="w-13 h-13 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 group-hover:bg-white/30 transition-all duration-300">
-                                        <Icon className="w-6 h-6 text-white drop-shadow-xs" />
+                                {/* Icon & Title Row on Background */}
+                                <div className="relative z-10 flex items-center gap-3.5 mt-auto">
+                                    <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shrink-0 shadow-lg group-hover:scale-105 group-hover:bg-white/30 transition-all duration-300">
+                                        <Icon className="w-6 h-6 text-white drop-shadow-md" />
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <h3 className="font-display text-[18px] sm:text-[19px] font-extrabold text-white leading-tight tracking-tight drop-shadow-xs">
+                                        <h3 className="font-display text-[19px] sm:text-[20px] font-black text-white leading-tight tracking-tight drop-shadow-md">
                                             {item.title}
                                         </h3>
-                                        <p className="text-[12px] font-medium text-white/85 truncate mt-0.5">
+                                        <p className="text-[12px] font-medium text-white/90 truncate mt-0.5 drop-shadow-sm">
                                             {item.subtitle}
                                         </p>
                                     </div>
@@ -392,14 +414,14 @@ export default function AllFeaturesGrid({ showHeader = true }: AllFeaturesGridPr
                             </div>
 
                             {/* LOWER BODY: Dark / Glass Card */}
-                            <div className="flex-1 flex flex-col p-6 pt-5 bg-card/95 dark:bg-[#0c1322]/95 backdrop-blur-xl">
+                            <div className="flex-1 flex flex-col p-6 pt-5 bg-card/95 dark:bg-[#0c1424]/95 backdrop-blur-xl border-t border-white/10 dark:border-white/5">
                                 {/* Description */}
-                                <p className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed min-h-[40px] line-clamp-2">
+                                <p className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed min-h-[38px] line-clamp-2">
                                     {item.description}
                                 </p>
 
                                 {/* Highlights Checklist with Circular Checkmarks */}
-                                <ul className="mt-4 pt-4 border-t border-border/70 space-y-2.5">
+                                <ul className="mt-4 pt-4 border-t border-border/60 space-y-2.5">
                                     {item.highlights.map((h, i) => (
                                         <li key={i} className="flex items-center gap-2.5 text-xs font-semibold text-foreground/90">
                                             <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${item.checkBg} ${item.checkText}`}>
