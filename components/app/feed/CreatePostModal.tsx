@@ -329,15 +329,6 @@ export default function CreatePostModal({
         }
     }
 
-    function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>)
-    {
-        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter')
-        {
-            e.preventDefault()
-            handleSubmit()
-        }
-    }
-
     const currentAudience = AUDIENCE_OPTIONS.find((a) => a.key === audience) ?? AUDIENCE_OPTIONS[0]
     const AudienceIcon = currentAudience.icon
     const currentGroup = COMMUNITY_GROUPS.find((g) => g.id === selectedGroupId)
@@ -723,16 +714,12 @@ export default function CreatePostModal({
                             ref={textareaRef}
                             value={caption}
                             onChange={(e) => setCaption(e.target.value)}
-                            onKeyDown={handleKeyDown}
                             placeholder="What's on your mind? Share ideas, updates, or questions…"
                             rows={5}
                             disabled={isSubmitting}
                             className="w-full resize-none border border-border/80 focus-visible:ring-primary text-sm p-3.5 rounded-xl bg-background placeholder:text-muted-foreground/70"
                         />
-                        <div className="flex items-center justify-between pt-1.5 px-0.5">
-                            <span className="text-[11px] text-muted-foreground">
-                                Press <kbd className="px-1 py-0.5 text-[10px] bg-muted rounded border border-border">⌘/Ctrl+Enter</kbd> to post
-                            </span>
+                        <div className="flex items-center justify-end pt-1.5 px-0.5">
                             <span
                                 className={`text-xs tabular-nums ${caption.length > MAX_LEN ? 'text-destructive font-bold' : 'text-muted-foreground'
                                     }`}

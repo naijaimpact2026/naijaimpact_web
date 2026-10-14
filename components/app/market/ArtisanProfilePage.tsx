@@ -6,7 +6,7 @@ import Image from 'next/image'
 import
     {
         ChevronLeft, MapPin, Star, BadgeCheck, MessageCircle,
-        Package, Share2, Plus,
+        Package, Share2, Plus, Calendar, ArrowRight,
     } from 'lucide-react'
 
 interface ServiceItem
@@ -229,6 +229,34 @@ export default function ArtisanProfilePage({ artisan, currentUserId }: Props)
                     </div>
                 </section>
             </div>
+
+            {/* ── Sticky Bottom Action Bar ── */}
+            {!isOwner && (
+                <div className="sticky bottom-0 z-30 bg-card/95 backdrop-blur-md border-t border-border px-4 py-3 shadow-lg">
+                    <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+                        <div>
+                            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Starting from</p>
+                            <p className="text-base font-black text-primary">{minPrice ? fmt(minPrice) : 'Contact for Quote'}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {artisan.services[0]?.id && (
+                                <Link
+                                    href={`/app/artisans/${artisan.services[0].id}`}
+                                    className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border border-border bg-muted hover:bg-muted/70 transition-colors"
+                                >
+                                    <Calendar className="w-4 h-4" /> Book Service
+                                </Link>
+                            )}
+                            <Link
+                                href={`/app/chat?to=${artisan.userId || artisan.artisanKey}`}
+                                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-primary hover:bg-primary/90 transition-all shadow-md animate-heartbeat"
+                            >
+                                <MessageCircle className="w-4 h-4" /> Message Artisan
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

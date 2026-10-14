@@ -6,11 +6,13 @@ import PostCard from './PostCard'
 import PostCardSkeleton from './PostCardSkeleton'
 import PostComposerBar from './PostComposerBar'
 import StoryRow from './StoryRow'
-import FeedTabs, { type FeedTab } from './FeedTabs'
+import FeedTabs, { type FeedTab, type FeedLayout } from './FeedTabs'
 import SuggestedAccounts, { type SuggestedUser } from './SuggestedAccounts'
 import PromotedCarousel from './PromotedCarousel'
 import CreatePostModal from './CreatePostModal'
 import CommunityGroupsView from './CommunityGroupsView'
+import CommunityOpportunitiesGrid from './CommunityOpportunitiesGrid'
+import CommunityMediaGrid from './CommunityMediaGrid'
 import { fetchPostsPage, fetchFollowingPosts, fetchSavedPostsPage, fetchSuggestedUsers } from '@/lib/actions/posts'
 import { fetchPromotedContent, type PromotedItem } from '@/lib/actions/promoted'
 import type { PostWithAuthor, User } from '@/lib/types'
@@ -49,6 +51,7 @@ export default function FeedInfiniteScroll({
 {
     const router = useRouter()
     const [activeTab, setActiveTab] = useState<FeedTab>('for-you')
+    const [feedLayout, setFeedLayout] = useState<FeedLayout>('list')
     const [posts, setPosts] = useState<PostWithAuthor[]>(initialPosts)
     const [cursor, setCursor] = useState<string | null>(initialCursor)
     const [loading, setLoading] = useState(false)
@@ -120,7 +123,7 @@ export default function FeedInfiniteScroll({
         }
     }, [topic])
 
-    const UNBACKED_TABS: FeedTab[] = ['opportunities', 'events']
+    const UNBACKED_TABS: FeedTab[] = ['events']
 
     // Switch tabs — reset posts and fetch fresh
     async function handleTabChange(tab: FeedTab)
@@ -134,6 +137,14 @@ export default function FeedInfiniteScroll({
 
         // Groups tab shows rich interactive community group directory
         if (tab === 'groups')
+        {
+            setTabLoading(false)
+            setExhausted(true)
+            return
+        }
+
+        // Opportunities tab shows rich interactive curated and community gigs/grants
+        if (tab === 'opportunities')
         {
             setTabLoading(false)
             setExhausted(true)
@@ -266,9 +277,14 @@ export default function FeedInfiniteScroll({
                 </div>
             )}
 
-            {/* Feed tabs */}
+            {/* Feed tabs with Grid/List layout toggle */}
             <div className="bg-card rounded-2xl border border-border shadow-sm dark:shadow-none overflow-hidden">
-                <FeedTabs activeTab={activeTab} onTabChange={handleTabChange} />
+                <FeedTabs
+                    activeTab={activeTab}
+                    onTabChange={handleTabChange}
+                    feedLayout={feedLayout}
+                    onLayoutChange={setFeedLayout}
+                />
             </div>
 
             {/* Post composer bar — only on For You tab; opens in-feed modal */}
@@ -291,56 +307,59 @@ export default function FeedInfiniteScroll({
                 />
             )}
 
-            {/* Empty state for tabs with no real data source yet */}
+            {/* Opportunities Tab — interactive grants, gigs, updates and partnerships */}
+            {activeTab === 'opportunities' && (
+                <CommunityOpportunitiesGrid onOpenComposer={() => handleOpenComposer()} />
+            )}
+
+            {/* Empty state for tabs with no real data source yet (e.g. Events) */}
             {UNBACKED_TABS.includes(activeTab) && !isLoading && (
                 <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border border-border shadow-sm dark:shadow-none text-muted-foreground">
-                    <p className="text-lg font-semibold">
-                        {activeTab === 'opportunities' && 'Opportunities coming soon'}
-                        {activeTab === 'events' && 'Events coming soon'}
-                    </p>
-                    <p className="text-sm mt-1 text-center px-4">
-                        {activeTab === 'opportunities' && 'Jobs, grants and partnerships will show up here.'}
-                        {activeTab === 'events' && 'Community events will show up here.'}
-                    </p>
+                    <p className="text-lg font-semibold">Events coming soon</p>
+                    <p className="text-sm mt-1 text-center px-4">Community events will show up here.</p>
                 </div>
             )}
 
             {/* Feed posts */}
-            {!isLoading && posts.length === 0 && !UNBACKED_TABS.includes(activeTab) && activeTab !== 'groups' ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border border-border shadow-sm dark:shadow-none text-muted-foreground">
-                    <p className="text-lg font-semibold">
-                        {activeTab === 'following' && 'No posts from people you follow'}
-                        {activeTab === 'saved' && 'No saved posts yet'}
-                        {activeTab !== 'following' && activeTab !== 'saved' && (topic ? `No posts found in #${topic}` : 'No posts yet')}
-                    </p>
-                    <p className="text-sm mt-1 text-center px-4">
-                        {activeTab === 'following' && 'Follow people to see their posts here.'}
-                        {activeTab === 'saved' && 'Tap the Save button on any post to read it later.'}
-                        {activeTab !== 'following' && activeTab !== 'saved' && (topic ? `Be the first to share something in #${topic}!` : 'Be the first to share something!')}
-                    </p>
-                </div>
-            ) : (
-                posts.map((post, index) => (
-                    <div key={post.id} className="space-y-3">
-                        <PostCard
-                            post={post}
-                            currentUserId={currentUserId}
-                            onReactionToggle={handleReactionToggle}
-                            onSaveToggle={handleSaveToggle}
-                            onHide={handleHide}
-                        />
-
-                        {activeTab === 'for-you' &&
-                            !suggestionsDismissed &&
-                            index === SUGGESTIONS_AFTER_POST - 1 &&
-                            suggestedUsers.length > 0 && (
-                                <SuggestedAccounts
-                                    users={suggestedUsers}
-                                    onDismiss={() => setSuggestionsDismissed(true)}
-                                />
-                            )}
+            {activeTab !== 'groups' && activeTab !== 'opportunities' && !UNBACKED_TABS.includes(activeTab) && (
+                !isLoading && posts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border border-border shadow-sm dark:shadow-none text-muted-foreground">
+                        <p className="text-lg font-semibold">
+                            {activeTab === 'following' && 'No posts from people you follow'}
+                            {activeTab === 'saved' && 'No saved posts yet'}
+                            {activeTab !== 'following' && activeTab !== 'saved' && (topic ? `No posts found in #${topic}` : 'No posts yet')}
+                        </p>
+                        <p className="text-sm mt-1 text-center px-4">
+                            {activeTab === 'following' && 'Follow people to see their posts here.'}
+                            {activeTab === 'saved' && 'Tap the Save button on any post to read it later.'}
+                            {activeTab !== 'following' && activeTab !== 'saved' && (topic ? `Be the first to share something in #${topic}!` : 'Be the first to share something!')}
+                        </p>
                     </div>
-                ))
+                ) : feedLayout === 'grid' ? (
+                    <CommunityMediaGrid posts={posts} />
+                ) : (
+                    posts.map((post, index) => (
+                        <div key={post.id} className="space-y-3">
+                            <PostCard
+                                post={post}
+                                currentUserId={currentUserId}
+                                onReactionToggle={handleReactionToggle}
+                                onSaveToggle={handleSaveToggle}
+                                onHide={handleHide}
+                            />
+
+                            {activeTab === 'for-you' &&
+                                !suggestionsDismissed &&
+                                index === SUGGESTIONS_AFTER_POST - 1 &&
+                                suggestedUsers.length > 0 && (
+                                    <SuggestedAccounts
+                                        users={suggestedUsers}
+                                        onDismiss={() => setSuggestionsDismissed(true)}
+                                    />
+                                )}
+                        </div>
+                    ))
+                )
             )}
 
             {/* Loading skeletons */}
@@ -352,9 +371,11 @@ export default function FeedInfiniteScroll({
                 </div>
             )}
 
-            {!exhausted && activeTab !== 'groups' && <div ref={sentinelRef} className="h-1" aria-hidden="true" />}
+            {!exhausted && activeTab !== 'groups' && activeTab !== 'opportunities' && (
+                <div ref={sentinelRef} className="h-1" aria-hidden="true" />
+            )}
 
-            {exhausted && posts.length > 0 && activeTab !== 'groups' && (
+            {exhausted && posts.length > 0 && activeTab !== 'groups' && activeTab !== 'opportunities' && (
                 <p className="text-center text-sm text-muted-foreground py-8">
                     You&apos;ve seen all recent posts.
                 </p>

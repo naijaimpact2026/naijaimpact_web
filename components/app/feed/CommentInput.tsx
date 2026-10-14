@@ -126,15 +126,6 @@ export default function CommentInput({
 
     function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>)
     {
-        // Cmd/Ctrl + Enter to submit
-        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter')
-        {
-            e.preventDefault()
-            if (!isDisabled)
-            {
-                handleSubmit(e as unknown as React.FormEvent)
-            }
-        }
         if (e.key === 'Escape' && onCancel)
         {
             onCancel()

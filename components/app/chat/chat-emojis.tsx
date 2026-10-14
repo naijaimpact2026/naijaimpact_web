@@ -235,7 +235,7 @@ export function CustomReactionSelector(props: ReactionSelectorProps) {
   if (!isExtended) {
     return (
       <div
-        className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-card/98 backdrop-blur-md border border-border shadow-xl select-none animate-in fade-in-50 zoom-in-95 duration-100 z-50"
+        className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-card border border-border shadow-2xl select-none animate-in fade-in-50 zoom-in-95 duration-100 z-50"
         role="group"
         aria-label="Reactions"
       >

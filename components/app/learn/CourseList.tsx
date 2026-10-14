@@ -187,15 +187,13 @@ export default function CourseList({
     return (
         <div>
 
-            {/* Course grid */}
+            {/* Course grid - 3 columns for rich video preview aspect ratio */}
             <div className="
                 grid
                 grid-cols-1
                 sm:grid-cols-2
                 lg:grid-cols-3
-                xl:grid-cols-4
-                gap-x-5
-                gap-y-8
+                gap-6
             ">
                 {courses.map(course => (
                     <CourseCard

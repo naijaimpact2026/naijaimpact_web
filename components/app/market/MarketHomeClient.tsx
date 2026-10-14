@@ -16,7 +16,7 @@ import { fetchListings } from '@/lib/actions/marketplace'
 import CartPanel from './CartPanel'
 import TopStoresRail from './TopStoresRail'
 import ListingCard from './ListingCard'
-import MarketHeroIllustration from '@/components/illustrations/MarketHeroIllustration'
+import MarketHeroCarousel from './MarketHeroCarousel'
 import type { NmListingDetail, NmTopSeller, ServiceCategory } from '@/lib/types'
 
 interface Props
@@ -189,45 +189,12 @@ export default function MarketHomeClient({
     return (
         <div className="w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8">
 
-            {/* ══ HERO ══════════════════════════════════════════════════ */}
-            <section className="relative overflow-hidden rounded-3xl"
-                style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}>
-                <div className="relative z-10 grid grid-cols-1 items-center gap-6 px-6 py-8 sm:px-10 sm:py-10 lg:grid-cols-[1.1fr_0.9fr]">
-                    <div>
-                        <p className="mb-1 text-xs font-bold uppercase tracking-widest text-cyan-200">Hubnovo Marketplace</p>
-                        <h1 className="font-display text-3xl font-black leading-tight text-white sm:text-4xl">
-                            Buy. Sell. Grow Together.
-                        </h1>
-                        <p className="mt-2 max-w-md text-sm text-white/70">
-                            Discover quality products, support local businesses, and unlock new opportunities.
-                        </p>
-
-                        <form onSubmit={handleSearchSubmit} className="mt-5 flex max-w-lg gap-2">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                                <input
-                                    type="text"
-                                    value={searchInput}
-                                    onChange={(e) => setSearchInput(e.target.value)}
-                                    placeholder="Search for products, brands or stores…"
-                                    className="w-full rounded-2xl border-0 bg-white py-3 pl-10 pr-4 text-sm text-gray-900 outline-none ring-0 focus:ring-2 focus:ring-cyan-300"
-                                />
-                            </div>
-                            <button type="submit"
-                                className="shrink-0 rounded-2xl bg-secondary px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-secondary/90">
-                                Search
-                            </button>
-                        </form>
-
-                        <Link href="/app/market/create"
-                            className="mt-4 inline-flex items-center gap-1.5 rounded-2xl bg-white px-5 py-2.5 text-sm font-black text-secondary shadow-lg transition-transform active:scale-95 hover:bg-white/90">
-                            <Plus className="h-4 w-4" /> List Item
-                        </Link>
-                    </div>
-
-                    <MarketHeroIllustration className="hidden w-full max-w-sm justify-self-end sm:block" />
-                </div>
-            </section>
+            {/* ══ HERO CAROUSEL SLIDER ═════════════════════════════════════════ */}
+            <MarketHeroCarousel
+                searchInput={searchInput}
+                onSearchChange={setSearchInput}
+                onSearchSubmit={handleSearchSubmit}
+            />
 
             {/* ══ QUICK NAV ═════════════════════════════════════════════ */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">

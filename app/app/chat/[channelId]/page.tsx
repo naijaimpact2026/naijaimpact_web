@@ -989,6 +989,24 @@ function ForwardModalHost({ client, currentChannelId }: { client: any; currentCh
     )
 }
 
+// ─── Custom Message List Avatar (Consistent Profile Picture Rendering) ─────────
+
+function CustomStreamAvatar({ imageUrl, userName, initials: customInitials, className }: any)
+{
+    const initials = customInitials || (userName
+        ? userName.split(' ').map((p: string) => p[0] ?? '').join('').toUpperCase().slice(0, 2)
+        : '?')
+
+    return (
+        <Avatar className={`h-8 w-8 rounded-full border border-border shrink-0 ${className || ''}`}>
+            <AvatarImage src={imageUrl} alt={userName || 'User'} className="object-cover" />
+            <AvatarFallback className="bg-primary/10 text-primary font-bold text-[11px]">
+                {initials}
+            </AvatarFallback>
+        </Avatar>
+    )
+}
+
 // ─── Main page ───────────────────────────────────────────────────────────────
 
 export default function ChannelPage()
@@ -1146,6 +1164,7 @@ export default function ChannelPage()
                     <Channel channel={channel} doSendMessageRequest={handleSendMessage}>
                         <ComponentProvider
                             value={{
+                                Avatar: CustomStreamAvatar as any,
                                 MessageStatus: CustomMessageStatus,
                                 PinIndicator: CustomPinIndicator,
                                 ThreadHeader: CustomThreadHeader,
@@ -1164,13 +1183,58 @@ export default function ChannelPage()
                                 )}
                                 <PinnedMessageBanner />
                                 <MessageList returnAllReadData />
-                                <MessageComposer />
+                                <MessageComposer audioRecordingEnabled={true} />
                             </Window>
                             <Thread />
                         </ComponentProvider>
                     </Channel>
                 </Chat>
                 <ForwardModalHost client={client} currentChannelId={channelId as string} />
+                <style dangerouslySetInnerHTML={{
+                    __html: `
+                        .str-chat .str-chat__context-menu,
+                        .str-chat__context-menu,
+                        .str-chat .str-chat__attachment-selector-actions-menu,
+                        .str-chat__attachment-selector-actions-menu,
+                        [data-str-chat-placement] > .str-chat__context-menu,
+                        [data-str-chat-dialog-state] > .str-chat__context-menu,
+                        .str-chat__dialog-contents .str-chat__context-menu,
+                        .str-chat .str-chat__context-menu__body,
+                        .str-chat__context-menu__body,
+                        [data-testid="attachment-selector-actions-menu"] {
+                            background-color: #ffffff !important;
+                            background: #ffffff !important;
+                            opacity: 1 !important;
+                            backdrop-filter: none !important;
+                            -webkit-backdrop-filter: none !important;
+                            border: 1px solid hsl(214, 24%, 88%) !important;
+                            border-radius: 16px !important;
+                            box-shadow: 0 16px 40px -6px rgba(15, 23, 42, 0.22), 0 2px 8px rgba(15, 23, 42, 0.08) !important;
+                            overflow: hidden !important;
+                            z-index: 1000 !important;
+                        }
+                        html.dark .str-chat .str-chat__context-menu,
+                        html.dark .str-chat__context-menu,
+                        html.dark .str-chat .str-chat__attachment-selector-actions-menu,
+                        html.dark .str-chat__attachment-selector-actions-menu,
+                        html.dark [data-str-chat-placement] > .str-chat__context-menu,
+                        html.dark [data-str-chat-dialog-state] > .str-chat__context-menu,
+                        html.dark .str-chat__dialog-contents .str-chat__context-menu,
+                        html.dark .str-chat .str-chat__context-menu__body,
+                        html.dark .str-chat__context-menu__body,
+                        html.dark [data-testid="attachment-selector-actions-menu"],
+                        .str-chat__theme-dark .str-chat__context-menu,
+                        .str-chat__theme-dark .str-chat__attachment-selector-actions-menu {
+                            background-color: #0f2238 !important;
+                            background: #0f2238 !important;
+                            opacity: 1 !important;
+                            backdrop-filter: none !important;
+                            -webkit-backdrop-filter: none !important;
+                            border: 1px solid rgba(255, 255, 255, 0.14) !important;
+                            box-shadow: 0 20px 48px -6px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+                        }
+                    `
+                }} />
             </div>
         </ForwardMessageProvider>
     )

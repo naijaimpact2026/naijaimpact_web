@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -12,9 +13,13 @@ import {
 } from 'lucide-react'
 import { toPublicStorageUrl, shouldSkipImageOptimization } from '@/lib/supabase-image'
 import type { Course } from '@/lib/actions/learn'
+import CourseVideoPreview from './CourseVideoPreview'
+
 
 export default function CourseCard({ course }: { course: Course })
 {
+    const [isHovered, setIsHovered] = useState(false)
+
     const outline = Array.isArray(course.course_outline)
         ? course.course_outline
         : []
@@ -38,63 +43,37 @@ export default function CourseCard({ course }: { course: Course })
         <Link
             href={`/app/learn/${course.id}`}
             className="group block h-full"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
         >
             <article className="
                 flex h-full flex-col overflow-hidden
                 rounded-xl border border-border bg-card
-                transition-all duration-200
-                hover:-translate-y-0.5
-                hover:border-muted-foreground/30
-                hover:shadow-lg
+                transition-all duration-300
+                hover:-translate-y-1
+                hover:border-primary/40
+                hover:shadow-xl
             ">
                 {/* -------------------------------------------------- */}
-                {/* Thumbnail */}
+                {/* Thumbnail / Video on Hover */}
                 {/* -------------------------------------------------- */}
 
                 <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                    {coverUrl ? (
-                        <Image
-                            src={coverUrl}
-                            alt={course.title}
-                            fill
-                            className="
-                                object-cover
-                                transition-transform duration-500
-                                group-hover:scale-[1.04]
-                            "
-                            sizes="
-                                (max-width: 640px) 100vw,
-                                (max-width: 1024px) 50vw,
-                                25vw
-                            "
-                            unoptimized={shouldSkipImageOptimization(coverUrl)}
-                        />
-                    ) : (
-                        <div className="
-                            absolute inset-0
-                            flex items-center justify-center
-                        " style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}>
-                            <GraduationCap
-                                className="h-12 w-12 text-white/25"
-                            />
-                        </div>
-                    )}
-
-                    {/* Dark gradient */}
-                    <div className="
-                        absolute inset-x-0 bottom-0 h-20
-                        bg-gradient-to-t from-black/50 to-transparent
-                    " />
+                    <CourseVideoPreview
+                        course={course}
+                        coverUrl={coverUrl}
+                        isHovered={isHovered}
+                    />
 
                     {/* Price */}
-                    <div className="absolute right-3 top-3">
+                    <div className="absolute right-3 top-3 z-20">
                         <span className={`
                             inline-flex items-center rounded-md px-2.5 py-1
-                            text-xs font-bold shadow-sm
+                            text-xs font-bold shadow-sm backdrop-blur-md
                             ${
                                 course.is_free
-                                    ? 'bg-emerald text-emerald-foreground'
-                                    : 'bg-card text-foreground'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-card/90 text-foreground border border-border/50'
                             }
                         `}>
                             {course.is_free
@@ -103,21 +82,6 @@ export default function CourseCard({ course }: { course: Course })
                             }
                         </span>
                     </div>
-
-                    {/* Preview */}
-                    {course.video_url && (
-                        <div className="absolute bottom-3 left-3">
-                            <span className="
-                                inline-flex items-center gap-1.5
-                                rounded-md bg-black/65 px-2 py-1
-                                text-[11px] font-semibold text-white
-                                backdrop-blur-sm
-                            ">
-                                <PlayCircle className="h-3.5 w-3.5" />
-                                Preview
-                            </span>
-                        </div>
-                    )}
                 </div>
 
                 {/* -------------------------------------------------- */}

@@ -83,14 +83,26 @@ export default function ChatProvider({ children }: ChatProviderProps)
 
         if (!authUser || !mountedRef.current) return
 
-        // Fetch profile for display name and avatar
+        // Fetch profile for display name and avatar (matches by auth_id or id)
         const { data: profile } = await supabase
             .from('users')
             .select('id, display_name, avatar_url')
-            .eq('auth_id', authUser.id)
-            .single()
+            .or(`auth_id.eq.${authUser.id},id.eq.${authUser.id}`)
+            .maybeSingle()
 
-        if (!profile || !mountedRef.current) return
+        if (!mountedRef.current) return
+
+        const activeUserId = profile?.id || authUser.id
+        const displayName =
+            profile?.display_name ||
+            authUser.user_metadata?.full_name ||
+            authUser.user_metadata?.name ||
+            authUser.email?.split('@')[0] ||
+            'User'
+        const avatarUrl =
+            profile?.avatar_url ||
+            authUser.user_metadata?.avatar_url ||
+            undefined
 
         // getStreamClient() dynamically imports the `stream-chat` SDK the
         // first time it's called — if that chunk fetch fails (offline,
@@ -143,11 +155,59 @@ export default function ChatProvider({ children }: ChatProviderProps)
             setIsReady(true)
         }
 
-        // Fast-path: if singleton is already connected to this user, reuse immediately
-        if (streamClient.userID === profile.id && streamClient.user)
+        // Helper to check if a JWT token is expired (or expires within 60s)
+        const isTokenExpired = (rawToken: string | null | undefined): boolean =>
         {
+            if (!rawToken) return true
+            try
+            {
+                const parts = rawToken.split('.')
+                if (parts.length < 2) return true
+                const base64Url = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+                const jsonPayload = decodeURIComponent(
+                    atob(base64Url)
+                        .split('')
+                        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                        .join(''),
+                )
+                const payload = JSON.parse(jsonPayload)
+                if (!payload.exp) return false // No expiration set
+                return Math.floor(Date.now() / 1000) >= payload.exp - 60
+            } catch
+            {
+                return true
+            }
+        }
+
+        const currentToken = (streamClient as any)?.tokenManager?.token as string | undefined
+        const isStaticToken = (streamClient as any)?.tokenManager?.isStatic?.()
+        const tokenIsExpired = isTokenExpired(currentToken)
+
+        // If singleton is connected to a different user, or token is expired/static, disconnect cleanly first
+        if (streamClient.userID && (streamClient.userID !== activeUserId || isStaticToken || tokenIsExpired))
+        {
+            try
+            {
+                await streamClient.disconnectUser()
+            } catch
+            {
+                // Ignore disconnect errors
+            }
+        }
+        else if (streamClient.userID === activeUserId && streamClient.user && !isStaticToken && !tokenIsExpired)
+        {
+            // Already connected to active user with an active, non-expired tokenProvider
             attachListenersAndFinish()
             return
+        }
+
+        // Token provider: Stream Chat SDK automatically calls this initially AND on any token expiration (code 40)
+        const tokenProvider = async (): Promise<string> =>
+        {
+            const res = await fetch('/api/stream-token')
+            if (!res.ok) throw new Error(`Token fetch failed: ${res.status}`)
+            const data = await res.json()
+            return data.token as string
         }
 
         const MAX_ATTEMPTS = 5
@@ -158,21 +218,14 @@ export default function ChatProvider({ children }: ChatProviderProps)
 
             try
             {
-                // Fetch a fresh token from our server route
-                const res = await fetch('/api/stream-token')
-                if (!res.ok) throw new Error(`Token fetch failed: ${res.status}`)
-                const { token } = await res.json()
-
-                if (!mountedRef.current) return
-
-                // Connect the user to Stream Chat
+                // Connect the user using tokenProvider so Stream Chat automatically auto-renews tokens
                 await streamClient.connectUser(
                     {
-                        id: profile.id,
-                        name: profile.display_name,
-                        image: profile.avatar_url ?? undefined,
+                        id: activeUserId,
+                        name: displayName,
+                        image: avatarUrl ?? undefined,
                     },
-                    token,
+                    tokenProvider,
                 )
 
                 if (!mountedRef.current) return

@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import
 {
     Home,
+    Compass,
     Search,
     HandCoins,
     MessageCircle,
@@ -42,6 +43,7 @@ interface SidebarProps
 
 const navItems = [
     { icon: Home, label: 'Home', href: '/app' },
+    { icon: Compass, label: 'Explore Directory', href: '/app/explore' },
     { icon: Search, label: 'Search', href: '/app/search' },
     { icon: Users, label: 'Community', href: '/app/feed' },
     { icon: Clapperboard, label: 'ModusHive', href: '/app/modushive' },
