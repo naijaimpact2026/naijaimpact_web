@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import useEmblaCarousel from 'embla-carousel-react'
 import {
     Search,
@@ -21,6 +22,7 @@ import {
     CheckCircle2,
     Zap,
     Users,
+    ShoppingBag,
 } from 'lucide-react'
 import MarketHeroIllustration from '@/components/illustrations/MarketHeroIllustration'
 
@@ -158,8 +160,27 @@ export default function MarketHeroCarousel({
                                     </div>
                                 </div>
 
-                                <div className="hidden sm:flex justify-self-end w-full max-w-sm justify-end min-w-0">
-                                    <MarketHeroIllustration className="w-full max-w-sm drop-shadow-lg" />
+                                {/* Person Visual Cutout */}
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-sm min-w-0 self-end">
+                                    <div className="relative flex items-end">
+                                        <Image
+                                            src="/images/heroes/marketplace-shopper.png"
+                                            alt="NaijaImpact Marketplace Shopper"
+                                            width={340}
+                                            height={420}
+                                            priority
+                                            className="h-64 sm:h-72 lg:h-80 w-auto object-contain object-bottom drop-shadow-[0_20px_35px_rgba(0,0,0,0.55)] transition-transform duration-500 hover:scale-105"
+                                        />
+                                        <div className="absolute -left-4 bottom-6 rounded-2xl border border-white/25 bg-black/45 px-3.5 py-2.5 backdrop-blur-xl shadow-2xl text-white flex items-center gap-2.5">
+                                            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-md shrink-0">
+                                                <ShoppingBag className="h-5 w-5" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-black text-white leading-tight">Verified Goods</p>
+                                                <p className="text-[10px] text-white/80">Escrow backed trade</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -211,35 +232,36 @@ export default function MarketHeroCarousel({
                                     </div>
                                 </div>
 
-                                {/* Artisan Badge Visual Card */}
-                                <div className="hidden sm:flex justify-self-end w-full max-w-sm flex-col gap-3 min-w-0">
-                                    <div className="rounded-2xl border border-white/25 bg-white/15 p-5 backdrop-blur-xl shadow-xl text-white">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-12 w-12 rounded-xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-lg font-black text-white shadow-md shrink-0">
-                                                EO
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-center gap-1.5">
-                                                    <h4 className="font-black text-white text-base truncate">Emmanuel Okon</h4>
-                                                    <BadgeCheck className="h-4 w-4 text-cyan-300 shrink-0" />
+                                {/* Person Visual Cutout */}
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-sm min-w-0 self-end">
+                                    <div className="relative flex items-end">
+                                        <Image
+                                            src="/images/heroes/artisan-electrician.png"
+                                            alt="Emmanuel Okon - Certified Artisan Technician"
+                                            width={340}
+                                            height={420}
+                                            className="h-64 sm:h-72 lg:h-80 w-auto object-contain object-bottom drop-shadow-[0_20px_35px_rgba(0,0,0,0.55)] transition-transform duration-500 hover:scale-105"
+                                        />
+                                        <div className="absolute -left-6 bottom-6 rounded-2xl border border-white/25 bg-black/50 p-3 backdrop-blur-xl shadow-2xl text-white max-w-[210px]">
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-8 w-8 rounded-lg bg-cyan-500 flex items-center justify-center text-white shrink-0">
+                                                    <Wrench className="h-4 w-4" />
                                                 </div>
-                                                <p className="text-xs text-cyan-100 truncate">Certified Solar & Electrical Engineer</p>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="font-black text-white text-xs truncate">Emmanuel O.</span>
+                                                        <BadgeCheck className="h-3.5 w-3.5 text-cyan-300 shrink-0" />
+                                                    </div>
+                                                    <p className="text-[10px] text-cyan-100 truncate">Certified Solar Tech</p>
+                                                </div>
+                                            </div>
+                                            <div className="mt-2 flex items-center justify-between border-t border-white/15 pt-1.5 text-[10px]">
+                                                <span className="text-amber-300 font-bold flex items-center gap-0.5">
+                                                    <Star className="h-3 w-3 fill-amber-300" /> 4.9 ★
+                                                </span>
+                                                <span className="text-emerald-300 font-bold">100% Escrow</span>
                                             </div>
                                         </div>
-                                        <div className="mt-3 flex items-center justify-between border-t border-white/15 pt-3 text-xs">
-                                            <div className="flex items-center gap-1 text-amber-300 font-bold">
-                                                <Star className="h-3.5 w-3.5 fill-amber-300" />
-                                                <span>4.9 (68 jobs completed)</span>
-                                            </div>
-                                            <span className="rounded-lg bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 px-2 py-0.5 text-[11px] font-bold">
-                                                Escrow Verified
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 rounded-xl bg-black/20 p-3 text-xs text-white/90 border border-white/10 backdrop-blur-md">
-                                        <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
-                                        <span>Zero risk milestone releases on all verified artisan contracts.</span>
                                     </div>
                                 </div>
                             </div>
@@ -290,40 +312,34 @@ export default function MarketHeroCarousel({
                                     </div>
                                 </div>
 
-                                {/* Storefront Visual Showcase */}
-                                <div className="hidden sm:flex justify-self-end w-full max-w-sm flex-col gap-3 min-w-0">
-                                    <div className="rounded-2xl border border-white/25 bg-white/15 p-5 backdrop-blur-xl shadow-xl text-white">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-12 w-12 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-md shrink-0">
-                                                <Store className="h-6 w-6" />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-center gap-1.5">
-                                                    <h4 className="font-black text-white text-base truncate">Lagos Artisan Leather</h4>
-                                                    <BadgeCheck className="h-4 w-4 text-emerald-300 shrink-0" />
+                                {/* Person Visual Cutout */}
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-sm min-w-0 self-end">
+                                    <div className="relative flex items-end">
+                                        <Image
+                                            src="/images/heroes/store-merchant.png"
+                                            alt="NaijaImpact Digital Merchant"
+                                            width={340}
+                                            height={420}
+                                            className="h-64 sm:h-72 lg:h-80 w-auto object-contain object-bottom drop-shadow-[0_20px_35px_rgba(0,0,0,0.55)] transition-transform duration-500 hover:scale-105"
+                                        />
+                                        <div className="absolute -left-6 bottom-6 rounded-2xl border border-white/25 bg-black/50 p-3 backdrop-blur-xl shadow-2xl text-white max-w-[210px]">
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-8 w-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white shrink-0">
+                                                    <Store className="h-4 w-4" />
                                                 </div>
-                                                <p className="text-xs text-emerald-100 truncate">Handcrafted Bags & Footwear</p>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="font-black text-white text-xs truncate">Live Store</span>
+                                                        <BadgeCheck className="h-3.5 w-3.5 text-emerald-300 shrink-0" />
+                                                    </div>
+                                                    <p className="text-[10px] text-emerald-100 truncate">0% Setup Fee</p>
+                                                </div>
+                                            </div>
+                                            <div className="mt-2 flex items-center justify-between border-t border-white/15 pt-1.5 text-[10px]">
+                                                <span className="text-white/80">Setup in 60s</span>
+                                                <span className="text-emerald-300 font-bold">Instant Orders</span>
                                             </div>
                                         </div>
-                                        <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/15 pt-3 text-center text-xs">
-                                            <div className="rounded-lg bg-black/20 p-2">
-                                                <p className="font-black text-white">48</p>
-                                                <p className="text-[10px] text-white/70">Products</p>
-                                            </div>
-                                            <div className="rounded-lg bg-black/20 p-2">
-                                                <p className="font-black text-amber-300">4.9 ★</p>
-                                                <p className="text-[10px] text-white/70">Rating</p>
-                                            </div>
-                                            <div className="rounded-lg bg-black/20 p-2">
-                                                <p className="font-black text-emerald-300">120+</p>
-                                                <p className="text-[10px] text-white/70">Orders</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 rounded-xl bg-black/20 p-3 text-xs text-white/90 border border-white/10 backdrop-blur-md">
-                                        <Zap className="h-4 w-4 text-amber-400 shrink-0" />
-                                        <span>Get indexed in Nigeria’s fastest growing merchant ecosystem.</span>
                                     </div>
                                 </div>
                             </div>
@@ -374,30 +390,29 @@ export default function MarketHeroCarousel({
                                     </div>
                                 </div>
 
-                                {/* Opportunity Card Visual */}
-                                <div className="hidden sm:flex justify-self-end w-full max-w-sm flex-col gap-3 min-w-0">
-                                    <div className="rounded-2xl border border-white/25 bg-white/15 p-5 backdrop-blur-xl shadow-xl text-white">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="rounded-lg bg-blue-500/30 px-2.5 py-1 text-[11px] font-black text-blue-200 border border-blue-400/30">
-                                                Full-Time / Remote
-                                            </span>
-                                            <span className="text-xs font-bold text-emerald-300">₦450,000 / mo</span>
+                                {/* Person Visual Cutout */}
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-sm min-w-0 self-end">
+                                    <div className="relative flex items-end">
+                                        <Image
+                                            src="/images/heroes/jobs-professional.png"
+                                            alt="Top Nigerian Tech & Professional Talent"
+                                            width={340}
+                                            height={420}
+                                            className="h-64 sm:h-72 lg:h-80 w-auto object-contain object-bottom drop-shadow-[0_20px_35px_rgba(0,0,0,0.55)] transition-transform duration-500 hover:scale-105"
+                                        />
+                                        <div className="absolute -left-6 bottom-6 rounded-2xl border border-white/25 bg-black/50 p-3 backdrop-blur-xl shadow-2xl text-white max-w-[220px]">
+                                            <div className="flex items-center justify-between gap-1 text-[10px]">
+                                                <span className="rounded bg-blue-500/30 px-1.5 py-0.5 font-bold text-blue-200 border border-blue-400/30">
+                                                    Verified Role
+                                                </span>
+                                                <span className="text-emerald-300 font-bold">₦450k - ₦750k</span>
+                                            </div>
+                                            <p className="mt-1.5 font-black text-white text-xs truncate">Software & Product Roles</p>
+                                            <div className="mt-1.5 flex items-center justify-between border-t border-white/15 pt-1 text-[10px] text-white/80">
+                                                <span>1-Click Apply</span>
+                                                <span className="text-cyan-300 font-bold">Direct Chat</span>
+                                            </div>
                                         </div>
-                                        <h4 className="mt-3 font-black text-white text-lg">Senior Product Designer</h4>
-                                        <p className="mt-0.5 text-xs text-blue-100 flex items-center gap-1">
-                                            <MapPin className="h-3 w-3" /> Lagos (Hybrid or Remote)
-                                        </p>
-                                        <div className="mt-4 flex items-center justify-between border-t border-white/15 pt-3 text-xs">
-                                            <span className="text-white/80">Posted by Verified Tech Hub</span>
-                                            <span className="font-bold text-cyan-300 flex items-center gap-1">
-                                                Apply Now <ArrowRight className="h-3.5 w-3.5" />
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 rounded-xl bg-black/20 p-3 text-xs text-white/90 border border-white/10 backdrop-blur-md">
-                                        <Users className="h-4 w-4 text-cyan-300 shrink-0" />
-                                        <span>Direct recruiter and candidate chat on every job posting.</span>
                                     </div>
                                 </div>
                             </div>
@@ -448,44 +463,31 @@ export default function MarketHeroCarousel({
                                     </div>
                                 </div>
 
-                                {/* Escrow Shield Visual */}
-                                <div className="hidden sm:flex justify-self-end w-full max-w-sm flex-col gap-3 min-w-0">
-                                    <div className="rounded-2xl border border-white/25 bg-white/15 p-5 backdrop-blur-xl shadow-xl text-white">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-12 w-12 rounded-xl bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center text-white shadow-md shrink-0">
-                                                <Lock className="h-6 w-6 text-white" />
+                                {/* Person Visual Cutout */}
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-sm min-w-0 self-end">
+                                    <div className="relative flex items-end">
+                                        <Image
+                                            src="/images/heroes/escrow-trust-agent.png"
+                                            alt="100% Verified Escrow Officer"
+                                            width={340}
+                                            height={420}
+                                            className="h-64 sm:h-72 lg:h-80 w-auto object-contain object-bottom drop-shadow-[0_20px_35px_rgba(0,0,0,0.55)] transition-transform duration-500 hover:scale-105"
+                                        />
+                                        <div className="absolute -left-6 bottom-6 rounded-2xl border border-white/25 bg-black/50 p-3 backdrop-blur-xl shadow-2xl text-white max-w-[220px]">
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-8 w-8 rounded-lg bg-purple-500 flex items-center justify-center text-white shrink-0">
+                                                    <ShieldCheck className="h-4 w-4" />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="font-black text-white text-xs truncate">100% Escrow Shield</p>
+                                                    <p className="text-[10px] text-purple-200 truncate">Milestone Protected</p>
+                                                </div>
                                             </div>
-                                            <div className="min-w-0 flex-1">
-                                                <h4 className="font-black text-white text-base truncate">Escrow Vault Active</h4>
-                                                <p className="text-xs text-purple-200 truncate">Triple-Layer Milestone Security</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-3 space-y-2 border-t border-white/15 pt-3 text-xs">
-                                            <div className="flex items-center justify-between text-white/90">
-                                                <span className="flex items-center gap-1.5">
-                                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> Order Payment Locked
-                                                </span>
-                                                <span className="text-[11px] font-bold text-emerald-300">Protected</span>
-                                            </div>
-                                            <div className="flex items-center justify-between text-white/90">
-                                                <span className="flex items-center gap-1.5">
-                                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> Dispatch Verified
-                                                </span>
-                                                <span className="text-[11px] font-bold text-emerald-300">Tracked</span>
-                                            </div>
-                                            <div className="flex items-center justify-between text-white/90">
-                                                <span className="flex items-center gap-1.5">
-                                                    <CheckCircle2 className="h-3.5 w-3.5 text-cyan-300 shrink-0" /> Customer Approval
-                                                </span>
-                                                <span className="text-[11px] font-bold text-cyan-200">Payout</span>
+                                            <div className="mt-2 flex items-center justify-between border-t border-white/15 pt-1.5 text-[10px]">
+                                                <span className="text-white/80">Zero Risk Trade</span>
+                                                <span className="text-emerald-300 font-bold">Funds Safe</span>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 rounded-xl bg-black/20 p-3 text-xs text-white/90 border border-white/10 backdrop-blur-md">
-                                        <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
-                                        <span>No payment released until buyer or client clicks Confirm Delivery.</span>
                                     </div>
                                 </div>
                             </div>

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import useEmblaCarousel from 'embla-carousel-react'
 import {
     Plus,
@@ -108,24 +109,31 @@ export default function JobsHeroCarousel() {
                                     </div>
                                 </div>
 
-                                {/* Featured Job Card Mockup */}
-                                <div className="hidden sm:flex justify-self-end w-full max-w-sm flex-col gap-3 min-w-0">
-                                    <div className="rounded-2xl border border-white/25 bg-white/15 p-5 backdrop-blur-xl shadow-xl text-white">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="rounded-lg bg-cyan-400/20 px-2.5 py-1 text-[11px] font-black text-cyan-200 border border-cyan-400/30">
-                                                Verified Employer
-                                            </span>
-                                            <span className="text-xs font-bold text-emerald-300">Active Listing</span>
-                                        </div>
-                                        <h4 className="mt-3 font-black text-white text-lg truncate">Full-Stack Mobile Engineer</h4>
-                                        <p className="mt-0.5 text-xs text-cyan-100 flex items-center gap-1 truncate">
-                                            <MapPin className="h-3 w-3 shrink-0" /> Lagos (Hybrid) • ₦500k - ₦750k / mo
-                                        </p>
-                                        <div className="mt-4 flex items-center justify-between border-t border-white/15 pt-3 text-xs">
-                                            <span className="text-white/80">Direct In-App Chat</span>
-                                            <span className="font-bold text-cyan-300 flex items-center gap-1">
-                                                1-Click Apply <ArrowRight className="h-3.5 w-3.5" />
-                                            </span>
+                                {/* Person Visual Cutout */}
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-sm min-w-0 self-end">
+                                    <div className="relative flex items-end">
+                                        <Image
+                                            src="/images/heroes/jobs-professional.png"
+                                            alt="Top Tech & Professional Talent"
+                                            width={340}
+                                            height={420}
+                                            priority
+                                            className="h-64 sm:h-72 lg:h-80 w-auto object-contain object-bottom drop-shadow-[0_20px_35px_rgba(0,0,0,0.55)] transition-transform duration-500 hover:scale-105"
+                                        />
+                                        <div className="absolute -left-6 bottom-6 rounded-2xl border border-white/25 bg-black/50 p-3 backdrop-blur-xl shadow-2xl text-white max-w-[210px]">
+                                            <div className="flex items-center justify-between gap-1 text-[10px]">
+                                                <span className="rounded bg-cyan-400/20 px-2 py-0.5 font-bold text-cyan-200 border border-cyan-400/30">
+                                                    Verified Role
+                                                </span>
+                                                <span className="text-emerald-300 font-bold">₦500k - ₦750k</span>
+                                            </div>
+                                            <p className="mt-1.5 font-black text-white text-xs truncate">Full-Stack Mobile Engineer</p>
+                                            <div className="mt-1.5 flex items-center justify-between border-t border-white/15 pt-1 text-[10px] text-white/80">
+                                                <span>1-Click Apply</span>
+                                                <span className="text-cyan-300 font-bold flex items-center gap-0.5">
+                                                    Chat <ArrowRight className="h-3 w-3" />
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -172,20 +180,27 @@ export default function JobsHeroCarousel() {
                                     </div>
                                 </div>
 
-                                {/* Candidate Reach Stats */}
-                                <div className="hidden sm:flex justify-self-end w-full max-w-sm flex-col gap-3 min-w-0">
-                                    <div className="rounded-2xl border border-white/25 bg-white/15 p-5 backdrop-blur-xl shadow-xl text-white">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="text-xs text-white/80">Active Candidates</span>
-                                            <span className="text-xs font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-md">
-                                                Verified
-                                            </span>
-                                        </div>
-                                        <h3 className="mt-2 font-display text-3xl font-black text-white">25,000+</h3>
-                                        <p className="text-xs text-sky-100 mt-1">Screened for vocational, digital, and technical skills.</p>
-                                        <div className="mt-4 flex items-center justify-between border-t border-white/15 pt-3 text-xs">
-                                            <span className="text-white/80">Average response time</span>
-                                            <span className="font-bold text-cyan-300">&lt; 4 Hours</span>
+                                {/* Person Visual Cutout */}
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-sm min-w-0 self-end">
+                                    <div className="relative flex items-end">
+                                        <Image
+                                            src="/images/heroes/recruiter-talent.png"
+                                            alt="Executive HR Recruiter & Talent Manager"
+                                            width={340}
+                                            height={420}
+                                            className="h-64 sm:h-72 lg:h-80 w-auto object-contain object-bottom drop-shadow-[0_20px_35px_rgba(0,0,0,0.55)] transition-transform duration-500 hover:scale-105"
+                                        />
+                                        <div className="absolute -left-6 bottom-6 rounded-2xl border border-white/25 bg-black/50 p-3 backdrop-blur-xl shadow-2xl text-white max-w-[210px]">
+                                            <div className="flex items-center justify-between gap-1 text-[10px]">
+                                                <span className="text-white/80">Talent Pool</span>
+                                                <span className="text-emerald-300 font-bold bg-emerald-500/20 px-1.5 py-0.5 rounded">Screened</span>
+                                            </div>
+                                            <h4 className="mt-1 font-black text-white text-base">25,000+</h4>
+                                            <p className="text-[10px] text-sky-100 mt-0.5">Verified Nigerian candidates</p>
+                                            <div className="mt-2 flex items-center justify-between border-t border-white/15 pt-1.5 text-[10px]">
+                                                <span className="text-white/80">Avg Response</span>
+                                                <span className="text-cyan-300 font-bold">&lt; 4 Hours</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -232,30 +247,29 @@ export default function JobsHeroCarousel() {
                                     </div>
                                 </div>
 
-                                {/* Escrow Guarantee Highlight */}
-                                <div className="hidden sm:flex justify-self-end w-full max-w-sm flex-col gap-3 min-w-0">
-                                    <div className="rounded-2xl border border-white/25 bg-white/15 p-5 backdrop-blur-xl shadow-xl text-white">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-12 w-12 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-md shrink-0">
-                                                <ShieldCheck className="h-6 w-6" />
+                                {/* Person Visual Cutout */}
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-sm min-w-0 self-end">
+                                    <div className="relative flex items-end">
+                                        <Image
+                                            src="/images/heroes/escrow-trust-agent.png"
+                                            alt="Milestone Escrow Contract Officer"
+                                            width={340}
+                                            height={420}
+                                            className="h-64 sm:h-72 lg:h-80 w-auto object-contain object-bottom drop-shadow-[0_20px_35px_rgba(0,0,0,0.55)] transition-transform duration-500 hover:scale-105"
+                                        />
+                                        <div className="absolute -left-6 bottom-6 rounded-2xl border border-white/25 bg-black/50 p-3 backdrop-blur-xl shadow-2xl text-white max-w-[210px]">
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-8 w-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white shrink-0">
+                                                    <ShieldCheck className="h-4 w-4" />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="font-black text-white text-xs truncate">Contract Escrow</p>
+                                                    <p className="text-[10px] text-emerald-200 truncate">Upfront Funded</p>
+                                                </div>
                                             </div>
-                                            <div className="min-w-0 flex-1">
-                                                <h4 className="font-black text-white text-base truncate">Guaranteed Contract Pay</h4>
-                                                <p className="text-xs text-emerald-100 truncate">Zero payment delays</p>
-                                            </div>
-                                        </div>
-                                        <div className="mt-3 space-y-1.5 border-t border-white/15 pt-3 text-xs">
-                                            <div className="flex items-center gap-2 text-white/90">
-                                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300 shrink-0" />
-                                                <span>Employer deposits budget in escrow</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-white/90">
-                                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300 shrink-0" />
-                                                <span>Submit deliverable securely</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-white/90">
-                                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300 shrink-0" />
-                                                <span>Instant transfer to bank account</span>
+                                            <div className="mt-2 flex items-center justify-between border-t border-white/15 pt-1.5 text-[10px]">
+                                                <span className="text-white/80">Deliverable Safe</span>
+                                                <span className="text-emerald-300 font-bold">100% Guaranteed</span>
                                             </div>
                                         </div>
                                     </div>
