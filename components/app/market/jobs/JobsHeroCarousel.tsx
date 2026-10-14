@@ -79,8 +79,8 @@ export default function JobsHeroCarousel() {
                             <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
                             <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-blue-600/20 blur-3xl" />
 
-                            <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center w-full min-w-0">
-                                <div className="max-w-xl min-w-0">
+                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1fr] w-full min-w-0">
+                                <div className="min-w-0">
                                     <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-400/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200">
                                         <Briefcase className="h-3.5 w-3.5" /> Hubnovo Opportunities
                                     </span>
@@ -110,25 +110,25 @@ export default function JobsHeroCarousel() {
                                 </div>
 
                                 {/* Person Visual Cutout */}
-                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-sm min-w-0 self-end">
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-lg min-w-0 self-end -mb-6 sm:-mb-10">
                                     <div className="relative flex items-end">
                                         <Image
                                             src="/images/heroes/jobs-professional.png"
                                             alt="Top Tech & Professional Talent"
-                                            width={340}
-                                            height={420}
+                                            width={500}
+                                            height={600}
                                             priority
-                                            className="h-64 sm:h-72 lg:h-80 w-auto object-contain object-bottom drop-shadow-[0_20px_35px_rgba(0,0,0,0.55)] transition-transform duration-500 hover:scale-105"
+                                            className="h-84 sm:h-[400px] lg:h-[450px] xl:h-[490px] w-auto object-contain object-bottom drop-shadow-[0_25px_45px_rgba(0,0,0,0.6)] transition-transform duration-500 hover:scale-105"
                                         />
-                                        <div className="absolute -left-6 bottom-6 rounded-2xl border border-white/25 bg-black/50 p-3 backdrop-blur-xl shadow-2xl text-white max-w-[210px]">
-                                            <div className="flex items-center justify-between gap-1 text-[10px]">
+                                        <div className="absolute -left-6 sm:-left-10 bottom-12 sm:bottom-16 rounded-2xl border border-white/25 bg-black/55 p-3.5 backdrop-blur-xl shadow-2xl text-white min-w-[210px]">
+                                            <div className="flex items-center justify-between gap-1 text-[11px]">
                                                 <span className="rounded bg-cyan-400/20 px-2 py-0.5 font-bold text-cyan-200 border border-cyan-400/30">
                                                     Verified Role
                                                 </span>
                                                 <span className="text-emerald-300 font-bold">₦500k - ₦750k</span>
                                             </div>
                                             <p className="mt-1.5 font-black text-white text-xs truncate">Full-Stack Mobile Engineer</p>
-                                            <div className="mt-1.5 flex items-center justify-between border-t border-white/15 pt-1 text-[10px] text-white/80">
+                                            <div className="mt-2 flex items-center justify-between border-t border-white/15 pt-1.5 text-[10px] text-white/80">
                                                 <span>1-Click Apply</span>
                                                 <span className="text-cyan-300 font-bold flex items-center gap-0.5">
                                                     Chat <ArrowRight className="h-3 w-3" />
@@ -150,8 +150,8 @@ export default function JobsHeroCarousel() {
                             <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-sky-400/20 blur-3xl" />
                             <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-cyan-600/20 blur-3xl" />
 
-                            <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center w-full min-w-0">
-                                <div className="max-w-xl min-w-0">
+                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1fr] w-full min-w-0">
+                                <div className="min-w-0">
                                     <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-400/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-sky-200">
                                         <Users className="h-3.5 w-3.5" /> For Employers & Recruiters
                                     </span>
@@ -181,23 +181,23 @@ export default function JobsHeroCarousel() {
                                 </div>
 
                                 {/* Person Visual Cutout */}
-                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-sm min-w-0 self-end">
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-lg min-w-0 self-end -mb-6 sm:-mb-10">
                                     <div className="relative flex items-end">
                                         <Image
                                             src="/images/heroes/recruiter-talent.png"
                                             alt="Executive HR Recruiter & Talent Manager"
-                                            width={340}
-                                            height={420}
-                                            className="h-64 sm:h-72 lg:h-80 w-auto object-contain object-bottom drop-shadow-[0_20px_35px_rgba(0,0,0,0.55)] transition-transform duration-500 hover:scale-105"
+                                            width={500}
+                                            height={600}
+                                            className="h-84 sm:h-[400px] lg:h-[450px] xl:h-[490px] w-auto object-contain object-bottom drop-shadow-[0_25px_45px_rgba(0,0,0,0.6)] transition-transform duration-500 hover:scale-105"
                                         />
-                                        <div className="absolute -left-6 bottom-6 rounded-2xl border border-white/25 bg-black/50 p-3 backdrop-blur-xl shadow-2xl text-white max-w-[210px]">
-                                            <div className="flex items-center justify-between gap-1 text-[10px]">
+                                        <div className="absolute -left-6 sm:-left-10 bottom-12 sm:bottom-16 rounded-2xl border border-white/25 bg-black/55 p-3.5 backdrop-blur-xl shadow-2xl text-white min-w-[210px]">
+                                            <div className="flex items-center justify-between gap-1 text-[11px]">
                                                 <span className="text-white/80">Talent Pool</span>
-                                                <span className="text-emerald-300 font-bold bg-emerald-500/20 px-1.5 py-0.5 rounded">Screened</span>
+                                                <span className="text-emerald-300 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">Screened</span>
                                             </div>
-                                            <h4 className="mt-1 font-black text-white text-base">25,000+</h4>
-                                            <p className="text-[10px] text-sky-100 mt-0.5">Verified Nigerian candidates</p>
-                                            <div className="mt-2 flex items-center justify-between border-t border-white/15 pt-1.5 text-[10px]">
+                                            <h4 className="mt-1.5 font-black text-white text-lg">25,000+</h4>
+                                            <p className="text-[11px] text-sky-100 mt-0.5">Verified Nigerian candidates</p>
+                                            <div className="mt-2.5 flex items-center justify-between border-t border-white/15 pt-2 text-xs">
                                                 <span className="text-white/80">Avg Response</span>
                                                 <span className="text-cyan-300 font-bold">&lt; 4 Hours</span>
                                             </div>
@@ -217,8 +217,8 @@ export default function JobsHeroCarousel() {
                             <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-blue-400/20 blur-3xl" />
                             <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
 
-                            <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center w-full min-w-0">
-                                <div className="max-w-xl min-w-0">
+                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1fr] w-full min-w-0">
+                                <div className="min-w-0">
                                     <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-200">
                                         <Laptop className="h-3.5 w-3.5" /> Freelance & Remote Contracts
                                     </span>
@@ -248,26 +248,26 @@ export default function JobsHeroCarousel() {
                                 </div>
 
                                 {/* Person Visual Cutout */}
-                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-sm min-w-0 self-end">
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-lg min-w-0 self-end -mb-6 sm:-mb-10">
                                     <div className="relative flex items-end">
                                         <Image
                                             src="/images/heroes/escrow-trust-agent.png"
                                             alt="Milestone Escrow Contract Officer"
-                                            width={340}
-                                            height={420}
-                                            className="h-64 sm:h-72 lg:h-80 w-auto object-contain object-bottom drop-shadow-[0_20px_35px_rgba(0,0,0,0.55)] transition-transform duration-500 hover:scale-105"
+                                            width={500}
+                                            height={600}
+                                            className="h-84 sm:h-[400px] lg:h-[450px] xl:h-[490px] w-auto object-contain object-bottom drop-shadow-[0_25px_45px_rgba(0,0,0,0.6)] transition-transform duration-500 hover:scale-105"
                                         />
-                                        <div className="absolute -left-6 bottom-6 rounded-2xl border border-white/25 bg-black/50 p-3 backdrop-blur-xl shadow-2xl text-white max-w-[210px]">
-                                            <div className="flex items-center gap-2">
-                                                <div className="h-8 w-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white shrink-0">
-                                                    <ShieldCheck className="h-4 w-4" />
+                                        <div className="absolute -left-6 sm:-left-10 bottom-12 sm:bottom-16 rounded-2xl border border-white/25 bg-black/55 p-3.5 backdrop-blur-xl shadow-2xl text-white min-w-[210px]">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="h-9 w-9 rounded-xl bg-emerald-500 flex items-center justify-center text-white shrink-0 shadow-md">
+                                                    <ShieldCheck className="h-4.5 w-4.5" />
                                                 </div>
                                                 <div className="min-w-0 flex-1">
                                                     <p className="font-black text-white text-xs truncate">Contract Escrow</p>
-                                                    <p className="text-[10px] text-emerald-200 truncate">Upfront Funded</p>
+                                                    <p className="text-[11px] text-emerald-200 truncate">Upfront Funded</p>
                                                 </div>
                                             </div>
-                                            <div className="mt-2 flex items-center justify-between border-t border-white/15 pt-1.5 text-[10px]">
+                                            <div className="mt-2.5 flex items-center justify-between border-t border-white/15 pt-2 text-xs">
                                                 <span className="text-white/80">Deliverable Safe</span>
                                                 <span className="text-emerald-300 font-bold">100% Guaranteed</span>
                                             </div>

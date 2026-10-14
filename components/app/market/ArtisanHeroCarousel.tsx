@@ -88,7 +88,7 @@ export default function ArtisanHeroCarousel({
                             <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
                             <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-blue-600/20 blur-3xl" />
 
-                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.1fr_0.9fr] w-full min-w-0">
+                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1fr] w-full min-w-0">
                                 <div className="min-w-0">
                                     <div className="inline-flex items-center gap-1.5 rounded-full bg-cyan-300/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200">
                                         <Wrench className="h-3.5 w-3.5" /> Hubnovo Artisans & Pros
@@ -120,32 +120,32 @@ export default function ArtisanHeroCarousel({
                                 </div>
 
                                 {/* Person Visual Cutout */}
-                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-sm min-w-0 self-end">
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-lg min-w-0 self-end -mb-8 sm:-mb-10">
                                     <div className="relative flex items-end">
                                         <Image
                                             src="/images/heroes/artisan-electrician.png"
                                             alt="Verified Artisan Technician"
-                                            width={340}
-                                            height={420}
+                                            width={500}
+                                            height={600}
                                             priority
-                                            className="h-64 sm:h-72 lg:h-80 w-auto object-contain object-bottom drop-shadow-[0_20px_35px_rgba(0,0,0,0.55)] transition-transform duration-500 hover:scale-105"
+                                            className="h-84 sm:h-[400px] lg:h-[450px] xl:h-[490px] w-auto object-contain object-bottom drop-shadow-[0_25px_45px_rgba(0,0,0,0.6)] transition-transform duration-500 hover:scale-105"
                                         />
-                                        <div className="absolute -left-6 bottom-6 rounded-2xl border border-white/25 bg-black/50 p-3 backdrop-blur-xl shadow-2xl text-white max-w-[210px]">
-                                            <div className="flex items-center gap-2">
-                                                <div className="h-8 w-8 rounded-lg bg-cyan-500 flex items-center justify-center text-white shrink-0">
-                                                    <Wrench className="h-4 w-4" />
+                                        <div className="absolute -left-6 sm:-left-10 bottom-12 sm:bottom-16 rounded-2xl border border-white/25 bg-black/55 p-3.5 backdrop-blur-xl shadow-2xl text-white min-w-[210px]">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="h-9 w-9 rounded-xl bg-cyan-500 flex items-center justify-center text-white shrink-0 shadow-md">
+                                                    <Wrench className="h-4.5 w-4.5" />
                                                 </div>
                                                 <div className="min-w-0 flex-1">
-                                                    <div className="flex items-center gap-1">
+                                                    <div className="flex items-center gap-1.5">
                                                         <span className="font-black text-white text-xs truncate">Verified Pros</span>
                                                         <BadgeCheck className="h-3.5 w-3.5 text-cyan-300 shrink-0" />
                                                     </div>
-                                                    <p className="text-[10px] text-cyan-100 truncate">36 States Covered</p>
+                                                    <p className="text-[11px] text-cyan-100 truncate">36 States Covered</p>
                                                 </div>
                                             </div>
-                                            <div className="mt-2 flex items-center justify-between border-t border-white/15 pt-1.5 text-[10px]">
-                                                <span className="text-amber-300 font-bold flex items-center gap-0.5">
-                                                    <Star className="h-3 w-3 fill-amber-300" /> 4.9 ★
+                                            <div className="mt-2.5 flex items-center justify-between border-t border-white/15 pt-2 text-xs">
+                                                <span className="text-amber-300 font-bold flex items-center gap-1">
+                                                    <Star className="h-3.5 w-3.5 fill-amber-300" /> 4.9 ★
                                                 </span>
                                                 <span className="text-emerald-300 font-bold">Escrow Backed</span>
                                             </div>
@@ -165,7 +165,7 @@ export default function ArtisanHeroCarousel({
                             <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-teal-400/20 blur-3xl" />
                             <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl" />
 
-                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.1fr_0.9fr] w-full min-w-0">
+                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1fr] w-full min-w-0">
                                 <div className="min-w-0">
                                     <div className="inline-flex items-center gap-1.5 rounded-full bg-teal-300/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-teal-200">
                                         <Sparkles className="h-3.5 w-3.5" /> For Skilled Technicians & Pros
@@ -197,23 +197,23 @@ export default function ArtisanHeroCarousel({
                                 </div>
 
                                 {/* Person Visual Cutout */}
-                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-sm min-w-0 self-end">
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-lg min-w-0 self-end -mb-8 sm:-mb-10">
                                     <div className="relative flex items-end">
                                         <Image
                                             src="/images/heroes/craftsman-carpenter.png"
                                             alt="Skilled Craftsman and Carpenter"
-                                            width={340}
-                                            height={420}
-                                            className="h-64 sm:h-72 lg:h-80 w-auto object-contain object-bottom drop-shadow-[0_20px_35px_rgba(0,0,0,0.55)] transition-transform duration-500 hover:scale-105"
+                                            width={500}
+                                            height={600}
+                                            className="h-84 sm:h-[400px] lg:h-[450px] xl:h-[490px] w-auto object-contain object-bottom drop-shadow-[0_25px_45px_rgba(0,0,0,0.6)] transition-transform duration-500 hover:scale-105"
                                         />
-                                        <div className="absolute -left-6 bottom-6 rounded-2xl border border-white/25 bg-black/50 p-3 backdrop-blur-xl shadow-2xl text-white max-w-[210px]">
-                                            <div className="flex items-center justify-between gap-1 text-[10px]">
+                                        <div className="absolute -left-6 sm:-left-10 bottom-12 sm:bottom-16 rounded-2xl border border-white/25 bg-black/55 p-3.5 backdrop-blur-xl shadow-2xl text-white min-w-[210px]">
+                                            <div className="flex items-center justify-between gap-1 text-[11px]">
                                                 <span className="text-white/80">Daily Earnings</span>
-                                                <span className="text-emerald-300 font-bold bg-emerald-500/20 px-1.5 py-0.5 rounded">Active</span>
+                                                <span className="text-emerald-300 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">Active</span>
                                             </div>
-                                            <h4 className="mt-1 font-black text-white text-base">₦45,000+</h4>
-                                            <p className="text-[10px] text-teal-100 mt-0.5">Direct wallet settlement</p>
-                                            <div className="mt-2 flex items-center justify-between border-t border-white/15 pt-1.5 text-[10px]">
+                                            <h4 className="mt-1.5 font-black text-white text-lg">₦45,000+</h4>
+                                            <p className="text-[11px] text-teal-100 mt-0.5">Direct wallet settlement</p>
+                                            <div className="mt-2.5 flex items-center justify-between border-t border-white/15 pt-2 text-xs">
                                                 <span className="text-white/80">0% Commission</span>
                                                 <span className="text-cyan-300 font-bold">Fast Payout</span>
                                             </div>
@@ -233,7 +233,7 @@ export default function ArtisanHeroCarousel({
                             <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl" />
                             <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-teal-500/20 blur-3xl" />
 
-                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.1fr_0.9fr] w-full min-w-0">
+                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1fr] w-full min-w-0">
                                 <div className="min-w-0">
                                     <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-300/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-200">
                                         <ShieldCheck className="h-3.5 w-3.5" /> 100% Milestone Escrow
@@ -265,26 +265,26 @@ export default function ArtisanHeroCarousel({
                                 </div>
 
                                 {/* Person Visual Cutout */}
-                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-sm min-w-0 self-end">
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-lg min-w-0 self-end -mb-8 sm:-mb-10">
                                     <div className="relative flex items-end">
                                         <Image
                                             src="/images/heroes/escrow-trust-agent.png"
                                             alt="100% Verified Escrow Officer"
-                                            width={340}
-                                            height={420}
-                                            className="h-64 sm:h-72 lg:h-80 w-auto object-contain object-bottom drop-shadow-[0_20px_35px_rgba(0,0,0,0.55)] transition-transform duration-500 hover:scale-105"
+                                            width={500}
+                                            height={600}
+                                            className="h-84 sm:h-[400px] lg:h-[450px] xl:h-[490px] w-auto object-contain object-bottom drop-shadow-[0_25px_45px_rgba(0,0,0,0.6)] transition-transform duration-500 hover:scale-105"
                                         />
-                                        <div className="absolute -left-6 bottom-6 rounded-2xl border border-white/25 bg-black/50 p-3 backdrop-blur-xl shadow-2xl text-white max-w-[210px]">
-                                            <div className="flex items-center gap-2">
-                                                <div className="h-8 w-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white shrink-0">
-                                                    <ShieldCheck className="h-4 w-4" />
+                                        <div className="absolute -left-6 sm:-left-10 bottom-12 sm:bottom-16 rounded-2xl border border-white/25 bg-black/55 p-3.5 backdrop-blur-xl shadow-2xl text-white min-w-[210px]">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="h-9 w-9 rounded-xl bg-emerald-500 flex items-center justify-center text-white shrink-0 shadow-md">
+                                                    <ShieldCheck className="h-4.5 w-4.5" />
                                                 </div>
                                                 <div className="min-w-0 flex-1">
                                                     <p className="font-black text-white text-xs truncate">100% Milestone Lock</p>
-                                                    <p className="text-[10px] text-emerald-200 truncate">Inspection Verified</p>
+                                                    <p className="text-[11px] text-emerald-200 truncate">Inspection Verified</p>
                                                 </div>
                                             </div>
-                                            <div className="mt-2 flex items-center justify-between border-t border-white/15 pt-1.5 text-[10px]">
+                                            <div className="mt-2.5 flex items-center justify-between border-t border-white/15 pt-2 text-xs">
                                                 <span className="text-white/80">Funds Protected</span>
                                                 <span className="text-emerald-300 font-bold">Guaranteed</span>
                                             </div>

@@ -349,7 +349,7 @@ export default function AllFeaturesGrid({ showHeader = true }: AllFeaturesGridPr
                             />
 
                             {/* TOP REALISTIC PHOTOGRAPHIC HERO SECTION */}
-                            <div className="relative h-56 w-full overflow-hidden text-white flex flex-col justify-between p-5">
+                            <div className="relative h-64 sm:h-72 w-full overflow-hidden text-white flex flex-col justify-between p-5 sm:p-6">
                                 {/* Photographic Image with Hover Scale */}
                                 <Image
                                     src={item.imageUrl}
