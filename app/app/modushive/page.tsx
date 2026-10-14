@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { AlertCircle, Clapperboard, Loader2, Radio, Upload, Video as VideoIcon } from 'lucide-react'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { listLiveNow, listMyPendingVideos, listReadyVideos } from '@/lib/modushive/queries'
-import { normalizeRole } from '@/lib/modushive/config'
+import { canGoLive } from '@/lib/modushive/config'
 import { LiveCard, VideoCard } from '@/components/app/modushive/VideoCard'
 import { DeleteVideoButton, ProcessingRefresher } from '@/components/app/modushive/VideoActions'
 
@@ -13,7 +13,7 @@ export const metadata = { title: 'ModusHive — HubNovo' }
 export default async function ModusHivePage()
 {
     const { profile } = await getCurrentUser()
-    const isAdmin = normalizeRole(profile?.role) === 'admin'
+    const showGoLive = !!profile && canGoLive(profile.role)
 
     // Pending first: syncing it can flip a video to ready, which should then
     // show up in the grid on this same render.
@@ -37,9 +37,9 @@ export default async function ModusHivePage()
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    {isAdmin && (
+                    {showGoLive && (
                         <Link href="/app/modushive/studio" className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted transition-colors">
-                            <Radio className="h-4 w-4 text-destructive" /> Studio
+                            <Radio className="h-4 w-4 text-destructive" /> Go live
                         </Link>
                     )}
                     <Link href="/app/modushive/upload" className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 transition-opacity">

@@ -113,15 +113,21 @@ export async function getLiveStream(id: string): Promise<LiveStreamWithHost | nu
     return stream
 }
 
-/** Studio list — every stream that isn't finished, plus the 10 most recent ended ones. */
-export async function listStudioStreams(): Promise<LiveStreamWithHost[]>
+/**
+ * Studio list — every stream that isn't finished, plus the 10 most recent
+ * ended ones. Pass `hostId` to limit it to one person's streams (non-admins).
+ */
+export async function listStudioStreams(hostId?: string): Promise<LiveStreamWithHost[]>
 {
     const supabase = await createClient()
-    const { data, error } = await supabase
+    let query = supabase
         .from('live_streams')
         .select(`*, host:users!live_streams_host_id_fkey(${OWNER_COLUMNS})`)
         .order('created_at', { ascending: false })
         .limit(30)
+    if (hostId) query = query.eq('host_id', hostId)
+
+    const { data, error } = await query
 
     if (error || !data) return []
     const rows = data as LiveStreamRow[]

@@ -7,7 +7,7 @@ import { useChatClient } from '@/components/app/ChatProvider'
 
 /**
  * Lightweight live chat on a Stream `livestream` channel (created by the
- * server when the admin sets the stream up). That channel type lets any
+ * server when the host sets the stream up). That channel type lets any
  * signed-in user read and post without being a member.
  */
 export default function LiveChat({ channelId }: { channelId: string })
