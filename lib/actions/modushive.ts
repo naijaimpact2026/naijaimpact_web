@@ -202,9 +202,11 @@ export async function createLiveStream(input: { title: string; description?: str
             // can't set its own), which is how the webhook/sync recognise a
             // live recording and turn it into a replay video.
             passthrough: `live:${id}`,
+            // Mux rejects 'basic' for live — 'plus' is the cheapest tier
+            // allowed. Uploads stay on 'basic' (finalizeVideoUpload).
             new_asset_settings: {
                 playback_policies: [policy],
-                video_quality: 'basic',
+                video_quality: 'plus',
             },
         })
     } catch (err)
