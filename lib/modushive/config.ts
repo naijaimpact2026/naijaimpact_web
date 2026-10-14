@@ -14,7 +14,24 @@ export const UPLOAD_LIMITS: Record<UserRole, { maxDurationS: number; maxBytes: n
     admin: { maxDurationS: 10 * 60, maxBytes: 1024 * MB },
 }
 
-export const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v']
+/**
+ * Who can go live. Opened to every signed-in user for now (CTO, Oct 2026) —
+ * set to ['admin'] to go back to admin-only.
+ */
+export const LIVE_STREAM_ROLES: UserRole[] = ['user', 'creator', 'admin']
+
+/**
+ * Live is the expensive part of Mux, so cap it per role: the longest single
+ * broadcast (Mux cuts the stream after this) and how many not-yet-ended
+ * streams one person can have at a time.
+ */
+export const LIVE_LIMITS: Record<UserRole, { maxDurationS: number; maxOpenStreams: number }> = {
+    user: { maxDurationS: 2 * 60 * 60, maxOpenStreams: 1 },
+    creator: { maxDurationS: 4 * 60 * 60, maxOpenStreams: 1 },
+    admin: { maxDurationS: 4 * 60 * 60, maxOpenStreams: 3 },
+}
+
+export const ALLOWED_VIDEO_TYPES =['video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v']
 
 /**
  * Mux's lowest encoding tier is 1080p, so the 720p cap is applied at
@@ -33,6 +50,16 @@ export function normalizeRole(role: string | null | undefined): UserRole
 export function getUploadLimits(role: string | null | undefined)
 {
     return UPLOAD_LIMITS[normalizeRole(role)]
+}
+
+export function canGoLive(role: string | null | undefined): boolean
+{
+    return LIVE_STREAM_ROLES.includes(normalizeRole(role))
+}
+
+export function getLiveLimits(role: string | null | undefined)
+{
+    return LIVE_LIMITS[normalizeRole(role)]
 }
 
 export function formatBytes(bytes: number): string

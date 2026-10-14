@@ -84,7 +84,7 @@ function CopyField({ label, value, secret }: { label: string; value: string; sec
     )
 }
 
-/** Stream key is fetched on demand (admin-only action), never rendered into the page HTML. */
+/** Stream key is fetched on demand (host/admin-only action), never rendered into the page HTML. */
 export function StreamKeyPanel({ liveStreamId }: { liveStreamId: string })
 {
     const [creds, setCreds] = useState<{ rtmpUrl: string; streamKey: string } | null>(null)

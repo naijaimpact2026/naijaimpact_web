@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { StreamChat } from 'stream-chat'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { createServiceClient } from '@/lib/supabase/service'
-import { ALLOWED_VIDEO_TYPES, MUX_RTMP_URL, formatBytes, getUploadLimits, normalizeRole } from '@/lib/modushive/config'
+import { ALLOWED_VIDEO_TYPES, MUX_RTMP_URL, canGoLive, formatBytes, getLiveLimits, getUploadLimits, normalizeRole } from '@/lib/modushive/config'
 import { defaultPlaybackPolicy, getMux, isMuxConfigured } from '@/lib/modushive/mux'
 import { deleteObject, getObjectSize, isR2Configured, presignDownload, presignUpload } from '@/lib/modushive/r2'
 
@@ -162,13 +162,23 @@ export async function deleteVideo(videoId: string): Promise<ActionResult>
     return { ok: true }
 }
 
-// ─── Live (admin only) ───────────────────────────────────────────────────────
+// ─── Live ────────────────────────────────────────────────────────────────────
+// Who may go live is LIVE_STREAM_ROLES in lib/modushive/config.ts. A stream's
+// key and End button belong to its host; admins can manage any stream.
 
-async function requireAdmin()
+/** Loads the stream if the caller is its host or an admin; null otherwise. */
+async function getOwnStream(liveStreamId: string)
 {
     const profile = await requireProfile()
-    if (normalizeRole(profile.role) !== 'admin') throw new Error('Only admins can manage live streams')
-    return profile
+    const { data: stream } = await createServiceClient()
+        .from('live_streams')
+        .select('id, host_id, provider_stream_id, status')
+        .eq('id', liveStreamId)
+        .maybeSingle()
+
+    if (!stream) return null
+    if (stream.host_id !== profile.id && normalizeRole(profile.role) !== 'admin') return null
+    return stream
 }
 
 function getStreamChatServer(): StreamChat | null
@@ -182,11 +192,30 @@ export async function createLiveStream(input: { title: string; description?: str
 {
     if (!isMuxConfigured()) return { ok: false, error: 'Mux is not configured yet.' }
 
-    const profile = await requireAdmin()
+    const profile = await requireProfile()
+    if (!canGoLive(profile.role)) return { ok: false, error: 'Live streaming is not available on your account yet.' }
+
     const title = input.title.trim()
     if (!title) return { ok: false, error: 'Give the stream a title.' }
 
     const supabase = createServiceClient()
+    const limits = getLiveLimits(profile.role)
+
+    const { count: openStreams } = await supabase
+        .from('live_streams')
+        .select('id', { count: 'exact', head: true })
+        .eq('host_id', profile.id)
+        .neq('status', 'ended')
+    if ((openStreams ?? 0) >= limits.maxOpenStreams)
+    {
+        return {
+            ok: false,
+            error: limits.maxOpenStreams === 1
+                ? 'You already have a stream set up. End it before creating a new one.'
+                : `You can have up to ${limits.maxOpenStreams} streams set up at once. End one before creating another.`,
+        }
+    }
+
     const id = crypto.randomUUID()
     const policy = defaultPlaybackPolicy()
 
@@ -197,7 +226,7 @@ export async function createLiveStream(input: { title: string; description?: str
             playback_policies: [policy],
             latency_mode: 'standard',
             reconnect_window: 60,
-            max_continuous_duration: 4 * 60 * 60,
+            max_continuous_duration: limits.maxDurationS,
             // Mux copies this onto the recording asset too (new_asset_settings
             // can't set its own), which is how the webhook/sync recognise a
             // live recording and turn it into a replay video.
@@ -260,7 +289,8 @@ export async function createLiveStream(input: { title: string; description?: str
 
 export async function getLiveStreamKey(liveStreamId: string): Promise<ActionResult<{ rtmpUrl: string; streamKey: string }>>
 {
-    await requireAdmin()
+    if (!await getOwnStream(liveStreamId)) return { ok: false, error: 'Live stream not found.' }
+
     const { data } = await createServiceClient()
         .from('live_stream_keys')
         .select('stream_key')
@@ -273,16 +303,10 @@ export async function getLiveStreamKey(liveStreamId: string): Promise<ActionResu
 
 export async function endLiveStream(liveStreamId: string): Promise<ActionResult>
 {
-    await requireAdmin()
-    const supabase = createServiceClient()
-
-    const { data: stream } = await supabase
-        .from('live_streams')
-        .select('id, provider_stream_id, status')
-        .eq('id', liveStreamId)
-        .maybeSingle()
-
+    const stream = await getOwnStream(liveStreamId)
     if (!stream) return { ok: false, error: 'Live stream not found.' }
+
+    const supabase = createServiceClient()
     if (stream.status === 'ended') return { ok: true }
 
     // complete() ends the broadcast now (no reconnect window); disable()

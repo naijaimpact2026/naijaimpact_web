@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { getCurrentUser } from '@/lib/supabase/auth'
-import { normalizeRole } from '@/lib/modushive/config'
+import { canGoLive, getLiveLimits, normalizeRole } from '@/lib/modushive/config'
 import { isMuxConfigured } from '@/lib/modushive/mux'
 import { listStudioStreams } from '@/lib/modushive/queries'
 import { EndStreamButton, GoLiveForm, StreamKeyPanel } from '@/components/app/modushive/StudioControls'
@@ -29,9 +29,12 @@ const STATUS_LABELS: Record<LiveStream['status'], string> = {
 export default async function StudioPage()
 {
     const { profile } = await getCurrentUser()
-    if (normalizeRole(profile?.role) !== 'admin') redirect('/app/modushive')
+    if (!profile || !canGoLive(profile.role)) redirect('/app/modushive')
 
-    const streams = await listStudioStreams()
+    // Admins oversee every stream; everyone else sees only their own.
+    const isAdmin = normalizeRole(profile.role) === 'admin'
+    const streams = await listStudioStreams(isAdmin ? undefined : profile.id)
+    const maxHours = getLiveLimits(profile.role).maxDurationS / 3600
     // Keep polling while a stream is waiting/live, or just ended and its replay isn't in yet.
     const recentlyEnded = (endedAt: string | null) => !!endedAt && Date.now() - new Date(endedAt).getTime() < 15 * 60_000
     const watching = streams.some((s) => s.status !== 'ended' || (!s.replay_video_id && recentlyEnded(s.ended_at)))
@@ -49,6 +52,7 @@ export default async function StudioPage()
                 <p className="mt-1 text-sm text-muted-foreground">
                     Create a stream, paste the server URL and stream key into OBS (or any RTMP app), then start streaming.
                     It goes live on ModusHive as soon as the signal arrives, and the recording becomes a replay video.
+                    Streams can run for up to {maxHours} {maxHours === 1 ? 'hour' : 'hours'}.
                 </p>
             </div>
 
@@ -59,7 +63,7 @@ export default async function StudioPage()
             )}
 
             <section className="space-y-3">
-                <h2 className="text-base font-bold text-foreground">Streams</h2>
+                <h2 className="text-base font-bold text-foreground">{isAdmin ? 'All streams' : 'Your streams'}</h2>
                 {streams.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No streams yet.</p>
                 ) : (
