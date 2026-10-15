@@ -17,8 +17,8 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
     const [{ profile }, stream] = await Promise.all([getCurrentUser(), getLiveStream(id)])
     if (!stream) notFound()
 
-    const isLive = stream.status === 'live' && stream.playback_id && isMuxConfigured()
-    const tokens = isLive ? await signPlayback(stream.playback_id!, stream.playback_policy) : undefined
+    const isLive = stream.status === 'live' && Boolean(stream.playback_id)
+    const tokens = isLive && stream.provider === 'mux' && stream.playback_id ? await signPlayback(stream.playback_id, stream.playback_policy) : undefined
     const host = stream.host
 
     return (
@@ -34,7 +34,18 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
                 <div className="space-y-4 min-w-0">
                     {isLive ? (
-                        <MuxVideoPlayer live playbackId={stream.playback_id!} tokens={tokens} title={stream.title} videoId={stream.id} viewerId={profile?.id} />
+                        stream.provider === 'cloudflare' ? (
+                            <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-black shadow-lg">
+                                <iframe
+                                    src={`https://iframe.videodelivery.net/${stream.playback_id}?autoplay=true`}
+                                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                                    allowFullScreen
+                                    className="h-full w-full border-0"
+                                />
+                            </div>
+                        ) : (
+                            <MuxVideoPlayer live playbackId={stream.playback_id!} tokens={tokens} title={stream.title} videoId={stream.id} viewerId={profile?.id} />
+                        )
                     ) : (
                         <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl bg-muted px-6 text-center">
                             <Radio className="h-7 w-7 text-muted-foreground" />

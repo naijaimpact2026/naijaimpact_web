@@ -30,6 +30,16 @@ import { updateCampaign, deleteCampaign } from '@/lib/actions/funding'
 import { toast } from 'sonner'
 import type { Campaign, FundingCategory, FundingType } from '@/lib/types'
 import { toPublicStorageUrl } from '@/lib/supabase-image'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 const editCampaignSchema = z.object({
   title: z
@@ -59,6 +69,7 @@ export default function FundingEditForm({ campaign, categories }: FundingEditFor
   )
   const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
   const form = useForm<EditCampaignFormValues>({
     resolver: zodResolver(editCampaignSchema),
@@ -106,10 +117,6 @@ export default function FundingEditForm({ campaign, categories }: FundingEditFor
   }
 
   async function handleDelete() {
-    if (!window.confirm('Are you sure you want to delete this campaign? This cannot be undone.')) {
-      return
-    }
-
     setDeleting(true)
     try {
       await deleteCampaign(campaign.id)
@@ -302,13 +309,35 @@ export default function FundingEditForm({ campaign, categories }: FundingEditFor
         <Button
           type="button"
           variant="destructive"
-          onClick={handleDelete}
+          onClick={() => setDeleteModalOpen(true)}
           disabled={deleting || submitting}
           className="w-full sm:w-auto gap-2"
         >
           {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
           Delete Campaign
         </Button>
+
+        <AlertDialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Campaign?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this campaign? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={deleting}
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              >
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Confirm Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <Button

@@ -5,6 +5,17 @@ import { useRouter } from 'next/navigation'
 import { Check, Copy, Eye, EyeOff, Loader2, Radio, Square } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { toast } from '@/components/toast'
 import { createLiveStream, endLiveStream, getLiveStreamKey } from '@/lib/actions/modushive'
 
@@ -22,7 +33,7 @@ export function GoLiveForm()
         {
             const res = await createLiveStream({ title, description })
             if (!res.ok) { toast.error(res.error); return }
-            toast.success('Stream created. Copy the server URL and key into OBS to go live.')
+            toast.success('Live stream studio ready! Turn on your camera and click Go Live.')
             setTitle('')
             setDescription('')
             router.refresh()
@@ -121,27 +132,56 @@ export function StreamKeyPanel({ liveStreamId }: { liveStreamId: string })
 export function EndStreamButton({ liveStreamId }: { liveStreamId: string })
 {
     const router = useRouter()
+    const [open, setOpen] = useState(false)
     const [pending, startTransition] = useTransition()
 
+    function handleEnd()
+    {
+        startTransition(async () =>
+        {
+            const res = await endLiveStream(liveStreamId)
+            if (!res.ok) { toast.error(res.error); return }
+            toast.success('Stream ended successfully.')
+            setOpen(false)
+            router.refresh()
+        })
+    }
+
     return (
-        <button
-            type="button"
-            disabled={pending}
-            onClick={() =>
-            {
-                if (!window.confirm('End this stream for everyone? The stream key will stop working.')) return
-                startTransition(async () =>
-                {
-                    const res = await endLiveStream(liveStreamId)
-                    if (!res.ok) { toast.error(res.error); return }
-                    toast.success('Stream ended. The replay will appear once Mux finishes processing it.')
-                    router.refresh()
-                })
-            }}
-            className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-3.5 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/15 disabled:opacity-50"
-        >
-            {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Square className="h-3.5 w-3.5" />}
-            End stream
-        </button>
+        <AlertDialog open={open} onOpenChange={setOpen}>
+            <AlertDialogTrigger asChild>
+                <button
+                    type="button"
+                    disabled={pending}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-3.5 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/15 disabled:opacity-50"
+                >
+                    {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Square className="h-3.5 w-3.5" />}
+                    End stream
+                </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="rounded-2xl max-w-md">
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-base font-bold text-foreground">End this live stream?</AlertDialogTitle>
+                    <AlertDialogDescription className="text-sm text-muted-foreground">
+                        This will end the broadcast for all viewers. The stream key will stop working, and the recording will process into a replay video.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="gap-2 sm:gap-0">
+                    <AlertDialogCancel disabled={pending} className="rounded-full">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                        disabled={pending}
+                        onClick={(e) =>
+                        {
+                            e.preventDefault()
+                            handleEnd()
+                        }}
+                        className="rounded-full bg-destructive text-white hover:bg-destructive/90"
+                    >
+                        {pending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                        End stream
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     )
 }
