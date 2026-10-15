@@ -4,8 +4,10 @@ import { formatDistanceToNow } from 'date-fns'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { canGoLive, getLiveLimits, normalizeRole } from '@/lib/modushive/config'
+import { isCloudflareStreamConfigured } from '@/lib/modushive/cloudflare'
 import { isMuxConfigured } from '@/lib/modushive/mux'
 import { listStudioStreams } from '@/lib/modushive/queries'
+import { BrowserStudio } from '@/components/app/modushive/BrowserStudio'
 import { EndStreamButton, GoLiveForm, StreamKeyPanel } from '@/components/app/modushive/StudioControls'
 import { ProcessingRefresher } from '@/components/app/modushive/VideoActions'
 import type { LiveStream } from '@/lib/types'
@@ -34,10 +36,12 @@ export default async function StudioPage()
     // Admins oversee every stream; everyone else sees only their own.
     const isAdmin = normalizeRole(profile.role) === 'admin'
     const streams = await listStudioStreams(isAdmin ? undefined : profile.id)
+    const activeStream = streams.find((s) => s.host_id === profile.id && s.status !== 'ended')
     const maxHours = getLiveLimits(profile.role).maxDurationS / 3600
     // Keep polling while a stream is waiting/live, or just ended and its replay isn't in yet.
     const recentlyEnded = (endedAt: string | null) => !!endedAt && Date.now() - new Date(endedAt).getTime() < 15 * 60_000
     const watching = streams.some((s) => s.status !== 'ended' || (!s.replay_video_id && recentlyEnded(s.ended_at)))
+    const isConfigured = isCloudflareStreamConfigured() || isMuxConfigured()
 
     return (
         <div className="w-full max-w-3xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
@@ -50,16 +54,31 @@ export default async function StudioPage()
             <div>
                 <h1 className="font-display text-xl sm:text-2xl font-extrabold text-foreground">Live studio</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    Create a stream, paste the server URL and stream key into OBS (or any RTMP app), then start streaming.
-                    It goes live on ModusHive as soon as the signal arrives, and the recording becomes a replay video.
+                    Broadcast live directly from your web browser using your webcam and microphone, or connect via OBS.
                     Streams can run for up to {maxHours} {maxHours === 1 ? 'hour' : 'hours'}.
                 </p>
             </div>
 
-            {isMuxConfigured() ? <GoLiveForm /> : (
+            {!isConfigured ? (
                 <p className="rounded-2xl border border-border bg-muted/50 p-5 text-sm text-muted-foreground">
-                    Mux isn&apos;t configured yet. Add the MUX_* environment variables to enable live streaming.
+                    Live streaming is not configured yet. Add your CLOUDFLARE_STREAM_TOKEN or Mux credentials to enable live streaming.
                 </p>
+            ) : activeStream ? (
+                <section className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <div className="min-w-0">
+                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Active Broadcaster Studio</span>
+                            <h2 className="truncate text-lg font-bold text-foreground">{activeStream.title}</h2>
+                        </div>
+                    </div>
+                    <BrowserStudio
+                        liveStreamId={activeStream.id}
+                        streamTitle={activeStream.title}
+                        initialStatus={activeStream.status}
+                    />
+                </section>
+            ) : (
+                <GoLiveForm />
             )}
 
             <section className="space-y-3">

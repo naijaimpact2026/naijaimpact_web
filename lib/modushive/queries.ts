@@ -79,8 +79,10 @@ async function withStreamThumbnails(rows: LiveStreamRow[]): Promise<LiveStreamWi
     const synced = await Promise.all(rows.map(syncLiveStream))
     return Promise.all(synced.map(async (s) => ({
         ...s,
-        thumbnail_url: canSign && s.status === 'live'
-            ? await getThumbnailUrl(s.playback_id, s.playback_policy)
+        thumbnail_url: s.status === 'live' && s.playback_id
+            ? s.provider === 'cloudflare'
+                ? `https://videodelivery.net/${s.playback_id}/thumbnails/thumbnail.jpg`
+                : canSign ? await getThumbnailUrl(s.playback_id, s.playback_policy) : null
             : null,
     })))
 }

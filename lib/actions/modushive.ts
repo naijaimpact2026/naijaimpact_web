@@ -7,6 +7,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { ALLOWED_VIDEO_TYPES, MUX_RTMP_URL, canGoLive, formatBytes, getLiveLimits, getUploadLimits, normalizeRole } from '@/lib/modushive/config'
 import { defaultPlaybackPolicy, getMux, isMuxConfigured } from '@/lib/modushive/mux'
 import { deleteObject, getObjectSize, isR2Configured, presignDownload, presignUpload } from '@/lib/modushive/r2'
+import { createCloudflareLiveInput, deleteCloudflareLiveInput, isCloudflareStreamConfigured } from '@/lib/modushive/cloudflare'
 
 /*
  * ModusHive writes. Tables have SELECT-only RLS, so every write here goes
@@ -118,7 +119,7 @@ export async function finalizeVideoUpload(videoId: string): Promise<ActionResult
             inputs: [{ url: await presignDownload(video.source_r2_key) }],
             playback_policies: [video.playback_policy],
             video_quality: 'basic',
-            max_resolution_tier: '1080p',
+            max_resolution_tier: '720p',
             passthrough: videoId,
         })
 
@@ -190,7 +191,9 @@ function getStreamChatServer(): StreamChat | null
 
 export async function createLiveStream(input: { title: string; description?: string }): Promise<ActionResult<{ id: string }>>
 {
-    if (!isMuxConfigured()) return { ok: false, error: 'Mux is not configured yet.' }
+    const canUseCF = isCloudflareStreamConfigured()
+    const canUseMux = isMuxConfigured()
+    if (!canUseCF && !canUseMux) return { ok: false, error: 'Live streaming is not configured yet.' }
 
     const profile = await requireProfile()
     if (!canGoLive(profile.role)) return { ok: false, error: 'Live streaming is not available on your account yet.' }
@@ -219,31 +222,55 @@ export async function createLiveStream(input: { title: string; description?: str
     const id = crypto.randomUUID()
     const policy = defaultPlaybackPolicy()
 
-    let muxStream
-    try
+    const provider: 'cloudflare' | 'mux' = canUseCF ? 'cloudflare' : 'mux'
+    let providerStreamId: string | null = null
+    let playbackId: string | null = null
+    let streamKeyData: string = ''
+
+    if (provider === 'cloudflare')
     {
-        muxStream = await getMux().video.liveStreams.create({
-            playback_policies: [policy],
-            latency_mode: 'standard',
-            reconnect_window: 60,
-            max_continuous_duration: limits.maxDurationS,
-            // Mux copies this onto the recording asset too (new_asset_settings
-            // can't set its own), which is how the webhook/sync recognise a
-            // live recording and turn it into a replay video.
-            passthrough: `live:${id}`,
-            // Mux rejects 'basic' for live — 'plus' is the cheapest tier
-            // allowed. Uploads stay on 'basic' (finalizeVideoUpload).
-            new_asset_settings: {
+        try
+        {
+            const cf = await createCloudflareLiveInput(title)
+            providerStreamId = cf.uid
+            playbackId = cf.uid
+            streamKeyData = JSON.stringify({
+                provider: 'cloudflare',
+                whipUrl: cf.whipUrl,
+                hlsUrl: cf.hlsUrl,
+                rtmpsUrl: cf.rtmpsUrl,
+                streamKey: cf.streamKey,
+            })
+        } catch (err)
+        {
+            console.error('[modushive] cloudflare stream create failed:', err)
+            return { ok: false, error: 'Could not create the live stream on Cloudflare. Please check your Cloudflare Stream subscription.' }
+        }
+    } else
+    {
+        try
+        {
+            const muxStream = await getMux().video.liveStreams.create({
                 playback_policies: [policy],
-                video_quality: 'plus',
-            },
-        })
-    } catch (err)
-    {
-        console.error('[modushive] mux live stream create failed:', err)
-        if (err instanceof Error && err.message.includes('free plan'))
-            return { ok: false, error: 'Live streaming needs a paid Mux plan. Add a payment method in the Mux dashboard (Billing), then try again.' }
-        return { ok: false, error: 'Could not create the live stream.' }
+                latency_mode: 'standard',
+                reconnect_window: 60,
+                max_continuous_duration: limits.maxDurationS,
+                passthrough: `live:${id}`,
+                new_asset_settings: {
+                    playback_policies: [policy],
+                    video_quality: 'plus',
+                },
+            })
+            providerStreamId = muxStream.id
+            playbackId = muxStream.playback_ids?.[0]?.id ?? null
+            streamKeyData = muxStream.stream_key || ''
+        } catch (err)
+        {
+            console.error('[modushive] mux live stream create failed:', err)
+            if (err instanceof Error && err.message.includes('free plan'))
+                return { ok: false, error: 'Live streaming needs a paid Mux plan. Add a payment method in the Mux dashboard (Billing), then try again.' }
+            return { ok: false, error: 'Could not create the live stream.' }
+        }
     }
 
     // Live chat — one Stream `livestream` channel per broadcast. Optional:
@@ -267,19 +294,25 @@ export async function createLiveStream(input: { title: string; description?: str
         title,
         description: input.description?.trim() || null,
         status: 'idle',
-        provider: 'mux',
-        provider_stream_id: muxStream.id,
-        playback_id: muxStream.playback_ids?.[0]?.id ?? null,
-        playback_policy: policy,
+        provider,
+        provider_stream_id: providerStreamId,
+        playback_id: playbackId,
+        playback_policy: provider === 'cloudflare' ? 'public' : policy,
         chat_channel_id: chatChannelId,
     })
-    if (!error && muxStream.stream_key)
-        await supabase.from('live_stream_keys').insert({ live_stream_id: id, stream_key: muxStream.stream_key })
+    if (!error && streamKeyData)
+        await supabase.from('live_stream_keys').insert({ live_stream_id: id, stream_key: streamKeyData })
 
     if (error)
     {
         console.error('[modushive] live stream row failed:', error.message)
-        await getMux().video.liveStreams.delete(muxStream.id).catch(() => {})
+        if (provider === 'cloudflare' && providerStreamId)
+        {
+            await deleteCloudflareLiveInput(providerStreamId).catch(() => {})
+        } else if (providerStreamId)
+        {
+            await getMux().video.liveStreams.delete(providerStreamId).catch(() => {})
+        }
         return { ok: false, error: 'Could not save the live stream.' }
     }
 
@@ -287,9 +320,16 @@ export async function createLiveStream(input: { title: string; description?: str
     return { ok: true, id }
 }
 
-export async function getLiveStreamKey(liveStreamId: string): Promise<ActionResult<{ rtmpUrl: string; streamKey: string }>>
+export async function getLiveStreamKey(liveStreamId: string): Promise<ActionResult<{
+    rtmpUrl: string
+    streamKey: string
+    whipUrl?: string
+    hlsUrl?: string
+    provider: 'cloudflare' | 'mux'
+}>>
 {
-    if (!await getOwnStream(liveStreamId)) return { ok: false, error: 'Live stream not found.' }
+    const stream = await getOwnStream(liveStreamId)
+    if (!stream) return { ok: false, error: 'Live stream not found.' }
 
     const { data } = await createServiceClient()
         .from('live_stream_keys')
@@ -297,8 +337,47 @@ export async function getLiveStreamKey(liveStreamId: string): Promise<ActionResu
         .eq('live_stream_id', liveStreamId)
         .maybeSingle()
 
-    if (!data) return { ok: false, error: 'Stream key not found.' }
-    return { ok: true, rtmpUrl: MUX_RTMP_URL, streamKey: data.stream_key }
+    if (!data) return { ok: false, error: 'Stream credentials not found.' }
+
+    try
+    {
+        const parsed = JSON.parse(data.stream_key)
+        if (parsed.whipUrl)
+        {
+            return {
+                ok: true,
+                provider: 'cloudflare',
+                whipUrl: parsed.whipUrl,
+                hlsUrl: parsed.hlsUrl,
+                rtmpUrl: parsed.rtmpsUrl,
+                streamKey: parsed.streamKey,
+            }
+        }
+    } catch {}
+
+    return {
+        ok: true,
+        provider: 'mux',
+        rtmpUrl: MUX_RTMP_URL,
+        streamKey: data.stream_key,
+    }
+}
+
+export async function markLiveStreamActive(liveStreamId: string): Promise<ActionResult>
+{
+    const stream = await getOwnStream(liveStreamId)
+    if (!stream) return { ok: false, error: 'Live stream not found.' }
+
+    const now = new Date().toISOString()
+    await createServiceClient()
+        .from('live_streams')
+        .update({ status: 'live', started_at: now, updated_at: now })
+        .eq('id', liveStreamId)
+
+    revalidatePath('/app/modushive')
+    revalidatePath('/app/modushive/studio')
+    revalidatePath(`/app/modushive/live/${liveStreamId}`)
+    return { ok: true }
 }
 
 export async function endLiveStream(liveStreamId: string): Promise<ActionResult>
@@ -309,9 +388,10 @@ export async function endLiveStream(liveStreamId: string): Promise<ActionResult>
     const supabase = createServiceClient()
     if (stream.status === 'ended') return { ok: true }
 
-    // complete() ends the broadcast now (no reconnect window); disable()
-    // makes the key unusable so the stream can't be restarted by mistake.
-    if (stream.provider_stream_id && isMuxConfigured())
+    if (stream.provider === 'cloudflare' && stream.provider_stream_id && isCloudflareStreamConfigured())
+    {
+        await deleteCloudflareLiveInput(stream.provider_stream_id).catch(() => {})
+    } else if (stream.provider_stream_id && isMuxConfigured())
     {
         const mux = getMux()
         await mux.video.liveStreams.complete(stream.provider_stream_id).catch(() => {})
@@ -326,5 +406,6 @@ export async function endLiveStream(liveStreamId: string): Promise<ActionResult>
 
     revalidatePath('/app/modushive')
     revalidatePath('/app/modushive/studio')
+    revalidatePath(`/app/modushive/live/${liveStreamId}`)
     return { ok: true }
 }

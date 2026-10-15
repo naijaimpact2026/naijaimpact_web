@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { getUploadLimits } from './config'
 import { getMux, isMuxConfigured } from './mux'
+import { getCloudflareLiveInput, isCloudflareStreamConfigured } from './cloudflare'
 import type { LiveStream, Video } from '@/lib/types'
 
 /**
@@ -170,7 +171,25 @@ export async function syncVideo<T extends Video>(video: T): Promise<T>
 export async function syncLiveStream<T extends LiveStream>(stream: T): Promise<T>
 {
     const needsReplay = stream.status === 'ended' && !stream.replay_video_id
-    if ((stream.status === 'ended' && !needsReplay) || !stream.provider_stream_id || !isMuxConfigured() || !shouldCheck(stream.id)) return stream
+    if ((stream.status === 'ended' && !needsReplay) || !stream.provider_stream_id || !shouldCheck(stream.id)) return stream
+
+    if (stream.provider === 'cloudflare')
+    {
+        if (!isCloudflareStreamConfigured()) return stream
+        try
+        {
+            const remote = await getCloudflareLiveInput(stream.provider_stream_id)
+            let patch: StreamPatch = {}
+            if (stream.status === 'idle' && remote.state === 'connected')
+                patch = await applyStreamActive(stream.provider_stream_id)
+            return { ...stream, ...patch }
+        } catch
+        {
+            return stream
+        }
+    }
+
+    if (!isMuxConfigured()) return stream
 
     try
     {

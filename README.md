@@ -36,10 +36,10 @@ A modern, advanced website for Hubnovo featuring a professional design with full
 cd hubnovo-website
 
 # Install dependencies
-pnpm install
+npm install
 
 # Start the development server
-pnpm dev
+npm run dev
 ```
 
 The site will be available at `http://localhost:3000`
@@ -47,8 +47,8 @@ The site will be available at `http://localhost:3000`
 ### Build for Production
 
 ```bash
-pnpm build
-pnpm start
+npm run build
+npm run start
 ```
 
 ## Project Structure

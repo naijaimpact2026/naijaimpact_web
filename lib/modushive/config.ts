@@ -15,8 +15,7 @@ export const UPLOAD_LIMITS: Record<UserRole, { maxDurationS: number; maxBytes: n
 }
 
 /**
- * Who can go live. Opened to every signed-in user for now (CTO, Oct 2026) —
- * set to ['admin'] to go back to admin-only.
+ * Who can go live. Opened to all users per instruction.
  */
 export const LIVE_STREAM_ROLES: UserRole[] = ['user', 'creator', 'admin']
 
