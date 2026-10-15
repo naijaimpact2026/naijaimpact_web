@@ -44,37 +44,71 @@ export default async function StudioPage()
     const isConfigured = isCloudflareStreamConfigured() || isMuxConfigured()
 
     return (
-        <div className="w-full max-w-3xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
+        <div className={`w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 ${activeStream ? 'max-w-[1440px]' : 'max-w-3xl'}`}>
             <ProcessingRefresher active={watching} intervalMs={10000} />
 
-            <Link href="/app/modushive" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="h-4 w-4" /> ModusHive
-            </Link>
+            {/* Studio Navigation & Breadcrumbs */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                    <Link
+                        href="/app/modushive"
+                        className="inline-flex items-center gap-1.5 font-medium hover:text-foreground transition-colors"
+                    >
+                        <ArrowLeft className="h-4 w-4" /> ModusHive
+                    </Link>
+                    <span>/</span>
+                    <span className="font-semibold text-foreground">Live Studio</span>
+                    {activeStream && (
+                        <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-destructive/15 text-destructive border border-destructive/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                            Broadcast Ready
+                        </span>
+                    )}
+                </div>
 
-            <div>
-                <h1 className="font-display text-xl sm:text-2xl font-extrabold text-foreground">Live studio</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                    Broadcast live directly from your web browser using your webcam and microphone.
-                    Streams can run for up to {maxHours} {maxHours === 1 ? 'hour' : 'hours'}.
-                </p>
+                <div className="text-xs text-muted-foreground">
+                    Max broadcast duration: <span className="font-semibold text-foreground">{maxHours} {maxHours === 1 ? 'hour' : 'hours'}</span>
+                </div>
             </div>
+
+            {!activeStream && (
+                <div>
+                    <h1 className="font-display text-xl sm:text-2xl font-extrabold text-foreground">Live studio</h1>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Broadcast live directly from your web browser using your webcam and microphone.
+                        Streams can run for up to {maxHours} {maxHours === 1 ? 'hour' : 'hours'}.
+                    </p>
+                </div>
+            )}
 
             {!isConfigured ? (
                 <p className="rounded-2xl border border-border bg-muted/50 p-5 text-sm text-muted-foreground">
                     Live streaming is not configured yet. Add your CLOUDFLARE_STREAM_TOKEN or Mux credentials to enable live streaming.
                 </p>
             ) : activeStream ? (
-                <section className="space-y-3">
-                    <div className="flex items-center justify-between">
+                <section className="space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="min-w-0">
-                            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Active Broadcaster Studio</span>
-                            <h2 className="truncate text-lg font-bold text-foreground">{activeStream.title}</h2>
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                <span className="h-2 w-2 rounded-full bg-emerald animate-pulse" />
+                                Active Broadcast Session
+                            </span>
+                            <h2 className="truncate text-lg sm:text-xl font-extrabold text-foreground">
+                                {activeStream.title}
+                            </h2>
+                            {activeStream.description && (
+                                <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                                    {activeStream.description}
+                                </p>
+                            )}
                         </div>
                     </div>
                     <BrowserStudio
                         liveStreamId={activeStream.id}
                         streamTitle={activeStream.title}
+                        streamDescription={activeStream.description}
                         initialStatus={activeStream.status}
+                        chatChannelId={activeStream.chat_channel_id}
+                        hostId={activeStream.host_id}
                     />
                 </section>
             ) : (
