@@ -6,7 +6,6 @@ import { getCurrentUser } from '@/lib/supabase/auth'
 import { getLiveStream } from '@/lib/modushive/queries'
 import { isMuxConfigured, signPlayback } from '@/lib/modushive/mux'
 import MuxVideoPlayer from '@/components/app/modushive/MuxVideoPlayer'
-import LiveChat from '@/components/app/modushive/LiveChat'
 import LiveStreamLayout from '@/components/app/modushive/LiveStreamLayout'
 import { ProcessingRefresher } from '@/components/app/modushive/VideoActions'
 
@@ -29,7 +28,6 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
             <ProcessingRefresher active={stream.status === 'idle' || (stream.status === 'ended' && !stream.replay_video_id)} intervalMs={10000} />
 
             <LiveStreamLayout
-                hasChat={Boolean(stream.chat_channel_id && stream.status !== 'ended')}
                 backLink={
                     <Link href="/app/modushive" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
                         <ArrowLeft className="h-4 w-4" /> ModusHive
@@ -95,13 +93,8 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                         )}
                     </div>
                 }
-                chatSlot={
-                    stream.chat_channel_id && stream.status !== 'ended' ? (
-                        ({ onCollapse }: { onCollapse: () => void }) => (
-                            <LiveChat channelId={stream.chat_channel_id!} onCollapse={onCollapse} />
-                        )
-                    ) : null
-                }
+                chatChannelId={stream.status !== 'ended' ? stream.chat_channel_id : null}
+                hostId={stream.host_id}
             />
         </div>
     )

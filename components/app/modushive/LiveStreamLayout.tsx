@@ -2,25 +2,27 @@
 
 import { useState } from 'react'
 import { MessageSquare } from 'lucide-react'
+import LiveChat from '@/components/app/modushive/LiveChat'
 
 interface LiveStreamLayoutProps
 {
     backLink: React.ReactNode
     videoSlot: React.ReactNode
     infoSlot: React.ReactNode
-    chatSlot?: React.ReactNode | ((props: { onCollapse: () => void }) => React.ReactNode)
-    hasChat: boolean
+    chatChannelId?: string | null
+    hostId?: string | null
 }
 
 export default function LiveStreamLayout({
     backLink,
     videoSlot,
     infoSlot,
-    chatSlot,
-    hasChat,
+    chatChannelId,
+    hostId,
 }: LiveStreamLayoutProps)
 {
     const [isChatOpen, setIsChatOpen] = useState(true)
+    const hasChat = Boolean(chatChannelId)
 
     return (
         <div className="space-y-3 sm:space-y-4">
@@ -56,9 +58,11 @@ export default function LiveStreamLayout({
                 {/* Live Chat Column */}
                 {hasChat && isChatOpen && (
                     <aside className="lg:sticky lg:top-20 lg:h-[calc(100dvh-8.5rem)]">
-                        {typeof chatSlot === 'function'
-                            ? chatSlot({ onCollapse: () => setIsChatOpen(false) })
-                            : chatSlot}
+                        <LiveChat
+                            channelId={chatChannelId!}
+                            hostId={hostId ?? undefined}
+                            onCollapse={() => setIsChatOpen(false)}
+                        />
                     </aside>
                 )}
             </div>
