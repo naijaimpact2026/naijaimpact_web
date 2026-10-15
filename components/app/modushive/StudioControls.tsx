@@ -141,7 +141,7 @@ export function EndStreamButton({ liveStreamId }: { liveStreamId: string })
         {
             const res = await endLiveStream(liveStreamId)
             if (!res.ok) { toast.error(res.error); return }
-            toast.success('Stream ended. The replay will appear once Mux finishes processing it.')
+            toast.success('Stream ended successfully.')
             setOpen(false)
             router.refresh()
         })

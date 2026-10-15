@@ -173,7 +173,7 @@ async function getOwnStream(liveStreamId: string)
     const profile = await requireProfile()
     const { data: stream } = await createServiceClient()
         .from('live_streams')
-        .select('id, host_id, provider_stream_id, status')
+        .select('id, host_id, provider, provider_stream_id, status')
         .eq('id', liveStreamId)
         .maybeSingle()
 

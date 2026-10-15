@@ -8,7 +8,7 @@ import { isCloudflareStreamConfigured } from '@/lib/modushive/cloudflare'
 import { isMuxConfigured } from '@/lib/modushive/mux'
 import { listStudioStreams } from '@/lib/modushive/queries'
 import { BrowserStudio } from '@/components/app/modushive/BrowserStudio'
-import { EndStreamButton, GoLiveForm, StreamKeyPanel } from '@/components/app/modushive/StudioControls'
+import { EndStreamButton, GoLiveForm } from '@/components/app/modushive/StudioControls'
 import { ProcessingRefresher } from '@/components/app/modushive/VideoActions'
 import type { LiveStream } from '@/lib/types'
 
@@ -54,7 +54,7 @@ export default async function StudioPage()
             <div>
                 <h1 className="font-display text-xl sm:text-2xl font-extrabold text-foreground">Live studio</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    Broadcast live directly from your web browser using your webcam and microphone, or connect via OBS.
+                    Broadcast live directly from your web browser using your webcam and microphone.
                     Streams can run for up to {maxHours} {maxHours === 1 ? 'hour' : 'hours'}.
                 </p>
             </div>
@@ -108,7 +108,6 @@ export default async function StudioPage()
                                         {s.status !== 'ended' && <EndStreamButton liveStreamId={s.id} />}
                                     </div>
                                 </div>
-                                {s.status !== 'ended' && <StreamKeyPanel liveStreamId={s.id} />}
                             </li>
                         ))}
                     </ul>

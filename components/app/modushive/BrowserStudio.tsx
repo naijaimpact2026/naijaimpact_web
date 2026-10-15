@@ -5,11 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
     Camera,
     CameraOff,
-    Check,
-    Copy,
     ExternalLink,
-    Eye,
-    EyeOff,
     Loader2,
     Mic,
     MicOff,
@@ -63,13 +59,6 @@ export function BrowserStudio({ liveStreamId, streamTitle, initialStatus }: Brow
     const [selectedVideoId, setSelectedVideoId] = useState<string>('')
     const [selectedAudioId, setSelectedAudioId] = useState<string>('')
     const [showSettings, setShowSettings] = useState(false)
-
-    // OBS fallback credentials
-    const [showObsDrawer, setShowObsDrawer] = useState(false)
-    const [obsCreds, setObsCreds] = useState<{ rtmpUrl: string; streamKey: string; whipUrl?: string } | null>(null)
-    const [copiedKey, setCopiedKey] = useState(false)
-    const [copiedUrl, setCopiedUrl] = useState(false)
-    const [showKey, setShowKey] = useState(false)
 
     // Duration timer when live
     useEffect(() => {
@@ -157,18 +146,6 @@ export function BrowserStudio({ liveStreamId, streamTitle, initialStatus }: Brow
         }
     }, [selectedVideoId, selectedAudioId])
 
-    // Load OBS credentials on demand
-    async function loadObsCreds() {
-        if (obsCreds) return
-        const res = await getLiveStreamKey(liveStreamId)
-        if (res.ok) {
-            setObsCreds({
-                rtmpUrl: res.rtmpUrl,
-                streamKey: res.streamKey,
-                whipUrl: res.whipUrl,
-            })
-        }
-    }
 
     // Toggle Mic
     function toggleMic() {
@@ -244,10 +221,7 @@ export function BrowserStudio({ liveStreamId, streamTitle, initialStatus }: Brow
             }
 
             if (!creds.whipUrl) {
-                // Cloudflare WHIP URL not available, fallback to prompting OBS
-                toast.error('In-browser streaming is configuring. You can also use OBS with the stream key below.')
-                setShowObsDrawer(true)
-                loadObsCreds()
+                toast.error('Streaming endpoint not ready. Please refresh and try again.')
                 setStatus('idle')
                 return
             }
@@ -550,83 +524,6 @@ export function BrowserStudio({ liveStreamId, streamTitle, initialStatus }: Brow
                     </div>
                 </div>
             )}
-
-            {/* OBS / External App Accordion for Advanced Creators */}
-            <div className="rounded-2xl border border-border bg-card p-4">
-                <button
-                    type="button"
-                    onClick={() => {
-                        const next = !showObsDrawer
-                        setShowObsDrawer(next)
-                        if (next) loadObsCreds()
-                    }}
-                    className="flex w-full items-center justify-between text-left text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-                >
-                    <span>Prefer to stream with OBS Studio instead of your browser?</span>
-                    <span className="text-primary">{showObsDrawer ? 'Hide RTMP keys' : 'Show OBS settings'}</span>
-                </button>
-
-                {showObsDrawer && (
-                    <div className="mt-4 space-y-3 pt-3 border-t border-border">
-                        <p className="text-xs text-muted-foreground">
-                            You can also paste these RTMP credentials into OBS Studio, PRISM Live, or Larix Broadcaster if you want to stream from external software:
-                        </p>
-
-                        {obsCreds ? (
-                            <div className="space-y-2">
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Server URL</p>
-                                    <div className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5">
-                                        <code className="flex-1 truncate text-xs text-foreground">{obsCreds.rtmpUrl}</code>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                navigator.clipboard.writeText(obsCreds.rtmpUrl)
-                                                setCopiedUrl(true)
-                                                setTimeout(() => setCopiedUrl(false), 1500)
-                                            }}
-                                            className="rounded p-1 text-muted-foreground hover:bg-muted"
-                                        >
-                                            {copiedUrl ? <Check className="h-3.5 w-3.5 text-emerald" /> : <Copy className="h-3.5 w-3.5" />}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Stream Key</p>
-                                    <div className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-1.5">
-                                        <code className="flex-1 truncate text-xs text-foreground">
-                                            {showKey ? obsCreds.streamKey : '•'.repeat(24)}
-                                        </code>
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowKey((s) => !s)}
-                                            className="rounded p-1 text-muted-foreground hover:bg-muted"
-                                        >
-                                            {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                navigator.clipboard.writeText(obsCreds.streamKey)
-                                                setCopiedKey(true)
-                                                setTimeout(() => setCopiedKey(false), 1500)
-                                            }}
-                                            className="rounded p-1 text-muted-foreground hover:bg-muted"
-                                        >
-                                            {copiedKey ? <Check className="h-3.5 w-3.5 text-emerald" /> : <Copy className="h-3.5 w-3.5" />}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
-                                <Loader2 className="h-4 w-4 animate-spin" /> Loading RTMP credentials...
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
         </div>
     )
 }
