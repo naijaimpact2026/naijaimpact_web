@@ -2,15 +2,21 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { Channel, LocalMessage } from 'stream-chat'
-import { Loader2, MessageCircle, Send } from 'lucide-react'
+import { Loader2, MessageCircle, PanelRightClose, Send } from 'lucide-react'
 import { useChatClient } from '@/components/app/ChatProvider'
+
+interface LiveChatProps
+{
+    channelId: string
+    onCollapse?: () => void
+}
 
 /**
  * Lightweight live chat on a Stream `livestream` channel (created by the
  * server when the host sets the stream up). That channel type lets any
  * signed-in user read and post without being a member.
  */
-export default function LiveChat({ channelId }: { channelId: string })
+export default function LiveChat({ channelId, onCollapse }: LiveChatProps)
 {
     const { client, isReady } = useChatClient()
     const [channel, setChannel] = useState<Channel | null>(null)
@@ -59,12 +65,25 @@ export default function LiveChat({ channelId }: { channelId: string })
 
     return (
         <div className="flex h-[420px] lg:h-full flex-col overflow-hidden rounded-2xl border border-border bg-card">
-            <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-                <MessageCircle className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-semibold text-foreground">Live chat</h2>
+            <div className="flex items-center justify-between border-b border-border px-4 py-3 shrink-0">
+                <div className="flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4 text-primary" />
+                    <h2 className="text-sm font-semibold text-foreground">Live chat</h2>
+                </div>
+                {onCollapse && (
+                    <button
+                        type="button"
+                        onClick={onCollapse}
+                        className="hidden lg:flex items-center justify-center h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                        title="Hide chat"
+                        aria-label="Hide chat"
+                    >
+                        <PanelRightClose className="h-4 w-4" />
+                    </button>
+                )}
             </div>
 
-            <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
+            <div ref={listRef} className="flex-1 min-h-0 space-y-3 overflow-y-auto px-4 py-3">
                 {failed ? (
                     <p className="text-center text-xs text-muted-foreground pt-8">Chat is unavailable right now.</p>
                 ) : !channel ? (
@@ -79,7 +98,7 @@ export default function LiveChat({ channelId }: { channelId: string })
                 ))}
             </div>
 
-            <form onSubmit={send} className="flex items-center gap-2 border-t border-border p-3">
+            <form onSubmit={send} className="flex items-center gap-2 border-t border-border p-3 shrink-0 bg-card">
                 <input
                     value={text}
                     onChange={(e) => setText(e.target.value)}
