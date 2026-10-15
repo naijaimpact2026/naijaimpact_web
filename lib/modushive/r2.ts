@@ -42,9 +42,18 @@ function getR2(): S3Client
 
 const bucket = () => process.env.R2_BUCKET!
 
-export function presignUpload(key: string, contentType: string): Promise<string>
+export function presignUpload(key: string, contentType: string, sizeBytes?: number): Promise<string>
 {
-    return getSignedUrl(getR2(), new PutObjectCommand({ Bucket: bucket(), Key: key, ContentType: contentType }), { expiresIn: 60 * 60 })
+    return getSignedUrl(
+        getR2(),
+        new PutObjectCommand({
+            Bucket: bucket(),
+            Key: key,
+            ContentType: contentType,
+            ...(sizeBytes !== undefined ? { ContentLength: sizeBytes } : {}),
+        }),
+        { expiresIn: 60 * 60 }
+    )
 }
 
 export function presignDownload(key: string, expiresInS = 6 * 60 * 60): Promise<string>

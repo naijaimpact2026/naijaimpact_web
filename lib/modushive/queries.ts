@@ -55,7 +55,9 @@ export async function listMyPendingVideos(ownerId: string): Promise<Video[]>
         .limit(10)
 
     if (error || !data) return []
-    const synced = await Promise.all((data as Video[]).map(syncVideo))
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const active = (data as Video[]).filter((v) => !(v.status === 'uploading' && v.created_at < oneDayAgo))
+    const synced = await Promise.all(active.map(syncVideo))
     return synced.filter((v) => v.status !== 'ready')
 }
 

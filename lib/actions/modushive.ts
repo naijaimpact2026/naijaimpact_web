@@ -81,7 +81,7 @@ export async function createVideoUpload(input: CreateUploadInput): Promise<Actio
         return { ok: false, error: 'Could not start the upload. Please try again.' }
     }
 
-    const uploadUrl = await presignUpload(key, input.contentType)
+    const uploadUrl = await presignUpload(key, input.contentType, input.sizeBytes)
     return { ok: true, videoId, uploadUrl }
 }
 
