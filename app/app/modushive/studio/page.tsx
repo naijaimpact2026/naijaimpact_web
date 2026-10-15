@@ -95,6 +95,11 @@ export default async function StudioPage()
                             <h2 className="truncate text-lg sm:text-xl font-extrabold text-foreground">
                                 {activeStream.title}
                             </h2>
+                            {activeStream.description && (
+                                <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                                    {activeStream.description}
+                                </p>
+                            )}
                         </div>
                     </div>
                     <BrowserStudio

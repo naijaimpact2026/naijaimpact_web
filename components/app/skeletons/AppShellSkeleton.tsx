@@ -1,12 +1,12 @@
 import
 {
     Home,
+    Compass,
     Search,
     Users,
     ShoppingBag,
     BookOpen,
     Briefcase,
-    Wallet,
     HandCoins,
     LayoutGrid,
     MessageCircle,
@@ -21,8 +21,8 @@ import { SkeletonAvatar, SkeletonBlock, SkeletonLine, WAVE_STEP } from './primit
 
 // Same order as navItems in components/app/Sidebar.tsx.
 const NAV_ITEMS = [
-    Home, Search, Users, Clapperboard, ShoppingBag, Briefcase, Wrench, Rocket,
-    BookOpen, Wallet, HandCoins, LayoutGrid, MessageCircle, Bell,
+    Home, Compass, Search, Users, Clapperboard, ShoppingBag, Briefcase, Wrench, Rocket,
+    BookOpen, HandCoins, LayoutGrid, MessageCircle, Bell,
 ]
 
 /**
