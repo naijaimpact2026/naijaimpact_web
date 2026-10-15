@@ -141,40 +141,76 @@ Custom animations are available through Tailwind utility classes:
 - Keyboard navigation support
 - Mobile-friendly touch targets (min 44x44px)
 
+## ModusHive Media Architecture & Setup
+
+ModusHive uses an optimized multi-provider architecture:
+- **Cloudflare R2**: Master storage for raw original videos (zero egress fees, vendor independence).
+- **Mux**: Video transcoding, adaptive bitrate HLS delivery (capped at 720p basic tier for cost control), and signed playback tokens.
+- **Cloudflare Stream**: Direct in-browser webcam & microphone live streaming (WebRTC WHIP / HLS).
+
+### 1. Cloudflare R2 Bucket CORS Setup
+
+In **Cloudflare Dashboard** > **R2 Object Storage** > select your bucket (`modushive-originals`) > **Settings** > **CORS Policy**:
+- **Allowed Origins**:
+  ```text
+  http://localhost:3000
+  https://staging.hubnovo.com
+  https://<your-production-domain>.com
+  ```
+  *(Make sure there are no trailing commas).*
+- **Allowed Methods**: `PUT`, `GET`, `HEAD`
+- **Allowed Headers**: `Content-Type`, `*`
+
+> Without this CORS configuration, browser direct uploads to R2 will be rejected by CORS preflight checks.
+
+### 2. Vercel Environment Variables (Staging & Production)
+
+Ensure these variables are added in your Vercel Project Settings for both **Preview (Staging)** and **Production**:
+
+| Variable | Description |
+| :--- | :--- |
+| `R2_ACCOUNT_ID` | Cloudflare Account ID |
+| `R2_ACCESS_KEY_ID` | Cloudflare R2 API Access Key |
+| `R2_SECRET_ACCESS_KEY` | Cloudflare R2 Secret Access Key |
+| `R2_BUCKET` | R2 bucket name (e.g. `modushive-originals`) |
+| `CLOUDFLARE_STREAM_TOKEN` | Cloudflare Stream API token for in-browser live streaming |
+| `MUX_TOKEN_ID` | Mux API Access Token ID |
+| `MUX_TOKEN_SECRET` | Mux API Access Token Secret |
+| `MUX_SIGNING_KEY` | Mux Signing Key ID (for playback authorization) |
+| `MUX_PRIVATE_KEY` | Mux Base64-encoded private key |
+| `MUX_WEBHOOK_SECRET` | Webhook signing secret from Mux Dashboard |
+| `CRON_SECRET` | Secret token to authorize Vercel daily cleanup cron (`/api/cron/cleanup-uploads`) |
+
+### 3. Mux Webhook Configuration
+
+In your **Mux Dashboard** > **Settings** > **Webhooks**:
+1. Click **Create Webhook**.
+2. Set the URL:
+   - For Staging: `https://staging.hubnovo.com/api/mux/webhook`
+   - For Production: `https://<your-production-domain>/api/mux/webhook`
+3. Copy the generated Webhook Signing Secret into `MUX_WEBHOOK_SECRET` in your Vercel environment variables.
+
+---
+
 ## Deployment
 
-The site is ready to deploy on Vercel, Netlify, or any Node.js hosting:
+The site is deployed on Vercel using `npm`:
 
-### Vercel (Recommended)
 ```bash
-vercel
-```
+# Build locally
+npm run build
 
-### Other Platforms
-Build the project:
-```bash
-pnpm build
+# Start production server locally
+npm run start
 ```
-
-This generates a `.next` folder ready for deployment.
 
 ## Contact & Support
 
 For questions about Hubnovo:
 - Email: hello@hubnovo.com
-- Phone: +234 (0) 901 234 5678
 - Location: Lagos, Nigeria
 
 ## License
 
-© 2024 Hubnovo. All rights reserved.
+© 2026 Hubnovo. All rights reserved.
 
----
-
-**Made with ❤️ for Nigerian Communities**
-# hubnovo
-# hubnovo_web
-# hubnovo_web
-# hubnovo_web
-# hubnovo_web
-# hubnovo_web
