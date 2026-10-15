@@ -60,6 +60,24 @@ export async function createVideoUpload(input: CreateUploadInput): Promise<Actio
     if (input.durationS > limits.maxDurationS + 1) return { ok: false, error: `Videos can be up to ${Math.round(limits.maxDurationS / 60) || 1} min long.` }
 
     const supabase = createServiceClient()
+
+    const startOfToday = new Date()
+    startOfToday.setUTCHours(0, 0, 0, 0)
+    const { count: todayUploads } = await supabase
+        .from('videos')
+        .select('id', { count: 'exact', head: true })
+        .eq('owner_id', profile.id)
+        .gte('created_at', startOfToday.toISOString())
+        .neq('status', 'errored')
+
+    if ((todayUploads ?? 0) >= limits.maxDailyUploads)
+    {
+        return {
+            ok: false,
+            error: `You have reached your daily upload limit of ${limits.maxDailyUploads} ${limits.maxDailyUploads === 1 ? 'video' : 'videos'}. Please try again tomorrow.`,
+        }
+    }
+
     const videoId = crypto.randomUUID()
     const key = `videos/${profile.id}/${videoId}/original.${EXTENSIONS[input.contentType]}`
 
@@ -219,6 +237,39 @@ export async function createLiveStream(input: { title: string; description?: str
         }
     }
 
+    // Daily live minutes quota check
+    const startOfToday = new Date()
+    startOfToday.setUTCHours(0, 0, 0, 0)
+    const { data: todayStreams } = await supabase
+        .from('live_streams')
+        .select('started_at, ended_at, status')
+        .eq('host_id', profile.id)
+        .gte('created_at', startOfToday.toISOString())
+
+    let totalStreamedSeconds = 0
+    const nowMs = Date.now()
+    if (todayStreams)
+    {
+        for (const s of todayStreams)
+        {
+            if (s.started_at)
+            {
+                const start = new Date(s.started_at).getTime()
+                const end = s.ended_at ? new Date(s.ended_at).getTime() : nowMs
+                totalStreamedSeconds += Math.max(0, Math.floor((end - start) / 1000))
+            }
+        }
+    }
+
+    const streamedMinutes = Math.floor(totalStreamedSeconds / 60)
+    if (streamedMinutes >= limits.maxDailyMinutes)
+    {
+        return {
+            ok: false,
+            error: `You have reached your daily live streaming limit of ${limits.maxDailyMinutes} minutes. Please try again tomorrow.`,
+        }
+    }
+
     const id = crypto.randomUUID()
     const policy = defaultPlaybackPolicy()
 
@@ -231,7 +282,7 @@ export async function createLiveStream(input: { title: string; description?: str
     {
         try
         {
-            const cf = await createCloudflareLiveInput(title)
+            const cf = await createCloudflareLiveInput(title, limits.allowRecording)
             providerStreamId = cf.uid
             playbackId = cf.uid
             streamKeyData = JSON.stringify({
@@ -250,16 +301,21 @@ export async function createLiveStream(input: { title: string; description?: str
     {
         try
         {
+            const remainingDailySeconds = (limits.maxDailyMinutes - streamedMinutes) * 60
+            const maxContinuousSeconds = Math.min(limits.maxDurationS, remainingDailySeconds)
+
             const muxStream = await getMux().video.liveStreams.create({
                 playback_policies: [policy],
                 latency_mode: 'standard',
-                reconnect_window: 60,
-                max_continuous_duration: limits.maxDurationS,
+                reconnect_window: limits.allowRecording ? 60 : 0,
+                max_continuous_duration: Math.max(60, maxContinuousSeconds),
                 passthrough: `live:${id}`,
-                new_asset_settings: {
-                    playback_policies: [policy],
-                    video_quality: 'plus',
-                },
+                ...(limits.allowRecording ? {
+                    new_asset_settings: {
+                        playback_policies: [policy],
+                        video_quality: 'basic',
+                    },
+                } : {}),
             })
             providerStreamId = muxStream.id
             playbackId = muxStream.playback_ids?.[0]?.id ?? null

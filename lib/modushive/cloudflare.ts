@@ -35,7 +35,7 @@ function getApiToken(): string {
  * Creates a new Cloudflare Live Input with automatic recording enabled.
  * Returns WHIP publish URL for direct in-browser WebRTC broadcasting and HLS URL for playback.
  */
-export async function createCloudflareLiveInput(title: string): Promise<CloudflareLiveInput> {
+export async function createCloudflareLiveInput(title: string, record = true): Promise<CloudflareLiveInput> {
     const accountId = getAccountId()
     const token = getApiToken()
 
@@ -47,7 +47,7 @@ export async function createCloudflareLiveInput(title: string): Promise<Cloudfla
         },
         body: JSON.stringify({
             meta: { name: title },
-            recording: { mode: 'automatic' },
+            recording: { mode: record ? 'automatic' : 'off' },
         }),
     })
 
