@@ -119,7 +119,7 @@ export async function finalizeVideoUpload(videoId: string): Promise<ActionResult
             inputs: [{ url: await presignDownload(video.source_r2_key) }],
             playback_policies: [video.playback_policy],
             video_quality: 'basic',
-            max_resolution_tier: '720p',
+            max_resolution_tier: '1080p',
             passthrough: videoId,
         })
 
