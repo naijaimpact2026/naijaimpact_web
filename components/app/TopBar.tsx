@@ -36,11 +36,11 @@ function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }:
     }
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center gap-3 px-4 sm:px-6 bg-card border-b border-border">
+        <header className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center gap-2 sm:gap-3 px-3 sm:px-6 bg-card border-b border-border">
             {/* Hamburger — mobile/tablet only, sidebar is a persistent rail on lg+ */}
             <button
                 onClick={onMenuToggle}
-                className="p-2 -ml-2 rounded-full text-muted-foreground hover:bg-muted transition-colors shrink-0 lg:hidden"
+                className="p-2 -ml-1 sm:-ml-2 rounded-full text-muted-foreground hover:bg-muted transition-colors shrink-0 lg:hidden"
                 aria-label="Toggle menu"
             >
                 <Menu className="w-5 h-5" />
@@ -59,14 +59,14 @@ function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }:
             </Link>
 
             {/* Search */}
-            <form onSubmit={handleSearchSubmit} className="flex-1 max-w-xl mx-auto">
-                <div className="flex items-center gap-2 rounded-full bg-muted px-4 py-2 focus-within:ring-2 focus-within:ring-primary/40 transition-shadow">
+            <form onSubmit={handleSearchSubmit} className="flex-1 min-w-0 max-w-xl mx-1 sm:mx-auto">
+                <div className="flex items-center gap-2 rounded-full bg-muted px-3 py-1.5 sm:px-4 sm:py-2 focus-within:ring-2 focus-within:ring-primary/40 transition-shadow">
                     <Search className="w-4 h-4 shrink-0 text-muted-foreground" />
                     <input
                         type="search"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search for people, posts, courses..."
+                        placeholder="Search..."
                         className="flex-1 min-w-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
                         aria-label="Search"
                     />
@@ -106,7 +106,7 @@ function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }:
 
                 <Link
                     href="/app/chat"
-                    className="relative p-2.5 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    className="hidden sm:flex relative p-2.5 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     aria-label="Messages"
                 >
                     <MessageCircle className="w-5 h-5" />
@@ -119,7 +119,7 @@ function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }:
 
                 <Link
                     href="/app/notifications"
-                    className="relative p-2.5 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    className="hidden sm:flex relative p-2.5 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     aria-label="Notifications"
                 >
                     <Bell className="w-5 h-5" />
@@ -130,8 +130,8 @@ function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }:
                     )}
                 </Link>
 
-                <Link href={profileHref} className="flex items-center gap-2 pl-1.5 pr-1 py-1 rounded-full hover:bg-muted transition-colors" aria-label="Profile">
-                    <Avatar className="h-8 w-8 ring-1 ring-border">
+                <Link href={profileHref} className="flex items-center gap-2 pl-1 sm:pl-1.5 pr-1 py-1 rounded-full hover:bg-muted transition-colors shrink-0" aria-label="Profile">
+                    <Avatar className="h-8 w-8 ring-1 ring-border shrink-0">
                         <AvatarImage src={user?.avatar_url ?? undefined} alt={user?.display_name ?? 'User'} />
                         <AvatarFallback className="bg-primary/15 text-primary text-xs font-bold">
                             {getInitials(user?.display_name)}
