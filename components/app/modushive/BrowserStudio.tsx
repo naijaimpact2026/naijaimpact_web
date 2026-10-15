@@ -13,6 +13,7 @@ import {
     Radio,
     Settings2,
     Square,
+    Users,
 } from 'lucide-react'
 import { toast } from '@/components/toast'
 import {
@@ -27,15 +28,25 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { endLiveStream, getLiveStreamKey, markLiveStreamActive } from '@/lib/actions/modushive'
+import LiveChat from '@/components/app/modushive/LiveChat'
 
 interface BrowserStudioProps {
     liveStreamId: string
     streamTitle: string
     initialStatus: 'idle' | 'live' | 'ended'
+    chatChannelId?: string | null
+    hostId?: string
 }
 
-export function BrowserStudio({ liveStreamId, streamTitle, initialStatus }: BrowserStudioProps) {
+export function BrowserStudio({
+    liveStreamId,
+    streamTitle,
+    initialStatus,
+    chatChannelId,
+    hostId,
+}: BrowserStudioProps) {
     const router = useRouter()
+    const [viewerCount, setViewerCount] = useState(0)
     const videoRef = useRef<HTMLVideoElement>(null)
     const pcRef = useRef<RTCPeerConnection | null>(null)
     const localStreamRef = useRef<MediaStream | null>(null)
@@ -304,9 +315,12 @@ export function BrowserStudio({ liveStreamId, streamTitle, initialStatus }: Brow
         return `${h > 0 ? String(h).padStart(2, '0') + ':' : ''}${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
     }
 
+    const hasLiveChat = Boolean(chatChannelId && status !== 'ended')
+
     return (
-        <div className="space-y-4">
-            {/* Main Video Monitor */}
+        <div className={hasLiveChat ? 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_380px] items-start' : 'space-y-4'}>
+            <div className="space-y-4 min-w-0">
+                {/* Main Video Monitor */}
             <div className="relative aspect-video w-full overflow-hidden rounded-3xl border border-border bg-black shadow-2xl">
                 {/* Local Video Preview */}
                 <video
@@ -340,9 +354,15 @@ export function BrowserStudio({ liveStreamId, streamTitle, initialStatus }: Brow
                 <div className="absolute top-4 left-4 right-4 flex items-center justify-between pointer-events-none">
                     <div className="flex items-center gap-2">
                         {status === 'live' ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg animate-pulse">
-                                <Radio className="h-3.5 w-3.5" /> LIVE • {formatTime(duration)}
-                            </span>
+                            <>
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg animate-pulse">
+                                    <Radio className="h-3.5 w-3.5" /> LIVE • {formatTime(duration)}
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-xs font-semibold text-white/90">
+                                    <Users className="h-3.5 w-3.5 text-emerald" />
+                                    <span>{viewerCount} {viewerCount === 1 ? 'viewer' : 'viewers'}</span>
+                                </span>
+                            </>
                         ) : status === 'connecting' ? (
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg">
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Connecting...
@@ -523,6 +543,18 @@ export function BrowserStudio({ liveStreamId, streamTitle, initialStatus }: Brow
                         </select>
                     </div>
                 </div>
+            )}
+            </div>
+
+            {/* Studio Live Chat Panel */}
+            {hasLiveChat && (
+                <aside className="w-full lg:sticky lg:top-20 lg:h-[calc(100dvh-8.5rem)]">
+                    <LiveChat
+                        channelId={chatChannelId!}
+                        hostId={hostId}
+                        onWatcherCountChange={setViewerCount}
+                    />
+                </aside>
             )}
         </div>
     )

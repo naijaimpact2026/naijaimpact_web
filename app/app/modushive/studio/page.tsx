@@ -44,7 +44,7 @@ export default async function StudioPage()
     const isConfigured = isCloudflareStreamConfigured() || isMuxConfigured()
 
     return (
-        <div className="w-full max-w-3xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
+        <div className={`w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 ${activeStream ? 'max-w-6xl' : 'max-w-3xl'}`}>
             <ProcessingRefresher active={watching} intervalMs={10000} />
 
             <Link href="/app/modushive" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
@@ -75,6 +75,8 @@ export default async function StudioPage()
                         liveStreamId={activeStream.id}
                         streamTitle={activeStream.title}
                         initialStatus={activeStream.status}
+                        chatChannelId={activeStream.chat_channel_id}
+                        hostId={activeStream.host_id}
                     />
                 </section>
             ) : (

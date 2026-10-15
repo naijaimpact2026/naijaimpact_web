@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { Channel, LocalMessage } from 'stream-chat'
-import { Loader2, MessageCircle, PanelRightClose, Send } from 'lucide-react'
+import { Loader2, MessageCircle, PanelRightClose, Send, Users } from 'lucide-react'
 import { useChatClient } from '@/components/app/ChatProvider'
 
 interface LiveChatProps
 {
     channelId: string
+    hostId?: string
     onCollapse?: () => void
+    onWatcherCountChange?: (count: number) => void
 }
 
 /**
@@ -16,11 +18,12 @@ interface LiveChatProps
  * server when the host sets the stream up). That channel type lets any
  * signed-in user read and post without being a member.
  */
-export default function LiveChat({ channelId, onCollapse }: LiveChatProps)
+export default function LiveChat({ channelId, hostId, onCollapse, onWatcherCountChange }: LiveChatProps)
 {
     const { client, isReady } = useChatClient()
     const [channel, setChannel] = useState<Channel | null>(null)
     const [messages, setMessages] = useState<LocalMessage[]>([])
+    const [watcherCount, setWatcherCount] = useState(0)
     const [text, setText] = useState('')
     const [failed, setFailed] = useState(false)
     const listRef = useRef<HTMLDivElement>(null)
@@ -37,17 +40,33 @@ export default function LiveChat({ channelId, onCollapse }: LiveChatProps)
                 if (cancelled) return
                 setChannel(ch)
                 setMessages([...ch.state.messages])
+                const count = ch.state.watcher_count ?? 0
+                setWatcherCount(count)
+                onWatcherCountChange?.(count)
             })
             .catch(() => { if (!cancelled) setFailed(true) })
 
-        const sub = ch.on('message.new', () => setMessages([...ch.state.messages]))
+        const handleNewMessage = () => setMessages([...ch.state.messages])
+        const handleWatchers = () =>
+        {
+            const count = ch.state.watcher_count ?? 0
+            setWatcherCount(count)
+            onWatcherCountChange?.(count)
+        }
+
+        const subMsg = ch.on('message.new', handleNewMessage)
+        const subStart = ch.on('user.watching.start', handleWatchers)
+        const subStop = ch.on('user.watching.stop', handleWatchers)
+
         return () =>
         {
             cancelled = true
-            sub.unsubscribe()
+            subMsg.unsubscribe()
+            subStart.unsubscribe()
+            subStop.unsubscribe()
             ch.stopWatching().catch(() => {})
         }
-    }, [client, isReady, channelId])
+    }, [client, isReady, channelId, onWatcherCountChange])
 
     useEffect(() =>
     {
@@ -69,6 +88,12 @@ export default function LiveChat({ channelId, onCollapse }: LiveChatProps)
                 <div className="flex items-center gap-2">
                     <MessageCircle className="h-4 w-4 text-primary" />
                     <h2 className="text-sm font-semibold text-foreground">Live chat</h2>
+                    {watcherCount > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald/10 text-emerald border border-emerald/20 px-2 py-0.5 text-[11px] font-semibold" title={`${watcherCount} people watching`}>
+                            <Users className="h-3 w-3" />
+                            {watcherCount}
+                        </span>
+                    )}
                 </div>
                 {onCollapse && (
                     <button
@@ -90,12 +115,22 @@ export default function LiveChat({ channelId, onCollapse }: LiveChatProps)
                     <div className="flex justify-center pt-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
                 ) : messages.length === 0 ? (
                     <p className="text-center text-xs text-muted-foreground pt-8">Say hello 👋</p>
-                ) : messages.map((m) => (
-                    <p key={m.id} className="text-sm leading-snug break-words">
-                        <span className="font-semibold text-foreground mr-1.5">{m.user?.name ?? 'Member'}</span>
-                        <span className="text-muted-foreground">{m.text}</span>
-                    </p>
-                ))}
+                ) : messages.map((m) => {
+                    const isHost = Boolean(hostId && m.user?.id === hostId)
+                    return (
+                        <p key={m.id} className="text-sm leading-snug break-words">
+                            <span className="font-semibold text-foreground mr-1.5 inline-flex items-center gap-1">
+                                {m.user?.name ?? 'Member'}
+                                {isHost && (
+                                    <span className="inline-flex items-center rounded bg-primary/15 px-1 py-0.2 text-[9px] font-bold uppercase tracking-wider text-primary">
+                                        Host
+                                    </span>
+                                )}
+                            </span>
+                            <span className="text-muted-foreground">{m.text}</span>
+                        </p>
+                    )
+                })}
             </div>
 
             <form onSubmit={send} className="flex items-center gap-2 border-t border-border p-3 shrink-0 bg-card">
