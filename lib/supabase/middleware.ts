@@ -78,11 +78,49 @@ export async function updateSession(request: NextRequest) {
       const alreadyOnboarded = request.cookies.get('onboarded')?.value === '1'
 
       if (!alreadyOnboarded) {
-        const { data: profile } = await supabase
+        let { data: profile } = await supabase
           .from('users')
           .select('id, auth_id, onboarded, display_name, fullname, username')
           .or(`auth_id.eq.${user.id},id.eq.${user.id}`)
           .maybeSingle()
+
+        // Service-role fallback in case anon key is blocked by RLS or unlinked auth_id
+        if (!profile && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+          try {
+            const adminSupabase = createServerClient(
+              process.env.NEXT_PUBLIC_SUPABASE_URL!,
+              process.env.SUPABASE_SERVICE_ROLE_KEY!,
+              { cookies: { getAll: () => [], setAll: () => {} } }
+            )
+            const { data: adminProfile } = await adminSupabase
+              .from('users')
+              .select('id, auth_id, onboarded, display_name, fullname, username')
+              .or(`auth_id.eq.${user.id},id.eq.${user.id}`)
+              .maybeSingle()
+
+            if (adminProfile) {
+              profile = adminProfile
+            } else if (user.email) {
+              const cleanEmail = user.email.trim().toLowerCase()
+              const { data: emailProfile } = await adminSupabase
+                .from('users')
+                .select('id, auth_id, onboarded, display_name, fullname, username')
+                .eq('email', cleanEmail)
+                .maybeSingle()
+
+              if (emailProfile) {
+                profile = emailProfile
+                adminSupabase
+                  .from('users')
+                  .update({ auth_id: user.id })
+                  .eq('id', emailProfile.id)
+                  .then(() => {})
+              }
+            }
+          } catch (err) {
+            console.error('Middleware admin profile lookup error:', err)
+          }
+        }
 
         // Check if user is truly onboarded:
         // Either onboarded flag is true, OR user has an existing active profile
@@ -113,7 +151,7 @@ export async function updateSession(request: NextRequest) {
 
         supabaseResponse.cookies.set('onboarded', '1', {
           httpOnly: true,
-          secure: true,
+          secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
           path: '/',
           maxAge: 60 * 60 * 24 * 365,

@@ -79,6 +79,9 @@ interface CourseVideoPreviewProps {
     className?: string
 }
 
+// How many seconds of the video to show as a "snippet" on hover
+const SNIPPET_DURATION = 3
+
 export default function CourseVideoPreview({
     course,
     coverUrl,
@@ -91,6 +94,7 @@ export default function CourseVideoPreview({
     const [progress, setProgress] = useState(0)
     const [hasError, setHasError] = useState(false)
     const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const snippetStartRef = useRef(0)
 
     const preview = getPreviewVideoUrl(course)
 
@@ -100,6 +104,8 @@ export default function CourseVideoPreview({
             hoverTimeoutRef.current = setTimeout(() => {
                 setIsPlaying(true)
                 if (videoRef.current) {
+                    // Start the snippet from the beginning
+                    snippetStartRef.current = 0
                     videoRef.current.currentTime = 0
                     videoRef.current.play().catch(() => {
                         // Browser autoplay policy catch
@@ -116,6 +122,7 @@ export default function CourseVideoPreview({
                 videoRef.current.pause()
                 videoRef.current.currentTime = 0
             }
+            snippetStartRef.current = 0
             setProgress(0)
         }
 
@@ -129,8 +136,18 @@ export default function CourseVideoPreview({
     const handleTimeUpdate = () => {
         if (!videoRef.current) return
         const current = videoRef.current.currentTime
-        const duration = videoRef.current.duration || 1
-        setProgress((current / duration) * 100)
+        const elapsed = current - snippetStartRef.current
+
+        // Loop back to the snippet start once we've exceeded the snippet duration
+        if (elapsed >= SNIPPET_DURATION) {
+            snippetStartRef.current = 0
+            videoRef.current.currentTime = 0
+            videoRef.current.play().catch(() => {})
+            setProgress(0)
+            return
+        }
+
+        setProgress((elapsed / SNIPPET_DURATION) * 100)
     }
 
     const toggleMute = (e: React.MouseEvent) => {
@@ -190,6 +207,15 @@ export default function CourseVideoPreview({
                             autoPlay
                             preload="metadata"
                             onTimeUpdate={handleTimeUpdate}
+                            onEnded={() => {
+                                // Safety net: if loop attr fails, manually restart
+                                if (videoRef.current) {
+                                    videoRef.current.currentTime = 0
+                                    snippetStartRef.current = 0
+                                    setProgress(0)
+                                    videoRef.current.play().catch(() => {})
+                                }
+                            }}
                             onError={() => setHasError(true)}
                             className="w-full h-full object-cover"
                         />
