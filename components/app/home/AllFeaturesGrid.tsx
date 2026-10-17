@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
     BookOpen,
     Briefcase,
@@ -30,35 +31,33 @@ export interface PlatformFeature {
     ctaText: string
     icon: typeof BookOpen
     badgeText?: string
-    headerGradient: string
+    accentColor: string
     accentDot: string
-    checkBg: string
-    checkText: string
-    ctaColor: string
+    ctaGradient: string
+    imageUrl: string
 }
 
 export const PLATFORM_FEATURES: PlatformFeature[] = [
     {
         id: 'artisans',
         title: 'Artisans & Skilled Pros',
-        subtitle: 'Verified local technicians & craft specialists',
+        subtitle: 'Verified technicians & craft specialists',
         category: 'trade',
         categoryLabel: 'Verified Services',
         description: 'Connect with verified electricians, carpenters, plumbers, tech specialists, and tailoring professionals across Nigeria.',
         highlights: [
-            'Verified identity & portfolio check',
-            'Direct in-app messaging & calls',
-            'Milestone escrow safe payments',
+            'Identity Verified',
+            'Milestone Escrow',
+            'Direct Calls & Chat',
         ],
         href: '/app/artisans',
         ctaText: 'Find an Artisan',
         icon: Wrench,
         badgeText: 'High Demand',
-        headerGradient: 'linear-gradient(135deg, #ea580c 0%, #f97316 45%, #dc2626 100%)',
+        accentColor: '#f97316',
         accentDot: 'bg-amber-400',
-        checkBg: 'bg-amber-500/15 dark:bg-amber-500/25',
-        checkText: 'text-amber-500 dark:text-amber-400',
-        ctaColor: 'bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-orange-950/20',
+        ctaGradient: 'from-orange-500 to-amber-600',
+        imageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80',
     },
     {
         id: 'community-feed',
@@ -68,19 +67,18 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         categoryLabel: 'Networking',
         description: 'Share insights, collaborate on projects, discover verified grants, and network with Nigerian innovators in specialized topic channels.',
         highlights: [
-            'Instagram-style visual media feed',
-            'Topic channels (#tech, #artisans)',
-            'Real-time notifications & safety',
+            'Visual Media Feed',
+            'Topic Channels',
+            'Real-Time Alerts',
         ],
         href: '/app/feed',
         ctaText: 'Join the Conversation',
         icon: Users,
         badgeText: 'Active Hub',
-        headerGradient: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0284c7 100%)',
+        accentColor: '#3b82f6',
         accentDot: 'bg-sky-400',
-        checkBg: 'bg-blue-500/15 dark:bg-blue-500/25',
-        checkText: 'text-blue-500 dark:text-blue-400',
-        ctaColor: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-950/20',
+        ctaGradient: 'from-blue-600 to-indigo-600',
+        imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=80',
     },
     {
         id: 'marketplace',
@@ -90,19 +88,18 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         categoryLabel: 'E-Commerce',
         description: 'Buy and sell locally crafted goods, electronics, fashion, and services with nationwide delivery and secure buyer escrow protection.',
         highlights: [
-            'Escrow-backed checkout safety',
-            'Verified merchant trust ratings',
-            'Instant buyer-seller direct chat',
+            'Escrow Checkout',
+            'Merchant Ratings',
+            'Nationwide Delivery',
         ],
         href: '/app/market',
         ctaText: 'Explore Marketplace',
         icon: ShoppingBag,
         badgeText: 'Escrow Protected',
-        headerGradient: 'linear-gradient(135deg, #0d9488 0%, #059669 50%, #0891b2 100%)',
+        accentColor: '#10b981',
         accentDot: 'bg-emerald-400',
-        checkBg: 'bg-teal-500/15 dark:bg-teal-500/25',
-        checkText: 'text-teal-500 dark:text-teal-400',
-        ctaColor: 'bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white shadow-teal-950/20',
+        ctaGradient: 'from-emerald-500 to-teal-600',
+        imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=800&q=80',
     },
     {
         id: 'learn',
@@ -112,19 +109,18 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         categoryLabel: 'Education',
         description: 'Master practical digital, vocational, and business skills with bite-sized video lessons, playable hover preview, and verified certificates.',
         highlights: [
-            'Free & premium certified courses',
-            'Playable live hover video previews',
-            'Downloadable curriculum resources',
+            'Hover Video Preview',
+            'Certified Courses',
+            'Curriculum Assets',
         ],
         href: '/app/learn',
         ctaText: 'Start Learning',
         icon: BookOpen,
         badgeText: 'Video Preview',
-        headerGradient: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #4f46e5 100%)',
+        accentColor: '#8b5cf6',
         accentDot: 'bg-violet-400',
-        checkBg: 'bg-violet-500/15 dark:bg-violet-500/25',
-        checkText: 'text-violet-500 dark:text-violet-400',
-        ctaColor: 'bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white shadow-purple-950/20',
+        ctaGradient: 'from-violet-600 to-purple-600',
+        imageUrl: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80',
     },
     {
         id: 'jobs',
@@ -134,22 +130,20 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         categoryLabel: 'Career & Work',
         description: 'Explore verified job openings, freelance contracts, and career advancement paths across high-growth industries in Nigeria.',
         highlights: [
-            'Verified employer job listings',
-            'One-click fast application flow',
-            'Direct recruiter & hiring chat',
+            'Verified Employers',
+            '1-Click Fast Apply',
+            'Recruiter Chat',
         ],
         href: '/app/jobs',
         ctaText: 'Explore Opportunities',
         icon: Briefcase,
         badgeText: 'Hiring Now',
-        headerGradient: 'linear-gradient(135deg, #0284c7 0%, #2563eb 55%, #1e40af 100%)',
-        accentDot: 'bg-blue-400',
-        checkBg: 'bg-sky-500/15 dark:bg-sky-500/25',
-        checkText: 'text-sky-500 dark:text-sky-400',
-        ctaColor: 'bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white shadow-sky-950/20',
+        accentColor: '#0284c7',
+        accentDot: 'bg-sky-400',
+        ctaGradient: 'from-sky-500 to-blue-600',
+        imageUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=800&q=80',
     },
     {
-
         id: 'launchpad',
         title: 'Business LaunchPad',
         subtitle: 'CAC registration & enterprise toolkits',
@@ -157,19 +151,18 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         categoryLabel: 'Business Growth',
         description: 'Register your business with CAC, access legal templates, build professional branding, and scale your Nigerian enterprise with expert guidance.',
         highlights: [
-            'CAC enterprise registration guide',
-            'Brand identity & pitch deck kits',
-            '1-on-1 verified mentor bookings',
+            'CAC Registration',
+            'Pitch Deck Kits',
+            '1-on-1 Mentors',
         ],
         href: '/app/services',
         ctaText: 'Launch Your Business',
         icon: Rocket,
         badgeText: 'CAC Support',
-        headerGradient: 'linear-gradient(135deg, #e11d48 0%, #db2777 50%, #ea580c 100%)',
+        accentColor: '#f43f5e',
         accentDot: 'bg-rose-400',
-        checkBg: 'bg-rose-500/15 dark:bg-rose-500/25',
-        checkText: 'text-rose-500 dark:text-rose-400',
-        ctaColor: 'bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white shadow-rose-950/20',
+        ctaGradient: 'from-rose-500 to-pink-600',
+        imageUrl: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=800&q=80',
     },
     {
         id: 'wallet',
@@ -179,19 +172,18 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         categoryLabel: 'Fintech & Wallet',
         description: 'Manage your earnings securely, fund projects, lock automated target savings, and experience seamless zero-friction withdrawals.',
         highlights: [
-            'Multi-channel instant funding',
-            'Automated locked target savings',
-            'Escrow milestone release control',
+            'Instant Funding',
+            'Target Savings',
+            'Milestone Escrow',
         ],
         href: '/app/wallet',
         ctaText: 'Manage Your Funds',
         icon: Wallet,
         badgeText: '0% Escrow Fee',
-        headerGradient: 'linear-gradient(135deg, #059669 0%, #10b981 50%, #0d9488 100%)',
+        accentColor: '#059669',
         accentDot: 'bg-emerald-400',
-        checkBg: 'bg-emerald-500/15 dark:bg-emerald-500/25',
-        checkText: 'text-emerald-500 dark:text-emerald-400',
-        ctaColor: 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-950/20',
+        ctaGradient: 'from-emerald-600 to-teal-600',
+        imageUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=800&q=80',
     },
     {
         id: 'funding',
@@ -201,19 +193,18 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         categoryLabel: 'Capital',
         description: 'Raise capital for community initiatives, tech innovations, and craft workshops with transparent public tracking and milestones.',
         highlights: [
-            'Community-backed funding pools',
-            'Verified campaign integrity audit',
-            'Direct donor progress broadcast',
+            'Community Pools',
+            'Verified Audits',
+            'Direct Broadcast',
         ],
         href: '/app/funding',
         ctaText: 'Discover Grants',
         icon: HandCoins,
         badgeText: 'Micro-Grants',
-        headerGradient: 'linear-gradient(135deg, #0891b2 0%, #0284c7 50%, #2563eb 100%)',
+        accentColor: '#06b6d4',
         accentDot: 'bg-cyan-400',
-        checkBg: 'bg-cyan-500/15 dark:bg-cyan-500/25',
-        checkText: 'text-cyan-500 dark:text-cyan-400',
-        ctaColor: 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-cyan-950/20',
+        ctaGradient: 'from-cyan-500 to-blue-600',
+        imageUrl: 'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=800&q=80',
     },
     {
         id: 'chat',
@@ -223,19 +214,18 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         categoryLabel: 'Collaboration',
         description: 'Communicate in real time with clients, artisans, and fellow creators using crystal-clear audio voice notes and instant media sharing.',
         highlights: [
-            'Instant voice notes recording',
-            'High-fidelity photo attachments',
-            'End-to-end delivery reliability',
+            'Voice Notes',
+            'Media Attachments',
+            'Instant Delivery',
         ],
         href: '/app/chat',
         ctaText: 'Open Messages',
         icon: MessageSquare,
         badgeText: 'Voice Notes',
-        headerGradient: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #9333ea 100%)',
+        accentColor: '#6366f1',
         accentDot: 'bg-indigo-400',
-        checkBg: 'bg-indigo-500/15 dark:bg-indigo-500/25',
-        checkText: 'text-indigo-500 dark:text-indigo-400',
-        ctaColor: 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-indigo-950/20',
+        ctaGradient: 'from-indigo-500 to-purple-600',
+        imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
     },
 ]
 
@@ -322,17 +312,19 @@ export default function AllFeaturesGrid({ showHeader = true }: AllFeaturesGridPr
                     <button
                         key={tab.id}
                         onClick={() => setSelectedCategory(tab.id as CategoryFilter)}
-                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${selectedCategory === tab.id
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                            selectedCategory === tab.id
                                 ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20 scale-[1.02]'
                                 : 'bg-card/70 border border-border/70 text-muted-foreground hover:bg-muted/80 hover:text-foreground'
-                            }`}
+                        }`}
                     >
                         <span>{tab.label}</span>
                         <span
-                            className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${selectedCategory === tab.id
+                            className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                selectedCategory === tab.id
                                     ? 'bg-white/20 text-white'
                                     : 'bg-muted text-muted-foreground'
-                                }`}
+                            }`}
                         >
                             {tab.count}
                         </span>
@@ -340,89 +332,111 @@ export default function AllFeaturesGrid({ showHeader = true }: AllFeaturesGridPr
                 ))}
             </div>
 
-            {/* Two-Tone Vibrant Feature Cards Grid - 3 Columns */}
+            {/* Redesigned Modern Immersive Cards Grid - 3 Columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredFeatures.map((item, index) => {
                     const Icon = item.icon
                     return (
-                        <div
+                        <Link
                             key={item.id}
-                            className="group relative flex flex-col rounded-3xl overflow-hidden border border-border/80 bg-card hover:border-white/30 dark:hover:border-white/20 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl shadow-sm"
+                            href={item.href}
+                            className="group relative flex flex-col rounded-3xl overflow-hidden border border-border/80 dark:border-white/10 bg-card hover:border-primary/50 dark:hover:border-primary/40 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_22px_45px_rgba(0,0,0,0.14)] dark:hover:shadow-[0_22px_45px_rgba(0,0,0,0.6)] cursor-pointer select-none"
                         >
-                            {/* TOP VIBRANT GRADIENT HEADER ("Like this" from the reference image, refined) */}
+                            {/* Ambient Dynamic Glow on Card Hover */}
                             <div
-                                className="relative p-6 pb-5 text-white overflow-hidden"
-                                style={{ background: item.headerGradient }}
-                            >
-                                {/* Decorative lighting overlays */}
-                                <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-black/25 pointer-events-none" />
-                                <div className="absolute -top-10 -right-10 w-36 h-36 rounded-full bg-white/20 blur-xl pointer-events-none" />
-                                <div className="absolute bottom-0 right-1/4 w-28 h-28 rounded-full bg-black/15 blur-lg pointer-events-none" />
+                                className="absolute -top-20 -right-20 w-48 h-48 rounded-full blur-3xl opacity-0 group-hover:opacity-25 transition-opacity duration-700 pointer-events-none"
+                                style={{ background: item.accentColor }}
+                            />
 
-                                {/* Top Badges Row */}
-                                <div className="relative z-10 flex items-center justify-between gap-2 mb-4">
-                                    {/* Category Pill */}
-                                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/40 backdrop-blur-md text-white/95 border border-white/20 shadow-xs">
+                            {/* TOP REALISTIC PHOTOGRAPHIC HERO SECTION */}
+                            <div className="relative h-64 sm:h-72 w-full overflow-hidden text-white flex flex-col justify-between p-5 sm:p-6">
+                                {/* Photographic Image with Hover Scale */}
+                                <Image
+                                    src={item.imageUrl}
+                                    alt={item.title}
+                                    fill
+                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                    priority={index < 3}
+                                    className="object-cover object-center transition-transform duration-700 ease-out group-hover:scale-108"
+                                />
+
+                                {/* Multi-Stage Cinematic Overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 pointer-events-none" />
+                                <div
+                                    className="absolute inset-0 opacity-40 group-hover:opacity-30 transition-opacity duration-500 mix-blend-color"
+                                    style={{ background: item.accentColor }}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+                                {/* Top Floating Badges */}
+                                <div className="relative z-10 flex items-center justify-between gap-2">
+                                    {/* Category Pill with Frosted Glass */}
+                                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/50 backdrop-blur-md text-white/95 border border-white/20 shadow-xs">
                                         {item.categoryLabel}
                                     </span>
 
-                                    {/* Status Badge Pill */}
+                                    {/* Status Pill with Pulsing Dot */}
                                     {item.badgeText && (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold bg-white text-slate-900 shadow-md backdrop-blur-md whitespace-nowrap">
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold bg-white/95 text-slate-900 shadow-md backdrop-blur-md whitespace-nowrap">
                                             <span className={`w-2 h-2 rounded-full ${item.accentDot} animate-pulse`} />
                                             {item.badgeText}
                                         </span>
                                     )}
                                 </div>
 
-                                {/* Icon & Title Row */}
-                                <div className="relative z-10 flex items-center gap-3.5">
-                                    <div className="w-13 h-13 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 group-hover:bg-white/30 transition-all duration-300">
-                                        <Icon className="w-6 h-6 text-white drop-shadow-xs" />
+                                {/* Floating Icon Badge + Title (On Top of Photo with Crystal Clarity) */}
+                                <div className="relative z-10 flex items-center gap-3.5 mt-auto">
+                                    <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 group-hover:bg-white/30 transition-all duration-300">
+                                        <Icon className="w-6 h-6 text-white drop-shadow-md" />
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <h3 className="font-display text-[18px] sm:text-[19px] font-extrabold text-white leading-tight tracking-tight drop-shadow-xs">
+                                        <h3 className="font-display text-[19px] sm:text-[20px] font-black text-white leading-tight tracking-tight drop-shadow-md group-hover:text-white transition-colors">
                                             {item.title}
                                         </h3>
-                                        <p className="text-[12px] font-medium text-white/85 truncate mt-0.5">
+                                        <p className="text-[12px] font-medium text-white/85 truncate mt-0.5 drop-shadow-sm">
                                             {item.subtitle}
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* LOWER BODY: Dark / Glass Card */}
-                            <div className="flex-1 flex flex-col p-6 pt-5 bg-card/95 dark:bg-[#0c1322]/95 backdrop-blur-xl">
+                            {/* LOWER CARD BODY */}
+                            <div className="flex-1 flex flex-col p-5 bg-card/95 dark:bg-[#0c1424]/95 backdrop-blur-xl border-t border-white/10 dark:border-white/5 justify-between">
                                 {/* Description */}
-                                <p className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed min-h-[40px] line-clamp-2">
+                                <p className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed line-clamp-2 min-h-[38px]">
                                     {item.description}
                                 </p>
 
-                                {/* Highlights Checklist with Circular Checkmarks */}
-                                <ul className="mt-4 pt-4 border-t border-border/70 space-y-2.5">
+                                {/* Modern Feature Micro-Chips (Scannable & Clean) */}
+                                <div className="flex flex-wrap gap-1.5 mt-4 pt-3 border-t border-border/60">
                                     {item.highlights.map((h, i) => (
-                                        <li key={i} className="flex items-center gap-2.5 text-xs font-semibold text-foreground/90">
-                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${item.checkBg} ${item.checkText}`}>
-                                                <Check className="w-2.5 h-2.5 stroke-[3]" />
-                                            </div>
-                                            <span className="leading-tight">{h}</span>
-                                        </li>
+                                        <span
+                                            key={i}
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-semibold bg-muted/70 dark:bg-white/5 border border-border/60 dark:border-white/10 text-foreground/80 group-hover:border-primary/30 transition-colors"
+                                        >
+                                            <span
+                                                className="w-1.5 h-1.5 rounded-full shrink-0"
+                                                style={{ background: item.accentColor }}
+                                            />
+                                            <span className="truncate">{h}</span>
+                                        </span>
                                     ))}
-                                </ul>
+                                </div>
 
-                                {/* Themed Full-Width CTA Button with Heartbeat Animation */}
-                                <div className="mt-6 pt-2 mt-auto">
-                                    <Link
-                                        href={item.href}
-                                        style={{ animationDelay: `${(index % 3) * 0.4}s` }}
-                                        className={`inline-flex items-center justify-between w-full px-5 py-3 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-300 group-hover:shadow-lg active:scale-[0.98] animate-heartbeat ${item.ctaColor}`}
-                                    >
+                                {/* Refined Action Footer Bar with Heartbeat Icon Pill */}
+                                <div className="mt-5 pt-3.5 border-t border-border/60 flex items-center justify-between">
+                                    <span className="font-extrabold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
                                         <span>{item.ctaText}</span>
-                                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-200" />
-                                    </Link>
+                                    </span>
+
+                                    <div
+                                        className={`w-9 h-9 rounded-2xl bg-gradient-to-r ${item.ctaGradient} text-white flex items-center justify-center shadow-md shadow-primary/20 transition-all duration-300 group-hover:scale-110 group-hover:translate-x-1 animate-heartbeat shrink-0`}
+                                    >
+                                        <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        </Link>
                     )
                 })}
             </div>

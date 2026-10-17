@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
@@ -118,25 +119,38 @@ export type ActionResult<T = void> =
     avatar_url,
   } = parsed.data
 
+  // Use service client to query and write to users table to avoid RLS permission blocks on un-onboarded accounts
+  const db = process.env.SUPABASE_SERVICE_ROLE_KEY ? createServiceClient() : supabase
+
   // 3. Check whether this user already has a profile (by auth_id, id, or email)
   const cleanEmail = (user.email || '').trim().toLowerCase()
-  const { data: existingProfile, error: profileCheckError } = await supabase
+
+  let existingProfile: { id: string; auth_id: string | null; username: string | null; email: string | null } | null = null
+
+  // Check by auth_id or id first
+  const { data: profileLookupData } = await db
     .from('users')
     .select('id, auth_id, username, email')
-    .or(`auth_id.eq.${user.id},id.eq.${user.id}${cleanEmail ? `,email.eq.${cleanEmail}` : ''}`)
+    .or(`auth_id.eq.${user.id},id.eq.${user.id}`)
     .maybeSingle()
 
-  if (profileCheckError) {
-    console.error('Profile lookup error:', profileCheckError)
+  if (profileLookupData) {
+    existingProfile = profileLookupData
+  } else if (cleanEmail) {
+    // If not found, check by email
+    const { data: emailMatch } = await db
+      .from('users')
+      .select('id, auth_id, username, email')
+      .eq('email', cleanEmail)
+      .maybeSingle()
 
-    return {
-      success: false,
-      error: 'Unable to find your profile. Please try again.',
+    if (emailMatch) {
+      existingProfile = emailMatch
     }
   }
 
   // 4. Check username uniqueness (case-insensitive)
-  const { data: existingUsername, error: usernameError } = await supabase
+  const { data: existingUsername, error: usernameError } = await db
     .from('users')
     .select('id, auth_id, username')
     .ilike('username', username)
@@ -176,16 +190,12 @@ export type ActionResult<T = void> =
     updated_at: new Date().toISOString(),
   }
 
-  let updateError
-
-  // 6. Update existing profile
+  // 6. Update existing profile or create new one
   if (existingProfile) {
-    const result = await supabase
+    const { error: updateError } = await db
       .from('users')
       .update(profileData)
       .eq('id', existingProfile.id)
-
-    updateError = result.error
 
     if (updateError) {
       console.error('completeOnboarding update error:', updateError)
@@ -195,24 +205,19 @@ export type ActionResult<T = void> =
         error: `Profile update failed: ${updateError.message}`,
       }
     }
-  }
-
-  // 7. Create profile if it doesn't exist
-  else {
-    const result = await supabase
+  } else {
+    const { error: insertError } = await db
       .from('users')
-      .insert({
+      .upsert({
         id: user.id,
         email: cleanEmail,
         ...profileData,
-      })
+      }, { onConflict: 'id' })
 
-    updateError = result.error
+    if (insertError) {
+      console.error('completeOnboarding insert error:', insertError)
 
-    if (updateError) {
-      console.error('completeOnboarding insert error:', updateError)
-
-      if (updateError.code === '23505') {
+      if (insertError.code === '23505') {
         return {
           success: false,
           error: 'That username or account already exists. Please try signing in.',
@@ -238,14 +243,13 @@ export type ActionResult<T = void> =
   const cookieStore = await cookies()
   cookieStore.set('onboarded', '1', {
     httpOnly: true,
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60 * 24 * 365,
   })
 
-  // 9. Redirect
-  redirect('/app')
+  return { success: true }
 }
 /**
  * Updates display_name, bio, profession, and avatar_url for the current user.

@@ -312,6 +312,13 @@ export default function OnboardingPage()
             return
         }
 
+        if (result?.success)
+        {
+            toast.success('Profile completed successfully!')
+            window.location.href = '/app'
+            return
+        }
+
     }
     catch (err)
     {

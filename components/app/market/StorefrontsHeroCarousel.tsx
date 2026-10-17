@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import useEmblaCarousel from 'embla-carousel-react'
 import {
     Plus,
@@ -84,7 +85,7 @@ export default function StorefrontsHeroCarousel({
                             <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
                             <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-blue-600/20 blur-3xl" />
 
-                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.1fr_0.9fr] w-full min-w-0">
+                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1fr] w-full min-w-0">
                                 <div className="min-w-0">
                                     <div className="inline-flex items-center gap-1.5 rounded-full bg-cyan-300/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200">
                                         <Store className="h-3.5 w-3.5" /> Hubnovo Storefronts
@@ -123,24 +124,34 @@ export default function StorefrontsHeroCarousel({
                                     </div>
                                 </div>
 
-                                {/* Store Showcase Visual */}
-                                <div className="hidden sm:flex justify-self-end w-full max-w-sm flex-col gap-3 min-w-0">
-                                    <div className="rounded-2xl border border-white/25 bg-white/15 p-5 backdrop-blur-xl shadow-xl text-white">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-12 w-12 rounded-xl bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center text-white shadow-md shrink-0">
-                                                <Store className="h-6 w-6" />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-center gap-1.5">
-                                                    <h4 className="font-black text-white text-base truncate">Verified Merchants</h4>
-                                                    <BadgeCheck className="h-4 w-4 text-cyan-300 shrink-0" />
+                                {/* Person Visual Cutout */}
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-lg min-w-0 self-end -mb-8 sm:-mb-10">
+                                    <div className="relative flex items-end">
+                                        <Image
+                                            src="/images/heroes/store-boutique-owner.png"
+                                            alt="Verified Storefront Merchant and Boutique Seller"
+                                            width={500}
+                                            height={600}
+                                            priority
+                                            className="h-84 sm:h-[400px] lg:h-[450px] xl:h-[490px] w-auto object-contain object-bottom drop-shadow-[0_25px_45px_rgba(0,0,0,0.6)] transition-transform duration-500 hover:scale-105"
+                                        />
+                                        <div className="absolute -left-6 sm:-left-10 bottom-12 sm:bottom-16 rounded-2xl border border-white/25 bg-black/55 p-3.5 backdrop-blur-xl shadow-2xl text-white min-w-[210px]">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center text-white shrink-0 shadow-md">
+                                                    <Store className="h-4.5 w-4.5" />
                                                 </div>
-                                                <p className="text-xs text-cyan-100 truncate">Direct customer chat & escrow orders</p>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="font-black text-white text-xs truncate">Blossom Boutique</span>
+                                                        <BadgeCheck className="h-3.5 w-3.5 text-cyan-300 shrink-0" />
+                                                    </div>
+                                                    <p className="text-[11px] text-cyan-100 truncate">Lagos, Nigeria</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="mt-3 flex items-center justify-between border-t border-white/15 pt-3 text-xs">
-                                            <span className="text-white/80">0% Commission Starting</span>
-                                            <span className="font-bold text-cyan-300">Dedicated URL</span>
+                                            <div className="mt-2.5 flex items-center justify-between border-t border-white/15 pt-2 text-xs">
+                                                <span className="text-white/80">0% Commission</span>
+                                                <span className="text-cyan-300 font-bold">Custom URL</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -157,7 +168,7 @@ export default function StorefrontsHeroCarousel({
                             <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl" />
                             <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-teal-500/20 blur-3xl" />
 
-                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.1fr_0.9fr] w-full min-w-0">
+                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1fr] w-full min-w-0">
                                 <div className="min-w-0">
                                     <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-300/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-200">
                                         <Sparkles className="h-3.5 w-3.5" /> For Business Owners & Sellers
@@ -196,20 +207,27 @@ export default function StorefrontsHeroCarousel({
                                     </div>
                                 </div>
 
-                                {/* Store Analytics Highlight */}
-                                <div className="hidden sm:flex justify-self-end w-full max-w-sm flex-col gap-3 min-w-0">
-                                    <div className="rounded-2xl border border-white/25 bg-white/15 p-5 backdrop-blur-xl shadow-xl text-white">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="text-xs text-white/80">Storefront Setup Time</span>
-                                            <span className="text-xs font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-md">
-                                                Instant
-                                            </span>
-                                        </div>
-                                        <h3 className="mt-2 font-display text-3xl font-black text-white">&lt; 1 Minute</h3>
-                                        <p className="text-xs text-emerald-100 mt-1">Logo, catalog, contact, and direct bank settlement.</p>
-                                        <div className="mt-4 flex items-center justify-between border-t border-white/15 pt-3 text-xs">
-                                            <span className="text-white/80">Zero hosting charges</span>
-                                            <span className="font-bold text-emerald-300">Custom Branded Link</span>
+                                {/* Person Visual Cutout */}
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-lg min-w-0 self-end -mb-8 sm:-mb-10">
+                                    <div className="relative flex items-end">
+                                        <Image
+                                            src="/images/heroes/store-merchant.png"
+                                            alt="NaijaImpact Digital Merchant Owner"
+                                            width={500}
+                                            height={600}
+                                            className="h-84 sm:h-[400px] lg:h-[450px] xl:h-[490px] w-auto object-contain object-bottom drop-shadow-[0_25px_45px_rgba(0,0,0,0.6)] transition-transform duration-500 hover:scale-105"
+                                        />
+                                        <div className="absolute -left-6 sm:-left-10 bottom-12 sm:bottom-16 rounded-2xl border border-white/25 bg-black/55 p-3.5 backdrop-blur-xl shadow-2xl text-white min-w-[210px]">
+                                            <div className="flex items-center justify-between gap-1 text-[11px]">
+                                                <span className="text-white/80">Setup Time</span>
+                                                <span className="text-emerald-300 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">Instant</span>
+                                            </div>
+                                            <h4 className="mt-1.5 font-black text-white text-lg">&lt; 1 Minute</h4>
+                                            <p className="text-[11px] text-emerald-100 mt-0.5">Catalog & live payments</p>
+                                            <div className="mt-2.5 flex items-center justify-between border-t border-white/15 pt-2 text-xs">
+                                                <span className="text-white/80">Zero Hosting Fee</span>
+                                                <span className="text-emerald-300 font-bold">Custom Link</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -226,7 +244,7 @@ export default function StorefrontsHeroCarousel({
                             <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
                             <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
 
-                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.1fr_0.9fr] w-full min-w-0">
+                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1fr] w-full min-w-0">
                                 <div className="min-w-0">
                                     <div className="inline-flex items-center gap-1.5 rounded-full bg-cyan-300/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200">
                                         <ShieldCheck className="h-3.5 w-3.5" /> Escrow Protected Commerce
@@ -265,30 +283,29 @@ export default function StorefrontsHeroCarousel({
                                     </div>
                                 </div>
 
-                                {/* Safe Escrow Card */}
-                                <div className="hidden sm:flex justify-self-end w-full max-w-sm flex-col gap-3 min-w-0">
-                                    <div className="rounded-2xl border border-white/25 bg-white/15 p-5 backdrop-blur-xl shadow-xl text-white">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-12 w-12 rounded-xl bg-cyan-500 flex items-center justify-center text-white shadow-md shrink-0">
-                                                <ShieldCheck className="h-6 w-6" />
+                                {/* Person Visual Cutout */}
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-lg min-w-0 self-end -mb-8 sm:-mb-10">
+                                    <div className="relative flex items-end">
+                                        <Image
+                                            src="/images/heroes/escrow-trust-agent.png"
+                                            alt="100% Protected Escrow Officer"
+                                            width={500}
+                                            height={600}
+                                            className="h-84 sm:h-[400px] lg:h-[450px] xl:h-[490px] w-auto object-contain object-bottom drop-shadow-[0_25px_45px_rgba(0,0,0,0.6)] transition-transform duration-500 hover:scale-105"
+                                        />
+                                        <div className="absolute -left-6 sm:-left-10 bottom-12 sm:bottom-16 rounded-2xl border border-white/25 bg-black/55 p-3.5 backdrop-blur-xl shadow-2xl text-white min-w-[210px]">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="h-9 w-9 rounded-xl bg-cyan-500 flex items-center justify-center text-white shrink-0 shadow-md">
+                                                    <ShieldCheck className="h-4.5 w-4.5" />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="font-black text-white text-xs truncate">Protected Trade</p>
+                                                    <p className="text-[11px] text-cyan-100 truncate">Delivery Guaranteed</p>
+                                                </div>
                                             </div>
-                                            <div className="min-w-0 flex-1">
-                                                <h4 className="font-black text-white text-base truncate">Protected Commerce</h4>
-                                                <p className="text-xs text-cyan-100 truncate">Guaranteed buyer & seller protection</p>
-                                            </div>
-                                        </div>
-                                        <div className="mt-3 space-y-1.5 border-t border-white/15 pt-3 text-xs">
-                                            <div className="flex items-center gap-2 text-white/90">
-                                                <CheckCircle2 className="h-3.5 w-3.5 text-cyan-300 shrink-0" />
-                                                <span>Customer deposits payment in escrow</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-white/90">
-                                                <CheckCircle2 className="h-3.5 w-3.5 text-cyan-300 shrink-0" />
-                                                <span>Merchant dispatches goods with confidence</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-white/90">
-                                                <CheckCircle2 className="h-3.5 w-3.5 text-cyan-300 shrink-0" />
-                                                <span>Instant release upon parcel delivery</span>
+                                            <div className="mt-2.5 flex items-center justify-between border-t border-white/15 pt-2 text-xs">
+                                                <span className="text-white/80">Funds Escrowed</span>
+                                                <span className="text-emerald-300 font-bold">100% Safe</span>
                                             </div>
                                         </div>
                                     </div>

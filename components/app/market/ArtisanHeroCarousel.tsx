@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import useEmblaCarousel from 'embla-carousel-react'
 import {
     Plus,
@@ -13,6 +14,7 @@ import {
     Sparkles,
     Lock,
     CheckCircle2,
+    Star,
 } from 'lucide-react'
 
 interface ArtisanHeroCarouselProps {
@@ -86,7 +88,7 @@ export default function ArtisanHeroCarousel({
                             <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
                             <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-blue-600/20 blur-3xl" />
 
-                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.1fr_0.9fr] w-full min-w-0">
+                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1fr] w-full min-w-0">
                                 <div className="min-w-0">
                                     <div className="inline-flex items-center gap-1.5 rounded-full bg-cyan-300/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200">
                                         <Wrench className="h-3.5 w-3.5" /> Hubnovo Artisans & Pros
@@ -117,24 +119,36 @@ export default function ArtisanHeroCarousel({
                                     </div>
                                 </div>
 
-                                {/* Visual Right Card */}
-                                <div className="hidden sm:flex justify-self-end w-full max-w-sm flex-col gap-3 min-w-0">
-                                    <div className="rounded-2xl border border-white/25 bg-white/15 p-5 backdrop-blur-xl shadow-xl text-white">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-12 w-12 rounded-xl bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center text-white shadow-md shrink-0">
-                                                <Wrench className="h-6 w-6" />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-center gap-1.5">
-                                                    <h4 className="font-black text-white text-base truncate">Verified Network</h4>
-                                                    <BadgeCheck className="h-4 w-4 text-cyan-300 shrink-0" />
+                                {/* Person Visual Cutout */}
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-lg min-w-0 self-end -mb-8 sm:-mb-10">
+                                    <div className="relative flex items-end">
+                                        <Image
+                                            src="/images/heroes/artisan-electrician.png"
+                                            alt="Verified Artisan Technician"
+                                            width={500}
+                                            height={600}
+                                            priority
+                                            className="h-84 sm:h-[400px] lg:h-[450px] xl:h-[490px] w-auto object-contain object-bottom drop-shadow-[0_25px_45px_rgba(0,0,0,0.6)] transition-transform duration-500 hover:scale-105"
+                                        />
+                                        <div className="absolute -left-6 sm:-left-10 bottom-12 sm:bottom-16 rounded-2xl border border-white/25 bg-black/55 p-3.5 backdrop-blur-xl shadow-2xl text-white min-w-[210px]">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="h-9 w-9 rounded-xl bg-cyan-500 flex items-center justify-center text-white shrink-0 shadow-md">
+                                                    <Wrench className="h-4.5 w-4.5" />
                                                 </div>
-                                                <p className="text-xs text-cyan-100 truncate">National artisan directory</p>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="font-black text-white text-xs truncate">Verified Pros</span>
+                                                        <BadgeCheck className="h-3.5 w-3.5 text-cyan-300 shrink-0" />
+                                                    </div>
+                                                    <p className="text-[11px] text-cyan-100 truncate">36 States Covered</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="mt-3 flex items-center justify-between border-t border-white/15 pt-3 text-xs">
-                                            <span className="text-white/80">Covering 36 States</span>
-                                            <span className="font-bold text-cyan-300">100% Escrow Backed</span>
+                                            <div className="mt-2.5 flex items-center justify-between border-t border-white/15 pt-2 text-xs">
+                                                <span className="text-amber-300 font-bold flex items-center gap-1">
+                                                    <Star className="h-3.5 w-3.5 fill-amber-300" /> 4.9 ★
+                                                </span>
+                                                <span className="text-emerald-300 font-bold">Escrow Backed</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -151,7 +165,7 @@ export default function ArtisanHeroCarousel({
                             <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-teal-400/20 blur-3xl" />
                             <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl" />
 
-                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.1fr_0.9fr] w-full min-w-0">
+                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1fr] w-full min-w-0">
                                 <div className="min-w-0">
                                     <div className="inline-flex items-center gap-1.5 rounded-full bg-teal-300/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-teal-200">
                                         <Sparkles className="h-3.5 w-3.5" /> For Skilled Technicians & Pros
@@ -182,20 +196,27 @@ export default function ArtisanHeroCarousel({
                                     </div>
                                 </div>
 
-                                {/* Earnings Showcase Card */}
-                                <div className="hidden sm:flex justify-self-end w-full max-w-sm flex-col gap-3 min-w-0">
-                                    <div className="rounded-2xl border border-white/25 bg-white/15 p-5 backdrop-blur-xl shadow-xl text-white">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="text-xs text-white/80">Average Daily Earnings</span>
-                                            <span className="text-xs font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-md">
-                                                Active Bookings
-                                            </span>
-                                        </div>
-                                        <h3 className="mt-2 font-display text-3xl font-black text-white">₦45,000+</h3>
-                                        <p className="text-xs text-teal-100 mt-1">Guaranteed payments directly into your Hubnovo wallet.</p>
-                                        <div className="mt-4 flex items-center justify-between border-t border-white/15 pt-3 text-xs">
-                                            <span className="text-white/80">No upfront fees</span>
-                                            <span className="font-bold text-cyan-300">Fast Bank Settlement</span>
+                                {/* Person Visual Cutout */}
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-lg min-w-0 self-end -mb-8 sm:-mb-10">
+                                    <div className="relative flex items-end">
+                                        <Image
+                                            src="/images/heroes/craftsman-carpenter.png"
+                                            alt="Skilled Craftsman and Carpenter"
+                                            width={500}
+                                            height={600}
+                                            className="h-84 sm:h-[400px] lg:h-[450px] xl:h-[490px] w-auto object-contain object-bottom drop-shadow-[0_25px_45px_rgba(0,0,0,0.6)] transition-transform duration-500 hover:scale-105"
+                                        />
+                                        <div className="absolute -left-6 sm:-left-10 bottom-12 sm:bottom-16 rounded-2xl border border-white/25 bg-black/55 p-3.5 backdrop-blur-xl shadow-2xl text-white min-w-[210px]">
+                                            <div className="flex items-center justify-between gap-1 text-[11px]">
+                                                <span className="text-white/80">Daily Earnings</span>
+                                                <span className="text-emerald-300 font-bold bg-emerald-500/20 px-2 py-0.5 rounded">Active</span>
+                                            </div>
+                                            <h4 className="mt-1.5 font-black text-white text-lg">₦45,000+</h4>
+                                            <p className="text-[11px] text-teal-100 mt-0.5">Direct wallet settlement</p>
+                                            <div className="mt-2.5 flex items-center justify-between border-t border-white/15 pt-2 text-xs">
+                                                <span className="text-white/80">0% Commission</span>
+                                                <span className="text-cyan-300 font-bold">Fast Payout</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -212,7 +233,7 @@ export default function ArtisanHeroCarousel({
                             <div className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl" />
                             <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-teal-500/20 blur-3xl" />
 
-                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1.1fr_0.9fr] w-full min-w-0">
+                            <div className="relative z-10 grid grid-cols-1 items-center gap-6 lg:grid-cols-[1fr_1fr] w-full min-w-0">
                                 <div className="min-w-0">
                                     <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-300/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-200">
                                         <ShieldCheck className="h-3.5 w-3.5" /> 100% Milestone Escrow
@@ -243,30 +264,29 @@ export default function ArtisanHeroCarousel({
                                     </div>
                                 </div>
 
-                                {/* Escrow Milestone Card */}
-                                <div className="hidden sm:flex justify-self-end w-full max-w-sm flex-col gap-3 min-w-0">
-                                    <div className="rounded-2xl border border-white/25 bg-white/15 p-5 backdrop-blur-xl shadow-xl text-white">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-12 w-12 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-md shrink-0">
-                                                <Lock className="h-6 w-6" />
+                                {/* Person Visual Cutout */}
+                                <div className="relative hidden sm:flex items-end justify-center lg:justify-end w-full max-w-lg min-w-0 self-end -mb-8 sm:-mb-10">
+                                    <div className="relative flex items-end">
+                                        <Image
+                                            src="/images/heroes/escrow-trust-agent.png"
+                                            alt="100% Verified Escrow Officer"
+                                            width={500}
+                                            height={600}
+                                            className="h-84 sm:h-[400px] lg:h-[450px] xl:h-[490px] w-auto object-contain object-bottom drop-shadow-[0_25px_45px_rgba(0,0,0,0.6)] transition-transform duration-500 hover:scale-105"
+                                        />
+                                        <div className="absolute -left-6 sm:-left-10 bottom-12 sm:bottom-16 rounded-2xl border border-white/25 bg-black/55 p-3.5 backdrop-blur-xl shadow-2xl text-white min-w-[210px]">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className="h-9 w-9 rounded-xl bg-emerald-500 flex items-center justify-center text-white shrink-0 shadow-md">
+                                                    <ShieldCheck className="h-4.5 w-4.5" />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="font-black text-white text-xs truncate">100% Milestone Lock</p>
+                                                    <p className="text-[11px] text-emerald-200 truncate">Inspection Verified</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h4 className="font-black text-white text-base">Milestone Escrow Active</h4>
-                                                <p className="text-xs text-emerald-100">Guaranteed safe transaction</p>
-                                            </div>
-                                        </div>
-                                        <div className="mt-3 space-y-1.5 border-t border-white/15 pt-3 text-xs">
-                                            <div className="flex items-center gap-2 text-white/90">
-                                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300 shrink-0" />
-                                                <span>Job terms & milestones agreed</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-white/90">
-                                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300 shrink-0" />
-                                                <span>Funds locked before dispatch</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-white/90">
-                                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300 shrink-0" />
-                                                <span>Disbursed on customer confirmation</span>
+                                            <div className="mt-2.5 flex items-center justify-between border-t border-white/15 pt-2 text-xs">
+                                                <span className="text-white/80">Funds Protected</span>
+                                                <span className="text-emerald-300 font-bold">Guaranteed</span>
                                             </div>
                                         </div>
                                     </div>
