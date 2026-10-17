@@ -52,7 +52,6 @@ const navItems = [
     { icon: Wrench, label: 'Artisans & Pros', href: '/app/artisans' },
     { icon: Rocket, label: 'Business LaunchPad', href: '/app/services' },
     { icon: BookOpen, label: 'Learn', href: '/app/learn' },
-    { icon: Wallet, label: 'Wallet & Save', href: '/app/wallet' },
     { icon: HandCoins, label: 'Crowdfunding', href: '/app/funding' },
     { icon: LayoutGrid, label: 'Fintech', href: '/app/fintech' },
     { icon: MessageCircle, label: 'Messages', href: '/app/chat', badgeProp: 'messageCount' as const },

@@ -8,27 +8,48 @@ export type UserRole = 'user' | 'creator' | 'admin'
 
 const MB = 1024 * 1024
 
-export const UPLOAD_LIMITS: Record<UserRole, { maxDurationS: number; maxBytes: number }> = {
-    user: { maxDurationS: 60, maxBytes: 100 * MB },
-    creator: { maxDurationS: 10 * 60, maxBytes: 1024 * MB },
-    admin: { maxDurationS: 10 * 60, maxBytes: 1024 * MB },
+export const UPLOAD_LIMITS: Record<UserRole, { maxDurationS: number; maxBytes: number; maxDailyUploads: number }> = {
+    user: { maxDurationS: 60, maxBytes: 100 * MB, maxDailyUploads: 5 },
+    creator: { maxDurationS: 10 * 60, maxBytes: 1024 * MB, maxDailyUploads: 25 },
+    admin: { maxDurationS: 10 * 60, maxBytes: 1024 * MB, maxDailyUploads: 100 },
 }
 
 /**
- * Who can go live. Opened to every signed-in user for now (CTO, Oct 2026) —
- * set to ['admin'] to go back to admin-only.
+ * Who can go live. Opened to all users per instruction.
  */
 export const LIVE_STREAM_ROLES: UserRole[] = ['user', 'creator', 'admin']
 
 /**
- * Live is the expensive part of Mux, so cap it per role: the longest single
- * broadcast (Mux cuts the stream after this) and how many not-yet-ended
- * streams one person can have at a time.
+ * Live is the expensive part of Mux and Cloudflare, so cap it per role:
+ * - maxDurationS: longest single broadcast
+ * - maxOpenStreams: simultaneous active streams
+ * - maxDailyMinutes: total live minutes allowed per 24-hour day
+ * - allowRecording: whether to save stream as replay (disabled for 'user' to control costs)
  */
-export const LIVE_LIMITS: Record<UserRole, { maxDurationS: number; maxOpenStreams: number }> = {
-    user: { maxDurationS: 2 * 60 * 60, maxOpenStreams: 1 },
-    creator: { maxDurationS: 4 * 60 * 60, maxOpenStreams: 1 },
-    admin: { maxDurationS: 4 * 60 * 60, maxOpenStreams: 3 },
+export const LIVE_LIMITS: Record<UserRole, {
+    maxDurationS: number
+    maxOpenStreams: number
+    maxDailyMinutes: number
+    allowRecording: boolean
+}> = {
+    user: {
+        maxDurationS: 60 * 60,
+        maxOpenStreams: 1,
+        maxDailyMinutes: 60,
+        allowRecording: false,
+    },
+    creator: {
+        maxDurationS: 4 * 60 * 60,
+        maxOpenStreams: 1,
+        maxDailyMinutes: 240,
+        allowRecording: true,
+    },
+    admin: {
+        maxDurationS: 4 * 60 * 60,
+        maxOpenStreams: 3,
+        maxDailyMinutes: 720,
+        allowRecording: true,
+    },
 }
 
 export const ALLOWED_VIDEO_TYPES =['video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v']

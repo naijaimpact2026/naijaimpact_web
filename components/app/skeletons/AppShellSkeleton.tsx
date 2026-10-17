@@ -1,12 +1,12 @@
 import
 {
     Home,
+    Compass,
     Search,
     Users,
     ShoppingBag,
     BookOpen,
     Briefcase,
-    Wallet,
     HandCoins,
     LayoutGrid,
     MessageCircle,
@@ -21,8 +21,8 @@ import { SkeletonAvatar, SkeletonBlock, SkeletonLine, WAVE_STEP } from './primit
 
 // Same order as navItems in components/app/Sidebar.tsx.
 const NAV_ITEMS = [
-    Home, Search, Users, Clapperboard, ShoppingBag, Briefcase, Wrench, Rocket,
-    BookOpen, Wallet, HandCoins, LayoutGrid, MessageCircle, Bell,
+    Home, Compass, Search, Users, Clapperboard, ShoppingBag, Briefcase, Wrench, Rocket,
+    BookOpen, HandCoins, LayoutGrid, MessageCircle, Bell,
 ]
 
 /**
@@ -37,7 +37,7 @@ const NAV_ITEMS = [
 export default function AppShellSkeleton({ children }: { children?: React.ReactNode }) {
     return (
         <div className="flex min-h-screen bg-background text-foreground">
-            <header className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center gap-3 px-4 sm:px-6 bg-card border-b border-border">
+            <header className="fixed top-0 left-0 right-0 z-50 h-16 flex items-center gap-2 sm:gap-3 px-3 sm:px-6 bg-card border-b border-border">
                 <Menu className="w-5 h-5 text-muted-foreground/30 shrink-0 lg:hidden" />
 
                 <div className="flex items-center gap-2 shrink-0">
@@ -45,15 +45,15 @@ export default function AppShellSkeleton({ children }: { children?: React.ReactN
                     <Skeleton className="hidden sm:block h-5 w-20 rounded-full" delay={WAVE_STEP} />
                 </div>
 
-                <div className="flex-1 max-w-xl mx-auto">
+                <div className="flex-1 min-w-0 max-w-xl mx-1 sm:mx-auto">
                     <Skeleton className="h-9 w-full rounded-full" delay={WAVE_STEP * 2} />
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                     <Skeleton className="hidden sm:block h-9 w-10 rounded-xl" delay={WAVE_STEP * 3} />
                     <Skeleton className="hidden sm:block h-9 w-10 rounded-xl" delay={WAVE_STEP * 4} />
-                    <Skeleton className="h-9 w-9 rounded-full" delay={WAVE_STEP * 5} />
-                    <Skeleton className="h-9 w-9 rounded-full" delay={WAVE_STEP * 6} />
+                    <Skeleton className="hidden sm:block h-9 w-9 rounded-full" delay={WAVE_STEP * 5} />
+                    <Skeleton className="hidden sm:block h-9 w-9 rounded-full" delay={WAVE_STEP * 6} />
                     <SkeletonAvatar size={32} delay={WAVE_STEP * 7} />
                 </div>
             </header>

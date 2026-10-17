@@ -4,9 +4,11 @@ import { formatDistanceToNow } from 'date-fns'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { canGoLive, getLiveLimits, normalizeRole } from '@/lib/modushive/config'
+import { isCloudflareStreamConfigured } from '@/lib/modushive/cloudflare'
 import { isMuxConfigured } from '@/lib/modushive/mux'
 import { listStudioStreams } from '@/lib/modushive/queries'
-import { EndStreamButton, GoLiveForm, StreamKeyPanel } from '@/components/app/modushive/StudioControls'
+import { BrowserStudio } from '@/components/app/modushive/BrowserStudio'
+import { EndStreamButton, GoLiveForm } from '@/components/app/modushive/StudioControls'
 import { ProcessingRefresher } from '@/components/app/modushive/VideoActions'
 import type { LiveStream } from '@/lib/types'
 
@@ -34,32 +36,83 @@ export default async function StudioPage()
     // Admins oversee every stream; everyone else sees only their own.
     const isAdmin = normalizeRole(profile.role) === 'admin'
     const streams = await listStudioStreams(isAdmin ? undefined : profile.id)
+    const activeStream = streams.find((s) => s.host_id === profile.id && s.status !== 'ended')
     const maxHours = getLiveLimits(profile.role).maxDurationS / 3600
     // Keep polling while a stream is waiting/live, or just ended and its replay isn't in yet.
     const recentlyEnded = (endedAt: string | null) => !!endedAt && Date.now() - new Date(endedAt).getTime() < 15 * 60_000
     const watching = streams.some((s) => s.status !== 'ended' || (!s.replay_video_id && recentlyEnded(s.ended_at)))
+    const isConfigured = isCloudflareStreamConfigured() || isMuxConfigured()
 
     return (
-        <div className="w-full max-w-3xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6">
+        <div className={`w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 ${activeStream ? 'max-w-[1440px]' : 'max-w-3xl'}`}>
             <ProcessingRefresher active={watching} intervalMs={10000} />
 
-            <Link href="/app/modushive" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="h-4 w-4" /> ModusHive
-            </Link>
+            {/* Studio Navigation & Breadcrumbs */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                    <Link
+                        href="/app/modushive"
+                        className="inline-flex items-center gap-1.5 font-medium hover:text-foreground transition-colors"
+                    >
+                        <ArrowLeft className="h-4 w-4" /> ModusHive
+                    </Link>
+                    <span>/</span>
+                    <span className="font-semibold text-foreground">Live Studio</span>
+                    {activeStream && (
+                        <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-destructive/15 text-destructive border border-destructive/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                            Broadcast Ready
+                        </span>
+                    )}
+                </div>
 
-            <div>
-                <h1 className="font-display text-xl sm:text-2xl font-extrabold text-foreground">Live studio</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                    Create a stream, paste the server URL and stream key into OBS (or any RTMP app), then start streaming.
-                    It goes live on ModusHive as soon as the signal arrives, and the recording becomes a replay video.
-                    Streams can run for up to {maxHours} {maxHours === 1 ? 'hour' : 'hours'}.
-                </p>
+                <div className="text-xs text-muted-foreground">
+                    Max broadcast duration: <span className="font-semibold text-foreground">{maxHours} {maxHours === 1 ? 'hour' : 'hours'}</span>
+                </div>
             </div>
 
-            {isMuxConfigured() ? <GoLiveForm /> : (
+            {!activeStream && (
+                <div>
+                    <h1 className="font-display text-xl sm:text-2xl font-extrabold text-foreground">Live studio</h1>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Broadcast live directly from your web browser using your webcam and microphone.
+                        Streams can run for up to {maxHours} {maxHours === 1 ? 'hour' : 'hours'}.
+                    </p>
+                </div>
+            )}
+
+            {!isConfigured ? (
                 <p className="rounded-2xl border border-border bg-muted/50 p-5 text-sm text-muted-foreground">
-                    Mux isn&apos;t configured yet. Add the MUX_* environment variables to enable live streaming.
+                    Live streaming is not configured yet. Add your CLOUDFLARE_STREAM_TOKEN or Mux credentials to enable live streaming.
                 </p>
+            ) : activeStream ? (
+                <section className="space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="min-w-0">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                <span className="h-2 w-2 rounded-full bg-emerald animate-pulse" />
+                                Active Broadcast Session
+                            </span>
+                            <h2 className="truncate text-lg sm:text-xl font-extrabold text-foreground">
+                                {activeStream.title}
+                            </h2>
+                            {activeStream.description && (
+                                <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                                    {activeStream.description}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                    <BrowserStudio
+                        liveStreamId={activeStream.id}
+                        streamTitle={activeStream.title}
+                        streamDescription={activeStream.description}
+                        initialStatus={activeStream.status}
+                        chatChannelId={activeStream.chat_channel_id}
+                        hostId={activeStream.host_id}
+                    />
+                </section>
+            ) : (
+                <GoLiveForm />
             )}
 
             <section className="space-y-3">
@@ -89,7 +142,6 @@ export default async function StudioPage()
                                         {s.status !== 'ended' && <EndStreamButton liveStreamId={s.id} />}
                                     </div>
                                 </div>
-                                {s.status !== 'ended' && <StreamKeyPanel liveStreamId={s.id} />}
                             </li>
                         ))}
                     </ul>

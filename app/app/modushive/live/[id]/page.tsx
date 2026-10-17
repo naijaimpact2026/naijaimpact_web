@@ -6,7 +6,7 @@ import { getCurrentUser } from '@/lib/supabase/auth'
 import { getLiveStream } from '@/lib/modushive/queries'
 import { isMuxConfigured, signPlayback } from '@/lib/modushive/mux'
 import MuxVideoPlayer from '@/components/app/modushive/MuxVideoPlayer'
-import LiveChat from '@/components/app/modushive/LiveChat'
+import LiveStreamLayout from '@/components/app/modushive/LiveStreamLayout'
 import { ProcessingRefresher } from '@/components/app/modushive/VideoActions'
 
 export const dynamic = 'force-dynamic'
@@ -17,24 +17,36 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
     const [{ profile }, stream] = await Promise.all([getCurrentUser(), getLiveStream(id)])
     if (!stream) notFound()
 
-    const isLive = stream.status === 'live' && stream.playback_id && isMuxConfigured()
-    const tokens = isLive ? await signPlayback(stream.playback_id!, stream.playback_policy) : undefined
+    const isLive = stream.status === 'live' && Boolean(stream.playback_id)
+    const tokens = isLive && stream.provider === 'mux' && stream.playback_id ? await signPlayback(stream.playback_id, stream.playback_policy) : undefined
     const host = stream.host
 
     return (
-        <div className="w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4">
+        <div className="w-full px-3 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5 space-y-3 sm:space-y-4">
             {/* Pick up going live, or the replay arriving, without a manual reload.
                 Never while playing — a refresh would re-sign tokens and reload the player. */}
             <ProcessingRefresher active={stream.status === 'idle' || (stream.status === 'ended' && !stream.replay_video_id)} intervalMs={10000} />
 
-            <Link href="/app/modushive" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="h-4 w-4" /> ModusHive
-            </Link>
-
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-                <div className="space-y-4 min-w-0">
-                    {isLive ? (
-                        <MuxVideoPlayer live playbackId={stream.playback_id!} tokens={tokens} title={stream.title} videoId={stream.id} viewerId={profile?.id} />
+            <LiveStreamLayout
+                backLink={
+                    <Link href="/app/modushive" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+                        <ArrowLeft className="h-4 w-4" /> ModusHive
+                    </Link>
+                }
+                videoSlot={
+                    isLive ? (
+                        stream.provider === 'cloudflare' ? (
+                            <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-black shadow-lg">
+                                <iframe
+                                    src={`https://iframe.videodelivery.net/${stream.playback_id}?autoplay=true`}
+                                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                                    allowFullScreen
+                                    className="h-full w-full border-0"
+                                />
+                            </div>
+                        ) : (
+                            <MuxVideoPlayer live playbackId={stream.playback_id!} tokens={tokens} title={stream.title} videoId={stream.id} viewerId={profile?.id} />
+                        )
                     ) : (
                         <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl bg-muted px-6 text-center">
                             <Radio className="h-7 w-7 text-muted-foreground" />
@@ -52,8 +64,9 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                                 </>
                             )}
                         </div>
-                    )}
-
+                    )
+                }
+                infoSlot={
                     <div className="space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
                             {stream.status === 'live' && (
@@ -79,14 +92,10 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                             <p className="whitespace-pre-wrap rounded-2xl bg-muted/60 px-4 py-3 text-sm leading-relaxed text-foreground">{stream.description}</p>
                         )}
                     </div>
-                </div>
-
-                {stream.chat_channel_id && stream.status !== 'ended' && (
-                    <aside className="lg:sticky lg:top-20 lg:h-[calc(100vh-7rem)]">
-                        <LiveChat channelId={stream.chat_channel_id} />
-                    </aside>
-                )}
-            </div>
+                }
+                chatChannelId={stream.status !== 'ended' ? stream.chat_channel_id : null}
+                hostId={stream.host_id}
+            />
         </div>
     )
 }

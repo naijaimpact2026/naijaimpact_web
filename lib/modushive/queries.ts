@@ -55,7 +55,9 @@ export async function listMyPendingVideos(ownerId: string): Promise<Video[]>
         .limit(10)
 
     if (error || !data) return []
-    const synced = await Promise.all((data as Video[]).map(syncVideo))
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const active = (data as Video[]).filter((v) => !(v.status === 'uploading' && v.created_at < oneDayAgo))
+    const synced = await Promise.all(active.map(syncVideo))
     return synced.filter((v) => v.status !== 'ready')
 }
 
@@ -79,8 +81,10 @@ async function withStreamThumbnails(rows: LiveStreamRow[]): Promise<LiveStreamWi
     const synced = await Promise.all(rows.map(syncLiveStream))
     return Promise.all(synced.map(async (s) => ({
         ...s,
-        thumbnail_url: canSign && s.status === 'live'
-            ? await getThumbnailUrl(s.playback_id, s.playback_policy)
+        thumbnail_url: s.status === 'live' && s.playback_id
+            ? s.provider === 'cloudflare'
+                ? `https://videodelivery.net/${s.playback_id}/thumbnails/thumbnail.jpg`
+                : canSign ? await getThumbnailUrl(s.playback_id, s.playback_policy) : null
             : null,
     })))
 }
