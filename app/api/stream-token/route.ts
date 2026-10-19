@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
 import { StreamChat } from 'stream-chat'
-import { getCurrentUser } from '@/lib/supabase/auth'
+import { getRequestUser } from '@/lib/supabase/request-auth'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // Verify Supabase session and resolve current user profile
-    const { authUser, profile } = await getCurrentUser()
+    // Verify the Supabase session (cookie on web, Bearer token from the
+    // mobile app) and resolve current user profile
+    const { authUser, profile } = await getRequestUser(request)
 
     if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
