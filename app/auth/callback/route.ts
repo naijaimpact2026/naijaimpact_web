@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { ensureUserRow } from '@/lib/actions/auth'
-import type { EmailOtpType, SupabaseClient } from '@supabase/supabase-js'
+import { ensureUserRow } from '@/lib/supabase/ensure-user-row'
+import type { EmailOtpType } from '@supabase/supabase-js'
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
         if (!error) {
             const { data: { user } } = await supabase.auth.getUser()
             if (user) {
-                await ensureUserRow(user, supabase as unknown as SupabaseClient)
+                await ensureUserRow(user)
             }
             return NextResponse.redirect(`${publicOrigin}${next}`)
         }
@@ -76,7 +76,7 @@ export async function GET(request: Request) {
         if (!error) {
             const { data: { user } } = await supabase.auth.getUser()
             if (user) {
-                await ensureUserRow(user, supabase as unknown as SupabaseClient)
+                await ensureUserRow(user)
             }
             return NextResponse.redirect(`${publicOrigin}${next}`)
         }

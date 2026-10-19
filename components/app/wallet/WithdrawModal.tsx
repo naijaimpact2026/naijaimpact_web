@@ -58,8 +58,8 @@ const bankSchema = z.object({
 const withdrawPinSchema = z.object({
   pin: z
     .string()
-    .length(6, 'PIN must be exactly 6 digits')
-    .regex(/^\d{6}$/, 'PIN must contain only digits'),
+    .min(4, 'PIN must be 4 to 6 digits').max(6, 'PIN must be 4 to 6 digits')
+    .regex(/^\d{4,6}$/, 'PIN must contain only digits'),
 })
 
 type BankFormValues = z.infer<typeof bankSchema>
@@ -304,7 +304,7 @@ export default function WithdrawModal({
               <ShieldAlert className="w-12 h-12 text-amber-500" />
             </div>
             <p className="text-sm text-muted-foreground">
-              Set a 6-digit PIN in Settings to secure your transactions and enable withdrawals.
+              Set a 4–6 digit PIN in Settings to secure your transactions and enable withdrawals.
             </p>
             <Button asChild className="w-full gradient-primary text-white rounded-xl">
               <Link href="/app/settings" onClick={handleClose}>
@@ -606,7 +606,7 @@ export default function WithdrawModal({
             <DialogHeader>
               <DialogTitle className="text-xl font-bold">Confirm Withdrawal</DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                Review your payout details and enter your 6-digit Wallet PIN.
+                Review your payout details and enter your 4–6 digit Wallet PIN.
               </DialogDescription>
             </DialogHeader>
 
@@ -644,7 +644,7 @@ export default function WithdrawModal({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-center block text-xs font-semibold">
-                        Enter 6-Digit Wallet PIN
+                        Enter 4–6 Digit Wallet PIN
                       </FormLabel>
                       <FormControl>
                         <div className="flex justify-center">
@@ -701,7 +701,7 @@ export default function WithdrawModal({
                   <Button
                     type="submit"
                     className="flex-1 rounded-xl gradient-primary text-white"
-                    disabled={loading || pinForm.watch('pin')?.length !== 6}
+                    disabled={loading || (pinForm.watch('pin')?.length ?? 0) < 4}
                     aria-busy={loading}
                   >
                     {loading ? (

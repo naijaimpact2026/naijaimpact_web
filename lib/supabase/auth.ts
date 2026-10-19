@@ -29,7 +29,8 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> =>
     const { data: { user: authUser } } = await supabase.auth.getUser()
     if (!authUser) return { authUser: null, profile: null }
 
-    let { data: profile } = await supabase
+    // Own profile via service role: users.email isn't readable with the user client.
+    let { data: profile } = await createServiceClient()
         .from('users')
         .select('*')
         .or(`auth_id.eq.${authUser.id},id.eq.${authUser.id}`)

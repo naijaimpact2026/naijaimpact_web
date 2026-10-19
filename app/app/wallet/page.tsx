@@ -3,6 +3,7 @@ import Script from 'next/script'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { fetchWallet } from '@/lib/actions/wallet'
 import WalletPanel from '@/components/app/wallet/WalletPanel'
+import { hasWalletPin } from '@/lib/wallet-pin'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Wallet — HubNovo' }
@@ -13,7 +14,7 @@ export default async function WalletPage() {
     if (!authUser) redirect('/auth/login')
     if (!profile) redirect('/auth/login')
 
-    const { wallet, transactions } = await fetchWallet(20)
+    const [{ wallet, transactions }, hasPin] = await Promise.all([fetchWallet(20), hasWalletPin(profile.id)])
 
     return (
         <>
@@ -26,7 +27,7 @@ export default async function WalletPage() {
                 wallet={wallet}
                 transactions={transactions}
                 userEmail={authUser.email ?? ''}
-                hasPin={Boolean(profile.wallet_pin)}
+                hasPin={hasPin}
                 displayName={profile.display_name ?? undefined}
                 naijaPoints={(profile as any).naija_points ?? 0}
             />

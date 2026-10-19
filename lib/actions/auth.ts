@@ -1,55 +1,11 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
+import { ensureUserRow } from '@/lib/supabase/ensure-user-row'
+import { clientIp, rateLimit, RATE_LIMITED } from '@/lib/rate-limit'
 import { redirect } from 'next/navigation'
 import { cookies, headers } from 'next/headers'
-
-/**
- * Admin Supabase client that bypasses RLS to safely manage user profile records.
- */
-function getAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  return createSupabaseClient(url, serviceKey ?? anonKey, {
-    auth: { persistSession: false },
-  })
-}
-
-export async function ensureUserRow(
-  user: { id: string; email?: string; user_metadata?: Record<string, any> },
-  authenticatedClient?: SupabaseClient
-) {
-  const client = authenticatedClient ?? getAdminClient()
-  const cleanEmail = (user.email || '').trim().toLowerCase()
-
-  const { data: existing } = await client
-    .from('users')
-    .select('id, auth_id, username, display_name, fullname')
-    .or(`id.eq.${user.id},auth_id.eq.${user.id}${cleanEmail ? `,email.eq.${cleanEmail}` : ''}`)
-    .maybeSingle()
-
-  if (!existing) {
-    const rawUsername = user.user_metadata?.username || (cleanEmail ? cleanEmail.split('@')[0] : `user_${user.id.slice(0, 8)}`)
-    const cleanUsername = rawUsername.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 25) || `user_${user.id.slice(0, 8)}`
-    const displayName = user.user_metadata?.full_name || user.user_metadata?.name || 'Hubnovo Member'
-    const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || null
-
-    await client.from('users').upsert({
-      id: user.id,
-      auth_id: user.id,
-      email: cleanEmail,
-      username: cleanUsername,
-      display_name: displayName,
-      fullname: displayName,
-      avatar_url: avatarUrl,
-      onboarded: false,
-    }, { onConflict: 'id' })
-  } else if (!existing.auth_id || existing.auth_id !== user.id) {
-    await client.from('users').update({ auth_id: user.id }).eq('id', existing.id)
-  }
-}
 
 export async function signUp(formData: {
   fullName: string
@@ -61,9 +17,14 @@ export async function signUp(formData: {
   const cleanUsername = formData.username.trim().toLowerCase()
   const cleanEmail = formData.email.trim().toLowerCase()
 
+  if (!(await rateLimit(`signup:ip:${await clientIp()}`, 5, 3600, { failOpen: true }))) {
+    return { error: RATE_LIMITED }
+  }
+
   // 1. Pre-flight check: verify username and email availability in public.users
   // BEFORE creating an auth user in Supabase auth to avoid orphaned/stranded auth accounts.
-  const { data: existingUser } = await supabase
+  // Service role: signed-out callers can't read users.
+  const { data: existingUser } = await createServiceClient()
     .from('users')
     .select('id, username, email')
     .or(`username.ilike.${cleanUsername},email.ilike.${cleanEmail}`)
@@ -99,7 +60,7 @@ export async function signUp(formData: {
   }
 
   // 3. Pre-insert user profile row using admin client to bypass RLS for unconfirmed accounts
-  const admin = getAdminClient()
+  const admin = createServiceClient()
   const { error: insertError } = await admin.from('users').upsert({
     id: data.user.id,
     auth_id: data.user.id,
@@ -128,6 +89,10 @@ export async function verifySignupOtp(
   const cleanToken = token.trim()
   const cleanEmail = email.trim().toLowerCase()
 
+  if (!(await rateLimit(`otp:email:${cleanEmail}`, 10, 600, { failOpen: true }))) {
+    return { error: RATE_LIMITED }
+  }
+
   const { data, error } = await supabase.auth.verifyOtp({
     email: cleanEmail,
     token: cleanToken,
@@ -147,13 +112,13 @@ export async function verifySignupOtp(
     }
 
     if (fallback.data?.user) {
-      await ensureUserRow(fallback.data.user, supabase as unknown as SupabaseClient)
+      await ensureUserRow(fallback.data.user)
     }
     return { success: true }
   }
 
   if (data?.user) {
-    await ensureUserRow(data.user, supabase as unknown as SupabaseClient)
+    await ensureUserRow(data.user)
   }
 
   return { success: true }
@@ -163,10 +128,15 @@ export async function resendSignupOtp(
   email: string
 ): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient()
+  const cleanEmail = email.trim().toLowerCase()
+
+  if (!(await rateLimit(`otp-resend:email:${cleanEmail}`, 3, 600, { failOpen: true }))) {
+    return { error: RATE_LIMITED }
+  }
 
   const { error } = await supabase.auth.resend({
     type: 'signup',
-    email: email.trim().toLowerCase(),
+    email: cleanEmail,
   })
 
   if (error) {
@@ -182,6 +152,12 @@ export async function signIn(formData: {
 }): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient()
   const cleanEmail = formData.email.trim().toLowerCase()
+
+  const ip = await clientIp()
+  const allowed =
+    (await rateLimit(`signin:ip:${ip}`, 30, 600, { failOpen: true })) &&
+    (await rateLimit(`signin:email:${cleanEmail}`, 10, 600, { failOpen: true }))
+  if (!allowed) return { error: RATE_LIMITED }
 
   const { error } = await supabase.auth.signInWithPassword({
     email: cleanEmail,
@@ -216,6 +192,11 @@ export async function requestPasswordReset(
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient()
   const cleanEmail = email.trim().toLowerCase()
+
+  const allowed =
+    (await rateLimit(`reset:ip:${await clientIp()}`, 10, 3600, { failOpen: true })) &&
+    (await rateLimit(`reset:email:${cleanEmail}`, 3, 3600, { failOpen: true }))
+  if (!allowed) return { success: false, error: RATE_LIMITED }
 
   let siteUrl = process.env.NEXT_PUBLIC_SITE_URL
   if (!siteUrl) {

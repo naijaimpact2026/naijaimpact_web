@@ -1,18 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
 
-// Build a Supabase admin client that bypasses RLS for webhook writes.
-// Falls back to anon client if service role key is not set.
-function getAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// Webhook writes bypass RLS; fails closed if the service role key is missing.
+const getAdminClient = createServiceClient
 
-  return createSupabaseClient(url, serviceKey ?? anonKey, {
-    auth: { persistSession: false },
-  })
+type Admin = ReturnType<typeof getAdminClient>
+
+/** Constant-time comparison of two hex digests. */
+function safeEqualHex(a: string, b: string): boolean {
+  const ab = Buffer.from(a, 'hex')
+  const bb = Buffer.from(b, 'hex')
+  return ab.length === bb.length && ab.length > 0 && crypto.timingSafeEqual(ab, bb)
 }
+
+/**
+ * metadata comes from the browser that opened the checkout, so a user id in
+ * it is only trusted when that account's email is the email that paid.
+ */
+async function verifiedPayer(supabase: Admin, userId: unknown, payerEmail: string): Promise<string | null> {
+  if (typeof userId !== 'string' || !userId || userId === 'anonymous' || !payerEmail) return null
+  const { data } = await supabase.from('users').select('id, email').eq('id', userId).maybeSingle()
+  return data && String(data.email ?? '').trim().toLowerCase() === payerEmail ? data.id : null
+}
+
+const sameAmount = (a: number, b: number) => Math.abs(a - b) < 0.01
 
 export async function POST(request: NextRequest) {
   const paystackSecret = process.env.PAYSTACK_SECRET_KEY
@@ -26,13 +38,9 @@ export async function POST(request: NextRequest) {
   const rawBody = await request.text()
   const signature = request.headers.get('x-paystack-signature') ?? ''
 
-  // Verify HMAC-SHA512
-  const expectedSig = crypto
-    .createHmac('sha512', paystackSecret)
-    .update(rawBody)
-    .digest('hex')
+  const expectedSig = crypto.createHmac('sha512', paystackSecret).update(rawBody).digest('hex')
 
-  if (expectedSig !== signature) {
+  if (!safeEqualHex(expectedSig, signature)) {
     console.warn('Paystack webhook: invalid signature')
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
@@ -44,209 +52,158 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const eventType = event.event as string
-
   // Only process charge.success
-  if (eventType !== 'charge.success') {
+  if (event.event !== 'charge.success') {
     return NextResponse.json({ received: true }, { status: 200 })
   }
 
   const data = event.data as Record<string, unknown>
   const paystackRef = data.reference as string
-  const amountKobo = data.amount as number
-  const amountNGN = amountKobo / 100
+  const amountNGN = (Number(data.amount) || 0) / 100
+  const currency = data.currency as string | undefined
+  const payerEmail = String((data.customer as { email?: string } | undefined)?.email ?? '').trim().toLowerCase()
 
   const metadata = (data.metadata ?? {}) as Record<string, unknown>
   const type = metadata.type as string
-  const userId = metadata.userId as string
-  const referenceId = metadata.referenceId as string | undefined
+  const referenceId = typeof metadata.referenceId === 'string' ? metadata.referenceId : undefined
 
-  if (!paystackRef || !userId || !type) {
-    console.error('Paystack webhook: missing required metadata fields', { paystackRef, userId, type })
+  if (!paystackRef || !type || amountNGN <= 0 || (currency && currency !== 'NGN')) {
+    console.error('Paystack webhook: missing or invalid fields', { paystackRef, type, currency })
     return NextResponse.json({ received: true }, { status: 200 })
   }
 
   const supabase = getAdminClient()
 
-  // Idempotency check: skip if transaction already recorded
-  const { data: existing } = await supabase
-    .from('transactions')
-    .select('id')
-    .eq('ref', paystackRef)
-    .maybeSingle()
-
-  if (existing) {
-    // Already processed
-    return NextResponse.json({ received: true }, { status: 200 })
-  }
-
   try {
     if (type === 'campaign_donation' && referenceId) {
-      // 1. Fetch campaign to verify existence and get creator/title
       const { data: campaign } = await supabase
         .from('funding')
         .select('id, title, user_id, funding_type')
         .eq('id', referenceId)
         .maybeSingle()
+      if (!campaign) return NextResponse.json({ received: true }, { status: 200 })
 
-      // Check if already in funding_transactions
-      const { data: existingFt } = await supabase
-        .from('funding_transactions')
-        .select('id')
-        .eq('reference', paystackRef)
-        .maybeSingle()
+      const donorId = await verifiedPayer(supabase, metadata.userId, payerEmail)
 
-      // 2. Insert record in funding_transactions if not present
-      if (!existingFt) {
-        const resolvedUserId = (userId && userId !== 'anonymous') ? userId : campaign?.user_id
-        const { error: ftError } = await supabase.from('funding_transactions').insert({
-          funding_id: referenceId,
-          funding_type: (campaign as any)?.funding_type || 'campaign',
-          user_id: resolvedUserId,
-          amount: amountNGN,
-          reference: paystackRef,
-          transaction_status: 'success',
-        })
-
-        if (ftError) {
-          console.error('Paystack webhook: funding_transactions insert error', ftError)
-        }
+      // Unique on reference: a replayed webhook / the verify action can't record it twice.
+      const { error: ftError } = await supabase.from('funding_transactions').insert({
+        funding_id: referenceId,
+        funding_type: campaign.funding_type || 'campaign',
+        user_id: donorId ?? campaign.user_id,
+        amount: amountNGN,
+        reference: paystackRef,
+        transaction_status: 'success',
+        donation_visibility: donorId ? 'public' : 'anonymous',
+      })
+      if (ftError) {
+        if (ftError.code === '23505') return NextResponse.json({ received: true }, { status: 200 })
+        console.error('Paystack webhook: funding_transactions insert error', ftError)
+        return NextResponse.json({ error: 'DB error' }, { status: 500 })
       }
 
-      // 3. Insert donor ledger transaction
-      if (userId && userId !== 'anonymous') {
-        const { error: txError } = await supabase.from('transactions').insert({
-          user_id: userId,
+      if (donorId) {
+        await supabase.from('transactions').insert({
+          user_id: donorId,
           type: 'campaign_donation',
           amount: amountNGN,
           status: 'success',
           ref: paystackRef,
         })
-
-        if (txError) {
-          console.error('Paystack webhook: transaction insert error', txError)
-        }
       }
 
-      // 4. Notify campaign creator
-      if (campaign?.user_id && campaign.user_id !== userId) {
+      if (campaign.user_id !== donorId) {
         await supabase.from('notifications').insert({
           user_id: campaign.user_id,
-          actor_id: userId !== 'anonymous' ? userId : null,
+          actor_id: donorId,
           type: 'funding_contribution',
           reference_id: referenceId,
           read: false,
         })
       }
     } else if (type === 'deposit') {
-      // 1. Insert deposit transaction
-      const { error: txError } = await supabase.from('transactions').insert({
-        user_id: userId,
-        type: 'deposit',
-        amount: amountNGN,
-        status: 'success',
-        ref: paystackRef,
-      })
+      const userId = await verifiedPayer(supabase, metadata.userId, payerEmail)
+      if (!userId || amountNGN < 100) return NextResponse.json({ received: true }, { status: 200 })
 
-      if (txError) {
-        console.error('Paystack webhook: deposit transaction insert error', txError)
+      // Idempotent per reference (shared with verifyAndProcessDeposit).
+      const { error } = await supabase.rpc('web_wallet_credit', {
+        p_user_id: userId,
+        p_amount: amountNGN,
+        p_type: 'deposit',
+        p_ref: paystackRef,
+      })
+      if (error) {
+        console.error('Paystack webhook: deposit credit error', error)
         return NextResponse.json({ error: 'DB error' }, { status: 500 })
       }
-
-      // 2. Credit user_wallet
-      const { data: wallet } = await supabase
-        .from('user_wallet')
-        .select('id, balance')
-        .eq('user_id', userId)
-        .maybeSingle()
-
-      if (wallet) {
-        await supabase
-          .from('user_wallet')
-          .update({ balance: Number(wallet.balance) + amountNGN })
-          .eq('id', wallet.id)
-      } else {
-        await supabase.from('user_wallet').insert({
-          user_id: userId,
-          balance: amountNGN,
-        })
-      }
-    } else if (type === 'course_purchase' && referenceId) {
-      // Insert transaction; enrollment is handled separately
-      await supabase.from('transactions').insert({
-        user_id: userId,
-        type: 'course_purchase',
-        amount: amountNGN,
-        status: 'success',
-        ref: paystackRef,
-      })
-
-      // Enrol user in the course
-      await supabase.from('course_enrollments').upsert(
-        {
-          user_id: userId,
-          course_id: referenceId,
-          status: 'active',
-          progress: 0,
-        },
-        { onConflict: 'user_id,course_id', ignoreDuplicates: true }
-      )
     } else if (type === 'marketplace_purchase') {
-      // Cart checkout creates one real nm_orders/nm_escrow row per line item
+      const buyerId = await verifiedPayer(supabase, metadata.userId, payerEmail)
       const orderIds: string[] = Array.isArray(metadata.orderIds)
         ? (metadata.orderIds as unknown[]).filter((id): id is string => typeof id === 'string')
         : referenceId ? [referenceId] : []
+      if (!buyerId || orderIds.length === 0) return NextResponse.json({ received: true }, { status: 200 })
 
-      for (const orderId of orderIds) {
-        const { data: order } = await supabase
-          .from('nm_orders')
-          .select('id, buyer_id, seller_id, total_amount, status, seller_profile:nm_seller_profiles(user_id)')
-          .eq('id', orderId)
-          .maybeSingle()
+      const { data: orders } = await supabase
+        .from('nm_orders')
+        .select('id, buyer_id, total_amount, status, seller_profile:nm_seller_profiles(user_id)')
+        .in('id', orderIds)
 
-        if (!order || order.status !== 'pending') continue
+      const payable = (orders ?? []).filter((o) => o.buyer_id === buyerId && o.status === 'pending')
+      const due = payable.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0)
 
-        // 1. Insert buyer transaction
-        await supabase.from('transactions').insert({
+      // The amount paid must cover exactly these orders — metadata is client-supplied.
+      if (payable.length !== orderIds.length || !sameAmount(due, amountNGN)) {
+        console.error('Paystack webhook: marketplace amount/order mismatch', { paystackRef, due, amountNGN })
+        return NextResponse.json({ received: true }, { status: 200 })
+      }
+
+      for (const order of payable) {
+        // One ledger row per order; the unique (ref, type) index makes replays no-ops.
+        const { error: txError } = await supabase.from('transactions').insert({
           user_id: order.buyer_id,
-          type: 'transfer_debit',
+          type: 'marketplace_purchase',
           amount: order.total_amount,
           status: 'success',
-          ref: paystackRef,
+          ref: `${paystackRef}:${order.id}`,
         })
+        if (txError) continue
 
-        // 2. Confirm the order (paid — escrow held, not yet released to seller)
-        await supabase.from('nm_orders')
+        // Confirm the order (paid — escrow held, not yet released to seller)
+        await supabase
+          .from('nm_orders')
           .update({ status: 'confirmed', updated_at: new Date().toISOString() })
-          .eq('id', orderId)
+          .eq('id', order.id)
+          .eq('status', 'pending')
 
-        // 3. Fund the matching escrow row
-        const { data: escrow } = await supabase
+        await supabase
           .from('nm_escrow')
-          .select('id')
-          .eq('order_id', orderId)
-          .maybeSingle()
+          .update({ status: 'funded', funded_at: new Date().toISOString() })
+          .eq('order_id', order.id)
 
-        if (escrow) {
-          await supabase.from('nm_escrow')
-            .update({ status: 'funded', funded_at: new Date().toISOString() })
-            .eq('id', escrow.id)
-        }
-
-        // 4. Notify the seller
         const sellerUserId = (order as { seller_profile?: { user_id?: string } | null }).seller_profile?.user_id
         if (sellerUserId) {
           await supabase.from('notifications').insert({
             user_id: sellerUserId,
             actor_id: order.buyer_id,
             type: 'marketplace_order',
-            reference_id: orderId,
+            reference_id: order.id,
             read: false,
           })
         }
       }
     } else if (type === 'insurance_premium' && referenceId) {
-      // Idempotency: skip if policy already exists for this paystack_ref
+      const userId = await verifiedPayer(supabase, metadata.userId, payerEmail)
+      if (!userId) return NextResponse.json({ received: true }, { status: 200 })
+
+      const { data: product } = await supabase
+        .from('fintech_insure_products')
+        .select('id, weekly_premium, is_active')
+        .eq('id', referenceId)
+        .maybeSingle()
+      if (!product?.is_active || amountNGN < Number(product.weekly_premium || 0)) {
+        console.error('Paystack webhook: insurance premium mismatch', { paystackRef, amountNGN })
+        return NextResponse.json({ received: true }, { status: 200 })
+      }
+
       const { data: existingPolicy } = await supabase
         .from('fintech_insure_policies')
         .select('id')
@@ -254,29 +211,9 @@ export async function POST(request: NextRequest) {
         .maybeSingle()
 
       if (!existingPolicy) {
-        await supabase.from('transactions').insert({
-          user_id: userId,
-          type: 'insurance_premium',
-          amount: amountNGN,
-          status: 'success',
-          ref: paystackRef,
-        })
-
-        // Fetch the product to determine policy duration
-        const { data: product } = await supabase
-          .from('fintech_insure_products')
-          .select('duration_months, coverage_months')
-          .eq('id', referenceId)
-          .maybeSingle()
-
-        const durationMonths =
-          (product as any)?.duration_months ??
-          (product as any)?.coverage_months ??
-          12
-
         const startDate = new Date()
         const endDate = new Date(startDate)
-        endDate.setMonth(endDate.getMonth() + durationMonths)
+        endDate.setMonth(endDate.getMonth() + 12)
 
         await supabase.from('fintech_insure_policies').insert({
           user_id: userId,
@@ -288,6 +225,9 @@ export async function POST(request: NextRequest) {
         })
       }
     }
+    // 'course_purchase' is intentionally not handled here: paid courses go
+    // through the purchase_course RPC (wallet), and a card-paid course would
+    // need its price checked server-side first.
   } catch (err) {
     console.error('Paystack webhook processing error:', err)
     return NextResponse.json({ error: 'Processing error' }, { status: 500 })

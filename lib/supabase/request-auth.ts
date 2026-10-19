@@ -1,6 +1,7 @@
 import { createClient as createSupabaseClient, type SupabaseClient, type User as SupabaseAuthUser } from '@supabase/supabase-js'
 import { createClient } from './server'
 import { getCurrentUser } from './auth'
+import { createServiceClient } from './service'
 import type { User } from '@/lib/types'
 
 export interface RequestUser
@@ -38,7 +39,8 @@ export async function getRequestUser(request: Request): Promise<RequestUser>
     const { data: { user: authUser } } = await supabase.auth.getUser(token)
     if (!authUser) return { supabase, authUser: null, profile: null }
 
-    const { data: profile } = await supabase
+    // Own profile via service role: users.email isn't readable with the user client.
+    const { data: profile } = await createServiceClient()
         .from('users')
         .select('*')
         .or(`auth_id.eq.${authUser.id},id.eq.${authUser.id}`)
@@ -46,3 +48,7 @@ export async function getRequestUser(request: Request): Promise<RequestUser>
 
     return { supabase, authUser, profile: (profile as User | null) ?? null }
 }
+
+/** users columns any signed-in user may read (email / wallet_pin are private). */
+export const PUBLIC_USER_COLUMNS =
+    'id, username, fullname, profession, profile_image_url, created_at, updated_at, role, bio, referral_points, referred_by, referral_code, naija_points, display_name, auth_id, avatar_url, verified, onboarded, notifications_follows, notifications_reactions, notifications_comments, notifications_mentions, is_private, cover_url, location, website_url, quote, skills, impact_points, people_reached, people_trained, jobs_created, communities_impacted' as const

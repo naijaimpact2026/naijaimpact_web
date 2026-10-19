@@ -22,6 +22,7 @@ import {
   Target,
   Users,
 } from 'lucide-react'
+import { hasWalletPin } from '@/lib/wallet-pin'
 import { toPublicStorageUrl } from '@/lib/supabase-image'
 
 export const dynamic = 'force-dynamic'
@@ -77,10 +78,10 @@ export default async function FundingDetailPage({ params }: FundingDetailPagePro
   if (isCreator && authUser) {
     const { data: profile } = await supabase
       .from('users')
-      .select('wallet_pin')
+      .select('id')
       .or(`id.eq.${authUser.id},auth_id.eq.${authUser.id}`)
       .maybeSingle()
-    hasPin = Boolean(profile?.wallet_pin)
+    hasPin = profile ? await hasWalletPin(profile.id) : false
   }
 
   const goal = Number(campaign.goal_amount) || 0

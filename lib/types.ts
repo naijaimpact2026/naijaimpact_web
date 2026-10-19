@@ -20,7 +20,6 @@ export type User = {
   profession: string | null
   verified: boolean
   onboarded: boolean
-  wallet_pin: string | null
   notifications_follows: boolean
   notifications_reactions: boolean
   notifications_comments: boolean

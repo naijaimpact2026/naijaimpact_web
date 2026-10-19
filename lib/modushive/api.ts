@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getRequestUser, type RequestUser } from '@/lib/supabase/request-auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAsProfile } from './acting-profile'
+import { rateLimit, RATE_LIMITED } from '@/lib/rate-limit'
 import { isMuxConfigured, signPlayback } from './mux'
 import type { LiveStream, User, Video } from '@/lib/types'
 
@@ -24,6 +25,8 @@ export async function withProfile(request: Request, handler: (ctx: ApiContext) =
         const ctx = await getRequestUser(request)
         if (!ctx.authUser) return jsonError('Unauthorized', 401)
         if (!ctx.profile) return jsonError('Finish setting up your profile first.', 403)
+        if (!(await rateLimit(`modushive:${ctx.profile.id}`, 120, 60, { failOpen: true })))
+            return jsonError(RATE_LIMITED, 429)
         return await runAsProfile(ctx.profile, () => handler(ctx as ApiContext))
     } catch (err)
     {

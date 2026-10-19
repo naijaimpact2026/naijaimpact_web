@@ -8,7 +8,9 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/service'
+import { checkWalletPin, hasWalletPin } from '@/lib/wallet-pin'
+import { rateLimit, RATE_LIMITED } from '@/lib/rate-limit'
 import type {
   Campaign,
   CampaignWithCreator,
@@ -24,18 +26,8 @@ export type FundingFilter = 'all' | 'campaign' | 'project'
 export type FundingSort = 'recent' | 'most_funded' | 'highest_goal'
 export type FundingStatusFilter = 'all' | 'active' | 'completed'
 
-/**
- * Admin Supabase client that bypasses RLS.
- * Falls back to anon key if SUPABASE_SERVICE_ROLE_KEY is not set.
- */
-function getAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  return createSupabaseClient(url, serviceKey ?? anonKey, {
-    auth: { persistSession: false },
-  })
-}
+/** Admin Supabase client that bypasses RLS (server-only). */
+const getAdminClient = createServiceClient
 
 export interface CampaignFormData {
   title: string
@@ -65,7 +57,7 @@ async function getAuthContext() {
   const adminClient = getAdminClient()
   const { data: profile } = await adminClient
     .from('users')
-    .select('id, auth_id, username, display_name, avatar_url, wallet_pin')
+    .select('id, auth_id, username, display_name, avatar_url')
     .or(`id.eq.${authUser.id},auth_id.eq.${authUser.id}`)
     .maybeSingle()
 
@@ -802,6 +794,12 @@ export async function verifyAndProcessCampaignDonation(
       }
     }
 
+    // The payment must be a donation to THIS campaign (not a wallet deposit or
+    // another campaign's donation being counted twice).
+    if (data.metadata?.type !== 'campaign_donation' || data.metadata?.referenceId !== campaignId || data.currency !== 'NGN') {
+      return { success: false, error: 'This payment is not a donation to this campaign.' }
+    }
+
     // 3. Mathematics: Kobo to Naira conversion & validation
     const amountKobo = Number(data.amount) || 0
     if (amountKobo <= 0) {
@@ -821,13 +819,9 @@ export async function verifyAndProcessCampaignDonation(
     }
 
     // Multi-tier user resolution (user_id is NOT NULL and FK in funding_transactions)
-    let donorUserId: string | null =
-      profile?.id ??
-      (data.metadata?.userId && data.metadata.userId !== 'anonymous' ? data.metadata.userId : null)
-
-    if (!donorUserId && authUser?.id) {
-      donorUserId = authUser.id
-    }
+    // Donor = the signed-in user, else the account matching the payer's email
+    // (metadata.userId comes from the browser, so it isn't trusted on its own).
+    let donorUserId: string | null = profile?.id ?? null
 
     if (!donorUserId && data.customer?.email) {
       const { data: userByEmail } = await adminClient
@@ -921,13 +915,12 @@ export async function donateFromWallet(
     throw new Error('Minimum donation is ₦100')
   }
 
-  // Verify wallet PIN if user has one configured
-  if (profile.wallet_pin) {
-    if (!pin) throw new Error('Wallet PIN is required')
-    const bcrypt = await import('bcryptjs')
-    const pinMatches = await bcrypt.compare(pin, profile.wallet_pin)
-    if (!pinMatches) throw new Error('Incorrect wallet PIN')
-  }
+  if (!(await rateLimit(`donate-wallet:${profile.id}`, 10, 600))) throw new Error(RATE_LIMITED)
+
+  // Wallet spends always need the PIN (same as send / withdraw)
+  if (!pin) throw new Error('Wallet PIN is required')
+  const pinResult = await checkWalletPin(profile.id, pin)
+  if (!pinResult.ok) throw new Error(pinResult.error)
 
   // Check wallet balance in user_wallet
   const { data: wallet, error: walletErr } = await supabase
@@ -965,25 +958,25 @@ export async function donateFromWallet(
     throw new Error('This campaign has successfully reached its funding goal and is no longer accepting donations.')
   }
 
-  const ref = `WLT-DON-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+  const ref = `WLT-DON-${crypto.randomUUID()}`
 
-  // 1. Deduct wallet balance
-  const currentBal = Number(wallet.balance) || 0
-  const newBalance = currentBal - amountNGN
-  const { error: deductErr } = await supabase
-    .from('user_wallet')
-    .update({
-      balance: newBalance,
-    })
-    .eq('id', wallet.id)
+  // 1. Debit the wallet atomically (fails on insufficient balance)
+  const { error: deductErr } = await adminClient.rpc('web_wallet_debit', {
+    p_user_id: profile.id,
+    p_amount: amountNGN,
+    p_type: 'campaign_donation',
+    p_ref: ref,
+  })
 
-  if (deductErr) throw new Error('Failed to deduct from wallet')
+  if (deductErr) {
+    throw new Error(deductErr.message?.includes('Insufficient') ? 'Insufficient wallet balance' : 'Failed to deduct from wallet')
+  }
 
-  // 2. Insert into funding_transactions (admin client bypasses RLS)
+  // 2. Record the donation; put the money back if that fails
   const { error: ftErr } = await adminClient.from('funding_transactions').insert({
     funding_id: campaignId,
     funding_type: campaign.funding_type || 'campaign',
-    user_id: authUser.id,
+    user_id: profile.id,
     amount: amountNGN,
     reference: ref,
     transaction_status: 'success',
@@ -991,20 +984,13 @@ export async function donateFromWallet(
 
   if (ftErr) {
     console.error('funding_transactions insert error:', ftErr)
+    await adminClient.rpc('web_wallet_refund', { p_ref: ref, p_type: 'campaign_donation' })
+    throw new Error('Donation failed. Your wallet has not been charged.')
   }
-
-  // 3. Record transaction in user ledger (using valid schema columns)
-  await supabase.from('transactions').insert({
-    user_id: authUser.id,
-    type: 'campaign_donation',
-    amount: amountNGN,
-    status: 'success',
-    ref,
-  })
 
   // 4. Notify campaign creator
   if (campaign.user_id !== authUser.id) {
-    await supabase.from('notifications').insert({
+    await adminClient.from('notifications').insert({
       user_id: campaign.user_id,
       actor_id: authUser.id,
       type: 'funding_contribution',
@@ -1115,7 +1101,7 @@ export async function getCampaignWithdrawalSummary(
   const { totalWithdrawn, pastPayouts } = await getWithdrawnTotalAndPayouts(campaignId, adminClient)
 
   const availableBalance = Math.max(0, amountRaised - totalWithdrawn)
-  const hasPin = Boolean(profile?.wallet_pin)
+  const hasPin = profile ? await hasWalletPin(profile.id) : false
 
   return {
     campaignId,
@@ -1125,6 +1111,16 @@ export async function getCampaignWithdrawalSummary(
     hasPin,
     pastPayouts,
   }
+}
+
+/** Raised minus withdrawn (pending + completed payouts). */
+async function availableCampaignBalance(campaignId: string, adminClient: ReturnType<typeof getAdminClient>) {
+  const [{ data: txs }, { data: payouts }] = await Promise.all([
+    adminClient.from('funding_transactions').select('amount').eq('funding_id', campaignId).eq('transaction_status', 'success'),
+    adminClient.from('funding_payouts').select('amount').eq('funding_id', campaignId).in('status', ['pending', 'completed']),
+  ])
+  const sum = (rows: { amount: unknown }[] | null) => (rows ?? []).reduce((t, r) => t + (Number(r.amount) || 0), 0)
+  return Math.max(0, sum(txs) - sum(payouts))
 }
 
 export async function withdrawCampaignToWallet(
@@ -1142,109 +1138,25 @@ export async function withdrawCampaignToWallet(
     throw new Error('Minimum withdrawal amount is ₦100')
   }
 
-  // 1. Verify Wallet PIN
-  if (!profile.wallet_pin) {
-    throw new Error('You have not set a wallet PIN yet. Please configure your PIN in Settings.')
-  }
+  // 1. Verify Wallet PIN (shared with mobile; locks after 5 wrong tries)
+  const pinResult = await checkWalletPin(profile.id, pin)
+  if (!pinResult.ok) throw new Error(pinResult.error)
 
-  const bcrypt = await import('bcryptjs')
-  const pinMatches = await bcrypt.compare(pin, profile.wallet_pin)
-  if (!pinMatches) {
-    throw new Error('Incorrect wallet PIN')
-  }
+  if (!(await rateLimit(`campaign-withdraw:${profile.id}`, 5, 3600))) throw new Error(RATE_LIMITED)
 
+  // Ownership, available balance and the payout are checked/recorded in one
+  // database transaction (locks the campaign row), so it can't be withdrawn twice.
   const adminClient = getAdminClient()
-
-  // 2. Verify campaign ownership
-  const { data: campaign, error: cErr } = await adminClient
-    .from('funding')
-    .select('id, user_id, title')
-    .eq('id', campaignId)
-    .single()
-
-  if (cErr || !campaign) {
-    throw new Error('Campaign not found')
-  }
-
-  if (campaign.user_id !== authUser.id) {
-    throw new Error('Forbidden: Only the campaign creator can withdraw funds')
-  }
-
-  // 3. Verify available balance
-  const { data: txs } = await adminClient
-    .from('funding_transactions')
-    .select('amount')
-    .eq('funding_id', campaignId)
-
-  const amountRaised = (txs ?? []).reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
-  const { totalWithdrawn } = await getWithdrawnTotalAndPayouts(campaignId, adminClient)
-  const availableBalance = Math.max(0, amountRaised - totalWithdrawn)
-
-  if (amountNGN > availableBalance) {
-    throw new Error(
-      `Withdrawal amount of ₦${amountNGN.toLocaleString()} exceeds available campaign balance of ₦${availableBalance.toLocaleString()}`
-    )
-  }
-
-  const ref = `CPAY-WLT-${campaignId.slice(0, 8)}-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
-
-  // 4. Atomic Wallet Balance Credit
-  let { data: wallet } = await adminClient
-    .from('user_wallet')
-    .select('id, balance')
-    .eq('user_id', authUser.id)
-    .maybeSingle()
-
-  if (!wallet) {
-    const { data: created, error: createWalletErr } = await adminClient
-      .from('user_wallet')
-      .insert({ user_id: authUser.id, balance: 0 })
-      .select('id, balance')
-      .single()
-
-    if (createWalletErr || !created) {
-      throw new Error('Could not access user wallet')
-    }
-    wallet = created
-  }
-
-  const newWalletBalance = (Number(wallet.balance) || 0) + amountNGN
-  const { error: walletUpdateErr } = await adminClient
-    .from('user_wallet')
-    .update({ balance: newWalletBalance })
-    .eq('id', wallet.id)
-
-  if (walletUpdateErr) {
-    console.error('Wallet update error:', walletUpdateErr)
-    throw new Error('Failed to credit wallet balance')
-  }
-
-  // 5. Insert into funding_payouts (best effort / resilient)
-  try {
-    await adminClient.from('funding_payouts').insert({
-      funding_id: campaignId,
-      user_id: profile.id,
-      amount: amountNGN,
-      destination: 'wallet',
-      status: 'completed',
-      reference: ref,
-      notes: `Withdrawn to Platform Wallet from campaign: ${campaign.title}`,
-    })
-  } catch (err: any) {
-    console.warn('funding_payouts insert notice:', err.message)
-  }
-
-  // 6. Record in user transactions ledger
-  await adminClient.from('transactions').insert({
-    user_id: profile.id,
-    amount: amountNGN,
-    type: 'deposit',
-    status: 'success',
-    ref,
-    account_name: `Campaign: ${campaign.title.slice(0, 40)}`,
+  const { data: ref, error: wErr } = await adminClient.rpc('funding_withdraw', {
+    p_user_id: profile.id,
+    p_funding_id: campaignId,
+    p_amount: amountNGN,
+    p_destination: 'wallet',
   })
+  if (wErr || !ref) throw new Error(wErr?.message || 'Withdrawal failed. Please try again.')
 
-  // 7. Revalidate
+  const newAvailableBalance = await availableCampaignBalance(campaignId, adminClient)
+
   revalidatePath(`/app/funding/${campaignId}`)
   revalidatePath('/app/funding')
   revalidatePath('/app/wallet')
@@ -1252,10 +1164,11 @@ export async function withdrawCampaignToWallet(
   return {
     success: true,
     message: `Successfully transferred ₦${amountNGN.toLocaleString()} to your Hubnovo Platform Wallet!`,
-    reference: ref,
-    newAvailableBalance: availableBalance - amountNGN,
+    reference: ref as string,
+    newAvailableBalance,
   }
 }
+
 
 export async function withdrawCampaignToBank(
   campaignId: string,
@@ -1290,85 +1203,29 @@ export async function withdrawCampaignToBank(
     throw new Error('Account name is required')
   }
 
-  // 1. Verify Wallet PIN
-  if (!profile.wallet_pin) {
-    throw new Error('You have not set a wallet PIN yet. Please configure your PIN in Settings.')
-  }
+  // 1. Verify Wallet PIN (shared with mobile; locks after 5 wrong tries)
+  const pinResult = await checkWalletPin(profile.id, pin)
+  if (!pinResult.ok) throw new Error(pinResult.error)
 
-  const bcrypt = await import('bcryptjs')
-  const pinMatches = await bcrypt.compare(pin, profile.wallet_pin)
-  if (!pinMatches) {
-    throw new Error('Incorrect wallet PIN')
-  }
+  if (!(await rateLimit(`campaign-withdraw:${profile.id}`, 5, 3600))) throw new Error(RATE_LIMITED)
 
+  // Ownership, available balance and the payout are checked/recorded in one
+  // database transaction (locks the campaign row), so it can't be withdrawn twice.
   const adminClient = getAdminClient()
-
-  // 2. Verify campaign ownership
-  const { data: campaign, error: cErr } = await adminClient
-    .from('funding')
-    .select('id, user_id, title')
-    .eq('id', campaignId)
-    .single()
-
-  if (cErr || !campaign) {
-    throw new Error('Campaign not found')
-  }
-
-  if (campaign.user_id !== authUser.id) {
-    throw new Error('Forbidden: Only the campaign creator can withdraw funds')
-  }
-
-  // 3. Verify available balance
-  const { data: txs } = await adminClient
-    .from('funding_transactions')
-    .select('amount')
-    .eq('funding_id', campaignId)
-
-  const amountRaised = (txs ?? []).reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
-  const { totalWithdrawn } = await getWithdrawnTotalAndPayouts(campaignId, adminClient)
-  const availableBalance = Math.max(0, amountRaised - totalWithdrawn)
-
-  if (amountNGN > availableBalance) {
-    throw new Error(
-      `Withdrawal amount of ₦${amountNGN.toLocaleString()} exceeds available campaign balance of ₦${availableBalance.toLocaleString()}`
-    )
-  }
-
-  const ref = `CPAY-BNK-${campaignId.slice(0, 8)}-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
-
-  // 4. Insert into funding_payouts (pending settlement)
-  try {
-    await adminClient.from('funding_payouts').insert({
-      funding_id: campaignId,
-      user_id: profile.id,
-      amount: amountNGN,
-      destination: 'bank',
-      status: 'pending',
-      reference: ref,
-      bank_name: bankDetails.bankName.trim(),
-      account_number: bankDetails.accountNumber.trim(),
-      account_name: bankDetails.accountName.trim(),
-      bank_code: bankDetails.bankCode || null,
-      notes: `Direct bank withdrawal from campaign: ${campaign.title}`,
-    })
-  } catch (err: any) {
-    console.warn('funding_payouts insert notice:', err.message)
-  }
-
-  // 5. Record in user transactions ledger
-  await adminClient.from('transactions').insert({
-    user_id: profile.id,
-    amount: amountNGN,
-    type: 'withdrawal',
-    status: 'pending',
-    ref,
-    bank_name: bankDetails.bankName.trim(),
-    account_number: bankDetails.accountNumber.trim(),
-    account_name: bankDetails.accountName.trim(),
-    bank_code: bankDetails.bankCode || null,
+  const { data: ref, error: wErr } = await adminClient.rpc('funding_withdraw', {
+    p_user_id: profile.id,
+    p_funding_id: campaignId,
+    p_amount: amountNGN,
+    p_destination: 'bank',
+    p_bank_name: bankDetails.bankName.trim(),
+    p_account_number: bankDetails.accountNumber.trim(),
+    p_account_name: bankDetails.accountName.trim(),
+    p_bank_code: bankDetails.bankCode || null,
   })
+  if (wErr || !ref) throw new Error(wErr?.message || 'Withdrawal failed. Please try again.')
 
-  // 6. Revalidate
+  const newAvailableBalance = await availableCampaignBalance(campaignId, adminClient)
+
   revalidatePath(`/app/funding/${campaignId}`)
   revalidatePath('/app/funding')
   revalidatePath('/app/wallet')
@@ -1376,8 +1233,9 @@ export async function withdrawCampaignToBank(
   return {
     success: true,
     message: `Withdrawal request of ₦${amountNGN.toLocaleString()} to ${bankDetails.bankName} (${bankDetails.accountNumber}) has been submitted successfully!`,
-    reference: ref,
-    newAvailableBalance: availableBalance - amountNGN,
+    reference: ref as string,
+    newAvailableBalance,
   }
 }
+
 

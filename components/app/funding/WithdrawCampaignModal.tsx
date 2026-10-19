@@ -222,7 +222,7 @@ export default function WithdrawCampaignModal({
     }
 
     if (!hasPin) {
-      setError('You need to set up a 6-digit Wallet PIN before making withdrawals.')
+      setError('You need to set up a 4–6 digit Wallet PIN before making withdrawals.')
       return
     }
 
@@ -230,8 +230,8 @@ export default function WithdrawCampaignModal({
   }
 
   const handleExecuteWithdrawal = async () => {
-    if (pin.length !== 6) {
-      setError('Please enter your 6-digit Wallet PIN')
+    if (pin.length < 4) {
+      setError('Please enter your 4–6 digit Wallet PIN')
       return
     }
 
@@ -660,7 +660,7 @@ export default function WithdrawCampaignModal({
               <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-xs flex items-center justify-between gap-3">
                 <span className="flex items-center gap-2">
                   <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
-                  You must create a 6-digit Wallet PIN before withdrawing.
+                  You must create a 4–6 digit Wallet PIN before withdrawing.
                 </span>
                 <Link
                   href="/app/settings"
@@ -750,7 +750,7 @@ export default function WithdrawCampaignModal({
 
             <div className="space-y-3">
               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
-                Enter your 6-digit Wallet PIN
+                Enter your 4–6 digit Wallet PIN
               </Label>
               <div className="flex justify-center">
                 <InputOTP
@@ -778,7 +778,7 @@ export default function WithdrawCampaignModal({
             <Button
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-6 rounded-2xl gap-2 text-base"
               onClick={handleExecuteWithdrawal}
-              disabled={loading || pin.length !== 6}
+              disabled={loading || pin.length < 4}
             >
               {loading ? (
                 <>
