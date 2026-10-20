@@ -23,15 +23,6 @@ import AuthShell, {
 } from '@/components/auth/AuthShell'
 
 const signupSchema = z.object({
-    fullName: z.string().min(1, 'Full name is required'),
-    username: z
-        .string()
-        .min(3, 'Username must be at least 3 characters')
-        .regex(
-            /^[a-zA-Z0-9_]+$/,
-            'Username can only contain letters, numbers, and underscores'
-        )
-        .transform((v) => v.toLowerCase()),
     ...authFields,
 })
 
@@ -72,8 +63,6 @@ export default function SignupPage() {
     {
         setServerError('')
         const result = await signUp({
-            fullName: values.fullName,
-            username: values.username,
             email: values.email,
             password: values.password,
         })
@@ -118,44 +107,6 @@ export default function SignupPage() {
             )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-                <div>
-                    <label htmlFor="fullName" className={authLabel}>
-                        Full name
-                    </label>
-                    <input
-                        id="fullName"
-                        type="text"
-                        autoComplete="name"
-                        placeholder="Chioma Okafor"
-                        {...register('fullName')}
-                        className={authInput}
-                    />
-                    {errors.fullName && <p className={authFieldError}>{errors.fullName.message}</p>}
-                </div>
-
-                <div>
-                    <label htmlFor="username" className={authLabel}>
-                        Username
-                    </label>
-                    <div className="relative">
-                        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] text-slate-400">
-                            @
-                        </span>
-                        <input
-                            id="username"
-                            type="text"
-                            autoComplete="username"
-                            placeholder="chioma_builds"
-                            autoCapitalize="none"
-                            autoCorrect="off"
-                            spellCheck={false}
-                            {...register('username')}
-                            className={`${authInput} pl-8`}
-                        />
-                    </div>
-                    {errors.username && <p className={authFieldError}>{errors.username.message}</p>}
-                </div>
-
                 <div>
                     <label htmlFor="email" className={authLabel}>
                         Email address

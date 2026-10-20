@@ -8,8 +8,11 @@ import type { FundingFilter, FundingSort, FundingStatusFilter } from '@/lib/acti
 import FundingExplorer from '@/components/app/funding/FundingExplorer'
 import { Button } from '@/components/ui/button'
 import { PlusCircle, TrendingUp, Users, Zap, Sparkles } from 'lucide-react'
+import CrowdfundingComingSoon from '@/components/app/funding/CrowdfundingComingSoon'
+import { getCurrentUser } from '@/lib/supabase/auth'
 
 export const dynamic = 'force-dynamic'
+export const metadata = { title: 'Crowdfunding — Hubnovo' }
 
 interface FundingPageProps {
   searchParams: Promise<{
@@ -29,6 +32,22 @@ function fmt(n: number): string {
 }
 
 export default async function FundingPage({ searchParams }: FundingPageProps) {
+  const { authUser, profile } = await getCurrentUser()
+
+  return (
+    <CrowdfundingComingSoon userProfile={profile} userEmail={authUser?.email ?? ''} />
+  )
+}
+
+/**
+ * ============================================================================
+ * PRESERVED FUNDING EXPLORER (COMMENTED OUT / PRESERVED FOR FUTURE LAUNCH)
+ * Do not delete out the already existing functionality - per instructions.
+ * ============================================================================
+ */
+// @ts-ignore - Preserved inactive component for future launch
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _PreservedFundingPage({ searchParams }: FundingPageProps) {
   const params = await searchParams
 
   const statusFilter: FundingStatusFilter =
@@ -65,7 +84,7 @@ export default async function FundingPage({ searchParams }: FundingPageProps) {
     <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
       {/* ── Hero Banner (Matching Hubnovo Brand Theme) ── */}
       <div
-        className="relative overflow-hidden rounded-3xl p-6 sm:p-10 text-white shadow-xl border border-white/10"
+        className="relative overflow-hidden rounded-3xl p-5 sm:p-6 lg:p-7 text-white shadow-xl border border-white/10"
         style={{
           background:
             'linear-gradient(135deg, #0A1E33 0%, #102A43 55%, #004D73 100%)',
@@ -85,15 +104,15 @@ export default async function FundingPage({ searchParams }: FundingPageProps) {
           }}
         />
 
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-cyan-300 text-xs font-semibold uppercase tracking-wider backdrop-blur-sm">
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+          <div className="space-y-2.5 max-w-xl">
+            <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-white/10 border border-white/15 text-cyan-300 text-xs font-semibold uppercase tracking-wider backdrop-blur-sm">
               <Sparkles className="w-3.5 h-3.5 text-cyan-300" /> Hubnovo Crowdfunding
             </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-tight tracking-tight text-white">
               Fund the Change You Want to See
             </h1>
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
               Back impactful community campaigns, grassroots causes, and innovative Nigerian projects. Every naira counts.
             </p>
           </div>
@@ -101,9 +120,9 @@ export default async function FundingPage({ searchParams }: FundingPageProps) {
           <Link href="/app/funding/create" className="shrink-0">
             <Button
               size="lg"
-              className="gap-2.5 font-bold shadow-lg shadow-emerald-500/25 bg-emerald-500 text-slate-950 hover:bg-emerald-400 px-6 py-6 rounded-2xl text-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              className="gap-2 font-bold shadow-lg shadow-emerald-500/25 bg-emerald-500 text-slate-950 hover:bg-emerald-400 px-5 py-2.5 h-11 rounded-xl text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
             >
-              <PlusCircle className="h-5 w-5 text-slate-950" />
+              <PlusCircle className="h-4.5 w-4.5 text-slate-950" />
               Start a Campaign
             </Button>
           </Link>
@@ -111,7 +130,7 @@ export default async function FundingPage({ searchParams }: FundingPageProps) {
 
         {/* Real-time Stats Grid */}
         <div
-          className="relative z-10 mt-8 grid grid-cols-3 gap-4 pt-6"
+          className="relative z-10 mt-5 grid grid-cols-3 gap-3 pt-4"
           style={{ borderTop: '1px solid rgba(255, 255, 255, 0.12)' }}
         >
           {[
@@ -135,7 +154,7 @@ export default async function FundingPage({ searchParams }: FundingPageProps) {
             },
           ].map(({ icon: Icon, label, value, iconColor }) => (
             <div key={label} className="flex flex-col gap-0.5">
-              <span className="text-xl sm:text-3xl font-black text-white tracking-tight">
+              <span className="text-lg sm:text-2xl font-black text-white tracking-tight">
                 {value}
               </span>
               <span className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-300">

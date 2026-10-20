@@ -8,18 +8,18 @@ export default function HomeSkeleton() {
             <div className="flex gap-6 items-start">
                 <div className="flex-1 min-w-0 space-y-6">
                     {/* Welcome hero */}
-                    <section className="relative overflow-hidden rounded-3xl border border-border px-6 py-8 sm:px-10 sm:py-10 bg-card">
-                        <div className="flex items-center justify-between gap-8">
-                            <div className="max-w-sm w-full space-y-3">
-                                <SkeletonLine width="90%" height={26} />
-                                <SkeletonLine width="60%" height={16} delay={WAVE_STEP} />
-                                <SkeletonLine width="75%" height={13} delay={WAVE_STEP * 2} />
-                                <div className="flex gap-3 pt-3">
-                                    <Skeleton className="h-10 w-40 rounded-full" delay={WAVE_STEP * 3} />
-                                    <Skeleton className="h-10 w-32 rounded-full" delay={WAVE_STEP * 4} />
+                    <section className="relative overflow-hidden rounded-3xl border border-border px-6 py-5 sm:px-8 sm:py-6 bg-card">
+                        <div className="flex items-center justify-between gap-6">
+                            <div className="max-w-sm w-full space-y-2.5">
+                                <SkeletonLine width="90%" height={22} />
+                                <SkeletonLine width="60%" height={14} delay={WAVE_STEP} />
+                                <SkeletonLine width="75%" height={12} delay={WAVE_STEP * 2} />
+                                <div className="flex gap-2.5 pt-2">
+                                    <Skeleton className="h-9 w-36 rounded-full" delay={WAVE_STEP * 3} />
+                                    <Skeleton className="h-9 w-28 rounded-full" delay={WAVE_STEP * 4} />
                                 </div>
                             </div>
-                            <SkeletonBlock className="hidden md:block w-72 h-56 shrink-0" delay={WAVE_STEP * 2} />
+                            <SkeletonBlock className="hidden md:block w-56 h-40 shrink-0 rounded-2xl" delay={WAVE_STEP * 2} />
                         </div>
                     </section>
 

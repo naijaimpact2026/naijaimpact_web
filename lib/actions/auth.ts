@@ -31,7 +31,7 @@ export async function ensureUserRow(
     .maybeSingle()
 
   if (!existing) {
-    const rawUsername = user.user_metadata?.username || (cleanEmail ? cleanEmail.split('@')[0] : `user_${user.id.slice(0, 8)}`)
+    const rawUsername = user.user_metadata?.username || `user_${user.id.replace(/-/g, '').slice(0, 12)}`
     const cleanUsername = rawUsername.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 25) || `user_${user.id.slice(0, 8)}`
     const displayName = user.user_metadata?.full_name || user.user_metadata?.name || 'Hubnovo Member'
     const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || null
@@ -52,31 +52,29 @@ export async function ensureUserRow(
 }
 
 export async function signUp(formData: {
-  fullName: string
-  username: string
   email: string
   password: string
+  fullName?: string
 }): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient()
-  const cleanUsername = formData.username.trim().toLowerCase()
+  const cleanFullName = formData.fullName?.trim() || ''
   const cleanEmail = formData.email.trim().toLowerCase()
 
-  // 1. Pre-flight check: verify username and email availability in public.users
+  // 1. Pre-flight check: verify email availability in public.users
   // BEFORE creating an auth user in Supabase auth to avoid orphaned/stranded auth accounts.
   const { data: existingUser } = await supabase
     .from('users')
-    .select('id, username, email')
-    .or(`username.ilike.${cleanUsername},email.ilike.${cleanEmail}`)
+    .select('id, email')
+    .ilike('email', cleanEmail)
     .maybeSingle()
 
   if (existingUser) {
-    if (existingUser.username && existingUser.username.toLowerCase() === cleanUsername) {
-      return { error: 'Username is already taken. Please choose another.' }
-    }
-    if (existingUser.email && existingUser.email.toLowerCase() === cleanEmail) {
-      return { error: 'An account with this email already exists. Please log in.' }
-    }
+    return { error: 'An account with this email already exists. Please log in.' }
   }
+
+  // Generate temporary username starting with 'user_' so middleware routes user to profile completion
+  const tempSeed = Math.random().toString(36).substring(2, 10)
+  const initialTempUsername = `user_${tempSeed}`
 
   // 2. Call Supabase auth.signUp
   const { data, error } = await supabase.auth.signUp({
@@ -84,8 +82,8 @@ export async function signUp(formData: {
     password: formData.password,
     options: {
       data: {
-        full_name: formData.fullName.trim(),
-        username: cleanUsername,
+        ...(cleanFullName ? { full_name: cleanFullName, name: cleanFullName } : {}),
+        username: initialTempUsername,
       },
     },
   })
@@ -98,21 +96,24 @@ export async function signUp(formData: {
     return { error: 'Failed to create account. Please try again.' }
   }
 
+  const finalTempUsername = `user_${data.user.id.replace(/-/g, '').slice(0, 12)}`
+  const fallbackDisplayName = cleanFullName || 'Hubnovo Member'
+
   // 3. Pre-insert user profile row using admin client to bypass RLS for unconfirmed accounts
   const admin = getAdminClient()
   const { error: insertError } = await admin.from('users').upsert({
     id: data.user.id,
     auth_id: data.user.id,
     email: cleanEmail,
-    username: cleanUsername,
-    display_name: formData.fullName.trim(),
-    fullname: formData.fullName.trim(),
+    username: finalTempUsername,
+    display_name: fallbackDisplayName,
+    fullname: fallbackDisplayName,
     onboarded: false,
   }, { onConflict: 'id' })
 
   if (insertError) {
     if (insertError.code === '23505') {
-      return { error: 'Username or email is already taken.' }
+      return { error: 'An account with this email already exists. Please log in.' }
     }
     console.warn('Pre-inserting user row notice:', insertError.message)
   }
