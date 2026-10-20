@@ -383,11 +383,7 @@ export default function AllFeaturesGrid({ showHeader = true }: AllFeaturesGridPr
                                 />
 
                                 {/* Multi-Stage Cinematic Overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/30 pointer-events-none" />
-                                <div
-                                    className="absolute inset-0 opacity-40 group-hover:opacity-30 transition-opacity duration-500 mix-blend-color"
-                                    style={{ background: item.accentColor }}
-                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/25 pointer-events-none" />
                                 <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
                                 {/* Top Floating Badges */}
@@ -423,7 +419,7 @@ export default function AllFeaturesGrid({ showHeader = true }: AllFeaturesGridPr
                             </div>
 
                             {/* LOWER CARD BODY */}
-                            <div className="flex-1 flex flex-col p-5 bg-card/95 dark:bg-[#0c1424]/95 backdrop-blur-xl border-t border-white/10 dark:border-white/5 justify-between">
+                            <div className="flex-1 flex flex-col p-5 bg-card/95 dark:bg-card/95 backdrop-blur-xl border-t border-white/10 dark:border-white/5 justify-between">
                                 {/* Description */}
                                 <p className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed line-clamp-2 min-h-[38px]">
                                     {item.description}
@@ -445,14 +441,14 @@ export default function AllFeaturesGrid({ showHeader = true }: AllFeaturesGridPr
                                     ))}
                                 </div>
 
-                                {/* Refined Action Footer Bar with Heartbeat Icon Pill */}
+                                {/* Refined Action Footer Bar with Unified Brand Button */}
                                 <div className="mt-5 pt-3.5 border-t border-border/60 flex items-center justify-between">
-                                    <span className="font-extrabold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
+                                    <span className="font-bold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors flex items-center gap-1.5">
                                         <span>{item.ctaText}</span>
                                     </span>
 
                                     <div
-                                        className={`w-9 h-9 rounded-2xl bg-gradient-to-r ${item.ctaGradient} text-white flex items-center justify-center shadow-md shadow-primary/20 transition-all duration-300 group-hover:scale-110 group-hover:translate-x-1 animate-heartbeat shrink-0`}
+                                        className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md shadow-primary/25 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/90 group-hover:shadow-lg group-hover:shadow-primary/30 group-hover:translate-x-0.5 shrink-0"
                                     >
                                         <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" />
                                     </div>

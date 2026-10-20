@@ -11,6 +11,8 @@ import { UnreadCountProvider, useUnreadCount } from './UnreadCountContext'
 import NotificationListener from './NotificationListener'
 import ChatProvider from './ChatProvider'
 import { disconnectChatUser } from '@/lib/stream'
+import SignOutPromptModal, { type SignOutFeedback } from './SignOutPromptModal'
+import { recordSignOutFeedback } from '@/lib/actions/auth'
 
 interface AppShellInnerProps
 {
@@ -24,16 +26,35 @@ function AppShellInner({ children, user }: AppShellInnerProps)
     const pathname = usePathname()
     const { messageCount, notificationCount } = useUnreadCount()
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [signOutModalOpen, setSignOutModalOpen] = useState(false)
+    const [isSigningOut, setIsSigningOut] = useState(false)
 
     const isChatConversation = pathname.startsWith('/app/chat/')
 
-    const handleSignOut = async () =>
+    const handleConfirmSignOut = async (feedback?: SignOutFeedback) =>
     {
-        await disconnectChatUser()
-        const supabase = createClient()
-        await supabase.auth.signOut()
-        router.push('/')
-        router.refresh()
+        setIsSigningOut(true)
+        try
+        {
+            if (feedback?.rating || feedback?.note)
+            {
+                recordSignOutFeedback(feedback).catch(() => {})
+            }
+            await disconnectChatUser()
+            const supabase = createClient()
+            await supabase.auth.signOut()
+            router.push('/')
+            router.refresh()
+        }
+        catch (err)
+        {
+            console.error('Sign out error:', err)
+        }
+        finally
+        {
+            setIsSigningOut(false)
+            setSignOutModalOpen(false)
+        }
     }
 
     return (
@@ -48,7 +69,7 @@ function AppShellInner({ children, user }: AppShellInnerProps)
             {/* Sidebar — persistent rail on lg+ (sits below the top bar), overlay drawer below lg */}
             <Sidebar
                 user={user}
-                onSignOut={handleSignOut}
+                onSignOut={() => setSignOutModalOpen(true)}
                 messageCount={messageCount}
                 notificationCount={notificationCount}
                 isOpen={sidebarOpen}
@@ -79,6 +100,14 @@ function AppShellInner({ children, user }: AppShellInnerProps)
                     onMenuToggle={() => setSidebarOpen((v) => !v)}
                 />
             )}
+
+            {/* Sign-out Confirmation & Question Modal */}
+            <SignOutPromptModal
+                isOpen={signOutModalOpen}
+                onClose={() => setSignOutModalOpen(false)}
+                onConfirmSignOut={handleConfirmSignOut}
+                isSigningOut={isSigningOut}
+            />
         </div>
     )
 }

@@ -3,50 +3,82 @@
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { ensureUserRow } from '@/lib/supabase/ensure-user-row'
-import { clientIp, rateLimit, RATE_LIMITED } from '@/lib/rate-limit'
+import {
+  clientIp,
+  rateLimit,
+  RATE_LIMITED,
+} from '@/lib/rate-limit'
 import { redirect } from 'next/navigation'
 import { cookies, headers } from 'next/headers'
 
+type ActionResult = {
+  success?: boolean
+  error?: string
+}
+
+// ============================================================
+// SIGN UP
+// ============================================================
+
 export async function signUp(formData: {
-  fullName: string
-  username: string
   email: string
   password: string
-}): Promise<{ error?: string; success?: boolean }> {
+  fullName?: string
+}): Promise<ActionResult> {
   const supabase = await createClient()
-  const cleanUsername = formData.username.trim().toLowerCase()
-  const cleanEmail = formData.email.trim().toLowerCase()
 
-  if (!(await rateLimit(`signup:ip:${await clientIp()}`, 5, 3600, { failOpen: true }))) {
+  const cleanEmail = formData.email.trim().toLowerCase()
+  const cleanFullName = formData.fullName?.trim() || ''
+
+  // Rate limit sign-up attempts by IP.
+  const ip = await clientIp()
+
+  if (
+    !(await rateLimit(`signup:ip:${ip}`, 5, 3600, {
+      failOpen: true,
+    }))
+  ) {
     return { error: RATE_LIMITED }
   }
 
-  // 1. Pre-flight check: verify username and email availability in public.users
-  // BEFORE creating an auth user in Supabase auth to avoid orphaned/stranded auth accounts.
-  // Service role: signed-out callers can't read users.
-  const { data: existingUser } = await createServiceClient()
+  // Check whether a profile with this email already exists.
+  const admin = createServiceClient()
+
+  const { data: existingUser, error: lookupError } = await admin
     .from('users')
-    .select('id, username, email')
-    .or(`username.ilike.${cleanUsername},email.ilike.${cleanEmail}`)
+    .select('id')
+    .ilike('email', cleanEmail)
     .maybeSingle()
 
+  if (lookupError) {
+    console.error('Sign-up email lookup failed:', lookupError.message)
+    return { error: 'Unable to create your account right now. Please try again.' }
+  }
+
   if (existingUser) {
-    if (existingUser.username && existingUser.username.toLowerCase() === cleanUsername) {
-      return { error: 'Username is already taken. Please choose another.' }
-    }
-    if (existingUser.email && existingUser.email.toLowerCase() === cleanEmail) {
-      return { error: 'An account with this email already exists. Please log in.' }
+    return {
+      error: 'An account with this email already exists. Please log in.',
     }
   }
 
-  // 2. Call Supabase auth.signUp
+  // Temporary username used until onboarding is completed.
+  const temporaryUsername = `user_${crypto.randomUUID()
+    .replace(/-/g, '')
+    .slice(0, 12)}`
+
+  // Create the Supabase Auth user.
   const { data, error } = await supabase.auth.signUp({
     email: cleanEmail,
     password: formData.password,
     options: {
       data: {
-        full_name: formData.fullName.trim(),
-        username: cleanUsername,
+        ...(cleanFullName
+          ? {
+              full_name: cleanFullName,
+              name: cleanFullName,
+            }
+          : {}),
+        username: temporaryUsername,
       },
     },
   })
@@ -56,40 +88,58 @@ export async function signUp(formData: {
   }
 
   if (!data.user) {
-    return { error: 'Failed to create account. Please try again.' }
+    return {
+      error: 'Failed to create account. Please try again.',
+    }
   }
 
-  // 3. Pre-insert user profile row using admin client to bypass RLS for unconfirmed accounts
-  const admin = createServiceClient()
-  const { error: insertError } = await admin.from('users').upsert({
-    id: data.user.id,
-    auth_id: data.user.id,
-    email: cleanEmail,
-    username: cleanUsername,
-    display_name: formData.fullName.trim(),
-    fullname: formData.fullName.trim(),
-    onboarded: false,
-  }, { onConflict: 'id' })
+  // Create the public profile row using the service-role client.
+  // The service key must never be exposed to the browser.
+  const displayName = cleanFullName || 'Hubnovo Member'
+
+  const { error: insertError } = await admin.from('users').upsert(
+    {
+      id: data.user.id,
+      auth_id: data.user.id,
+      email: cleanEmail,
+      username: `user_${data.user.id.replace(/-/g, '').slice(0, 12)}`,
+      display_name: displayName,
+      fullname: displayName,
+      onboarded: false,
+    },
+    { onConflict: 'id' }
+  )
 
   if (insertError) {
-    if (insertError.code === '23505') {
-      return { error: 'Username or email is already taken.' }
+    console.error('User profile creation failed:', insertError.message)
+
+    return {
+      error:
+        'Your authentication account was created, but your profile could not be saved. Please contact support if this persists.',
     }
-    console.warn('Pre-inserting user row notice:', insertError.message)
   }
 
   return { success: true }
 }
 
+// ============================================================
+// VERIFY SIGN-UP OTP
+// ============================================================
+
 export async function verifySignupOtp(
   email: string,
   token: string
-): Promise<{ error?: string; success?: boolean }> {
+): Promise<ActionResult> {
   const supabase = await createClient()
-  const cleanToken = token.trim()
-  const cleanEmail = email.trim().toLowerCase()
 
-  if (!(await rateLimit(`otp:email:${cleanEmail}`, 10, 600, { failOpen: true }))) {
+  const cleanEmail = email.trim().toLowerCase()
+  const cleanToken = token.trim()
+
+  if (
+    !(await rateLimit(`otp:email:${cleanEmail}`, 10, 600, {
+      failOpen: true,
+    }))
+  ) {
     return { error: RATE_LIMITED }
   }
 
@@ -99,8 +149,8 @@ export async function verifySignupOtp(
     type: 'signup',
   })
 
+  // Some Supabase email templates use the "email" OTP type.
   if (error) {
-    // Fallback: some Supabase templates use 'email' confirmation type
     const fallback = await supabase.auth.verifyOtp({
       email: cleanEmail,
       token: cleanToken,
@@ -108,29 +158,46 @@ export async function verifySignupOtp(
     })
 
     if (fallback.error) {
-      return { error: fallback.error.message || error.message || 'Invalid or expired verification code.' }
+      return {
+        error:
+          fallback.error.message ||
+          error.message ||
+          'Invalid or expired verification code.',
+      }
     }
 
-    if (fallback.data?.user) {
+    if (fallback.data.user) {
       await ensureUserRow(fallback.data.user)
     }
+
     return { success: true }
   }
 
-  if (data?.user) {
+  if (data.user) {
     await ensureUserRow(data.user)
   }
 
   return { success: true }
 }
 
+// ============================================================
+// RESEND SIGN-UP OTP
+// ============================================================
+
 export async function resendSignupOtp(
   email: string
-): Promise<{ error?: string; success?: boolean }> {
+): Promise<ActionResult> {
   const supabase = await createClient()
   const cleanEmail = email.trim().toLowerCase()
 
-  if (!(await rateLimit(`otp-resend:email:${cleanEmail}`, 3, 600, { failOpen: true }))) {
+  if (
+    !(await rateLimit(
+      `otp-resend:email:${cleanEmail}`,
+      3,
+      600,
+      { failOpen: true }
+    ))
+  ) {
     return { error: RATE_LIMITED }
   }
 
@@ -140,24 +207,44 @@ export async function resendSignupOtp(
   })
 
   if (error) {
-    return { error: error.message || 'Failed to resend verification code.' }
+    return {
+      error: error.message || 'Failed to resend verification code.',
+    }
   }
 
   return { success: true }
 }
 
+// ============================================================
+// SIGN IN
+// ============================================================
+
 export async function signIn(formData: {
   email: string
   password: string
-}): Promise<{ error?: string; success?: boolean }> {
+}): Promise<ActionResult> {
   const supabase = await createClient()
   const cleanEmail = formData.email.trim().toLowerCase()
 
   const ip = await clientIp()
-  const allowed =
-    (await rateLimit(`signin:ip:${ip}`, 30, 600, { failOpen: true })) &&
-    (await rateLimit(`signin:email:${cleanEmail}`, 10, 600, { failOpen: true }))
-  if (!allowed) return { error: RATE_LIMITED }
+
+  const ipAllowed = await rateLimit(
+    `signin:ip:${ip}`,
+    30,
+    600,
+    { failOpen: true }
+  )
+
+  const emailAllowed = await rateLimit(
+    `signin:email:${cleanEmail}`,
+    10,
+    600,
+    { failOpen: true }
+  )
+
+  if (!ipAllowed || !emailAllowed) {
+    return { error: RATE_LIMITED }
+  }
 
   const { error } = await supabase.auth.signInWithPassword({
     email: cleanEmail,
@@ -165,27 +252,70 @@ export async function signIn(formData: {
   })
 
   if (error) {
-    if (error.message?.toLowerCase().includes('email not confirmed')) {
+    if (error.message.toLowerCase().includes('email not confirmed')) {
       return { error: 'Email not confirmed' }
     }
-    // Never reveal which credential is wrong
-    return { error: 'Invalid email or password' }
+
+    return { error: 'Invalid email or password.' }
   }
 
   return { success: true }
 }
 
+// ============================================================
+// SIGN-OUT FEEDBACK
+// ============================================================
+
+export async function recordSignOutFeedback(feedback: {
+  rating?: string
+  note?: string
+}): Promise<void> {
+  try {
+    const supabase = await createClient()
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (feedback.rating || feedback.note) {
+      console.info('[SignOut Feedback]', {
+        userId: user?.id ?? null,
+        rating: feedback.rating,
+        note: feedback.note,
+        timestamp: new Date().toISOString(),
+      })
+    }
+  } catch {
+    // Feedback is optional and must not interrupt sign-out.
+  }
+}
+
+// ============================================================
+// SIGN OUT
+// ============================================================
+
 export async function signOut(): Promise<void> {
   const supabase = await createClient()
-  await supabase.auth.signOut()
+
+  const { error } = await supabase.auth.signOut()
+
+  if (error) {
+    console.error('Sign-out failed:', error.message)
+  }
+
   try {
     const cookieStore = await cookies()
     cookieStore.delete('onboarded')
   } catch {
-    // ignore
+    // Ignore cookie cleanup errors.
   }
+
   redirect('/')
 }
+
+// ============================================================
+// REQUEST PASSWORD RESET
+// ============================================================
 
 export async function requestPasswordReset(
   email: string
@@ -193,40 +323,69 @@ export async function requestPasswordReset(
   const supabase = await createClient()
   const cleanEmail = email.trim().toLowerCase()
 
-  const allowed =
-    (await rateLimit(`reset:ip:${await clientIp()}`, 10, 3600, { failOpen: true })) &&
-    (await rateLimit(`reset:email:${cleanEmail}`, 3, 3600, { failOpen: true }))
-  if (!allowed) return { success: false, error: RATE_LIMITED }
+  const ip = await clientIp()
+
+  const ipAllowed = await rateLimit(
+    `reset:ip:${ip}`,
+    10,
+    3600,
+    { failOpen: true }
+  )
+
+  const emailAllowed = await rateLimit(
+    `reset:email:${cleanEmail}`,
+    3,
+    3600,
+    { failOpen: true }
+  )
+
+  if (!ipAllowed || !emailAllowed) {
+    return { success: false, error: RATE_LIMITED }
+  }
 
   let siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+
   if (!siteUrl) {
     try {
       const headerStore = await headers()
-      const host = headerStore.get('x-forwarded-host') || headerStore.get('host')
-      const proto = headerStore.get('x-forwarded-proto') || 'https'
+      const host =
+        headerStore.get('x-forwarded-host') ||
+        headerStore.get('host')
+
+      const proto =
+        headerStore.get('x-forwarded-proto') || 'https'
+
       if (host) {
         siteUrl = `${proto}://${host}`
       }
     } catch {
-      // fallback
+      // Continue to environment-variable fallbacks.
     }
   }
+
   if (!siteUrl && process.env.VERCEL_URL) {
     siteUrl = `https://${process.env.VERCEL_URL}`
   }
+
   if (!siteUrl) {
     siteUrl = 'http://localhost:3000'
   }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-    redirectTo: `${siteUrl}/auth/callback?type=recovery&next=/auth/reset-password`,
-  })
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    cleanEmail,
+    {
+      redirectTo: `${siteUrl}/auth/callback?type=recovery&next=/auth/reset-password`,
+    }
+  )
 
   if (error) {
-    console.error('Password reset error:', error)
-    return { success: false, error: error.message }
+    console.error('Password reset error:', error.message)
+
+    return {
+      success: false,
+      error: error.message,
+    }
   }
 
   return { success: true }
 }
-

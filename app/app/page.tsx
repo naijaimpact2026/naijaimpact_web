@@ -78,33 +78,33 @@ export default async function HomePage()
 
                     {/* Welcome hero */}
                     <section
-                        className="relative overflow-hidden rounded-3xl border border-border px-6 py-8 sm:px-10 sm:py-10"
+                        className="relative overflow-hidden rounded-3xl border border-border px-6 py-5 sm:px-8 sm:py-6"
                         style={{ background: 'linear-gradient(120deg, #EAF3FE 0%, #F8FAFC 55%, #E6F7FB 100%)' }}
                     >
-                        <div className="relative z-10 flex items-center justify-between gap-8">
+                        <div className="relative z-10 flex items-center justify-between gap-6">
                             <div className="max-w-sm">
-                                <h1 className="font-display text-2xl sm:text-3xl font-extrabold leading-tight text-secondary">
+                                <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-extrabold leading-tight text-secondary">
                                     Welcome to Hubnovo, {firstName}
                                 </h1>
-                                <p className="mt-1.5 text-sm sm:text-base text-primary font-semibold">
+                                <p className="mt-1 text-xs sm:text-sm text-primary font-semibold">
                                     People. Opportunities. Prosperity.
                                 </p>
-                                <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+                                <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
                                     Learn. Earn. Save. Start. Connect. Make an impact.
                                 </p>
-                                <div className="mt-6 flex flex-wrap items-center gap-3">
+                                <div className="mt-4 flex flex-wrap items-center gap-2.5">
                                     <Link
                                         href="/app/explore"
-                                        className="inline-flex items-center gap-1.5 bg-secondary text-white font-bold text-sm px-5 py-2.5 rounded-full hover:bg-secondary/90 transition-all shadow-xs animate-heartbeat"
+                                        className="inline-flex items-center gap-1.5 bg-secondary text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-full hover:bg-secondary/90 transition-all shadow-xs animate-heartbeat"
                                     >
                                         Explore Opportunities <ArrowRight className="w-4 h-4" />
                                     </Link>
-                                    <button className="inline-flex items-center gap-1.5 border border-secondary/20 text-secondary font-semibold text-sm px-5 py-2.5 rounded-full hover:bg-secondary/5 transition-colors">
+                                    <button className="inline-flex items-center gap-1.5 border border-secondary/20 text-secondary font-semibold text-xs sm:text-sm px-4 py-2 rounded-full hover:bg-secondary/5 transition-colors">
                                         <PlayCircle className="w-4 h-4" /> Watch Video
                                     </button>
                                 </div>
                             </div>
-                            <HeroIllustration className="hidden md:block w-72 h-56 shrink-0" />
+                            <HeroIllustration className="hidden md:block w-56 h-40 shrink-0" />
                         </div>
                     </section>
 

@@ -12,7 +12,10 @@ import type {
     SafeGoalSavings, TradeCredScore, TradeCredTier, Loan, LoanRepayment, Policy,
 } from '@/lib/types'
 
+import SavingWalletComingSoon from '@/components/app/fintech/SavingWalletComingSoon'
+
 export const dynamic = 'force-dynamic'
+export const metadata = { title: 'Saving & Wallet — Hubnovo' }
 
 function fmtNGN(n: number): string
 {
@@ -35,6 +38,23 @@ const TIER_LABEL: Record<TradeCredTier, string> = {
 }
 
 export default async function FintechPage()
+{
+    const { authUser, profile } = await getCurrentUser()
+
+    return (
+        <SavingWalletComingSoon userProfile={profile} userEmail={authUser?.email ?? ''} />
+    )
+}
+
+/**
+ * ============================================================================
+ * PRESERVED FINTECH DASHBOARD (COMMENTED OUT / PRESERVED FOR FUTURE LAUNCH)
+ * Do not delete out the already existing functionality - per instructions.
+ * ============================================================================
+ */
+// @ts-ignore - Preserved inactive component for future launch
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _PreservedFintechDashboard()
 {
     const { profile } = await getCurrentUser()
     const userId = profile?.id ?? ''
@@ -473,3 +493,4 @@ export default async function FintechPage()
         </div>
     )
 }
+

@@ -25,6 +25,9 @@ const onboardingSchema = z.object({
       /^[a-zA-Z0-9_]+$/,
       'Username may only contain letters, numbers, and underscores',
     )
+    .refine((v) => !v.toLowerCase().startsWith('user_'), {
+      message: 'Username cannot start with "user_". Please choose a personalized username.',
+    })
     .transform((v) => v.toLowerCase()),
   bio: z
     .string()
@@ -33,6 +36,7 @@ const onboardingSchema = z.object({
     .or(z.literal('')),
   profession: z.string().max(100).optional().or(z.literal('')),
   avatar_url: z.string().url().optional().or(z.literal('')),
+  location: z.string().max(100).optional().or(z.literal('')),
 })
 
 const updateProfileSchema = z.object({
@@ -79,6 +83,7 @@ export type ActionResult<T = void> =
   bio?: string
   profession?: string
   avatar_url?: string
+  location?: string
 }): Promise<ActionResult> {
   const supabase = await createClient()
 
@@ -111,6 +116,7 @@ export type ActionResult<T = void> =
     bio,
     profession,
     avatar_url,
+    location,
   } = parsed.data
 
   // Use service client to query and write to users table to avoid RLS permission blocks on un-onboarded accounts
@@ -179,6 +185,7 @@ export type ActionResult<T = void> =
     bio: bio || null,
     profession: profession || null,
     avatar_url: avatar_url || null,
+    location: location || null,
     onboarded: true,
     auth_id: user.id,
     updated_at: new Date().toISOString(),

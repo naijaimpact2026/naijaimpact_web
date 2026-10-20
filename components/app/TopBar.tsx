@@ -3,8 +3,8 @@
 import { useState, memo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter, usePathname } from 'next/navigation'
-import { Search, Bell, MessageCircle, Menu, Home, Plus, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Search, Bell, MessageCircle, Menu, PenSquare, X } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { User } from '@/lib/types'
 
@@ -92,22 +92,12 @@ function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }:
             {/* Right cluster */}
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                 <Link
-                    href="/app"
-                    className="hidden sm:flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                >
-                    <Home className="w-5 h-5" />
-                    <span className="text-[10px] font-medium">Home</span>
-                </Link>
-
-                <Link
                     href="/app/feed/create"
-                    className="hidden sm:flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-xl text-muted-foreground hover:text-foreground transition-colors"
+                    className="hidden sm:flex relative p-2.5 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                     aria-label="Create a post"
+                    title="Create a post"
                 >
-                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald text-white">
-                        <Plus className="w-4 h-4" />
-                    </span>
-                    <span className="text-[10px] font-medium">Create</span>
+                    <PenSquare className="w-5 h-5" />
                 </Link>
 
                 <Link
