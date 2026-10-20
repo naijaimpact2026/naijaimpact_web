@@ -27,6 +27,7 @@ import
     Wrench,
     Rocket,
     Clapperboard,
+    Radio,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { User as UserType } from '@/lib/types'
@@ -46,7 +47,7 @@ const navItems = [
     { icon: Compass, label: 'Explore Directory', href: '/app/explore' },
     { icon: Search, label: 'Search', href: '/app/search' },
     { icon: Users, label: 'Community', href: '/app/feed' },
-    { icon: Clapperboard, label: 'ModusHive', href: '/app/modushive' },
+    { icon: Radio, label: 'Livestream', href: '/app/modushive' },
     { icon: ShoppingBag, label: 'Marketplace', href: '/app/market' },
     { icon: Briefcase, label: 'Jobs & Careers', href: '/app/jobs' },
     { icon: Wrench, label: 'Artisans & Pros', href: '/app/artisans' },

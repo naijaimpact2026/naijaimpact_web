@@ -19,10 +19,22 @@ import {
 import { toast } from '@/components/toast'
 import { createLiveStream, endLiveStream, getLiveStreamKey } from '@/lib/actions/modushive'
 
+const STREAM_CATEGORIES = [
+    'Entertainment',
+    'Music',
+    'Education',
+    'Sports',
+    'Faith',
+    'News',
+    'Lifestyle',
+    'Technology',
+]
+
 export function GoLiveForm()
 {
     const router = useRouter()
     const [title, setTitle] = useState('')
+    const [category, setCategory] = useState('Entertainment')
     const [description, setDescription] = useState('')
     const [pending, startTransition] = useTransition()
 
@@ -31,7 +43,11 @@ export function GoLiveForm()
         e.preventDefault()
         startTransition(async () =>
         {
-            const res = await createLiveStream({ title, description })
+            const taggedDescription = category
+                ? `[${category}] ${description.trim()}`.trim()
+                : description.trim()
+
+            const res = await createLiveStream({ title, description: taggedDescription })
             if (!res.ok) { toast.error(res.error); return }
             toast.success('Live stream studio ready! Turn on your camera and click Go Live.')
             setTitle('')
@@ -46,9 +62,30 @@ export function GoLiveForm()
                 <label htmlFor="stream-title" className="text-sm font-medium text-foreground">Stream title</label>
                 <Input id="stream-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} required disabled={pending} placeholder="e.g. Founders' Friday Q&A" />
             </div>
+
+            <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Category</label>
+                <div className="flex flex-wrap gap-2 pt-1">
+                    {STREAM_CATEGORIES.map((cat) => (
+                        <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setCategory(cat)}
+                            className={`rounded-full px-3 py-1 text-xs font-semibold transition-all ${
+                                category === cat
+                                    ? 'bg-destructive text-white shadow-sm'
+                                    : 'border border-border bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground'
+                            }`}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             <div className="space-y-1.5">
                 <label htmlFor="stream-description" className="text-sm font-medium text-foreground">Description <span className="text-muted-foreground font-normal">(optional)</span></label>
-                <Textarea id="stream-description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} rows={3} disabled={pending} />
+                <Textarea id="stream-description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} rows={3} disabled={pending} placeholder="What will you be discussing or streaming?" />
             </div>
             <button
                 type="submit"

@@ -30,7 +30,7 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
             <LiveStreamLayout
                 backLink={
                     <Link href="/app/modushive" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-                        <ArrowLeft className="h-4 w-4" /> ModusHive
+                        <ArrowLeft className="h-4 w-4" /> Livestream
                     </Link>
                 }
                 videoSlot={

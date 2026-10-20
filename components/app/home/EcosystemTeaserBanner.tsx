@@ -13,11 +13,13 @@ import {
     MessageSquare,
     ShieldCheck,
     Sparkles,
+    Radio,
 } from 'lucide-react'
 
 const MODULE_PILLS = [
     { label: 'Artisans & Pros', icon: Wrench, color: 'text-amber-500 bg-amber-500/10 border-amber-500/30' },
     { label: 'Community Feed', icon: Users, color: 'text-blue-500 bg-blue-500/10 border-blue-500/30' },
+    { label: 'Livestream', icon: Radio, color: 'text-rose-500 bg-rose-500/10 border-rose-500/30' },
     { label: 'Marketplace', icon: ShoppingBag, color: 'text-teal-500 bg-teal-500/10 border-teal-500/30' },
     { label: 'Skills Academy', icon: BookOpen, color: 'text-violet-500 bg-violet-500/10 border-violet-500/30' },
     { label: 'Jobs & Careers', icon: Briefcase, color: 'text-sky-500 bg-sky-500/10 border-sky-500/30' },
@@ -42,7 +44,7 @@ export default function EcosystemTeaserBanner() {
                     </div>
 
                     <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-                        Explore All 9 Platform Engines
+                        Explore All 10 Platform Engines
                     </h2>
 
                     <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">

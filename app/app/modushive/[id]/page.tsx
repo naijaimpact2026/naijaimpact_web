@@ -26,7 +26,7 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
     return (
         <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4">
             <Link href="/app/modushive" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="h-4 w-4" /> ModusHive
+                <ArrowLeft className="h-4 w-4" /> Livestream
             </Link>
 
             {canPlay ? (
