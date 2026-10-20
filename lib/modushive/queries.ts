@@ -83,10 +83,10 @@ async function withStreamThumbnails(rows: LiveStreamRow[]): Promise<LiveStreamWi
     const synced = await Promise.all(rows.map(syncLiveStream))
     return Promise.all(synced.map(async (s) => ({
         ...s,
-        thumbnail_url: s.status === 'live' && s.playback_id
+        thumbnail_url: s.playback_id
             ? s.provider === 'cloudflare'
                 ? `https://videodelivery.net/${s.playback_id}/thumbnails/thumbnail.jpg`
-                : canSign ? await getThumbnailUrl(s.playback_id, s.playback_policy) : null
+                : canSign ? await getThumbnailUrl(s.playback_id, s.playback_policy, { time: 1 }) : null
             : null,
     })))
 }
@@ -103,6 +103,28 @@ export async function listLiveNow(db?: SupabaseClient): Promise<LiveStreamWithHo
     if (error || !data) return []
     const streams = await withStreamThumbnails(data as LiveStreamRow[])
     return streams.filter((s) => s.status === 'live')
+}
+
+/** Lists completed live stream recordings / replays for discovery and replay */
+export async function listArchivedReplays(limit = 12, db?: SupabaseClient): Promise<VideoWithOwner[]>
+{
+    const supabase = db ?? await createClient()
+    const { data, error } = await supabase
+        .from('videos')
+        .select(`*, owner:users!videos_owner_id_fkey(${OWNER_COLUMNS})`)
+        .eq('kind', 'live_replay')
+        .eq('status', 'ready')
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+    if (!error && data && data.length > 0)
+    {
+        return withThumbnails(data as VideoRow[])
+    }
+
+    // Fallback: if no dedicated 'live_replay' videos exist yet, return recent ready videos
+    // so user can discover and replay community videos immediately
+    return listReadyVideos(limit, db)
 }
 
 export async function getLiveStream(id: string, db?: SupabaseClient): Promise<LiveStreamWithHost | null>

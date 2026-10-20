@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { MessageSquare } from 'lucide-react'
 import LiveChat from '@/components/app/modushive/LiveChat'
+import FloatingReactions from '@/components/app/modushive/FloatingReactions'
 
 interface LiveStreamLayoutProps
 {
@@ -51,7 +52,10 @@ export default function LiveStreamLayout({
             >
                 {/* Video & Info Column */}
                 <div className="space-y-4 min-w-0">
-                    {videoSlot}
+                    <div className="relative overflow-hidden rounded-2xl">
+                        {videoSlot}
+                        <FloatingReactions channelId={chatChannelId} />
+                    </div>
                     {infoSlot}
                 </div>
 
