@@ -200,6 +200,29 @@ export async function signIn(formData: {
   return { success: true }
 }
 
+export async function recordSignOutFeedback(feedback: {
+  rating?: string
+  note?: string
+}): Promise<void> {
+  try {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (feedback.rating || feedback.note) {
+      console.info('[SignOut Feedback]', {
+        userId: user?.id ?? null,
+        email: user?.email ?? null,
+        rating: feedback.rating,
+        note: feedback.note,
+        timestamp: new Date().toISOString(),
+      })
+    }
+  } catch {
+    // Non-blocking telemetry
+  }
+}
+
 export async function signOut(): Promise<void> {
   const supabase = await createClient()
   await supabase.auth.signOut()
