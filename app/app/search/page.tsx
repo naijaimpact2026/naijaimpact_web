@@ -7,7 +7,7 @@ import {
     Search, Sparkles, ArrowRight, UserPlus, UserCheck, BadgeCheck, MapPin,
     Heart, MessageCircle, BookOpen, X as XIcon,
     SlidersHorizontal, TrendingUp, ChevronRight, Briefcase,
-    RotateCcw, History, Filter
+    RotateCcw, History, Filter, UserX, Users
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -121,7 +121,6 @@ const DEFAULT_FILTERS: SearchFilters = {
     industry: 'all',
 }
 
-const SOON_CATEGORIES = ['Businesses', 'Groups', 'Products', 'Events', 'Hashtags']
 const RECENT_KEY = 'hubnovo_recent_searches'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -239,7 +238,7 @@ function IdleState({
 }) {
     const TRENDING = ['Entrepreneurs', 'Tech in Nigeria', 'Philanthropy', 'StartupNG', 'Agriculture', 'Remote Jobs']
     return (
-        <div className="flex flex-col items-center gap-6 py-14 text-center px-4 max-w-xl mx-auto">
+        <div className="flex flex-col items-center gap-5 sm:gap-6 py-10 sm:py-14 text-center px-2 sm:px-4 max-w-xl mx-auto">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-primary/10 text-primary shadow-xs">
                 <Search className="w-8 h-8" />
             </div>
@@ -309,7 +308,7 @@ function NoResults({
     onResetFilters: () => void
 }) {
     return (
-        <div className="flex flex-col items-center gap-3 py-16 text-center max-w-sm mx-auto">
+        <div className="flex flex-col items-center gap-3 py-12 sm:py-16 px-4 text-center max-w-sm mx-auto">
             <div className="w-14 h-14 rounded-2xl bg-muted/60 flex items-center justify-center text-muted-foreground">
                 <Search className="w-7 h-7" />
             </div>
@@ -329,6 +328,53 @@ function NoResults({
             ) : (
                 <p className="text-xs text-muted-foreground">Try checking for typos or searching for broader terms like names, topics, or skills.</p>
             )}
+        </div>
+    )
+}
+
+function PersonNotFound({
+    query,
+    hasFilters,
+    onResetFilters,
+}: {
+    query: string
+    hasFilters: boolean
+    onResetFilters: () => void
+}) {
+    return (
+        <div className="flex flex-col items-center gap-3.5 py-10 sm:py-14 px-4 text-center max-w-md mx-auto rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md shadow-xs animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm">
+                <UserX className="w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+                <h3 className="font-display font-extrabold text-foreground text-lg">
+                    Person not found
+                </h3>
+                <p className="text-xs sm:text-sm font-semibold text-muted-foreground">
+                    No community member found matching &ldquo;{query}&rdquo;
+                </p>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-sm">
+                Make sure the name or username is spelled correctly. You can also search by profession, role, or explore the full community directory.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                {hasFilters && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={onResetFilters}
+                        className="rounded-full text-xs gap-1.5"
+                    >
+                        <RotateCcw className="w-3.5 h-3.5" /> Reset active filters
+                    </Button>
+                )}
+                <Link
+                    href="/app/explore"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-xs"
+                >
+                    <Users className="w-3.5 h-3.5" /> Browse Member Directory
+                </Link>
+            </div>
         </div>
     )
 }
@@ -656,12 +702,12 @@ function CategoryPills({
     ]
 
     return (
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-0.5">
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-1 -mx-1 px-1 touch-pan-x">
             {REAL.map(({ key, label }) => (
                 <button
                     key={key}
                     onClick={() => setTab(key)}
-                    className={`relative shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                    className={`relative shrink-0 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold transition-all ${
                         tab === key
                             ? 'text-white bg-primary shadow-sm'
                             : 'text-muted-foreground hover:text-foreground bg-card border border-border'
@@ -674,15 +720,6 @@ function CategoryPills({
                         </span>
                     )}
                 </button>
-            ))}
-            {SOON_CATEGORIES.map((label) => (
-                <span
-                    key={label}
-                    title="Coming soon"
-                    className="shrink-0 px-4 py-2 rounded-full text-sm font-medium bg-card border border-border text-muted-foreground/40 cursor-default select-none"
-                >
-                    {label}
-                </span>
             ))}
         </div>
     )
@@ -1206,14 +1243,14 @@ function SearchPageInner() {
         (filters.industry !== 'all' ? 1 : 0)
 
     return (
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        <div className="w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
             <div className="flex gap-6 items-start">
-                <div className="flex-1 min-w-0 space-y-5">
+                <div className="flex-1 min-w-0 space-y-4 sm:space-y-5">
 
                     {/* Page Title & Subtitle */}
                     <div>
-                        <h1 className="font-display text-2xl font-extrabold text-secondary">Search Hubnovo</h1>
-                        <p className="text-sm text-muted-foreground mt-0.5">
+                        <h1 className="font-display text-xl sm:text-2xl font-extrabold text-secondary">Search Hubnovo</h1>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                             Discover verified members, job opportunities, discussion posts, and courses.
                         </p>
                     </div>
@@ -1227,14 +1264,14 @@ function SearchPageInner() {
                         className="relative flex items-center gap-2"
                     >
                         <div className="relative flex-1 group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none group-focus-within:text-primary transition-colors" />
+                            <Search className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none group-focus-within:text-primary transition-colors" />
                             <input
                                 ref={inputRef}
                                 type="search"
                                 placeholder="Search people, posts, jobs, courses…"
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
-                                className="w-full pl-11 pr-10 py-3 rounded-2xl text-sm font-medium bg-card border border-border shadow-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                                className="w-full pl-10 sm:pl-11 pr-9 sm:pr-10 py-2.5 sm:py-3 rounded-2xl text-xs sm:text-sm font-medium bg-card border border-border shadow-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                                 autoComplete="off"
                             />
                             {query && (
@@ -1244,7 +1281,7 @@ function SearchPageInner() {
                                         setQuery('')
                                         inputRef.current?.focus()
                                     }}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                    className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                                     aria-label="Clear search"
                                 >
                                     <XIcon className="w-4 h-4" />
@@ -1253,7 +1290,7 @@ function SearchPageInner() {
                         </div>
                         <Button
                             type="submit"
-                            className="h-11 px-5 rounded-2xl font-bold bg-primary hover:bg-primary/90 text-white shrink-0 shadow-sm flex items-center gap-2 transition-all active:scale-[0.98]"
+                            className="h-10 sm:h-11 px-3.5 sm:px-5 rounded-xl sm:rounded-2xl font-bold bg-primary hover:bg-primary/90 text-white shrink-0 shadow-sm flex items-center gap-1.5 sm:gap-2 transition-all active:scale-[0.98] text-xs sm:text-sm"
                         >
                             <Search className="w-4 h-4" />
                             <span className="hidden sm:inline">Search</span>
@@ -1270,7 +1307,7 @@ function SearchPageInner() {
                                 variant={activeFilterCount > 0 ? 'default' : 'outline'}
                                 size="sm"
                                 onClick={() => setShowMobileFilters(v => !v)}
-                                className="rounded-full text-xs gap-1.5 h-9 px-3"
+                                className="rounded-full text-xs gap-1 sm:gap-1.5 h-8 sm:h-9 px-2.5 sm:px-3"
                                 aria-label="Toggle filters"
                             >
                                 <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -1309,13 +1346,30 @@ function SearchPageInner() {
                             }}
                         />
                     ) : totalFilteredResults === 0 ? (
-                        <NoResults
-                            query={debounced}
-                            hasFilters={activeFilterCount > 0 && totalRawResults > 0}
-                            onResetFilters={handleResetFilters}
-                        />
+                        tab === 'people' || debounced.startsWith('@') ? (
+                            <PersonNotFound
+                                query={debounced}
+                                hasFilters={activeFilterCount > 0 && totalRawResults > 0}
+                                onResetFilters={handleResetFilters}
+                            />
+                        ) : (
+                            <NoResults
+                                query={debounced}
+                                hasFilters={activeFilterCount > 0 && totalRawResults > 0}
+                                onResetFilters={handleResetFilters}
+                            />
+                        )
                     ) : (
                         <div className="space-y-6">
+                            {/* If on people tab and no people found */}
+                            {tab === 'people' && filteredUsers.length === 0 && (
+                                <PersonNotFound
+                                    query={debounced}
+                                    hasFilters={activeFilterCount > 0 && totalRawResults > 0}
+                                    onResetFilters={handleResetFilters}
+                                />
+                            )}
+
                             {/* People */}
                             {(tab === 'all' || tab === 'people') && filteredUsers.length > 0 && (
                                 <div>
@@ -1324,7 +1378,7 @@ function SearchPageInner() {
                                         count={filteredUsers.length}
                                         onSeeAll={tab === 'all' && filteredUsers.length > 4 ? () => handleTabChange('people') : undefined}
                                     />
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                                         {filteredUsers.slice(0, tab === 'all' ? 4 : 20).map(u => (
                                             <TopResultCard key={u.id} user={u} />
                                         ))}
@@ -1340,7 +1394,7 @@ function SearchPageInner() {
                                         count={filteredJobs.length}
                                         onSeeAll={tab === 'all' && filteredJobs.length > 4 ? () => handleTabChange('jobs') : undefined}
                                     />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                         {filteredJobs.slice(0, tab === 'all' ? 4 : 20).map(j => (
                                             <JobResultCard key={j.id} job={j} />
                                         ))}
@@ -1356,7 +1410,7 @@ function SearchPageInner() {
                                         count={filteredPosts.length}
                                         onSeeAll={tab === 'all' && filteredPosts.length > 4 ? () => handleTabChange('posts') : undefined}
                                     />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                         {filteredPosts.slice(0, tab === 'all' ? 4 : 20).map(p => (
                                             <LatestPostCard key={p.id} post={p} />
                                         ))}
