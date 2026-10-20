@@ -14,7 +14,7 @@ import type { LiveStream } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata = { title: 'Studio — ModusHive' }
+export const metadata = { title: 'Studio — Livestream' }
 
 const STATUS_STYLES: Record<LiveStream['status'], string> = {
     idle: 'bg-muted text-muted-foreground',
@@ -54,7 +54,7 @@ export default async function StudioPage()
                         href="/app/modushive"
                         className="inline-flex items-center gap-1.5 font-medium hover:text-foreground transition-colors"
                     >
-                        <ArrowLeft className="h-4 w-4" /> ModusHive
+                        <ArrowLeft className="h-4 w-4" /> Livestream
                     </Link>
                     <span>/</span>
                     <span className="font-semibold text-foreground">Live Studio</span>

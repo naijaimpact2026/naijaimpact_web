@@ -8,7 +8,7 @@ import { DeleteVideoButton, ProcessingRefresher } from '@/components/app/modushi
 
 export const dynamic = 'force-dynamic'
 
-export const metadata = { title: 'ModusHive — HubNovo' }
+export const metadata = { title: 'Livestream — HubNovo' }
 
 export default async function ModusHivePage()
 {
@@ -29,11 +29,11 @@ export default async function ModusHivePage()
             <section className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10">
-                        <Clapperboard className="h-5 w-5 text-primary" />
+                        <Radio className="h-5 w-5 text-primary" />
                     </span>
                     <div>
-                        <h1 className="font-display text-xl sm:text-2xl font-extrabold text-foreground">ModusHive</h1>
-                        <p className="text-xs sm:text-sm text-muted-foreground">Short videos and live streams from the HubNovo community.</p>
+                        <h1 className="font-display text-xl sm:text-2xl font-extrabold text-foreground">Livestream</h1>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Interactive live broadcasts and videos from the Hubnovo community.</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">

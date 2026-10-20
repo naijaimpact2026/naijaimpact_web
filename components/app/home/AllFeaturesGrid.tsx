@@ -17,6 +17,7 @@ import {
     Search,
     MessageSquare,
     Check,
+    Radio,
 } from 'lucide-react'
 
 export interface PlatformFeature {
@@ -226,6 +227,27 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         accentDot: 'bg-indigo-400',
         ctaGradient: 'from-indigo-500 to-purple-600',
         imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+        id: 'livestream',
+        title: 'Livestream & Open Broadcasts',
+        subtitle: 'Interactive live video & community spaces',
+        category: 'community',
+        categoryLabel: 'Live Broadcasting',
+        description: 'Broadcast live to your community, host open spaces, share product showcases, and interact with real-time live chat.',
+        highlights: [
+            'Real-Time Broadcast',
+            'Interactive Live Chat',
+            'Community Open Spaces',
+        ],
+        href: '/app/modushive',
+        ctaText: 'Enter Livestream',
+        icon: Radio,
+        badgeText: 'Live Video',
+        accentColor: '#ef4444',
+        accentDot: 'bg-red-400',
+        ctaGradient: 'from-rose-600 to-red-600',
+        imageUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80',
     },
 ]
 
