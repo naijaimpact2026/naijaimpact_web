@@ -1,6 +1,7 @@
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { redirect } from 'next/navigation'
 import SettingsTabs from './_components/SettingsTabs'
+import { hasWalletPin } from '@/lib/wallet-pin'
 
 export const metadata = { title: 'Settings — HubNovo' }
 
@@ -11,6 +12,8 @@ export default async function SettingsPage()
     if (!authUser) redirect('/auth/login')
     if (!profile) redirect('/auth/login')
 
+    const hasPin = await hasWalletPin(profile.id)
+
     return (
         <div className="container-gutter max-w-2xl mx-auto py-8 space-y-6">
             <div>
@@ -19,7 +22,7 @@ export default async function SettingsPage()
                     Manage your profile, security, privacy, and notifications
                 </p>
             </div>
-            <SettingsTabs user={profile} />
+            <SettingsTabs user={profile} hasPin={hasPin} />
         </div>
     )
 }

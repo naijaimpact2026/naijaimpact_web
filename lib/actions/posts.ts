@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import type { PostWithAuthor } from '@/lib/types'
 
@@ -475,10 +476,8 @@ export async function addComment(
   try {
     const notifyTargets = new Set<string>()
 
-    if (postRow.user_id !== profile.id) {
-      notifyTargets.add(postRow.user_id)
-    }
-
+    // The post author is notified by the on_post_comment_notification trigger;
+    // replies also notify the parent comment's author.
     if (parentCommentId) {
       const { data: parentRow } = await supabase
         .from('post_comments')
@@ -486,13 +485,13 @@ export async function addComment(
         .eq('id', parentCommentId)
         .single()
 
-      if (parentRow && parentRow.user_id !== profile.id) {
+      if (parentRow && parentRow.user_id !== profile.id && parentRow.user_id !== postRow.user_id) {
         notifyTargets.add(parentRow.user_id)
       }
     }
 
     if (notifyTargets.size > 0) {
-      await supabase.from('notifications').insert(
+      await createServiceClient().from('notifications').insert(
         [...notifyTargets].map((recipientId) => ({
           user_id: recipientId,
           actor_id: profile.id,

@@ -25,6 +25,8 @@ function getInitials(name: string | null | undefined): string
 function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }: TopBarProps)
 {
     const router = useRouter()
+    const pathname = usePathname()
+    const isSearchPage = pathname === '/app/search'
     const [query, setQuery] = useState('')
     const profileHref = user?.username ? `/app/profile/${user.username}` : '/app/settings/onboarding'
 
@@ -58,30 +60,34 @@ function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }:
                 <Image src="/logo-darkmode (2).png" alt="Hubnovo" width={90} height={30} className="hidden dark:sm:block h-6 w-auto" unoptimized />
             </Link>
 
-            {/* Search */}
-            <form onSubmit={handleSearchSubmit} className="flex-1 min-w-0 max-w-xl mx-1 sm:mx-auto">
-                <div className="flex items-center gap-2 rounded-full bg-muted px-3 py-1.5 sm:px-4 sm:py-2 focus-within:ring-2 focus-within:ring-primary/40 transition-shadow">
-                    <Search className="w-4 h-4 shrink-0 text-muted-foreground" />
-                    <input
-                        type="search"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search..."
-                        className="flex-1 min-w-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                        aria-label="Search"
-                    />
-                    {query && (
-                        <button
-                            type="button"
-                            onClick={() => setQuery('')}
-                            className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                            aria-label="Clear search"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
-                </div>
-            </form>
+            {/* Search — hidden on /app/search to remove duplicate control */}
+            {!isSearchPage ? (
+                <form onSubmit={handleSearchSubmit} className="flex-1 min-w-0 max-w-xl mx-1 sm:mx-auto">
+                    <div className="flex items-center gap-2 rounded-full bg-muted px-3 py-1.5 sm:px-4 sm:py-2 focus-within:ring-2 focus-within:ring-primary/40 transition-shadow">
+                        <Search className="w-4 h-4 shrink-0 text-muted-foreground" />
+                        <input
+                            type="search"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder="Search..."
+                            className="flex-1 min-w-0 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                            aria-label="Search"
+                        />
+                        {query && (
+                            <button
+                                type="button"
+                                onClick={() => setQuery('')}
+                                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                                aria-label="Clear search"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+                </form>
+            ) : (
+                <div className="flex-1 min-w-0" />
+            )}
 
             {/* Right cluster */}
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">

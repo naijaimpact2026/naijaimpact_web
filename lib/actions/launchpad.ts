@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { ensureUserRow } from '@/lib/supabase/ensure-user-row'
 import type {
   BusinessProfile,
   CacApplication,
@@ -45,7 +46,7 @@ async function resolveProfile(supabase: Awaited<ReturnType<typeof createClient>>
   // 1. Try lookup by auth_id
   let { data: profile, error: profileError } = await supabase
     .from('users')
-    .select('id, display_name, fullname, username, email')
+    .select('id, display_name, fullname, username')
     .eq('auth_id', user.id)
     .maybeSingle()
 
@@ -53,7 +54,7 @@ async function resolveProfile(supabase: Awaited<ReturnType<typeof createClient>>
   if (!profile) {
     const { data: fallback, error: fallbackError } = await supabase
       .from('users')
-      .select('id, display_name, fullname, username, email')
+      .select('id, display_name, fullname, username')
       .eq('id', user.id)
       .maybeSingle()
 
@@ -64,40 +65,17 @@ async function resolveProfile(supabase: Awaited<ReturnType<typeof createClient>>
     }
   }
 
-  // 3. Fallback auto-provision if row doesn't exist
+  // 3. Fallback auto-provision if row doesn't exist (service role; see ensureUserRow)
   if (!profile) {
-    const fallbackName =
-      (user.user_metadata?.full_name as string) ||
-      (user.user_metadata?.display_name as string) ||
-      user.email?.split('@')[0] ||
-      'Entrepreneur'
-
-    const { data: provisioned, error: provError } = await supabase
+    await ensureUserRow(user)
+    const { data: provisioned } = await supabase
       .from('users')
-      .upsert(
-        {
-          id: user.id,
-          auth_id: user.id,
-          email: user.email || '',
-          fullname: fallbackName,
-          display_name: fallbackName,
-          username:
-            (user.email?.split('@')[0] || 'user').toLowerCase() +
-            '_' +
-            Math.floor(1000 + Math.random() * 9000),
-          onboarded: true,
-        },
-        { onConflict: 'id' }
-      )
-      .select('id, display_name, fullname, username, email')
-      .single()
+      .select('id, display_name, fullname, username')
+      .or(`auth_id.eq.${user.id},id.eq.${user.id}`)
+      .maybeSingle()
 
-    if (provisioned) {
-      profile = provisioned
-    } else {
-      console.error('resolveProfile auto-provision error:', provError)
-      throw new Error('User profile not found. Please refresh or sign in again.')
-    }
+    if (!provisioned) throw new Error('User profile not found. Please refresh or sign in again.')
+    profile = provisioned
   }
 
   return { authUser: user, profile }

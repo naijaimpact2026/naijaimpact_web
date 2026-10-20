@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { getThumbnailUrl, isMuxConfigured } from './mux'
 import { syncLiveStream, syncVideo } from './sync'
@@ -8,7 +9,8 @@ import type { LiveStream, LiveStreamWithHost, Video, VideoOwner, VideoWithOwner 
  * RLS client (ready videos + your own uploads are readable) and degrade to
  * empty results if the migration hasn't been applied yet. Rows still in
  * progress are checked against Mux (throttled) in case a webhook didn't
- * reach us — see lib/modushive/sync.ts.
+ * reach us — see lib/modushive/sync.ts. API routes pass `db` (the
+ * bearer-token client) so RLS applies to the mobile caller.
  */
 
 const OWNER_COLUMNS = 'id, username, display_name, avatar_url, verified'
@@ -27,9 +29,9 @@ async function withThumbnails(rows: VideoRow[]): Promise<VideoWithOwner[]>
     })))
 }
 
-export async function listReadyVideos(limit = 24): Promise<VideoWithOwner[]>
+export async function listReadyVideos(limit = 24, db?: SupabaseClient): Promise<VideoWithOwner[]>
 {
-    const supabase = await createClient()
+    const supabase = db ?? await createClient()
     const { data, error } = await supabase
         .from('videos')
         .select(`*, owner:users!videos_owner_id_fkey(${OWNER_COLUMNS})`)
@@ -42,10 +44,10 @@ export async function listReadyVideos(limit = 24): Promise<VideoWithOwner[]>
 }
 
 /** The viewer's own uploads that aren't watchable yet (or failed). */
-export async function listMyPendingVideos(ownerId: string): Promise<Video[]>
+export async function listMyPendingVideos(ownerId: string, db?: SupabaseClient): Promise<Video[]>
 {
     if (!ownerId) return []
-    const supabase = await createClient()
+    const supabase = db ?? await createClient()
     const { data, error } = await supabase
         .from('videos')
         .select('*')
@@ -61,9 +63,9 @@ export async function listMyPendingVideos(ownerId: string): Promise<Video[]>
     return synced.filter((v) => v.status !== 'ready')
 }
 
-export async function getVideo(id: string): Promise<VideoWithOwner | null>
+export async function getVideo(id: string, db?: SupabaseClient): Promise<VideoWithOwner | null>
 {
-    const supabase = await createClient()
+    const supabase = db ?? await createClient()
     const { data, error } = await supabase
         .from('videos')
         .select(`*, owner:users!videos_owner_id_fkey(${OWNER_COLUMNS})`)
@@ -81,17 +83,17 @@ async function withStreamThumbnails(rows: LiveStreamRow[]): Promise<LiveStreamWi
     const synced = await Promise.all(rows.map(syncLiveStream))
     return Promise.all(synced.map(async (s) => ({
         ...s,
-        thumbnail_url: s.status === 'live' && s.playback_id
+        thumbnail_url: s.playback_id
             ? s.provider === 'cloudflare'
                 ? `https://videodelivery.net/${s.playback_id}/thumbnails/thumbnail.jpg`
-                : canSign ? await getThumbnailUrl(s.playback_id, s.playback_policy) : null
+                : canSign ? await getThumbnailUrl(s.playback_id, s.playback_policy, { time: 1 }) : null
             : null,
     })))
 }
 
-export async function listLiveNow(): Promise<LiveStreamWithHost[]>
+export async function listLiveNow(db?: SupabaseClient): Promise<LiveStreamWithHost[]>
 {
-    const supabase = await createClient()
+    const supabase = db ?? await createClient()
     const { data, error } = await supabase
         .from('live_streams')
         .select(`*, host:users!live_streams_host_id_fkey(${OWNER_COLUMNS})`)
@@ -103,9 +105,31 @@ export async function listLiveNow(): Promise<LiveStreamWithHost[]>
     return streams.filter((s) => s.status === 'live')
 }
 
-export async function getLiveStream(id: string): Promise<LiveStreamWithHost | null>
+/** Lists completed live stream recordings / replays for discovery and replay */
+export async function listArchivedReplays(limit = 12, db?: SupabaseClient): Promise<VideoWithOwner[]>
 {
-    const supabase = await createClient()
+    const supabase = db ?? await createClient()
+    const { data, error } = await supabase
+        .from('videos')
+        .select(`*, owner:users!videos_owner_id_fkey(${OWNER_COLUMNS})`)
+        .eq('kind', 'live_replay')
+        .eq('status', 'ready')
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+    if (!error && data && data.length > 0)
+    {
+        return withThumbnails(data as VideoRow[])
+    }
+
+    // Fallback: if no dedicated 'live_replay' videos exist yet, return recent ready videos
+    // so user can discover and replay community videos immediately
+    return listReadyVideos(limit, db)
+}
+
+export async function getLiveStream(id: string, db?: SupabaseClient): Promise<LiveStreamWithHost | null>
+{
+    const supabase = db ?? await createClient()
     const { data, error } = await supabase
         .from('live_streams')
         .select(`*, host:users!live_streams_host_id_fkey(${OWNER_COLUMNS})`)
@@ -121,9 +145,9 @@ export async function getLiveStream(id: string): Promise<LiveStreamWithHost | nu
  * Studio list — every stream that isn't finished, plus the 10 most recent
  * ended ones. Pass `hostId` to limit it to one person's streams (non-admins).
  */
-export async function listStudioStreams(hostId?: string): Promise<LiveStreamWithHost[]>
+export async function listStudioStreams(hostId?: string, db?: SupabaseClient): Promise<LiveStreamWithHost[]>
 {
-    const supabase = await createClient()
+    const supabase = db ?? await createClient()
     let query = supabase
         .from('live_streams')
         .select(`*, host:users!live_streams_host_id_fkey(${OWNER_COLUMNS})`)

@@ -9,6 +9,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import type {
   Job,
@@ -271,13 +272,7 @@ export async function fetchJobById(id: string): Promise<Job | null> {
 
   // Best-effort view counter increment
   try {
-    const { error: rpcErr } = await supabase.rpc('increment_job_views', { target_job_id: id })
-    if (rpcErr) {
-      await supabase
-        .from('jobs')
-        .update({ views_count: (data.views_count || 0) + 1 })
-        .eq('id', id)
-    }
+    await supabase.rpc('increment_job_views', { target_job_id: id })
   } catch {}
 
   let is_saved = false
@@ -506,7 +501,7 @@ export async function applyForJob(
   // 1. Fetch job to verify status and get employer id
   const { data: job, error: jobErr } = await supabase
     .from('jobs')
-    .select('id, title, employer_id, status, applications_count')
+    .select('id, title, employer_id, status, applications_count, application_deadline')
     .eq('id', input.job_id)
     .maybeSingle()
 
@@ -516,6 +511,10 @@ export async function applyForJob(
 
   if (job.status !== 'active') {
     return { success: false, error: 'This job posting is no longer accepting applications.' }
+  }
+
+  if (job.application_deadline && new Date(job.application_deadline) < new Date()) {
+    return { success: false, error: 'The application deadline has passed.' }
   }
 
   if (job.employer_id === profile.id) {
@@ -549,7 +548,10 @@ export async function applyForJob(
     status: 'submitted' as ApplicationStatus,
   }
 
-  const { data: newApp, error: appErr } = await supabase
+  // Clients can't insert applications or bump counters directly; the checks
+  // above (active, not own job, not already applied) gate these writes.
+  const admin = createServiceClient()
+  const { data: newApp, error: appErr } = await admin
     .from('job_applications')
     .insert(applicationPayload)
     .select('*')
@@ -568,7 +570,7 @@ export async function applyForJob(
 
   // 4. Increment application count on job
   try {
-    await supabase
+    await admin
       .from('jobs')
       .update({ applications_count: (job.applications_count || 0) + 1 })
       .eq('id', input.job_id)
@@ -576,7 +578,7 @@ export async function applyForJob(
 
   // 5. Send in-app notification to employer (silent on failure)
   try {
-    await supabase.from('notifications').insert({
+    await admin.from('notifications').insert({
       user_id: job.employer_id,
       actor_id: profile.id,
       type: 'job_application',
@@ -678,8 +680,7 @@ export async function fetchEmployerJobsWithApplicants(): Promise<{
         id,
         display_name,
         avatar_url,
-        username,
-        email
+        username
       )
     `
     )
@@ -700,7 +701,7 @@ export async function fetchEmployerJobsWithApplicants(): Promise<{
       if (applicantIds.length > 0) {
         const { data: usersData } = await supabase
           .from('users')
-          .select('id, display_name, avatar_url, username, email')
+          .select('id, display_name, avatar_url, username')
           .in('id', applicantIds)
         usersMap = new Map((usersData ?? []).map((u: any) => [u.id, u]))
       }
@@ -715,8 +716,11 @@ export async function fetchEmployerJobsWithApplicants(): Promise<{
 
   // Attach job details from already-fetched jobs
   const jobsMap = new Map(jobs.map((j) => [j.id, j]))
+  // The applicant's email comes from their application (shared with the
+  // employer on purpose), not from users.email, which is private.
   const enrichedApplications = apps.map((a) => ({
     ...a,
+    applicant: a.applicant ? { ...a.applicant, email: a.email } : a.applicant,
     job: a.job ?? jobsMap.get(a.job_id) ?? null,
   }))
 
@@ -778,7 +782,7 @@ export async function updateApplicationStatus(
 
   // 3. Notify applicant about status update (silent on failure)
   try {
-    await supabase.from('notifications').insert({
+    await createServiceClient().from('notifications').insert({
       user_id: application.applicant_id,
       actor_id: profile.id,
       type: 'job_status_update',

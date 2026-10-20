@@ -141,8 +141,11 @@ export async function updateSession(request: NextRequest) {
         }
 
         // Auto-heal in background if profile.onboarded was false or auth_id was unlinked
-        if (profile && (!profile.onboarded || profile.auth_id !== user.id)) {
-          supabase
+        // (service role: users can't write onboarded/auth_id themselves)
+        if (profile && (!profile.onboarded || profile.auth_id !== user.id) && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+          createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+            cookies: { getAll: () => [], setAll: () => {} },
+          })
             .from('users')
             .update({ onboarded: true, auth_id: user.id })
             .eq('id', profile.id)

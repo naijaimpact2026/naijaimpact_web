@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = {
     title: 'Platform Directory & Ecosystem | Hubnovo',
-    description: 'Explore all 9 specialized engines and platforms in the Hubnovo ecosystem.',
+    description: 'Explore all 10 specialized engines and platforms in the Hubnovo ecosystem.',
 }
 
 export default async function ExplorePage() {
@@ -49,7 +49,7 @@ export default async function ExplorePage() {
                     </div>
 
                     <h1 className="font-display text-3xl sm:text-4xl font-black text-foreground tracking-tight leading-tight">
-                        Nine Engines for Growth, Trade & Impact
+                        Ten Engines for Growth, Trade & Impact
                     </h1>
 
                     <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">

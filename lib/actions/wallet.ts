@@ -3,7 +3,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { revalidatePath } from 'next/cache'
-import bcrypt from 'bcryptjs'
+import { createServiceClient } from '@/lib/supabase/service'
+import { checkWalletPin, setWalletPin } from '@/lib/wallet-pin'
+import { rateLimit, RATE_LIMITED } from '@/lib/rate-limit'
 import type { Transaction, Wallet } from '@/lib/types'
 
 export type ActionResult<T = void> =
@@ -17,14 +19,7 @@ export type ActionResult<T = void> =
 /**
  * Resolve the platform users.id + full profile from the auth session.
  *
- * Previously this returned a hardcoded `wallet_pin: null` stub instead of
- * the real column — which meant every `profile.wallet_pin` check below
- * (in sendFunds/requestWithdrawal) always saw "no PIN set", regardless of
- * whether the user actually had one. Using the real profile row fixes that.
- *
- * `wallet_pin_locked_until`/`wallet_pin_attempts` aren't declared on the
- * `User` type in lib/types.ts even though the columns exist — same gap as
- * `naija_points` elsewhere — hence the local cast.
+ * The wallet PIN is checked server-side via lib/wallet-pin.ts.
  */
 async function resolveProfile() {
   const { authUser, profile } = await getCurrentUser()
@@ -32,18 +27,20 @@ async function resolveProfile() {
   if (!authUser) throw new Error('Unauthenticated')
   if (!profile) throw new Error('User profile not found')
 
-  return {
-    authUser,
-    profile: profile as typeof profile & {
-      wallet_pin_locked_until: string | null
-      wallet_pin_attempts: number | null
-    },
-  }
+  return { authUser, profile }
 }
+
+/*
+ * Balance and ledger writes go through the service client: clients can't
+ * write user_wallet / transactions directly (see the Supabase migrations), so
+ * every write below is scoped to the signed-in user (or the resolved
+ * recipient) by these server actions.
+ */
+type DbClient = ReturnType<typeof createServiceClient>
 
 /** Get or create the wallet row for a given users.id. */
 async function getOrCreateWallet(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: DbClient,
   userId: string
 ): Promise<Wallet> {
   const { data: wallet } = await supabase
@@ -83,7 +80,7 @@ export async function fetchWallet(limit = 10): Promise<{
   const { profile } = await resolveProfile()
 
   const [wallet, { data: transactions }] = await Promise.all([
-    getOrCreateWallet(supabase, profile.id),
+    getOrCreateWallet(createServiceClient(), profile.id),
     supabase
       .from('transactions')
       .select('*')
@@ -103,44 +100,27 @@ export async function fetchWallet(limit = 10): Promise<{
 // ─────────────────────────────────────────────
 
 /**
- * Verifies a deposit with Paystack API, updates user_wallet, and records the transaction idempotently.
+ * Verifies a deposit with Paystack and credits it exactly once
+ * (web_wallet_credit is idempotent per reference, so replays and concurrent
+ * calls can't double-credit). The payment must be a wallet deposit made with
+ * this user's email.
  */
 export async function verifyAndProcessDeposit(
   reference: string
 ): Promise<ActionResult<{ reference: string; amount: number; newBalance: number; alreadyProcessed?: boolean }>> {
   try {
-    const supabase = await createClient()
-    const { profile } = await resolveProfile()
+    const supabase = createServiceClient()
+    const { authUser, profile } = await resolveProfile()
 
     if (!reference || !reference.trim()) {
       return { success: false, error: 'A valid transaction reference is required' }
     }
-
-    const cleanRef = reference.trim()
-    const wallet = await getOrCreateWallet(supabase, profile.id)
-
-    // 1. Idempotency: Check if already credited in transactions
-    const { data: existingTx } = await supabase
-      .from('transactions')
-      .select('id, amount')
-      .eq('ref', cleanRef)
-      .eq('type', 'deposit')
-      .maybeSingle()
-
-    if (existingTx) {
-      revalidatePath('/app/wallet')
-      return {
-        success: true,
-        data: {
-          reference: cleanRef,
-          amount: Number(existingTx.amount) || 0,
-          newBalance: wallet.balance,
-          alreadyProcessed: true,
-        },
-      }
+    if (!(await rateLimit(`deposit-verify:${profile.id}`, 20, 600))) {
+      return { success: false, error: RATE_LIMITED }
     }
 
-    // 2. Verify with Paystack API
+    const cleanRef = reference.trim()
+
     const paystackSecret = process.env.PAYSTACK_SECRET_KEY
     if (!paystackSecret) {
       return { success: false, error: 'Paystack secret key is missing on the server' }
@@ -165,38 +145,31 @@ export async function verifyAndProcessDeposit(
       return { success: false, error: data.gateway_response || `Payment status is ${data.status}` }
     }
 
-    // 3. Mathematics: Kobo to Naira
-    const amountKobo = Number(data.amount) || 0
-    if (amountKobo <= 0) {
-      return { success: false, error: 'Invalid deposit amount reported by Paystack' }
+    // The payment must be a wallet deposit, in naira, paid by this user.
+    const payerEmail = String(data.customer?.email ?? '').trim().toLowerCase()
+    const myEmail = String(authUser.email ?? profile.email ?? '').trim().toLowerCase()
+    if (data.metadata?.type !== 'deposit' || data.currency !== 'NGN' || !payerEmail || payerEmail !== myEmail) {
+      return { success: false, error: 'This payment is not a wallet deposit from your account.' }
     }
-    const amountNGN = Math.round(amountKobo) / 100
 
+    const amountKobo = Number(data.amount) || 0
+    const amountNGN = Math.round(amountKobo) / 100
     if (amountNGN < 100) {
       return { success: false, error: 'Deposit amount is below minimum (₦100)' }
     }
 
-    // 4. Update wallet balance
-    const newBalance = Number(wallet.balance) + amountNGN
-    const { error: wErr } = await supabase
-      .from('user_wallet')
-      .update({ balance: newBalance })
-      .eq('id', wallet.id)
-
-    if (wErr) {
-      console.error('Wallet balance update error:', wErr)
+    const { data: result, error: creditError } = await supabase.rpc('web_wallet_credit', {
+      p_user_id: profile.id,
+      p_amount: amountNGN,
+      p_type: 'deposit',
+      p_ref: cleanRef,
+    })
+    if (creditError) {
+      console.error('Wallet credit error:', creditError)
       return { success: false, error: 'Failed to credit wallet balance' }
     }
 
-    // 5. Insert transaction record (valid schema: user_id, type, amount, status, ref)
-    await supabase.from('transactions').insert({
-      user_id: profile.id,
-      type: 'deposit',
-      amount: amountNGN,
-      status: 'success',
-      ref: cleanRef,
-    })
-
+    const wallet = await getOrCreateWallet(supabase, profile.id)
     revalidatePath('/app/wallet')
 
     return {
@@ -204,7 +177,8 @@ export async function verifyAndProcessDeposit(
       data: {
         reference: cleanRef,
         amount: amountNGN,
-        newBalance,
+        newBalance: wallet.balance,
+        alreadyProcessed: result === 'already_credited',
       },
     }
   } catch (err: any) {
@@ -246,68 +220,14 @@ export async function sendFunds(
     return { success: false, error: 'Minimum transfer amount is ₦50' }
   }
 
-  const supabase = await createClient()
-  const { authUser, profile } = await resolveProfile()
+  const supabase = createServiceClient()
+  const { profile } = await resolveProfile()
 
-  // ── PIN lockout check ─────────────────────────────────────────────────────
-  const lockedUntil = profile.wallet_pin_locked_until
-    ? new Date(profile.wallet_pin_locked_until)
-    : null
+  if (!(await rateLimit(`send:${profile.id}`, 10, 600))) return { success: false, error: RATE_LIMITED }
 
-  if (lockedUntil && lockedUntil > new Date()) {
-    const minutesLeft = Math.ceil((lockedUntil.getTime() - Date.now()) / 60_000)
-    return {
-      success: false,
-      error: `Too many failed PIN attempts. Try again in ${minutesLeft} minute${minutesLeft === 1 ? '' : 's'}.`,
-    }
-  }
-
-  // ── PIN check ─────────────────────────────────────────────────────────────
-  if (!profile.wallet_pin) {
-    return { success: false, error: 'You have not set a wallet PIN yet. Set one in Settings.' }
-  }
-
-  const pinCorrect = await bcrypt.compare(pin, profile.wallet_pin)
-
-  if (!pinCorrect) {
-    // Increment attempts
-    const currentAttempts = (profile.wallet_pin_attempts ?? 0) + 1
-    const isLockout = currentAttempts >= 5
-    const lockedUntilDate = isLockout
-      ? new Date(Date.now() + 15 * 60 * 1000).toISOString()
-      : null
-
-    await supabase
-      .from('users')
-      .update({
-        wallet_pin_attempts: isLockout ? 0 : currentAttempts,
-        ...(lockedUntilDate ? { wallet_pin_locked_until: lockedUntilDate } : {}),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', profile.id)
-
-    if (isLockout) {
-      return {
-        success: false,
-        error: 'Too many incorrect PIN attempts. Your account is locked for 15 minutes.',
-      }
-    }
-
-    return {
-      success: false,
-      error: `Incorrect PIN. ${5 - currentAttempts} attempt${5 - currentAttempts === 1 ? '' : 's'} remaining.`,
-    }
-  }
-
-  // ── Reset PIN attempts on success ─────────────────────────────────────────
-  await supabase
-    .from('users')
-    .update({
-      wallet_pin_attempts: 0,
-      wallet_pin_locked_until: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', profile.id)
+  // ── PIN check (shared with mobile; locks for 15 min after 5 wrong tries) ──
+  const pinResult = await checkWalletPin(profile.id, pin)
+  if (!pinResult.ok) return { success: false, error: pinResult.error }
 
   // ── Resolve recipient ─────────────────────────────────────────────────────
   const { data: recipient } = await supabase
@@ -324,73 +244,24 @@ export async function sendFunds(
     return { success: false, error: 'You cannot send funds to yourself.' }
   }
 
-  // ── Check sender balance ──────────────────────────────────────────────────
-  const senderWallet = await getOrCreateWallet(supabase, profile.id)
+  // ── Move the money in one database transaction (no double spends) ───────
+  const transferRef = `TRF-${crypto.randomUUID()}`
+  const { data: newBalance, error: transferError } = await supabase.rpc('web_wallet_transfer', {
+    p_sender: profile.id,
+    p_recipient: recipient.id,
+    p_amount: amountNGN,
+    p_ref: transferRef,
+  })
 
-  if (senderWallet.balance < amountNGN) {
-    return { success: false, error: 'Insufficient balance.' }
-  }
-
-  // ── Debit sender ──────────────────────────────────────────────────────────
-  const { error: debitError } = await supabase
-    .from('user_wallet')
-    .update({
-      balance: senderWallet.balance - amountNGN,
-    })
-    .eq('id', senderWallet.id)
-
-  if (debitError) {
-    console.error('sendFunds debit error:', debitError)
+  if (transferError) {
+    if (transferError.message?.includes('Insufficient')) return { success: false, error: 'Insufficient balance.' }
+    console.error('sendFunds error:', transferError)
     return { success: false, error: 'Transfer failed. Please try again.' }
   }
-
-  // ── Credit recipient ──────────────────────────────────────────────────────
-  const recipientWallet = await getOrCreateWallet(supabase, recipient.id)
-
-  const { error: creditError } = await supabase
-    .from('user_wallet')
-    .update({
-      balance: recipientWallet.balance + amountNGN,
-    })
-    .eq('id', recipientWallet.id)
-
-  if (creditError) {
-    console.error('sendFunds credit error:', creditError)
-    // Best-effort rollback
-    await supabase
-      .from('user_wallet')
-      .update({ balance: senderWallet.balance })
-      .eq('id', senderWallet.id)
-
-    return { success: false, error: 'Transfer failed. Please try again.' }
-  }
-
-  // ── Insert transaction rows ───────────────────────────────────────────────
-  const now = new Date().toISOString()
-  const transferRef = `TRF-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
-
-  await supabase.from('transactions').insert([
-    {
-      user_id: profile.id,
-      type: 'transfer_debit',
-      amount: amountNGN,
-      status: 'success',
-      ref: transferRef,
-      created_at: now,
-    },
-    {
-      user_id: recipient.id,
-      type: 'transfer_credit',
-      amount: amountNGN,
-      status: 'success',
-      ref: transferRef,
-      created_at: now,
-    },
-  ])
 
   revalidatePath('/app/wallet')
 
-  return { success: true, data: { newBalance: senderWallet.balance - amountNGN } }
+  return { success: true, data: { newBalance: Number(newBalance) } }
 }
 
 // ─────────────────────────────────────────────
@@ -416,105 +287,34 @@ export async function requestWithdrawal(
     return { success: false, error: 'Minimum withdrawal amount is ₦100' }
   }
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { profile } = await resolveProfile()
 
-  // ── PIN lockout check ─────────────────────────────────────────────────────
-  const lockedUntil = profile.wallet_pin_locked_until
-    ? new Date(profile.wallet_pin_locked_until)
-    : null
+  if (!(await rateLimit(`withdraw:${profile.id}`, 5, 3600))) return { success: false, error: RATE_LIMITED }
 
-  if (lockedUntil && lockedUntil > new Date()) {
-    const minutesLeft = Math.ceil((lockedUntil.getTime() - Date.now()) / 60_000)
-    return {
-      success: false,
-      error: `Too many failed PIN attempts. Try again in ${minutesLeft} minute${minutesLeft === 1 ? '' : 's'}.`,
-    }
+  // ── PIN check (shared with mobile; locks for 15 min after 5 wrong tries) ──
+  const pinResult = await checkWalletPin(profile.id, pin)
+  if (!pinResult.ok) return { success: false, error: pinResult.error }
+
+  if (!/^\d{10}$/.test(accountNumber.trim()) || !bankName.trim() || !accountName.trim()) {
+    return { success: false, error: 'Enter a valid bank, 10-digit account number and account name.' }
   }
 
-  // ── PIN check ─────────────────────────────────────────────────────────────
-  if (!profile.wallet_pin) {
-    return { success: false, error: 'You have not set a wallet PIN yet. Set one in Settings.' }
-  }
-
-  const pinCorrect = await bcrypt.compare(pin, profile.wallet_pin)
-
-  if (!pinCorrect) {
-    const currentAttempts = (profile.wallet_pin_attempts ?? 0) + 1
-    const isLockout = currentAttempts >= 5
-    const lockedUntilDate = isLockout
-      ? new Date(Date.now() + 15 * 60 * 1000).toISOString()
-      : null
-
-    await supabase
-      .from('users')
-      .update({
-        wallet_pin_attempts: isLockout ? 0 : currentAttempts,
-        ...(lockedUntilDate ? { wallet_pin_locked_until: lockedUntilDate } : {}),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', profile.id)
-
-    if (isLockout) {
-      return {
-        success: false,
-        error: 'Too many incorrect PIN attempts. Your account is locked for 15 minutes.',
-      }
-    }
-
-    return {
-      success: false,
-      error: `Incorrect PIN. ${5 - currentAttempts} attempt${5 - currentAttempts === 1 ? '' : 's'} remaining.`,
-    }
-  }
-
-  // ── Reset PIN attempts ────────────────────────────────────────────────────
-  await supabase
-    .from('users')
-    .update({
-      wallet_pin_attempts: 0,
-      wallet_pin_locked_until: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', profile.id)
-
-  // ── Check balance ─────────────────────────────────────────────────────────
-  const wallet = await getOrCreateWallet(supabase, profile.id)
-
-  if (wallet.balance < amountNGN) {
-    return { success: false, error: 'Insufficient balance.' }
-  }
-
-  // ── Debit balance (held pending payout) ───────────────────────────────────
-  const { error: debitError } = await supabase
-    .from('user_wallet')
-    .update({
-      balance: wallet.balance - amountNGN,
-    })
-    .eq('id', wallet.id)
-
-  if (debitError) {
-    console.error('requestWithdrawal debit error:', debitError)
-    return { success: false, error: 'Withdrawal request failed. Please try again.' }
-  }
-
-  // ── Insert pending transaction ────────────────────────────────────────────
-  const withdrawalRef = `WTH-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
-  const { error: txError } = await supabase.from('transactions').insert({
-    user_id: profile.id,
-    type: 'withdrawal',
-    amount: amountNGN,
-    status: 'pending',
-    ref: withdrawalRef,
+  // ── Hold the amount and record a pending payout, atomically ──────────────
+  const { error: debitError } = await supabase.rpc('web_wallet_debit', {
+    p_user_id: profile.id,
+    p_amount: amountNGN,
+    p_type: 'withdrawal',
+    p_ref: `WTH-${crypto.randomUUID()}`,
+    p_status: 'pending',
+    p_bank_name: bankName.trim(),
+    p_account_number: accountNumber.trim(),
+    p_account_name: accountName.trim(),
   })
 
-  if (txError) {
-    console.error('requestWithdrawal tx insert error:', txError)
-    // Rollback the balance debit
-    await supabase
-      .from('user_wallet')
-      .update({ balance: wallet.balance })
-      .eq('id', wallet.id)
+  if (debitError) {
+    if (debitError.message?.includes('Insufficient')) return { success: false, error: 'Insufficient balance.' }
+    console.error('requestWithdrawal error:', debitError)
     return { success: false, error: 'Withdrawal request failed. Please try again.' }
   }
 
@@ -535,52 +335,17 @@ export async function setPin(formData: {
   pin: string
   current_pin?: string
 }): Promise<ActionResult> {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
+  let profileId: string
+  try {
+    profileId = (await resolveProfile()).profile.id
+  } catch {
     return { success: false, error: 'You must be signed in to set a PIN.' }
   }
 
-  if (!/^\d{6}$/.test(formData.pin)) {
-    return { success: false, error: 'PIN must be exactly 6 digits.' }
-  }
+  if (!(await rateLimit(`pin-set:${profileId}`, 5, 900))) return { success: false, error: RATE_LIMITED }
 
-  const { data: profile, error: fetchError } = await supabase
-    .from('users')
-    .select('wallet_pin')
-    .eq('auth_id', user.id)
-    .single()
-
-  if (fetchError || !profile) {
-    return { success: false, error: 'Failed to fetch profile. Please try again.' }
-  }
-
-  if (profile.wallet_pin) {
-    if (!formData.current_pin) {
-      return { success: false, error: 'Please enter your current PIN to change it.' }
-    }
-    const match = await bcrypt.compare(formData.current_pin, profile.wallet_pin)
-    if (!match) {
-      return { success: false, error: 'Current PIN is incorrect.' }
-    }
-  }
-
-  const hash = await bcrypt.hash(formData.pin, 12)
-
-  const { error: updateError } = await supabase
-    .from('users')
-    .update({ wallet_pin: hash, updated_at: new Date().toISOString() })
-    .eq('auth_id', user.id)
-
-  if (updateError) {
-    console.error('setPin error:', updateError.message)
-    return { success: false, error: 'Failed to save PIN. Please try again.' }
-  }
+  const result = await setWalletPin(profileId, formData.pin, formData.current_pin || undefined)
+  if (!result.ok) return { success: false, error: result.error }
 
   revalidatePath('/app/settings')
   revalidatePath('/app/wallet')
@@ -604,6 +369,7 @@ export async function lookupUser(
   } = await supabase.auth.getUser()
 
   if (authError || !user) return { success: false, error: 'Unauthenticated' }
+  if (!(await rateLimit(`lookup:${user.id}`, 30, 60))) return { success: false, error: RATE_LIMITED }
 
   const { data: found } = await supabase
     .from('users')

@@ -53,12 +53,12 @@ const pinSchema = z
         current_pin: z.string().optional(),
         new_pin: z
             .string()
-            .length(6, 'PIN must be exactly 6 digits')
-            .regex(/^\d{6}$/, 'PIN must contain only digits'),
+            .min(4, 'PIN must be 4 to 6 digits').max(6, 'PIN must be 4 to 6 digits')
+            .regex(/^\d{4,6}$/, 'PIN must contain only digits'),
         confirm_pin: z
             .string()
-            .length(6, 'PIN must be exactly 6 digits')
-            .regex(/^\d{6}$/, 'PIN must contain only digits'),
+            .min(4, 'PIN must be 4 to 6 digits').max(6, 'PIN must be 4 to 6 digits')
+            .regex(/^\d{4,6}$/, 'PIN must contain only digits'),
     })
     .refine((d) => d.new_pin === d.confirm_pin, {
         path: ['confirm_pin'],
@@ -108,6 +108,7 @@ function useAvatarUpload(currentUrl: string | null)
 interface SettingsTabsProps
 {
     user: AppUser
+    hasPin: boolean
 }
 
 // ─── Profile Tab ──────────────────────────────────────────────────────────────
@@ -283,9 +284,8 @@ function ProfileTab({ user }: { user: AppUser })
 
 // ─── Security Tab ─────────────────────────────────────────────────────────────
 
-function SecurityTab({ user }: { user: AppUser })
+function SecurityTab({ hasPin }: { hasPin: boolean })
 {
-    const hasPin = Boolean(user.wallet_pin)
     const [saving, setSaving] = useState(false)
     const [showNew, setShowNew] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
@@ -329,8 +329,8 @@ function SecurityTab({ user }: { user: AppUser })
                 <h2 className="font-semibold text-lg">Security</h2>
                 <p className="text-muted-foreground text-sm mt-1">
                     {hasPin
-                        ? 'Change your 6-digit wallet PIN'
-                        : 'Set a 6-digit PIN to secure wallet transactions'}
+                        ? 'Change your 4–6 digit wallet PIN'
+                        : 'Set a 4–6 digit PIN to secure wallet transactions'}
                 </p>
             </div>
 
@@ -399,7 +399,7 @@ function SecurityTab({ user }: { user: AppUser })
                                         </button>
                                     </div>
                                 </FormControl>
-                                <FormDescription className="text-xs">Must be exactly 6 digits</FormDescription>
+                                <FormDescription className="text-xs">4 to 6 digits</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -992,7 +992,7 @@ function DangerZoneTab({ user }: { user: AppUser })
 
 // ─── Main Tabs component ──────────────────────────────────────────────────────
 
-export default function SettingsTabs({ user }: SettingsTabsProps)
+export default function SettingsTabs({ user, hasPin }: SettingsTabsProps)
 {
     return (
         <Tabs defaultValue="profile" className="w-full">
@@ -1012,7 +1012,7 @@ export default function SettingsTabs({ user }: SettingsTabsProps)
             </TabsContent>
 
             <TabsContent value="security">
-                <SecurityTab user={user} />
+                <SecurityTab hasPin={hasPin} />
             </TabsContent>
 
             <TabsContent value="privacy">

@@ -8,6 +8,7 @@ import { ALLOWED_VIDEO_TYPES, MUX_RTMP_URL, canGoLive, formatBytes, getLiveLimit
 import { defaultPlaybackPolicy, getMux, isMuxConfigured } from '@/lib/modushive/mux'
 import { deleteObject, getObjectSize, isR2Configured, presignDownload, presignUpload } from '@/lib/modushive/r2'
 import { createCloudflareLiveInput, deleteCloudflareLiveInput, isCloudflareStreamConfigured } from '@/lib/modushive/cloudflare'
+import { getActingProfile } from '@/lib/modushive/acting-profile'
 
 /*
  * ModusHive writes. Tables have SELECT-only RLS, so every write here goes
@@ -27,6 +28,10 @@ const EXTENSIONS: Record<string, string> = {
 
 async function requireProfile()
 {
+    // Set by the mobile API routes after verifying the bearer token.
+    const acting = getActingProfile()
+    if (acting) return acting
+
     const { profile } = await getCurrentUser()
     if (!profile) throw new Error('Unauthorized')
     return profile

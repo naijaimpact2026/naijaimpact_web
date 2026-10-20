@@ -6,7 +6,9 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
-import bcrypt from 'bcryptjs'
+import { getCurrentUser } from '@/lib/supabase/auth'
+import { setWalletPin } from '@/lib/wallet-pin'
+import { rateLimit, RATE_LIMITED } from '@/lib/rate-limit'
 
 // ─── Validation schemas ───────────────────────────────────────────────────────
 
@@ -60,14 +62,6 @@ const updateNotificationsSchema = z.object({
   notifications_reactions: z.boolean(),
   notifications_comments: z.boolean(),
   notifications_mentions: z.boolean(),
-})
-
-const setPinSchema = z.object({
-  pin: z
-    .string()
-    .length(6, 'PIN must be exactly 6 digits')
-    .regex(/^\d{6}$/, 'PIN must contain only digits'),
-  current_pin: z.string().optional(),
 })
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -308,66 +302,25 @@ export async function updateProfile(formData: {
 }
 
 /**
- * Sets or changes the 6-digit wallet PIN for the current user.
+ * Sets or changes the wallet PIN (4–6 digits, shared with the mobile app).
  * If the user already has a PIN, current_pin must be provided and correct.
- * Requirement: 10.8
  */
 export async function setPin(formData: {
   pin: string
   current_pin?: string
 }): Promise<ActionResult> {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
+  const { profile } = await getCurrentUser()
+  if (!profile) {
     return { success: false, error: 'You must be signed in to set a PIN.' }
   }
 
-  const parsed = setPinSchema.safeParse(formData)
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.errors[0]?.message ?? 'Invalid PIN.' }
-  }
+  if (!(await rateLimit(`pin-set:${profile.id}`, 5, 900))) return { success: false, error: RATE_LIMITED }
 
-  // Fetch current PIN hash
-  const { data: profile, error: fetchError } = await supabase
-    .from('users')
-    .select('wallet_pin')
-    .eq('auth_id', user.id)
-    .single()
-
-  if (fetchError || !profile) {
-    return { success: false, error: 'Failed to fetch profile. Please try again.' }
-  }
-
-  // If user already has a PIN, verify the current one
-  if (profile.wallet_pin) {
-    if (!formData.current_pin) {
-      return { success: false, error: 'Please enter your current PIN to change it.' }
-    }
-    const match = await bcrypt.compare(formData.current_pin, profile.wallet_pin)
-    if (!match) {
-      return { success: false, error: 'Current PIN is incorrect.' }
-    }
-  }
-
-  // Hash the new PIN and save
-  const hash = await bcrypt.hash(formData.pin, 12)
-
-  const { error: updateError } = await supabase
-    .from('users')
-    .update({ wallet_pin: hash, updated_at: new Date().toISOString() })
-    .eq('auth_id', user.id)
-
-  if (updateError) {
-    console.error('setPin error:', updateError.message)
-    return { success: false, error: 'Failed to save PIN. Please try again.' }
-  }
+  const result = await setWalletPin(profile.id, formData.pin, formData.current_pin || undefined)
+  if (!result.ok) return { success: false, error: result.error }
 
   revalidatePath('/app/settings')
+  revalidatePath('/app/wallet')
 
   return { success: true }
 }
@@ -496,18 +449,7 @@ export async function followUser(targetId: string): Promise<ActionResult> {
     return { success: false, error: 'Failed to follow user. Please try again.' }
   }
 
-  // Insert notification — silent on failure
-  try {
-    await supabase.from('notifications').insert({
-      user_id: targetId,
-      actor_id: profile.id,
-      type: 'follow',
-      reference_id: profile.id,
-      read: false,
-    })
-  } catch (err) {
-    console.error('followUser notification error:', err)
-  }
+  // The follow notification is created by the on_new_follower_notification trigger.
 
   revalidatePath('/app/profile')
 
@@ -699,22 +641,14 @@ export async function blockUser(targetId: string): Promise<ActionResult> {
     return { success: false, error: 'You cannot block yourself.' }
   }
 
-  const { error: blockError } = await supabase
-    .from('blocked_users')
-    .insert({ blocker_id: profile.id, blocked_id: targetId })
+  // block_user also removes follows in both directions (the other person's
+  // follow row isn't deletable by this user directly).
+  const { error: blockError } = await supabase.rpc('block_user', { p_target: targetId })
 
-  if (blockError && blockError.code !== '23505') {
+  if (blockError) {
     console.error('blockUser error:', blockError.message)
     return { success: false, error: 'Failed to block user. Please try again.' }
   }
-
-  // Clear any follow relationship between the two users, either direction
-  await supabase
-    .from('user_follows')
-    .delete()
-    .or(
-      `and(follower_id.eq.${profile.id},following_id.eq.${targetId}),and(follower_id.eq.${targetId},following_id.eq.${profile.id})`
-    )
 
   revalidatePath('/app/feed')
 
@@ -746,11 +680,7 @@ export async function unblockUser(targetId: string): Promise<ActionResult> {
     return { success: false, error: 'User profile not found.' }
   }
 
-  const { error: unblockError } = await supabase
-    .from('blocked_users')
-    .delete()
-    .eq('blocker_id', profile.id)
-    .eq('blocked_id', targetId)
+  const { error: unblockError } = await supabase.rpc('unblock_user', { p_target: targetId })
 
   if (unblockError) {
     console.error('unblockUser error:', unblockError.message)

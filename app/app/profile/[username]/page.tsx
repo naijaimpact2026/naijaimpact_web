@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { PUBLIC_USER_COLUMNS } from '@/lib/supabase/request-auth'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { fetchUserPostsPage } from '@/lib/actions/posts'
 import ProfileHeader from '@/components/app/profile/ProfileHeader'
@@ -28,11 +29,13 @@ export default async function ProfilePage({ params }: ProfilePageProps)
     const currentUserId = viewerProfile?.id ?? ''
 
     // ── Fetch target user profile ─────────────────────────────────────────────
-    const { data: profile, error: profileError } = await supabase
+    const { data: profileRow, error: profileError } = await supabase
         .from('users')
-        .select('*')
+        .select(PUBLIC_USER_COLUMNS)
         .eq('username', username.toLowerCase())
         .single()
+    // Public columns only (no email): another user's profile goes to the browser.
+    const profile = profileRow as unknown as User | null
 
     // 6.2: Not found → render friendly 404 message
     if (profileError || !profile)

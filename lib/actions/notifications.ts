@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import type { NotificationWithActor } from '@/lib/types'
 
@@ -108,10 +109,10 @@ export async function deleteNotification(
     notificationId: string,
 ) {
     try {
-        const { supabase, profile } =
-            await getCurrentProfile()
+        const { profile } = await getCurrentProfile()
 
-        const { error } = await supabase
+        // Clients can't delete notifications directly; scoped to the owner here.
+        const { error } = await createServiceClient()
             .from('notifications')
             .delete()
             .eq('id', notificationId)

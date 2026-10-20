@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import
 {
     Dialog,
@@ -28,7 +29,7 @@ import type { PostWithAuthor, User } from '@/lib/types'
 import
 {
     Image as ImageIcon, Globe2, Loader2, Hash, X, Users, Lock,
-    ChevronDown, Tag, SlidersHorizontal, Check, CalendarClock, Sparkles
+    ChevronDown, Tag, SlidersHorizontal, Check, CalendarClock, Sparkles, Radio
 } from 'lucide-react'
 import { toast } from '@/components/toast'
 
@@ -92,6 +93,7 @@ export default function CreatePostModal({
     startWithTagging = false,
 }: CreatePostModalProps)
 {
+    const router = useRouter()
     const [caption, setCaption] = useState('')
     const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
     const [showMedia, setShowMedia] = useState(false)
@@ -773,6 +775,20 @@ export default function CreatePostModal({
                                     {uploadedFiles.length}
                                 </span>
                             )}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={isSubmitting}
+                            onClick={() => {
+                                onOpenChange(false)
+                                router.push('/app/modushive/studio')
+                            }}
+                            className="h-8 gap-1.5 text-xs font-medium hover:text-destructive hover:border-destructive/40"
+                        >
+                            <Radio className="w-3.5 h-3.5 text-destructive animate-pulse" />
+                            <span>Go Live</span>
                         </Button>
                     </div>
 
