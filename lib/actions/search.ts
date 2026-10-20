@@ -110,16 +110,56 @@ export async function searchCourses(query: string) {
   }))
 }
 
+export async function searchJobs(query: string) {
+  const supabase = await createClient()
+  const { authUser } = await getCurrentUser()
+  if (!authUser) throw new Error('Unauthenticated')
+
+  const clean = query.trim().replace(/^#/, '')
+  if (!clean) return []
+
+  const { data, error } = await supabase
+    .from('jobs')
+    .select(`
+      id, title, company_name, category, job_type, workplace_type,
+      location_city, location_state, salary_min, salary_max, currency, created_at,
+      employer:users(id, display_name, avatar_url, username, verified)
+    `)
+    .eq('status', 'active')
+    .or(`title.ilike.%${clean}%,company_name.ilike.%${clean}%,category.ilike.%${clean}%`)
+    .order('created_at', { ascending: false })
+    .limit(20)
+
+  if (error || !data) return []
+
+  return data.map((j: any) => ({
+    id: j.id,
+    title: j.title,
+    company_name: j.company_name,
+    category: j.category,
+    job_type: j.job_type,
+    workplace_type: j.workplace_type,
+    location_city: j.location_city,
+    location_state: j.location_state,
+    salary_min: j.salary_min,
+    salary_max: j.salary_max,
+    currency: j.currency || 'NGN',
+    created_at: j.created_at,
+    employer: j.employer ?? null,
+  }))
+}
+
 export async function searchAll(query: string) {
   const clean = query?.trim() ?? ''
   if (clean.length < 2) {
-    return { users: [], posts: [], courses: [] }
+    return { users: [], posts: [], courses: [], jobs: [] }
   }
-  const [users, posts, courses] = await Promise.all([
-    searchUsers(clean),
-    searchPosts(clean),
-    searchCourses(clean),
+  const [users, posts, courses, jobs] = await Promise.all([
+    searchUsers(clean).catch(() => []),
+    searchPosts(clean).catch(() => []),
+    searchCourses(clean).catch(() => []),
+    searchJobs(clean).catch(() => []),
   ])
-  return { users, posts, courses }
+  return { users, posts, courses, jobs }
 }
 
