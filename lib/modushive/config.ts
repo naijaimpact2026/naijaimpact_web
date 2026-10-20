@@ -36,7 +36,7 @@ export const LIVE_LIMITS: Record<UserRole, {
         maxDurationS: 60 * 60,
         maxOpenStreams: 1,
         maxDailyMinutes: 60,
-        allowRecording: false,
+        allowRecording: true,
     },
     creator: {
         maxDurationS: 4 * 60 * 60,

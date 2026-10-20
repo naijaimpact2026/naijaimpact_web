@@ -53,6 +53,7 @@ export default function UploadForm({ maxBytes, maxDurationS }: UploadFormProps)
     const [file, setFile] = useState<File | null>(null)
     const [duration, setDuration] = useState(0)
     const [title, setTitle] = useState('')
+    const [category, setCategory] = useState('Entertainment')
     const [description, setDescription] = useState('')
     const [phase, setPhase] = useState<Phase>('idle')
     const [progress, setProgress] = useState(0)
@@ -106,9 +107,13 @@ export default function UploadForm({ maxBytes, maxDurationS }: UploadFormProps)
         setProgress(0)
         try
         {
+            const taggedDescription = category
+                ? `[${category}] ${description.trim()}`.trim()
+                : description.trim()
+
             const created = await createVideoUpload({
                 title,
-                description,
+                description: taggedDescription,
                 contentType: file.type,
                 sizeBytes: file.size,
                 durationS: duration,
@@ -129,6 +134,17 @@ export default function UploadForm({ maxBytes, maxDurationS }: UploadFormProps)
             setPhase('idle')
         }
     }
+
+    const CATEGORIES = [
+        'Entertainment',
+        'Music',
+        'Education',
+        'Sports',
+        'Faith',
+        'News',
+        'Lifestyle',
+        'Business',
+    ]
 
     return (
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -177,8 +193,28 @@ export default function UploadForm({ maxBytes, maxDurationS }: UploadFormProps)
             </div>
 
             <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Category</label>
+                <div className="flex flex-wrap gap-2 pt-1">
+                    {CATEGORIES.map((cat) => (
+                        <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setCategory(cat)}
+                            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                                category === cat
+                                    ? 'bg-primary text-primary-foreground shadow-sm'
+                                    : 'border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
+                            }`}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="space-y-1.5">
                 <label htmlFor="video-description" className="text-sm font-medium text-foreground">Description <span className="text-muted-foreground font-normal">(optional)</span></label>
-                <Textarea id="video-description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} rows={4} disabled={busy} />
+                <Textarea id="video-description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} rows={4} disabled={busy} placeholder="Tell viewers what happens in your video..." />
             </div>
 
             {busy && (
