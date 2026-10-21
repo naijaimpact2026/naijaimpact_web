@@ -107,8 +107,17 @@ export default function FloatingReactions({
 
         const handleReactionEvent = (event: any) => {
             const emoji = event?.emoji || event?.text || '❤️'
-            // Spawn with slight variation in position
-            spawnParticle(emoji, 82)
+            if (emoji === '🪙') {
+                // Golden celebration shower for tips!
+                const celebratory = ['🪙', '⭐', '🪙', '✨', '👑', '🎉', '🪙', '⭐']
+                celebratory.forEach((em, idx) => {
+                    setTimeout(() => {
+                        spawnParticle(em, 35 + Math.random() * 50)
+                    }, idx * 100)
+                })
+            } else {
+                spawnParticle(emoji, 82)
+            }
         }
 
         const sub = (channel as any).on('live_reaction', handleReactionEvent)

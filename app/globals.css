@@ -530,17 +530,17 @@ html.dark {
   .str-chat .str-chat__attachment-selector,
   .str-chat .str-chat__attachment-selector button,
   .str-chat .str-chat__attachment-selector .str-chat__attachment-selector__menu-button {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
-    min-height: 40px !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     border-radius: 9999px !important;
     color: var(--color-muted-foreground) !important;
-    background: transparent !important;
-    border: none !important;
+    background-color: var(--color-muted) !important;
+    border: 1px solid var(--color-border) !important;
     cursor: pointer !important;
     transition: all 0.18s ease !important;
     flex-shrink: 0 !important;
@@ -548,7 +548,8 @@ html.dark {
   .str-chat .str-chat__attachment-selector button:hover,
   .str-chat .str-chat__attachment-selector .str-chat__attachment-selector__menu-button:hover {
     color: var(--color-primary) !important;
-    background-color: color-mix(in srgb, var(--color-primary) 10%, transparent) !important;
+    background-color: color-mix(in srgb, var(--color-primary) 12%, transparent) !important;
+    border-color: var(--color-primary) !important;
     transform: scale(1.05) !important;
   }
 
@@ -741,6 +742,20 @@ html.dark {
   }
 
   /* Chat composer dark mode support */
+  html.dark .str-chat .str-chat__attachment-selector,
+  html.dark .str-chat .str-chat__attachment-selector button,
+  html.dark .str-chat .str-chat__attachment-selector .str-chat__attachment-selector__menu-button {
+    background-color: #0e2236 !important;
+    border-color: #1e3a58 !important;
+    color: #94a3b8 !important;
+  }
+  html.dark .str-chat .str-chat__attachment-selector:hover,
+  html.dark .str-chat .str-chat__attachment-selector button:hover,
+  html.dark .str-chat .str-chat__attachment-selector .str-chat__attachment-selector__menu-button:hover {
+    background-color: #16324f !important;
+    border-color: hsl(212, 90%, 62%) !important;
+    color: #ffffff !important;
+  }
   html.dark .str-chat .str-chat__message-composer-container {
     background-color: #0b1929 !important;
     border-color: #1a334e !important;

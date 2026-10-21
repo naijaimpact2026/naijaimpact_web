@@ -36,7 +36,7 @@ import {
 } from '@/lib/launchpad-data'
 import type { BusinessProfile, CacApplication } from '@/lib/types'
 import { toast } from '@/components/toast'
-import { ArrowRight, Sparkles } from 'lucide-react'
+import { ArrowRight, Sparkles, Zap, FileText, Wrench, Building2 } from 'lucide-react'
 
 interface BusinessLaunchHomeProps {
     displayName?: string
@@ -75,6 +75,9 @@ export default function BusinessLaunchHome({
     // Active Roadmap stage (1: Ideate, 2: Plan, 3: Fund, 4: Launch, 5: Grow)
     const defaultStage = cacApplication?.status === 'approved' ? 4 : business ? 2 : 1
     const [activeStageId, setActiveStageId] = useState(defaultStage)
+
+    // Toolkit Active Tab ('actions' | 'templates' | 'tools' | 'sectors')
+    const [toolkitTab, setToolkitTab] = useState<'actions' | 'templates' | 'tools' | 'sectors'>('actions')
 
     // Modals state
     const [selectedTemplate, setSelectedTemplate] = useState<BusinessTemplate | null>(null)
@@ -205,15 +208,9 @@ export default function BusinessLaunchHome({
 
                 {/* ── Main 2-Column Dashboard Grid ── */}
                 <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_370px] gap-6 items-start">
-                    {/* ── LEFT / MAIN COLUMN ── */}
+                    {/* ── LEFT / MAIN CONTENT ── */}
                     <div className="min-w-0 space-y-6">
-                        {/* 1. 5-Stage Lifecycle Stepper */}
-                        <LaunchpadRoadmapStepper
-                            activeStageId={activeStageId}
-                            onSelectStage={handleSelectStage}
-                        />
-
-                        {/* 2. Step 2 Spotlight: Facilitated CAC Registration & Tracker Card */}
+                        {/* 1. Formalized Hubnovo Registration / CAC Tracker Card */}
                         <CacStatusTrackerCard
                             business={business}
                             application={cacApplication}
@@ -235,53 +232,131 @@ export default function BusinessLaunchHome({
                             }}
                         />
 
-                        {/* 3. 5 Core Quick-Action Cards */}
-                        <LaunchpadActionCards onSelectAction={handleSelectAction} />
+                        {/* 2. Business Toolkit & Resource Hub (Tabbed) */}
+                        <section aria-labelledby="toolkit-heading" className="space-y-4">
+                            {/* Section Header */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                                        <h2 id="toolkit-heading" className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+                                            Business Toolkit & Resources
+                                        </h2>
+                                    </div>
+                                    <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                                        Curated playbooks, generators, document templates, and stage-by-stage guidance.
+                                    </p>
+                                </div>
 
-                        {/* 4. Business Templates Grid */}
-                        <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-xs">
-                            <LaunchpadTemplates
-                                onUseTemplate={(tpl) => setSelectedTemplate(tpl)}
-                                onSeeAll={() => setSelectedTemplate(BUSINESS_TEMPLATES[0])}
-                            />
-                        </div>
+                                {/* Segmented Tab Navigation */}
+                                <div className="flex items-center p-1 rounded-2xl bg-muted/60 border border-border/80 self-start sm:self-auto overflow-x-auto no-scrollbar max-w-full">
+                                    <button
+                                        onClick={() => setToolkitTab('actions')}
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                                            toolkitTab === 'actions'
+                                                ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground'
+                                        }`}
+                                    >
+                                        <Zap className="w-3.5 h-3.5" />
+                                        <span>Quick Actions</span>
+                                    </button>
 
-                        {/* 5. Tools & Resources Grid */}
-                        <LaunchpadToolsResources
-                            onSelectTool={(tool) => setSelectedTool(tool)}
-                            onSeeAll={() => setSelectedTool(TOOLS_AND_RESOURCES[0])}
-                        />
+                                    <button
+                                        onClick={() => setToolkitTab('templates')}
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                                            toolkitTab === 'templates'
+                                                ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground'
+                                        }`}
+                                    >
+                                        <FileText className="w-3.5 h-3.5" />
+                                        <span>Templates</span>
+                                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${toolkitTab === 'templates' ? 'bg-slate-950/20 text-slate-950' : 'bg-muted text-muted-foreground'}`}>
+                                            {BUSINESS_TEMPLATES.length}
+                                        </span>
+                                    </button>
 
-                        {/* 6. Featured Business Sectors */}
-                        <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-5 shadow-xs">
-                            <LaunchpadSectors
-                                onSelectSector={handleSelectSector}
-                                onSeeAll={() => toast.success('Showing all 8 business sectors')}
-                            />
-                        </div>
+                                    <button
+                                        onClick={() => setToolkitTab('tools')}
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                                            toolkitTab === 'tools'
+                                                ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground'
+                                        }`}
+                                    >
+                                        <Wrench className="w-3.5 h-3.5" />
+                                        <span>Tools</span>
+                                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${toolkitTab === 'tools' ? 'bg-slate-950/20 text-slate-950' : 'bg-muted text-muted-foreground'}`}>
+                                            {TOOLS_AND_RESOURCES.length}
+                                        </span>
+                                    </button>
 
-                        {/* 7. Bottom Banner / Callout */}
-                        <div className="relative overflow-hidden rounded-2xl p-5 sm:p-6 bg-gradient-to-r from-emerald-600 via-teal-700 to-slate-900 text-white shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div className="relative z-10 max-w-lg">
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 text-[11px] font-bold text-emerald-200 mb-2">
-                                    <Sparkles className="w-3 h-3" />
-                                    <span>Ideas Today. Businesses Tomorrow.</span>
-                                </span>
-                                <h3 className="text-lg sm:text-xl font-black">
-                                    Ready to turn your vision into an established enterprise?
-                                </h3>
-                                <p className="text-xs text-white/80 mt-1">
-                                    Get step-by-step assistance, funding eligibility checks, and Hubnovo enterprise registration for ₦5,000.
-                                </p>
+                                    <button
+                                        onClick={() => setToolkitTab('sectors')}
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                                            toolkitTab === 'sectors'
+                                                ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground'
+                                        }`}
+                                    >
+                                        <Building2 className="w-3.5 h-3.5" />
+                                        <span>Sectors</span>
+                                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${toolkitTab === 'sectors' ? 'bg-slate-950/20 text-slate-950' : 'bg-muted text-muted-foreground'}`}>
+                                            8
+                                        </span>
+                                    </button>
+                                </div>
                             </div>
-                            <button
-                                onClick={handleStartJourney}
-                                className="relative z-10 shrink-0 px-5 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-bold text-xs sm:text-sm transition-all shadow-sm flex items-center gap-2 cursor-pointer"
-                            >
-                                <span>{business ? 'Manage Business' : 'Start Now'}</span>
-                                <ArrowRight className="w-4 h-4" />
-                            </button>
-                        </div>
+
+                            {/* Tab Panes */}
+                            <div className="transition-all duration-200">
+                                {toolkitTab === 'actions' && (
+                                    <div className="space-y-4 animate-in fade-in duration-200">
+                                        <LaunchpadRoadmapStepper
+                                            activeStageId={activeStageId}
+                                            onSelectStage={handleSelectStage}
+                                        />
+                                        <LaunchpadActionCards onSelectAction={handleSelectAction} />
+                                    </div>
+                                )}
+
+                                {toolkitTab === 'templates' && (
+                                    <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-xs animate-in fade-in duration-200">
+                                        <LaunchpadTemplates
+                                            onUseTemplate={(tpl) => setSelectedTemplate(tpl)}
+                                            onSeeAll={() => setSelectedTemplate(BUSINESS_TEMPLATES[0])}
+                                        />
+                                    </div>
+                                )}
+
+                                {toolkitTab === 'tools' && (
+                                    <div className="animate-in fade-in duration-200">
+                                        <LaunchpadToolsResources
+                                            onSelectTool={(tool) => setSelectedTool(tool)}
+                                            onSeeAll={() => setSelectedTool(TOOLS_AND_RESOURCES[0])}
+                                        />
+                                    </div>
+                                )}
+
+                                {toolkitTab === 'sectors' && (
+                                    <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-xs animate-in fade-in duration-200">
+                                        <LaunchpadSectors
+                                            onSelectSector={handleSelectSector}
+                                            onSeeAll={() => toast.success('Showing all 8 business sectors')}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+
+                        {/* 3. Funding Opportunities */}
+                        <section aria-labelledby="funding-heading" className="space-y-3">
+                            <LaunchpadFundingOpportunities
+                                onSelectFunding={(opportunity) => setSelectedFunding(opportunity)}
+                                onSeeAll={() => setSelectedFunding(FUNDING_OPPORTUNITIES[0])}
+                            />
+                        </section>
                     </div>
 
                     {/* ── RIGHT COLUMN / SIDEBAR RAIL ── */}
@@ -296,23 +371,42 @@ export default function BusinessLaunchHome({
                             onViewAll={() => toast.success('Viewing full 7-step milestone breakdown')}
                         />
 
-                        {/* 2. Funding Opportunities */}
-                        <LaunchpadFundingOpportunities
-                            onSelectFunding={(opportunity) => setSelectedFunding(opportunity)}
-                            onSeeAll={() => setSelectedFunding(FUNDING_OPPORTUNITIES[0])}
+                        {/* 2. Need Guidance Advisory Card */}
+                        <LaunchpadAdvisoryCard
+                            onBookSession={() => setAdvisoryOpen(true)}
                         />
 
                         {/* 3. Success Stories Testimonial Carousel */}
                         <LaunchpadSuccessStories
                             onSeeAll={() => toast.success('Viewing all entrepreneur success stories')}
                         />
-
-                        {/* 4. Need Guidance Advisory Card */}
-                        <LaunchpadAdvisoryCard
-                            onBookSession={() => setAdvisoryOpen(true)}
-                        />
                     </div>
                 </div>
+
+                {/* ── Bottom Callout Banner ── */}
+                <section className="pt-2">
+                    <div className="relative overflow-hidden rounded-2xl p-5 sm:p-6 bg-gradient-to-r from-emerald-600 via-teal-700 to-slate-900 text-white shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="relative z-10 max-w-lg">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 text-[11px] font-bold text-emerald-200 mb-2">
+                                <Sparkles className="w-3 h-3" />
+                                <span>Ideas Today. Businesses Tomorrow.</span>
+                            </span>
+                            <h3 className="text-lg sm:text-xl font-black">
+                                Ready to turn your vision into an established enterprise?
+                            </h3>
+                            <p className="text-xs text-white/80 mt-1">
+                                Get step-by-step assistance, funding eligibility checks, and Hubnovo enterprise registration for ₦5,000.
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleStartJourney}
+                            className="relative z-10 shrink-0 px-5 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-bold text-xs sm:text-sm transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                        >
+                            <span>{business ? 'Manage Business' : 'Start Now'}</span>
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
+                    </div>
+                </section>
             </div>
 
             {/* ── Step 1: Business Profile Setup Wizard ── */}

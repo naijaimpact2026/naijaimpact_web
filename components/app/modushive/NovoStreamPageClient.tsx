@@ -4,15 +4,19 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import {
     AlertCircle,
+    Coins,
     Loader2,
     Radio,
     Search,
+    Sparkles,
     Upload,
 } from 'lucide-react'
 import NovoStreamSidebar from './NovoStreamSidebar'
 import NovoStreamHero from './NovoStreamHero'
 import NovoStreamGrid from './NovoStreamGrid'
 import NovoStreamRightRail from './NovoStreamRightRail'
+import BecomeCreatorModal from './BecomeCreatorModal'
+import { isCreatorOrAdmin } from '@/lib/modushive/config'
 import { DeleteVideoButton } from './VideoActions'
 import type { LiveStreamWithHost, Video, VideoWithOwner } from '@/lib/types'
 
@@ -33,6 +37,9 @@ export default function NovoStreamPageClient({
 }: NovoStreamPageClientProps) {
     const [activeCategory, setActiveCategory] = useState<string>('all')
     const [searchQuery, setSearchQuery] = useState('')
+    const [isBecomeCreatorOpen, setIsBecomeCreatorOpen] = useState(false)
+
+    const isCreator = isCreatorOrAdmin(profile?.role)
 
     // Filter streams and replays based on category and search query dynamically
     const filterItems = <T extends { title: string; description?: string | null; host_id?: string; owner_id?: string }>(
@@ -92,7 +99,26 @@ export default function NovoStreamPageClient({
 
                 {/* Right Action buttons */}
                 <div className="flex items-center gap-2 sm:gap-3">
-                    {showGoLive && (
+                    {isCreator ? (
+                        <Link
+                            href="/app/modushive/earnings"
+                            className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card/80 px-3.5 py-2 text-xs sm:text-sm font-semibold text-foreground hover:bg-muted active:scale-95 transition-all shadow-sm"
+                        >
+                            <Coins className="h-4 w-4 text-amber-500" />
+                            <span className="hidden sm:inline">Creator</span> Earnings
+                        </Link>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => setIsBecomeCreatorOpen(true)}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-500/15 via-purple-500/15 to-indigo-500/15 hover:from-amber-500/25 hover:to-indigo-500/25 border border-amber-500/30 px-3.5 py-2 text-xs sm:text-sm font-semibold text-foreground active:scale-95 transition-all shadow-sm"
+                        >
+                            <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />
+                            <span>Become a Creator</span>
+                        </button>
+                    )}
+
+                    {showGoLive && isCreator && (
                         <Link
                             href="/app/modushive/studio"
                             className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-red-600 to-rose-600 px-4 py-2 text-xs sm:text-sm font-bold text-white shadow-md shadow-red-600/30 hover:brightness-110 active:scale-95 transition-all"
@@ -146,6 +172,8 @@ export default function NovoStreamPageClient({
                     <NovoStreamSidebar
                         activeCategory={activeCategory}
                         onSelectCategory={setActiveCategory}
+                        isCreator={isCreator}
+                        onOpenBecomeCreator={() => setIsBecomeCreatorOpen(true)}
                     />
                 </div>
 
@@ -173,7 +201,7 @@ export default function NovoStreamPageClient({
                     <NovoStreamHero
                         activeLiveStream={featuredLiveStream}
                         featuredVideo={featuredVideo}
-                        showGoLive={showGoLive}
+                        showGoLive={showGoLive && isCreator}
                     />
 
                     {/* Other videos, streams, and categories stay under it */}
@@ -182,15 +210,25 @@ export default function NovoStreamPageClient({
                         replays={filteredReplays}
                         selectedCategory={activeCategory}
                         onSelectCategory={setActiveCategory}
-                        showGoLive={showGoLive}
+                        showGoLive={showGoLive && isCreator}
                     />
                 </main>
 
                 {/* Right Column: Live Chat & Platform Feature Guide */}
                 <div className="hidden xl:block sticky top-20">
-                    <NovoStreamRightRail activeLiveStream={featuredLiveStream} />
+                    <NovoStreamRightRail
+                        activeLiveStream={featuredLiveStream}
+                        isCreator={isCreator}
+                        onOpenBecomeCreator={() => setIsBecomeCreatorOpen(true)}
+                    />
                 </div>
             </div>
+
+            {/* Become a Creator Activation Modal */}
+            <BecomeCreatorModal
+                isOpen={isBecomeCreatorOpen}
+                onClose={() => setIsBecomeCreatorOpen(false)}
+            />
         </div>
     )
 }
