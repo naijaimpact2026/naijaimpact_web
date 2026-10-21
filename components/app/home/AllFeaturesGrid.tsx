@@ -220,7 +220,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
             'Instant Delivery',
         ],
         href: '/app/chat',
-        ctaText: 'Open Messages',
+        ctaText: 'Open Chat',
         icon: MessageSquare,
         badgeText: 'Voice Notes',
         accentColor: '#6366f1',

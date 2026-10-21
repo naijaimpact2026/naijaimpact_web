@@ -3,7 +3,7 @@
 import { useState, memo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Search, Bell, MessageCircle, Menu, PenSquare, X } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { User } from '@/lib/types'
@@ -103,7 +103,8 @@ function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }:
                 <Link
                     href="/app/chat"
                     className="hidden sm:flex relative p-2.5 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                    aria-label="Messages"
+                    aria-label="Chat"
+                    title="Chat"
                 >
                     <MessageCircle className="w-5 h-5" />
                     {messageCount > 0 && (

@@ -95,6 +95,9 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                 }
                 chatChannelId={stream.status !== 'ended' ? stream.chat_channel_id : null}
                 hostId={stream.host_id}
+                creatorName={host?.display_name ?? 'Creator'}
+                creatorAvatar={host?.avatar_url ?? undefined}
+                liveStreamId={stream.id}
             />
         </div>
     )

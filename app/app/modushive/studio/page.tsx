@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
-import { ArrowLeft, Clapperboard, ExternalLink, Play } from 'lucide-react'
+import { ArrowLeft, Clapperboard, Coins, ExternalLink, Play } from 'lucide-react'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { canGoLive, getLiveLimits, normalizeRole } from '@/lib/modushive/config'
 import { isCloudflareStreamConfigured } from '@/lib/modushive/cloudflare'
@@ -66,8 +66,17 @@ export default async function StudioPage()
                     )}
                 </div>
 
-                <div className="text-xs text-muted-foreground">
-                    Max broadcast duration: <span className="font-semibold text-foreground">{maxHours} {maxHours === 1 ? 'hour' : 'hours'}</span>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <Link
+                        href="/app/modushive/earnings"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card px-3 py-1 font-semibold text-foreground hover:bg-muted transition-colors shadow-sm"
+                    >
+                        <Coins className="h-3.5 w-3.5 text-amber-500" />
+                        Earnings Hub
+                    </Link>
+                    <span className="hidden sm:inline">
+                        Max broadcast: <span className="font-semibold text-foreground">{maxHours} {maxHours === 1 ? 'hour' : 'hours'}</span>
+                    </span>
                 </div>
             </div>
 

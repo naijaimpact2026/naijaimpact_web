@@ -12,6 +12,9 @@ interface LiveStreamLayoutProps
     infoSlot: React.ReactNode
     chatChannelId?: string | null
     hostId?: string | null
+    creatorName?: string
+    creatorAvatar?: string
+    liveStreamId?: string
 }
 
 export default function LiveStreamLayout({
@@ -20,6 +23,9 @@ export default function LiveStreamLayout({
     infoSlot,
     chatChannelId,
     hostId,
+    creatorName,
+    creatorAvatar,
+    liveStreamId,
 }: LiveStreamLayoutProps)
 {
     const [isChatOpen, setIsChatOpen] = useState(true)
@@ -65,6 +71,9 @@ export default function LiveStreamLayout({
                         <LiveChat
                             channelId={chatChannelId!}
                             hostId={hostId ?? undefined}
+                            creatorName={creatorName}
+                            creatorAvatar={creatorAvatar}
+                            liveStreamId={liveStreamId}
                             onCollapse={() => setIsChatOpen(false)}
                         />
                     </aside>
