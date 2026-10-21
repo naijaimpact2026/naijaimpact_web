@@ -20,9 +20,9 @@ export default async function ModusHivePage() {
     const { profile } = await getCurrentUser()
     const showGoLive = !!profile && canGoLive(profile.role)
 
-    // Fetch pending uploads, live streams, archived replays, and ready videos
-    const pending = await listMyPendingVideos(profile?.id ?? '')
-    const [live, replays] = await Promise.all([
+    // Fetch pending uploads, live streams, and archived replays concurrently in parallel
+    const [pending, live, replays] = await Promise.all([
+        listMyPendingVideos(profile?.id ?? ''),
         listLiveNow(),
         listArchivedReplays(15),
     ])

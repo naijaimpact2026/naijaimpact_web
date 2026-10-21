@@ -31,21 +31,31 @@ export async function getCreatorEarningsSummary(): Promise<{
 
         const supabase = await createClient()
 
-        // 1. Fetch real user wallet balance
-        const { data: walletData } = await supabase
-            .from('user_wallet')
-            .select('balance')
-            .eq('user_id', profile.id)
-            .maybeSingle()
+        // 1. Fetch wallet, stream stats, and transactions concurrently in parallel
+        const [
+            { data: walletData },
+            { data: userStreams },
+            { data: txRows },
+        ] = await Promise.all([
+            supabase
+                .from('user_wallet')
+                .select('balance')
+                .eq('user_id', profile.id)
+                .maybeSingle(),
+            supabase
+                .from('live_streams')
+                .select('id, created_at, ended_at, status')
+                .eq('host_id', profile.id),
+            supabase
+                .from('creator_stream_transactions')
+                .select('*')
+                .eq('creator_id', profile.id)
+                .order('created_at', { ascending: false }),
+        ])
 
         const walletBalance = Number(walletData?.balance ?? 0)
 
-        // 2. Fetch real user broadcast stats from live_streams
-        const { data: userStreams } = await supabase
-            .from('live_streams')
-            .select('id, created_at, ended_at, status')
-            .eq('host_id', profile.id)
-
+        // 2. Compute broadcast stats from live_streams
         const totalStreams = userStreams?.length ?? 0
         let totalHoursLive = 0
         if (userStreams && userStreams.length > 0) {
@@ -58,35 +68,24 @@ export async function getCreatorEarningsSummary(): Promise<{
         }
         totalHoursLive = Math.round(totalHoursLive * 10) / 10
 
-        // 3. Fetch real transactions from creator_stream_transactions table (if exists)
+        // 3. Process transactions
         let dbTransactions: CreatorTransaction[] = []
-        try {
-            const { data: txRows } = await supabase
-                .from('creator_stream_transactions')
-                .select('*')
-                .eq('creator_id', profile.id)
-                .order('created_at', { ascending: false })
-
-            if (txRows && txRows.length > 0) {
-                dbTransactions = txRows.map((r: any) => ({
-                    id: r.id,
-                    created_at: r.created_at,
-                    title: r.title,
-                    route_key: r.route_key,
-                    type: r.type,
-                    payer_name: r.payer_name ?? undefined,
-                    gross_amount: Number(r.gross_amount ?? 0),
-                    payment_cost: Number(r.payment_cost ?? 0),
-                    platform_fee: Number(r.platform_fee ?? 0),
-                    net_amount: Number(r.net_amount ?? 0),
-                    status: r.status,
-                    channel_or_stream: r.channel_or_stream ?? undefined,
-                    notes: r.notes ?? undefined,
-                }))
-            }
-        } catch {
-            // Table not yet migrated in Supabase, fallback to empty list
-            dbTransactions = []
+        if (txRows && txRows.length > 0) {
+            dbTransactions = txRows.map((r: any) => ({
+                id: r.id,
+                created_at: r.created_at,
+                title: r.title,
+                route_key: r.route_key,
+                type: r.type,
+                payer_name: r.payer_name ?? undefined,
+                gross_amount: Number(r.gross_amount ?? 0),
+                payment_cost: Number(r.payment_cost ?? 0),
+                platform_fee: Number(r.platform_fee ?? 0),
+                net_amount: Number(r.net_amount ?? 0),
+                status: r.status,
+                channel_or_stream: r.channel_or_stream ?? undefined,
+                notes: r.notes ?? undefined,
+            }))
         }
 
         // Include any recent session payout entries
