@@ -64,9 +64,11 @@ export const PLAYBACK_MAX_RESOLUTION = '720p'
 
 export const MUX_RTMP_URL = 'rtmps://global-live.mux.com:443/app'
 
+/** users.role is the `user_role` enum: user | creator | admin | super_admin. */
 export function normalizeRole(role: string | null | undefined): UserRole
 {
-    return role === 'admin' || role === 'creator' ? role : 'user'
+    if (role === 'admin' || role === 'super_admin') return 'admin'
+    return role === 'creator' ? 'creator' : 'user'
 }
 
 export function isCreatorOrAdmin(role: string | null | undefined): boolean

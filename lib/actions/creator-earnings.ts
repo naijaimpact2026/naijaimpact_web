@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { revalidatePath } from 'next/cache'
+import { normalizeRole } from '@/lib/modushive/config'
 import type {
     CreatorEarningsSummary,
     CreatorTransaction,
@@ -480,6 +481,12 @@ export async function becomeCreatorAction(): Promise<{
             return { success: false, error: 'You must be signed in to become a creator.' }
         }
 
+        // Creators and admins (incl. super_admin) already have the suite —
+        // never overwrite their role.
+        if (normalizeRole(profile.role) !== 'user') {
+            return { success: true }
+        }
+
         const db = createServiceClient()
         const { error } = await db
             .from('users')
@@ -488,6 +495,7 @@ export async function becomeCreatorAction(): Promise<{
                 updated_at: new Date().toISOString(),
             })
             .eq('id', profile.id)
+            .eq('role', 'user')
 
         if (error) {
             console.error('Failed to upgrade user to creator:', error)
