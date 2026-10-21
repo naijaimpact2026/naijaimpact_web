@@ -80,8 +80,7 @@ export async function getVideo(id: string, db?: SupabaseClient): Promise<VideoWi
 async function withStreamThumbnails(rows: LiveStreamRow[]): Promise<LiveStreamWithHost[]>
 {
     const canSign = isMuxConfigured()
-    const synced = await Promise.all(rows.map(syncLiveStream))
-    return Promise.all(synced.map(async (s) => ({
+    return Promise.all(rows.map(async (s) => ({
         ...s,
         thumbnail_url: s.playback_id
             ? s.provider === 'cloudflare'
@@ -137,7 +136,8 @@ export async function getLiveStream(id: string, db?: SupabaseClient): Promise<Li
         .maybeSingle()
 
     if (error || !data) return null
-    const [stream] = await withStreamThumbnails([data as LiveStreamRow])
+    const synced = await syncLiveStream(data as LiveStreamRow)
+    const [stream] = await withStreamThumbnails([synced])
     return stream
 }
 

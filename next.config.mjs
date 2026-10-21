@@ -17,6 +17,13 @@ const nextConfig = {
       dynamic: 30,
       static: 180,
     },
+    optimizePackageImports: [
+      'lucide-react',
+      'date-fns',
+      'stream-chat',
+      'stream-chat-react',
+      '@mux/mux-player-react',
+    ],
   },
   images: {
     remotePatterns: [
