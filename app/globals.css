@@ -408,6 +408,10 @@ html.dark {
     background-color: transparent !important;
     background: transparent !important;
   }
+  .str-chat .str-chat__empty-channel svg {
+    color: var(--color-muted-foreground) !important;
+    opacity: 0.6 !important;
+  }
   .str-chat .str-chat__message-composer-container {
     flex-shrink: 0 !important;
     width: 100% !important;

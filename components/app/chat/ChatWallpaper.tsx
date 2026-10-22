@@ -7,7 +7,7 @@ export default function ChatWallpaper()
     return (
         <div
             aria-hidden="true"
-            className="absolute inset-0 pointer-events-none select-none overflow-hidden z-0 bg-background"
+            className="absolute inset-0 pointer-events-none select-none overflow-hidden z-0 bg-gradient-to-b from-[#f0f4f9] via-[#edf3f8] to-[#e8eff6] dark:from-[#050e18] dark:via-[#071524] dark:to-[#040b13]"
         >
             {/* ── 1. Animated Ambient Aurora Glowing Mesh Orbs (GPU accelerated) ── */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -46,11 +46,20 @@ export default function ChatWallpaper()
                             'radial-gradient(circle, rgba(245, 158, 11, 0.5) 0%, rgba(251, 191, 36, 0.2) 50%, transparent 75%)',
                     }}
                 />
+
+                {/* Orb 5: Center Ambient Bloom — illuminates the central chat channel softly */}
+                <div
+                    className="chat-aurora-orb-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[460px] h-[460px] md:w-[640px] md:h-[640px] rounded-full filter blur-[90px] md:blur-[130px] opacity-40 dark:opacity-20 will-change-transform pointer-events-none"
+                    style={{
+                        background:
+                            'radial-gradient(circle, rgba(14, 165, 233, 0.4) 0%, rgba(99, 102, 241, 0.22) 40%, rgba(16, 185, 129, 0.12) 65%, transparent 80%)',
+                    }}
+                />
             </div>
 
             {/* ── 2. Vector Telegram/WhatsApp-style Doodle Pattern (240x240 tile) ── */}
             <svg
-                className="absolute inset-0 w-full h-full text-slate-800/[0.13] dark:text-cyan-200/[0.18]"
+                className="absolute inset-0 w-full h-full text-slate-800/[0.07] dark:text-cyan-200/[0.10]"
                 xmlns="http://www.w3.org/2000/svg"
                 width="100%"
                 height="100%"
