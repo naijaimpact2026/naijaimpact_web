@@ -70,6 +70,7 @@ import GroupInfoModal from '@/components/app/chat/GroupInfoModal'
 import AddMembersModal from '@/components/app/chat/AddMembersModal'
 import SharedMediaDrawer from '@/components/app/chat/SharedMediaDrawer'
 import ChatWallpaper from '@/components/app/chat/ChatWallpaper'
+import ChatEmptyStateIndicator from '@/components/app/chat/ChatEmptyStateIndicator'
 import { ForwardMessageProvider, useForwardMessage } from '@/components/app/chat/ForwardMessageContext'
 import ForwardMessageModal from '@/components/app/chat/ForwardMessageModal'
 import { CustomMessageActions } from '@/components/app/chat/ForwardMessageAction'
@@ -1257,7 +1258,7 @@ export default function ChannelPage()
             <div className={`relative flex flex-col h-[calc(100dvh-4rem)] w-full overflow-hidden bg-background ${isBlocked ? 'chat-view-blocked' : ''}`}>
                 <ChatWallpaper />
                 <Chat client={client!} theme={streamTheme}>
-                    <Channel channel={channel} doSendMessageRequest={handleSendMessage}>
+                    <Channel channel={channel} doSendMessageRequest={handleSendMessage} EmptyPlaceholder={<ChatEmptyStateIndicator />}>
                         <ComponentProvider
                             value={{
                                 Avatar: CustomStreamAvatar as any,
@@ -1267,6 +1268,7 @@ export default function ChannelPage()
                                 MessageActions: CustomMessageActions,
                                 reactionOptions: customReactionOptions as any,
                                 ReactionSelector: CustomReactionSelector as any,
+                                EmptyStateIndicator: ChatEmptyStateIndicator,
                             }}
                         >
                             <Window>
@@ -1338,6 +1340,18 @@ export default function ChannelPage()
                 <ForwardModalHost client={client} currentChannelId={channelId as string} />
                 <style dangerouslySetInnerHTML={{
                     __html: `
+                        .str-chat .str-chat__empty-channel,
+                        .str-chat__empty-channel,
+                        .str-chat__empty-channel-text,
+                        .str-chat .str-chat__message-list,
+                        .str-chat__message-list,
+                        .str-chat .str-chat__message-list-scroll,
+                        .str-chat__message-list-scroll,
+                        .str-chat .str-chat__main-panel-inner,
+                        .str-chat__main-panel-inner {
+                            background: transparent !important;
+                            background-color: transparent !important;
+                        }
                         .chat-view-blocked .str-chat__list,
                         .chat-view-blocked .str-chat__message-list {
                             backdrop-filter: blur(8px) !important;
