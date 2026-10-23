@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, CreditCard, Loader2, MapPin, Minus, Package, Plus, ShoppingBag, Truck, Wallet, X } from 'lucide-react'
@@ -27,6 +28,7 @@ export default function LiveProductBuyModal({
     onSuccess,
 }: LiveProductBuyModalProps) {
     const router = useRouter()
+    const [mounted, setMounted] = useState(false)
     const [quantity, setQuantity] = useState(1)
     const [deliveryOption, setDeliveryOption] = useState<'pickup' | 'delivery' | 'digital'>('pickup')
     const [deliveryAddress, setDeliveryAddress] = useState('')
@@ -35,6 +37,11 @@ export default function LiveProductBuyModal({
     const [loading, setLoading] = useState(false)
     const [isSuccess, setIsSuccess] = useState(false)
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+    useEffect(() => {
+        setMounted(true)
+        return () => setMounted(false)
+    }, [])
 
     const unitPrice = Number(product.price ?? 0)
     const totalAmount = unitPrice * quantity
@@ -56,7 +63,7 @@ export default function LiveProductBuyModal({
         }
     }, [isOpen, viewerLoggedIn, totalAmount])
 
-    if (!isOpen) return null
+    if (!isOpen || !mounted || typeof document === 'undefined') return null
 
     const handleCompletePurchase = async (paystackRef?: string) => {
         setLoading(true)
@@ -153,9 +160,15 @@ export default function LiveProductBuyModal({
         }
     }
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in-50 duration-200">
-            <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-amber-500/30 bg-card p-5 sm:p-6 shadow-2xl backdrop-blur-2xl">
+    return createPortal(
+        <div 
+            className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in-50 duration-200"
+            onClick={onClose}
+        >
+            <div 
+                className="relative w-full max-w-md overflow-hidden rounded-3xl border border-amber-500/30 bg-card text-card-foreground dark:bg-[#121824] p-5 sm:p-6 shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+            >
                 {/* Close Button */}
                 <button
                     type="button"
@@ -363,6 +376,7 @@ export default function LiveProductBuyModal({
                     </form>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Check, Loader2, Package, Pin, Plus, Search, ShoppingBag, X } from 'lucide-react'
@@ -23,11 +24,17 @@ export default function StudioPinProductModal({
     currentPinnedProduct,
     onProductPinned,
 }: StudioPinProductModalProps) {
+    const [mounted, setMounted] = useState(false)
     const [products, setProducts] = useState<PinnedProduct[]>([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
     const [pinningId, setPinningId] = useState<string | null>(null)
     const [unpinning, setUnpinning] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+        return () => setMounted(false)
+    }, [])
 
     useEffect(() => {
         if (!isOpen) return
@@ -39,7 +46,7 @@ export default function StudioPinProductModal({
             .finally(() => setLoading(false))
     }, [isOpen])
 
-    if (!isOpen) return null
+    if (!isOpen || !mounted || typeof document === 'undefined') return null
 
     const filtered = products.filter((p) =>
         p.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -81,9 +88,15 @@ export default function StudioPinProductModal({
         }
     }
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in-50 duration-200">
-            <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-2xl backdrop-blur-2xl">
+    return createPortal(
+        <div 
+            className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in-50 duration-200"
+            onClick={onClose}
+        >
+            <div 
+                className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-amber-500/30 bg-card text-card-foreground dark:bg-[#121824] p-5 sm:p-6 shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+            >
                 {/* Header */}
                 <div className="flex items-center justify-between pb-4 border-b border-border/60">
                     <div className="flex items-center gap-2.5">
@@ -257,6 +270,7 @@ export default function StudioPinProductModal({
                     </Link>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     )
 }
