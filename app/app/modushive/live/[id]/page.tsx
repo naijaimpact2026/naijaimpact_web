@@ -3,12 +3,16 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, BadgeCheck, Radio } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getCurrentUser } from '@/lib/supabase/auth'
-import { getLiveStream } from '@/lib/modushive/queries'
+import { getLiveStream, getVideo } from '@/lib/modushive/queries'
 import { isMuxConfigured, signPlayback } from '@/lib/modushive/mux'
+import { presignDownload } from '@/lib/modushive/r2'
 import { checkStreamTicketAccess, getViewerWalletBalance } from '@/lib/actions/creator-earnings'
 import MuxVideoPlayer from '@/components/app/modushive/MuxVideoPlayer'
 import LiveStreamLayout from '@/components/app/modushive/LiveStreamLayout'
 import WorkshopTicketGate from '@/components/app/modushive/WorkshopTicketGate'
+import PinnedProductOverlay from '@/components/app/modushive/PinnedProductOverlay'
+import HostReplayAction from '@/components/app/modushive/HostReplayAction'
+import DeleteLiveStreamButton from '@/components/app/modushive/DeleteLiveStreamButton'
 import { ProcessingRefresher } from '@/components/app/modushive/VideoActions'
 
 export const dynamic = 'force-dynamic'
@@ -29,6 +33,12 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
     const host = stream.host
     const viewerWalletBalance = profile ? await getViewerWalletBalance() : 0
 
+    // Fetch replay video if linked
+    const replayVideo = stream.replay_video_id ? await getVideo(stream.replay_video_id).catch(() => null) : null
+    const replayR2Url = replayVideo?.provider === 'r2' && replayVideo.source_r2_key ? await presignDownload(replayVideo.source_r2_key).catch(() => null) : null
+    const replayDirectUrl = (replayVideo?.provider === 'supabase' || replayVideo?.playback_id?.startsWith('http')) ? replayVideo.playback_id : replayR2Url
+    const replayMuxTokens = replayVideo && replayVideo.provider === 'mux' && replayVideo.playback_id ? await signPlayback(replayVideo.playback_id, replayVideo.playback_policy).catch(() => undefined) : undefined
+
     return (
         <div className="w-full px-3 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5 space-y-3 sm:space-y-4">
             {/* Pick up going live, or the replay arriving, without a manual reload.
@@ -37,9 +47,14 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
 
             <LiveStreamLayout
                 backLink={
-                    <Link href="/app/modushive" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-                        <ArrowLeft className="h-4 w-4" /> Livestream
-                    </Link>
+                    <div className="flex items-center justify-between w-full">
+                        <Link href="/app/modushive" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+                            <ArrowLeft className="h-4 w-4" /> Livestream
+                        </Link>
+                        {ticketAccess.isHost && (
+                            <DeleteLiveStreamButton liveStreamId={stream.id} streamTitle={stream.title} redirectTo="/app/modushive/studio" />
+                        )}
+                    </div>
                 }
                 videoSlot={
                     isLocked ? (
@@ -68,16 +83,42 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                         ) : (
                             <MuxVideoPlayer live playbackId={stream.playback_id!} tokens={tokens} title={stream.title} videoId={stream.id} viewerId={profile?.id} />
                         )
+                    ) : stream.status === 'ended' && replayVideo && replayVideo.status === 'ready' ? (
+                        (replayVideo.provider === 'cloudflare' && replayVideo.playback_id !== stream.provider_stream_id && !replayVideo.playback_id?.startsWith('http')) ? (
+                            <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-black shadow-lg">
+                                <iframe
+                                    src={`https://iframe.videodelivery.net/${replayVideo.playback_id}?autoplay=false`}
+                                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                                    allowFullScreen
+                                    className="h-full w-full border-0"
+                                />
+                            </div>
+                        ) : replayVideo.provider === 'mux' ? (
+                            <MuxVideoPlayer playbackId={replayVideo.playback_id!} tokens={replayMuxTokens} title={stream.title} videoId={replayVideo.id} viewerId={profile?.id} />
+                        ) : replayDirectUrl ? (
+                            <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-black shadow-lg">
+                                <video src={replayDirectUrl} controls playsInline className="h-full w-full" />
+                            </div>
+                        ) : null
                     ) : (
                         <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl bg-muted px-6 text-center">
                             <Radio className="h-7 w-7 text-muted-foreground" />
                             {stream.status === 'ended' ? (
-                                <>
-                                    <p className="text-sm font-semibold text-foreground">This stream has ended</p>
-                                    {stream.replay_video_id
-                                        ? <Link href={`/app/modushive/${stream.replay_video_id}`} className="text-sm font-semibold text-primary hover:underline">Watch the replay</Link>
-                                        : <p className="text-xs text-muted-foreground">The replay will be available shortly.</p>}
-                                </>
+                                <div className="space-y-2 max-w-md mx-auto">
+                                    <p className="text-base font-bold text-foreground">This broadcast has ended</p>
+                                    {ticketAccess.isHost ? (
+                                        <>
+                                            <p className="text-xs text-muted-foreground">
+                                                As host, you can upload a recording or publish this broadcast as a permanent replay.
+                                            </p>
+                                            <div className="pt-2">
+                                                <HostReplayAction stream={stream} />
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground">The host will make the replay recording available shortly.</p>
+                                    )}
+                                </div>
                             ) : (
                                 <>
                                     <p className="text-sm font-semibold text-foreground">Starting soon</p>
@@ -110,6 +151,11 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                                     </span>
                                 )
                             )}
+                            {stream.pinned_product_data && (
+                                <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                                    🛍️ Live Product: {stream.pinned_product_data.title}
+                                </span>
+                            )}
                             <h1 className="text-lg sm:text-xl font-bold text-foreground">{stream.title}</h1>
                         </div>
                         <div className="flex items-center gap-3">
@@ -134,6 +180,15 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                 creatorName={host?.display_name ?? 'Creator'}
                 creatorAvatar={host?.avatar_url ?? undefined}
                 liveStreamId={stream.id}
+                pinnedProductOverlay={
+                    !isLocked && stream.pinned_product_data ? (
+                        <PinnedProductOverlay
+                            liveStreamId={stream.id}
+                            product={stream.pinned_product_data}
+                            viewerLoggedIn={Boolean(profile)}
+                        />
+                    ) : null
+                }
             />
         </div>
     )

@@ -1281,6 +1281,37 @@ export type LiveStream = {
   currency?: string
   workshop_topics?: string[]
   scheduled_for?: string | null
+  pinned_product_id?: string | null
+  pinned_product_data?: PinnedProduct | null
+  thumbnail_url?: string | null
+}
+
+export interface PinnedProduct {
+  id: string
+  title: string
+  price: number
+  description?: string | null
+  cover_image_url?: string | null
+  seller_id?: string
+  seller_name?: string | null
+  delivery_options?: string[]
+}
+
+export interface LiveStreamSale {
+  id: string
+  live_stream_id: string
+  product_id?: string | null
+  buyer_id: string
+  creator_id: string
+  product_title: string
+  product_price: number
+  quantity: number
+  total_amount: number
+  payment_method: 'wallet' | 'paystack'
+  payment_reference?: string | null
+  delivery_option: string
+  delivery_address?: string | null
+  created_at: string
 }
 
 export type LiveStreamTicket = {

@@ -551,6 +551,22 @@ export async function checkStreamTicketAccess(liveStreamId: string): Promise<{
         const ticketPrice = Number(stream.ticket_price ?? 0)
         const workshopTopics = Array.isArray(stream.workshop_topics) ? stream.workshop_topics : []
 
+        // Get active user
+        const { profile } = await getCurrentUser()
+        const isHost = Boolean(profile && (profile.id === stream.host_id || normalizeRole(profile.role) === 'admin'))
+
+        // Host or admin always has full access
+        if (isHost) {
+            return {
+                hasAccess: true,
+                isHost: true,
+                isPaid,
+                ticketPrice,
+                workshopTopics,
+                creatorId: stream.host_id,
+            }
+        }
+
         // If it's a regular free stream, everyone has access
         if (!isPaid) {
             return {
@@ -563,24 +579,10 @@ export async function checkStreamTicketAccess(liveStreamId: string): Promise<{
             }
         }
 
-        // Get active user
-        const { profile } = await getCurrentUser()
         if (!profile) {
             return {
                 hasAccess: false,
                 isHost: false,
-                isPaid: true,
-                ticketPrice,
-                workshopTopics,
-                creatorId: stream.host_id,
-            }
-        }
-
-        // Host or admin always has access
-        if (profile.id === stream.host_id || normalizeRole(profile.role) === 'admin') {
-            return {
-                hasAccess: true,
-                isHost: true,
                 isPaid: true,
                 ticketPrice,
                 workshopTopics,
