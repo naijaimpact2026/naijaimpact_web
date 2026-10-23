@@ -126,6 +126,7 @@ export default async function StudioPage()
                         initialStatus={activeStream.status}
                         chatChannelId={activeStream.chat_channel_id}
                         hostId={activeStream.host_id}
+                        initialPinnedProduct={activeStream.pinned_product_data}
                     />
                 </section>
             ) : (

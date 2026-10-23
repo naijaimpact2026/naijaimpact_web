@@ -20,6 +20,8 @@ import {
     Users,
     Volume2,
     Wifi,
+    ShoppingBag,
+    Pin,
 } from 'lucide-react'
 import { toast } from '@/components/toast'
 import {
@@ -35,6 +37,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { endLiveStream, getLiveStreamKey, markLiveStreamActive } from '@/lib/actions/modushive'
 import LiveChat from '@/components/app/modushive/LiveChat'
+import StudioPinProductModal from '@/components/app/modushive/StudioPinProductModal'
+import type { PinnedProduct } from '@/lib/types'
 
 interface BrowserStudioProps {
     liveStreamId: string
@@ -43,6 +47,7 @@ interface BrowserStudioProps {
     initialStatus: 'idle' | 'live' | 'ended'
     chatChannelId?: string | null
     hostId?: string
+    initialPinnedProduct?: PinnedProduct | null
 }
 
 export function BrowserStudio({
@@ -52,9 +57,12 @@ export function BrowserStudio({
     initialStatus,
     chatChannelId,
     hostId,
+    initialPinnedProduct,
 }: BrowserStudioProps) {
     const router = useRouter()
     const [viewerCount, setViewerCount] = useState(0)
+    const [showPinModal, setShowPinModal] = useState(false)
+    const [pinnedProduct, setPinnedProduct] = useState<PinnedProduct | null>(initialPinnedProduct ?? null)
     const videoRef = useRef<HTMLVideoElement>(null)
     const pcRef = useRef<RTCPeerConnection | null>(null)
     const localStreamRef = useRef<MediaStream | null>(null)
@@ -341,6 +349,31 @@ export function BrowserStudio({
         <div className={hasLiveChat ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] items-start' : 'space-y-6'}>
             {/* Left Column: Broadcaster Deck & Video Monitor */}
             <div className="space-y-5 min-w-0">
+                {/* Active Live Pinned Product Banner */}
+                {pinnedProduct && (
+                    <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl border border-amber-500/30 bg-amber-500/10 backdrop-blur-md shadow-xs animate-in fade-in duration-200">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="flex h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                            <span className="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wide shrink-0">
+                                Live Pinned:
+                            </span>
+                            <span className="truncate text-xs font-bold text-foreground">
+                                {pinnedProduct.title}
+                            </span>
+                            <span className="text-xs font-extrabold text-amber-600 dark:text-amber-400 shrink-0">
+                                ₦{Number(pinnedProduct.price).toLocaleString('en-NG')}
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setShowPinModal(true)}
+                            className="text-xs font-bold text-primary hover:underline shrink-0"
+                        >
+                            Manage Pin
+                        </button>
+                    </div>
+                )}
+
                 {/* Main Video Monitor */}
                 <div
                     className={`relative aspect-video w-full overflow-hidden rounded-3xl border bg-black shadow-2xl transition-all duration-300 ${
@@ -521,6 +554,23 @@ export function BrowserStudio({
                                 title="Device & Audio Settings"
                             >
                                 <Settings2 className="h-4 w-4" />
+                            </button>
+
+                            {/* Live Shopping Pin Button */}
+                            <button
+                                type="button"
+                                onClick={() => setShowPinModal(true)}
+                                className={`flex items-center gap-1.5 h-9 sm:h-10 px-3 rounded-full text-xs font-bold transition-all ${
+                                    pinnedProduct
+                                        ? 'bg-amber-500 text-white ring-2 ring-amber-500/50 shadow-md'
+                                        : 'bg-white/15 hover:bg-white/25 text-white ring-1 ring-white/10'
+                                }`}
+                                title="Pin Storefront Product to Broadcast"
+                            >
+                                <ShoppingBag className="h-4 w-4" />
+                                <span className="hidden sm:inline">
+                                    {pinnedProduct ? 'Pinned Item' : 'Pin Product'}
+                                </span>
                             </button>
                         </div>
 
@@ -725,6 +775,15 @@ export function BrowserStudio({
                     />
                 </aside>
             )}
+
+            {/* Live Shopping Pin Product Modal */}
+            <StudioPinProductModal
+                isOpen={showPinModal}
+                onClose={() => setShowPinModal(false)}
+                liveStreamId={liveStreamId}
+                currentPinnedProduct={pinnedProduct}
+                onProductPinned={setPinnedProduct}
+            />
         </div>
     )
 }

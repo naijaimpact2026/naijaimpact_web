@@ -9,6 +9,7 @@ import { checkStreamTicketAccess, getViewerWalletBalance } from '@/lib/actions/c
 import MuxVideoPlayer from '@/components/app/modushive/MuxVideoPlayer'
 import LiveStreamLayout from '@/components/app/modushive/LiveStreamLayout'
 import WorkshopTicketGate from '@/components/app/modushive/WorkshopTicketGate'
+import PinnedProductOverlay from '@/components/app/modushive/PinnedProductOverlay'
 import { ProcessingRefresher } from '@/components/app/modushive/VideoActions'
 
 export const dynamic = 'force-dynamic'
@@ -110,6 +111,11 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                                     </span>
                                 )
                             )}
+                            {stream.pinned_product_data && (
+                                <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                                    🛍️ Live Product: {stream.pinned_product_data.title}
+                                </span>
+                            )}
                             <h1 className="text-lg sm:text-xl font-bold text-foreground">{stream.title}</h1>
                         </div>
                         <div className="flex items-center gap-3">
@@ -134,6 +140,15 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                 creatorName={host?.display_name ?? 'Creator'}
                 creatorAvatar={host?.avatar_url ?? undefined}
                 liveStreamId={stream.id}
+                pinnedProductOverlay={
+                    !isLocked && stream.pinned_product_data ? (
+                        <PinnedProductOverlay
+                            liveStreamId={stream.id}
+                            product={stream.pinned_product_data}
+                            viewerLoggedIn={Boolean(profile)}
+                        />
+                    ) : null
+                }
             />
         </div>
     )

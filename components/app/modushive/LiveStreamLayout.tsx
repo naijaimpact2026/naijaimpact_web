@@ -15,6 +15,7 @@ interface LiveStreamLayoutProps
     creatorName?: string
     creatorAvatar?: string
     liveStreamId?: string
+    pinnedProductOverlay?: React.ReactNode
 }
 
 export default function LiveStreamLayout({
@@ -26,6 +27,7 @@ export default function LiveStreamLayout({
     creatorName,
     creatorAvatar,
     liveStreamId,
+    pinnedProductOverlay,
 }: LiveStreamLayoutProps)
 {
     const [isChatOpen, setIsChatOpen] = useState(true)
@@ -61,6 +63,7 @@ export default function LiveStreamLayout({
                     <div className="relative overflow-hidden rounded-2xl">
                         {videoSlot}
                         <FloatingReactions channelId={chatChannelId} />
+                        {pinnedProductOverlay}
                     </div>
                     {infoSlot}
                 </div>
