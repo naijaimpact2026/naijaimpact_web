@@ -35,7 +35,14 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { endLiveStream, getLiveStreamKey, markLiveStreamActive, saveLiveStreamThumbnail } from '@/lib/actions/modushive'
+import {
+    endLiveStream,
+    getLiveStreamKey,
+    markLiveStreamActive,
+    saveLiveStreamThumbnail,
+    createStreamRecordingUpload,
+    finalizeStreamRecordingUpload,
+} from '@/lib/actions/modushive'
 import LiveChat from '@/components/app/modushive/LiveChat'
 import StudioPinProductModal from '@/components/app/modushive/StudioPinProductModal'
 import StudioEndBroadcastModal from '@/components/app/modushive/StudioEndBroadcastModal'
@@ -358,14 +365,21 @@ export function BrowserStudio({
             }
 
             // 2. Stop in-browser recorder and compile Blob
+            let finalBlob: Blob | null = null
             if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
                 try {
-                    mediaRecorderRef.current.stop()
+                    await new Promise<void>((resolve) => {
+                        if (!mediaRecorderRef.current) return resolve()
+                        mediaRecorderRef.current.onstop = () => resolve()
+                        mediaRecorderRef.current.stop()
+                    })
                     if (recordedChunksRef.current.length > 0) {
-                        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
-                        setRecordedBlob(blob)
+                        finalBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
+                        setRecordedBlob(finalBlob)
                     }
-                } catch {}
+                } catch (recErr) {
+                    console.warn('[studio] compile blob notice:', recErr)
+                }
             }
 
             // 3. Close WebRTC PeerConnection
@@ -379,6 +393,27 @@ export function BrowserStudio({
             if (!res.ok) {
                 toast.error(res.error)
                 return
+            }
+
+            // 5. Automatically upload the local HD recording to Supabase Storage as the replay
+            if (finalBlob && finalBlob.size > 0) {
+                createStreamRecordingUpload(liveStreamId, {
+                    contentType: 'video/webm',
+                    sizeBytes: finalBlob.size,
+                    durationS: duration,
+                }).then(async (upRes) => {
+                    if (upRes.ok && upRes.uploadUrl) {
+                        await fetch(upRes.uploadUrl, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'video/webm' },
+                            body: finalBlob,
+                        }).catch(() => {})
+                        await finalizeStreamRecordingUpload(upRes.videoId).catch(() => {})
+                        router.refresh()
+                    }
+                }).catch((err) => {
+                    console.warn('[studio] Auto-upload recording notice:', err)
+                })
             }
 
             setStatus('ended')

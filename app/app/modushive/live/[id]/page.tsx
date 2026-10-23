@@ -35,6 +35,7 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
     // Fetch replay video if linked
     const replayVideo = stream.replay_video_id ? await getVideo(stream.replay_video_id).catch(() => null) : null
     const replayR2Url = replayVideo?.provider === 'r2' && replayVideo.source_r2_key ? await presignDownload(replayVideo.source_r2_key).catch(() => null) : null
+    const replayDirectUrl = (replayVideo?.provider === 'supabase' || replayVideo?.playback_id?.startsWith('http')) ? replayVideo.playback_id : replayR2Url
     const replayMuxTokens = replayVideo && replayVideo.provider === 'mux' && replayVideo.playback_id ? await signPlayback(replayVideo.playback_id, replayVideo.playback_policy).catch(() => undefined) : undefined
 
     return (
@@ -77,7 +78,7 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                             <MuxVideoPlayer live playbackId={stream.playback_id!} tokens={tokens} title={stream.title} videoId={stream.id} viewerId={profile?.id} />
                         )
                     ) : stream.status === 'ended' && replayVideo && replayVideo.status === 'ready' ? (
-                        replayVideo.provider === 'cloudflare' ? (
+                        replayVideo.provider === 'cloudflare' && !replayVideo.playback_id?.startsWith('http') ? (
                             <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-black shadow-lg">
                                 <iframe
                                     src={`https://iframe.videodelivery.net/${replayVideo.playback_id}?autoplay=false`}
@@ -88,24 +89,30 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                             </div>
                         ) : replayVideo.provider === 'mux' ? (
                             <MuxVideoPlayer playbackId={replayVideo.playback_id!} tokens={replayMuxTokens} title={stream.title} videoId={replayVideo.id} viewerId={profile?.id} />
-                        ) : replayR2Url ? (
+                        ) : replayDirectUrl ? (
                             <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-black shadow-lg">
-                                <video src={replayR2Url} controls playsInline className="h-full w-full" />
+                                <video src={replayDirectUrl} controls playsInline className="h-full w-full" />
                             </div>
                         ) : null
                     ) : (
                         <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl bg-muted px-6 text-center">
                             <Radio className="h-7 w-7 text-muted-foreground" />
                             {stream.status === 'ended' ? (
-                                <>
-                                    <p className="text-sm font-semibold text-foreground">This stream has ended</p>
-                                    <p className="text-xs text-muted-foreground">The replay recording will be available shortly.</p>
-                                    {ticketAccess.isHost && (
-                                        <div className="mt-2">
-                                            <HostReplayAction stream={stream} />
-                                        </div>
+                                <div className="space-y-2 max-w-md mx-auto">
+                                    <p className="text-base font-bold text-foreground">This broadcast has ended</p>
+                                    {ticketAccess.isHost ? (
+                                        <>
+                                            <p className="text-xs text-muted-foreground">
+                                                As host, you can upload a recording or publish this broadcast as a permanent replay.
+                                            </p>
+                                            <div className="pt-2">
+                                                <HostReplayAction stream={stream} />
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground">The host will make the replay recording available shortly.</p>
                                     )}
-                                </>
+                                </div>
                             ) : (
                                 <>
                                     <p className="text-sm font-semibold text-foreground">Starting soon</p>

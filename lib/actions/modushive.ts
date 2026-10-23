@@ -629,42 +629,116 @@ export async function publishStreamAsVideo(
 export async function createStreamRecordingUpload(
     liveStreamId: string,
     input: { contentType: string; sizeBytes: number; durationS: number }
-): Promise<ActionResult<{ videoId: string; uploadUrl: string }>>
+): Promise<ActionResult<{ videoId: string; uploadUrl: string; storageType: 'supabase' | 'r2'; publicUrl?: string }>>
 {
-    if (!isR2Configured()) {
-        return { ok: false, error: 'Cloud storage is not configured.' }
-    }
-
     const stream = await getOwnStream(liveStreamId)
-    if (!stream) return { ok: false, error: 'Live stream not found.' }
+    if (!stream) return { ok: false, error: 'Live stream not found or unauthorized.' }
 
     const profile = await requireProfile()
     const supabase = createServiceClient()
     const videoId = crypto.randomUUID()
     const ext = EXTENSIONS[input.contentType] || 'webm'
-    const key = `videos/${profile.id}/${videoId}/replay.${ext}`
+    const now = new Date().toISOString()
 
-    const { error } = await supabase.from('videos').insert({
+    // 1. If R2 is fully configured (with bucket name), use R2
+    if (isR2Configured()) {
+        const key = `videos/${profile.id}/${videoId}/replay.${ext}`
+        const { error } = await supabase.from('videos').insert({
+            id: videoId,
+            owner_id: profile.id,
+            title: stream.title,
+            description: stream.description,
+            kind: 'live_replay',
+            status: 'uploading',
+            provider: 'r2',
+            playback_policy: 'public',
+            source_r2_key: key,
+            source_size_bytes: input.sizeBytes,
+            duration_s: input.durationS,
+        })
+
+        if (error) {
+            return { ok: false, error: 'Could not create replay record.' }
+        }
+
+        await supabase.from('live_streams').update({ replay_video_id: videoId, updated_at: now }).eq('id', liveStreamId)
+        const uploadUrl = await presignUpload(key, input.contentType, input.sizeBytes)
+        return { ok: true, videoId, uploadUrl, storageType: 'r2' }
+    }
+
+    // 2. Otherwise use Supabase's public 'media' storage bucket (reliable, zero quota restriction)
+    const storagePath = `replays/${profile.id}/${videoId}.${ext}`
+    const { data: signedData, error: signError } = await supabase
+        .storage
+        .from('media')
+        .createSignedUploadUrl(storagePath)
+
+    if (signError || !signedData?.signedUrl) {
+        console.error('[modushive] Supabase createSignedUploadUrl error:', signError)
+        return { ok: false, error: 'Could not prepare upload URL. Please try again.' }
+    }
+
+    const { data: publicData } = supabase.storage.from('media').getPublicUrl(storagePath)
+    const publicUrl = publicData.publicUrl
+
+    const { error: insertError } = await supabase.from('videos').insert({
         id: videoId,
         owner_id: profile.id,
         title: stream.title,
         description: stream.description,
         kind: 'live_replay',
         status: 'uploading',
-        provider: 'r2',
+        provider: 'supabase',
+        provider_asset_id: storagePath,
+        playback_id: publicUrl,
         playback_policy: 'public',
-        source_r2_key: key,
         source_size_bytes: input.sizeBytes,
         duration_s: input.durationS,
+        updated_at: now,
     })
 
-    if (error) {
-        return { ok: false, error: 'Could not create replay record.' }
+    if (insertError) {
+        console.error('[modushive] Insert video record error:', insertError)
+        return { ok: false, error: 'Could not create replay record in database.' }
     }
 
-    // Link replay to stream
-    await supabase.from('live_streams').update({ replay_video_id: videoId }).eq('id', liveStreamId)
+    // Immediately link replay_video_id on the stream
+    await supabase.from('live_streams').update({ replay_video_id: videoId, updated_at: now }).eq('id', liveStreamId)
 
-    const uploadUrl = await presignUpload(key, input.contentType, input.sizeBytes)
-    return { ok: true, videoId, uploadUrl }
+    return {
+        ok: true,
+        videoId,
+        uploadUrl: signedData.signedUrl,
+        storageType: 'supabase',
+        publicUrl,
+    }
+}
+
+/** Finalizes the upload once the browser finishes sending the bytes to storage */
+export async function finalizeStreamRecordingUpload(videoId: string): Promise<ActionResult>
+{
+    const profile = await requireProfile()
+    const supabase = createServiceClient()
+
+    const { data: video } = await supabase
+        .from('videos')
+        .select('id, owner_id, status, provider, playback_id')
+        .eq('id', videoId)
+        .maybeSingle()
+
+    if (!video || (video.owner_id !== profile.id && normalizeRole(profile.role) !== 'admin')) {
+        return { ok: false, error: 'Video not found or unauthorized.' }
+    }
+
+    await supabase
+        .from('videos')
+        .update({
+            status: 'ready',
+            updated_at: new Date().toISOString(),
+        })
+        .eq('id', videoId)
+
+    revalidatePath('/app/modushive')
+    revalidatePath('/app/modushive/studio')
+    return { ok: true }
 }

@@ -19,12 +19,14 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
     const [{ profile }, video] = await Promise.all([getCurrentUser(), getVideo(id)])
     if (!video) notFound()
 
-    const isCloudflare = video.provider === 'cloudflare' && Boolean(video.playback_id)
+    const isCloudflare = video.provider === 'cloudflare' && Boolean(video.playback_id) && !video.playback_id?.startsWith('http')
     const isMux = video.provider === 'mux' && Boolean(video.playback_id) && isMuxConfigured()
     const isR2 = video.provider === 'r2' && Boolean(video.source_r2_key)
+    const isSupabase = (video.provider === 'supabase' || video.playback_id?.startsWith('http')) && Boolean(video.playback_id)
     const r2Url = isR2 ? await presignDownload(video.source_r2_key!).catch(() => null) : null
+    const directVideoUrl = isSupabase ? video.playback_id : r2Url
 
-    const canPlay = video.status === 'ready' && (isCloudflare || isMux || Boolean(r2Url))
+    const canPlay = video.status === 'ready' && (isCloudflare || isMux || Boolean(directVideoUrl))
     const tokens = isMux ? await signPlayback(video.playback_id!, video.playback_policy) : undefined
     const canDelete = profile && (profile.id === video.owner_id || normalizeRole(profile.role) === 'admin')
     const owner = video.owner
@@ -47,9 +49,9 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
                     </div>
                 ) : isMux ? (
                     <MuxVideoPlayer playbackId={video.playback_id!} tokens={tokens} title={video.title} videoId={video.id} viewerId={profile?.id} />
-                ) : r2Url ? (
+                ) : directVideoUrl ? (
                     <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-black shadow-lg">
-                        <video src={r2Url} controls playsInline className="h-full w-full" />
+                        <video src={directVideoUrl} controls playsInline className="h-full w-full" />
                     </div>
                 ) : null
             ) : (

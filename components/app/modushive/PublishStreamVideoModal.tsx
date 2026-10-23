@@ -15,7 +15,7 @@ import {
 import { toast } from '@/components/toast'
 import {
     createStreamRecordingUpload,
-    finalizeVideoUpload,
+    finalizeStreamRecordingUpload,
     publishStreamAsVideo,
 } from '@/lib/actions/modushive'
 import type { LiveStreamWithHost } from '@/lib/types'
@@ -112,7 +112,7 @@ export default function PublishStreamVideoModal({
             setUploadProgress(95)
 
             // 3. Finalize upload
-            await finalizeVideoUpload(initRes.videoId).catch(() => {})
+            await finalizeStreamRecordingUpload(initRes.videoId).catch(() => {})
 
             setIsSuccess(true)
             toast.success('Recording uploaded and published as stream replay!')

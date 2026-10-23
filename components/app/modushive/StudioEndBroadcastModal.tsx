@@ -20,7 +20,11 @@ import {
     X,
 } from 'lucide-react'
 import { toast } from '@/components/toast'
-import { publishStreamAsVideo } from '@/lib/actions/modushive'
+import {
+    publishStreamAsVideo,
+    createStreamRecordingUpload,
+    finalizeStreamRecordingUpload,
+} from '@/lib/actions/modushive'
 
 interface StudioEndBroadcastModalProps {
     isOpen: boolean
@@ -76,6 +80,26 @@ export default function StudioEndBroadcastModal({
     const handlePublishAsVideo = async () => {
         setPublishing(true)
         try {
+            if (recordedBlob && recordedBlob.size > 0) {
+                const upRes = await createStreamRecordingUpload(liveStreamId, {
+                    contentType: 'video/webm',
+                    sizeBytes: recordedBlob.size,
+                    durationS: durationSeconds,
+                })
+                if (upRes.ok && upRes.uploadUrl) {
+                    await fetch(upRes.uploadUrl, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'video/webm' },
+                        body: recordedBlob,
+                    })
+                    await finalizeStreamRecordingUpload(upRes.videoId)
+                    setPublishedVideoId(upRes.videoId)
+                    toast.success('Live stream recorded and published to your channel videos!')
+                    router.refresh()
+                    return
+                }
+            }
+
             const res = await publishStreamAsVideo(liveStreamId, { title })
             if (!res.ok) {
                 toast.error(res.error || 'Could not publish video.')
