@@ -98,10 +98,17 @@ export default async function StudioPage()
                 <section className="space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="min-w-0">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                                <span className="h-2 w-2 rounded-full bg-emerald animate-pulse" />
-                                Active Broadcast Session
-                            </span>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                    <span className="h-2 w-2 rounded-full bg-emerald animate-pulse" />
+                                    Active Broadcast Session
+                                </span>
+                                {activeStream.is_paid && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                                        🎟️ Paid Workshop (₦{Number(activeStream.ticket_price).toLocaleString('en-NG')}/ticket)
+                                    </span>
+                                )}
+                            </div>
                             <h2 className="truncate text-lg sm:text-xl font-extrabold text-foreground">
                                 {activeStream.title}
                             </h2>
@@ -158,10 +165,15 @@ export default async function StudioPage()
                                         </div>
 
                                         <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 flex-wrap">
                                                 <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${STATUS_STYLES[s.status]}`}>
                                                     {STATUS_LABELS[s.status]}
                                                 </span>
+                                                {s.is_paid && (
+                                                    <span className="rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                                                        🎟️ ₦{Number(s.ticket_price).toLocaleString('en-NG')}
+                                                    </span>
+                                                )}
                                                 <p className="truncate text-sm font-semibold text-foreground">{s.title}</p>
                                             </div>
                                             <p className="mt-1 text-xs text-muted-foreground">

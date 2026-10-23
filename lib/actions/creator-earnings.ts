@@ -513,4 +513,302 @@ export async function becomeCreatorAction(): Promise<{
     }
 }
 
+/**
+ * Checks if the current viewer has access to a live stream (free stream, host, or ticket owner).
+ */
+export async function checkStreamTicketAccess(liveStreamId: string): Promise<{
+    hasAccess: boolean
+    isHost: boolean
+    isPaid: boolean
+    ticketPrice: number
+    workshopTopics: string[]
+    creatorId?: string
+    ticket?: {
+        id: string
+        purchasedAt: string
+        reference: string | null
+    }
+}> {
+    try {
+        const supabase = await createClient()
+        const { data: stream } = await supabase
+            .from('live_streams')
+            .select('id, host_id, is_paid, ticket_price, workshop_topics')
+            .eq('id', liveStreamId)
+            .maybeSingle()
+
+        if (!stream) {
+            return {
+                hasAccess: false,
+                isHost: false,
+                isPaid: false,
+                ticketPrice: 0,
+                workshopTopics: [],
+            }
+        }
+
+        const isPaid = Boolean(stream.is_paid && Number(stream.ticket_price ?? 0) > 0)
+        const ticketPrice = Number(stream.ticket_price ?? 0)
+        const workshopTopics = Array.isArray(stream.workshop_topics) ? stream.workshop_topics : []
+
+        // If it's a regular free stream, everyone has access
+        if (!isPaid) {
+            return {
+                hasAccess: true,
+                isHost: false,
+                isPaid: false,
+                ticketPrice: 0,
+                workshopTopics,
+                creatorId: stream.host_id,
+            }
+        }
+
+        // Get active user
+        const { profile } = await getCurrentUser()
+        if (!profile) {
+            return {
+                hasAccess: false,
+                isHost: false,
+                isPaid: true,
+                ticketPrice,
+                workshopTopics,
+                creatorId: stream.host_id,
+            }
+        }
+
+        // Host or admin always has access
+        if (profile.id === stream.host_id || normalizeRole(profile.role) === 'admin') {
+            return {
+                hasAccess: true,
+                isHost: true,
+                isPaid: true,
+                ticketPrice,
+                workshopTopics,
+                creatorId: stream.host_id,
+            }
+        }
+
+        // Check if ticket exists in live_stream_tickets
+        const { data: ticket } = await supabase
+            .from('live_stream_tickets')
+            .select('id, created_at, payment_reference')
+            .eq('live_stream_id', liveStreamId)
+            .eq('buyer_id', profile.id)
+            .maybeSingle()
+
+        if (ticket) {
+            return {
+                hasAccess: true,
+                isHost: false,
+                isPaid: true,
+                ticketPrice,
+                workshopTopics,
+                creatorId: stream.host_id,
+                ticket: {
+                    id: ticket.id,
+                    purchasedAt: ticket.created_at,
+                    reference: ticket.payment_reference,
+                },
+            }
+        }
+
+        return {
+            hasAccess: false,
+            isHost: false,
+            isPaid: true,
+            ticketPrice,
+            workshopTopics,
+            creatorId: stream.host_id,
+        }
+    } catch (err) {
+        console.error('checkStreamTicketAccess error:', err)
+        return {
+            hasAccess: false,
+            isHost: false,
+            isPaid: false,
+            ticketPrice: 0,
+            workshopTopics: [],
+        }
+    }
+}
+
+/**
+ * Purchases a live stream ticket for a paid workshop/masterclass.
+ * Deducts from viewer's Hubnovo Wallet (or confirms Paystack) and credits
+ * 90% net take-home to the creator's wallet with ledger entry under route_key: 'tickets'.
+ */
+export async function purchaseStreamTicket(input: {
+    liveStreamId: string
+    paymentMethod: 'wallet' | 'paystack'
+    paystackReference?: string
+}): Promise<{
+    success: boolean
+    error?: string
+    ticket?: {
+        id: string
+        pricePaid: number
+        streamTitle: string
+        reference: string
+    }
+}> {
+    try {
+        const { authUser, profile } = await getCurrentUser()
+        if (!authUser || !profile) {
+            return { success: false, error: 'Please sign in to buy a workshop ticket.' }
+        }
+
+        const supabase = await createClient()
+
+        // 1. Fetch live stream details
+        const { data: stream } = await supabase
+            .from('live_streams')
+            .select('id, title, host_id, is_paid, ticket_price')
+            .eq('id', input.liveStreamId)
+            .maybeSingle()
+
+        if (!stream) {
+            return { success: false, error: 'Live stream not found.' }
+        }
+
+        if (!stream.is_paid || Number(stream.ticket_price ?? 0) <= 0) {
+            return { success: false, error: 'This stream is free. No ticket required.' }
+        }
+
+        if (profile.id === stream.host_id) {
+            return { success: false, error: 'You are the host of this workshop.' }
+        }
+
+        const ticketPrice = Number(stream.ticket_price)
+
+        // 2. Check if already purchased
+        const { data: existingTicket } = await supabase
+            .from('live_stream_tickets')
+            .select('id, payment_reference')
+            .eq('live_stream_id', stream.id)
+            .eq('buyer_id', profile.id)
+            .maybeSingle()
+
+        if (existingTicket) {
+            return {
+                success: true,
+                ticket: {
+                    id: existingTicket.id,
+                    pricePaid: ticketPrice,
+                    streamTitle: stream.title,
+                    reference: existingTicket.payment_reference || '',
+                },
+            }
+        }
+
+        // 3. Process Wallet deduction if chosen
+        if (input.paymentMethod === 'wallet') {
+            const { data: buyerWallet } = await supabase
+                .from('user_wallet')
+                .select('id, balance')
+                .eq('user_id', profile.id)
+                .maybeSingle()
+
+            const currentBalance = Number(buyerWallet?.balance ?? 0)
+            if (currentBalance < ticketPrice) {
+                return {
+                    success: false,
+                    error: `Insufficient wallet balance (₦${currentBalance.toLocaleString('en-NG')}). Please top up your wallet or pay with card.`,
+                }
+            }
+
+            // Deduct ticket price from buyer
+            await supabase
+                .from('user_wallet')
+                .update({ balance: currentBalance - ticketPrice, updated_at: new Date().toISOString() })
+                .eq('id', buyerWallet!.id)
+        }
+
+        // 4. Calculate 90/10 split
+        const paymentCost = Math.round(ticketPrice * 0.015 * 100) / 100
+        const platformFee = Math.round(ticketPrice * 0.085 * 100) / 100
+        const netAmount = ticketPrice - (paymentCost + platformFee)
+
+        // 5. Credit creator's wallet with 90% net earnings
+        const { data: creatorWallet } = await supabase
+            .from('user_wallet')
+            .select('id, balance')
+            .eq('user_id', stream.host_id)
+            .maybeSingle()
+
+        if (creatorWallet) {
+            const newCreatorBalance = Number(creatorWallet.balance ?? 0) + netAmount
+            await supabase
+                .from('user_wallet')
+                .update({ balance: newCreatorBalance, updated_at: new Date().toISOString() })
+                .eq('id', creatorWallet.id)
+        } else {
+            await supabase.from('user_wallet').insert({
+                user_id: stream.host_id,
+                balance: netAmount,
+            })
+        }
+
+        // 6. Record transaction in creator_stream_transactions
+        const reference = input.paystackReference || `TKT-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`
+        const buyerName = profile.display_name || profile.username || 'Attendee'
+
+        try {
+            await supabase.from('creator_stream_transactions').insert({
+                creator_id: stream.host_id,
+                payer_id: profile.id,
+                payer_name: buyerName,
+                live_stream_id: stream.id,
+                title: `Workshop Ticket: ${stream.title}`,
+                route_key: 'tickets',
+                type: 'ticket',
+                gross_amount: ticketPrice,
+                payment_cost: paymentCost,
+                platform_fee: platformFee,
+                net_amount: netAmount,
+                status: 'settled',
+                reference,
+                notes: `Purchased via ${input.paymentMethod === 'wallet' ? 'Hubnovo Wallet' : 'Paystack'}`,
+            })
+        } catch (dbErr) {
+            console.error('Failed to log creator ticket transaction:', dbErr)
+        }
+
+        // 7. Insert ticket into live_stream_tickets
+        const serviceClient = createServiceClient()
+        const { data: newTicket, error: ticketErr } = await serviceClient
+            .from('live_stream_tickets')
+            .insert({
+                live_stream_id: stream.id,
+                buyer_id: profile.id,
+                creator_id: stream.host_id,
+                price_paid: ticketPrice,
+                payment_method: input.paymentMethod,
+                payment_reference: reference,
+            })
+            .select('id')
+            .single()
+
+        if (ticketErr) {
+            console.error('Failed to record live_stream_tickets:', ticketErr)
+        }
+
+        revalidatePath('/app/modushive/earnings')
+        revalidatePath(`/app/modushive/live/${stream.id}`)
+        revalidatePath('/app/wallet')
+
+        return {
+            success: true,
+            ticket: {
+                id: newTicket?.id || reference,
+                pricePaid: ticketPrice,
+                streamTitle: stream.title,
+                reference,
+            },
+        }
+    } catch (err: any) {
+        console.error('purchaseStreamTicket error:', err)
+        return { success: false, error: err.message || 'Ticket purchase failed.' }
+    }
+}
+
 
