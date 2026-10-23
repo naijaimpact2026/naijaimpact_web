@@ -13,6 +13,7 @@ import ChatProvider from './ChatProvider'
 import { disconnectChatUser } from '@/lib/stream'
 import SignOutPromptModal, { type SignOutFeedback } from './SignOutPromptModal'
 import { recordSignOutFeedback } from '@/lib/actions/auth'
+import NovoCompanion from './mascot'
 
 interface AppShellInnerProps
 {
@@ -100,6 +101,9 @@ function AppShellInner({ children, user }: AppShellInnerProps)
                     onMenuToggle={() => setSidebarOpen((v) => !v)}
                 />
             )}
+
+            {/* AI Animated Mascot Companion */}
+            <NovoCompanion user={user} />
 
             {/* Sign-out Confirmation & Question Modal */}
             <SignOutPromptModal

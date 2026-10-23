@@ -9,6 +9,7 @@ import Security from '@/components/Security'
 import FAQ from '@/components/FAQ'
 import Contact from '@/components/Contact'
 import Footer from '@/components/Footer'
+import NovoCompanion from '@/components/app/mascot'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
@@ -50,6 +51,7 @@ export default async function Home({ searchParams }: HomePageProps) {
       <FAQ />
       <Contact />
       <Footer />
+      <NovoCompanion user={null} />
     </main>
   )
 }
