@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
-import { ArrowLeft, Clapperboard, ExternalLink, Play } from 'lucide-react'
+import { ArrowLeft, Clapperboard, Coins, ExternalLink, Play } from 'lucide-react'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { canGoLive, getLiveLimits, normalizeRole } from '@/lib/modushive/config'
 import { isCloudflareStreamConfigured } from '@/lib/modushive/cloudflare'
@@ -10,6 +10,7 @@ import { isMuxConfigured } from '@/lib/modushive/mux'
 import { listStudioStreams } from '@/lib/modushive/queries'
 import { BrowserStudio } from '@/components/app/modushive/BrowserStudio'
 import { EndStreamButton, GoLiveForm } from '@/components/app/modushive/StudioControls'
+import StudioStreamList from '@/components/app/modushive/StudioStreamList'
 import { ProcessingRefresher } from '@/components/app/modushive/VideoActions'
 import type { LiveStream } from '@/lib/types'
 
@@ -66,8 +67,17 @@ export default async function StudioPage()
                     )}
                 </div>
 
-                <div className="text-xs text-muted-foreground">
-                    Max broadcast duration: <span className="font-semibold text-foreground">{maxHours} {maxHours === 1 ? 'hour' : 'hours'}</span>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <Link
+                        href="/app/modushive/earnings"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card px-3 py-1 font-semibold text-foreground hover:bg-muted transition-colors shadow-sm"
+                    >
+                        <Coins className="h-3.5 w-3.5 text-amber-500" />
+                        Earnings Hub
+                    </Link>
+                    <span className="hidden sm:inline">
+                        Max broadcast: <span className="font-semibold text-foreground">{maxHours} {maxHours === 1 ? 'hour' : 'hours'}</span>
+                    </span>
                 </div>
             </div>
 
@@ -89,10 +99,17 @@ export default async function StudioPage()
                 <section className="space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="min-w-0">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                                <span className="h-2 w-2 rounded-full bg-emerald animate-pulse" />
-                                Active Broadcast Session
-                            </span>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                    <span className="h-2 w-2 rounded-full bg-emerald animate-pulse" />
+                                    Active Broadcast Session
+                                </span>
+                                {activeStream.is_paid && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                                        🎟️ Paid Workshop (₦{Number(activeStream.ticket_price).toLocaleString('en-NG')}/ticket)
+                                    </span>
+                                )}
+                            </div>
                             <h2 className="truncate text-lg sm:text-xl font-extrabold text-foreground">
                                 {activeStream.title}
                             </h2>
@@ -110,6 +127,7 @@ export default async function StudioPage()
                         initialStatus={activeStream.status}
                         chatChannelId={activeStream.chat_channel_id}
                         hostId={activeStream.host_id}
+                        initialPinnedProduct={activeStream.pinned_product_data}
                     />
                 </section>
             ) : (
@@ -121,70 +139,7 @@ export default async function StudioPage()
                 {streams.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No streams yet.</p>
                 ) : (
-                    <ul className="space-y-3">
-                        {streams.map((s) => (
-                            <li key={s.id} className="space-y-4 rounded-2xl border border-border bg-card p-4 transition-all hover:border-border/80">
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                    <div className="flex items-start gap-3 min-w-0">
-                                        {/* Replay Thumbnail */}
-                                        <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-xl border border-border bg-muted">
-                                            {s.thumbnail_url ? (
-                                                <Image
-                                                    src={s.thumbnail_url}
-                                                    alt={s.title}
-                                                    fill
-                                                    unoptimized
-                                                    className="object-cover"
-                                                />
-                                            ) : (
-                                                <div className="flex h-full w-full items-center justify-center bg-muted/80">
-                                                    <Clapperboard className="h-5 w-5 text-muted-foreground/50" />
-                                                </div>
-                                            )}
-                                            {s.status === 'ended' && s.replay_video_id && (
-                                                <span className="absolute bottom-1 right-1 rounded bg-black/80 px-1 py-0.2 text-[8px] font-bold text-white uppercase">
-                                                    Replay
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${STATUS_STYLES[s.status]}`}>
-                                                    {STATUS_LABELS[s.status]}
-                                                </span>
-                                                <p className="truncate text-sm font-semibold text-foreground">{s.title}</p>
-                                            </div>
-                                            <p className="mt-1 text-xs text-muted-foreground">
-                                                Created {formatDistanceToNow(new Date(s.created_at), { addSuffix: true })}
-                                                {s.ended_at && ` • Ended ${formatDistanceToNow(new Date(s.ended_at), { addSuffix: true })}`}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 self-end sm:self-center">
-                                        {s.status === 'ended' && s.replay_video_id ? (
-                                            <Link
-                                                href={`/app/modushive/${s.replay_video_id}`}
-                                                className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary px-3 py-1.5 text-xs font-bold transition-colors"
-                                            >
-                                                <Play className="h-3.5 w-3.5 fill-primary text-primary" />
-                                                Watch Replay
-                                            </Link>
-                                        ) : (
-                                            <Link
-                                                href={`/app/modushive/live/${s.id}`}
-                                                className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
-                                            >
-                                                <ExternalLink className="h-3.5 w-3.5" /> View
-                                            </Link>
-                                        )}
-                                        {s.status !== 'ended' && <EndStreamButton liveStreamId={s.id} />}
-                                    </div>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
+                    <StudioStreamList streams={streams} />
                 )}
             </section>
         </div>

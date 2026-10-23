@@ -70,10 +70,16 @@ export default function NovoStreamHero({
                             <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
                             Live Now
                         </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 px-3 py-1 text-xs font-semibold text-slate-200">
-                            <Radio className="h-3.5 w-3.5 text-red-400" />
-                            Active Broadcast
-                        </span>
+                        {activeLiveStream.is_paid ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/90 backdrop-blur-md border border-amber-400/40 px-3 py-1 text-xs font-bold text-white shadow-lg shadow-amber-500/30">
+                                🎟️ Masterclass • ₦{Number(activeLiveStream.ticket_price).toLocaleString('en-NG')}
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 px-3 py-1 text-xs font-semibold text-slate-200">
+                                <Radio className="h-3.5 w-3.5 text-red-400" />
+                                Active Broadcast
+                            </span>
+                        )}
                     </div>
 
                     <div className="space-y-2 sm:space-y-3 my-4 sm:my-6">
@@ -113,7 +119,7 @@ export default function NovoStreamHero({
                             className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-purple-600 px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-extrabold text-white shadow-lg shadow-red-600/35 hover:brightness-110 active:scale-95 transition-all"
                         >
                             <Play className="h-4 w-4 fill-white" />
-                            Watch Live
+                            {activeLiveStream.is_paid ? 'Get Ticket & Join' : 'Watch Live'}
                         </Link>
                     </div>
                 </div>

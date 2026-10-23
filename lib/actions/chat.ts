@@ -419,7 +419,7 @@ export async function deleteOrHideConversation(channelId: string) {
 }
 
 /**
- * Block a user in Stream Chat and hide any existing DM channel.
+ * Block a user in Stream Chat while preserving message history.
  */
 export async function blockUserChat(targetUserId: string, channelId?: string) {
   const supabase = await createClient()
@@ -442,9 +442,15 @@ export async function blockUserChat(targetUserId: string, channelId?: string) {
   if (channelId) {
     try {
       const channel = serverClient.channel('messaging', channelId)
-      await channel.hide(profile.id, true)
+      // Do NOT call channel.hide(..., true) which deletes history!
+      // We preserve prior messages intact while tagging channel metadata.
+      await channel.updatePartial({
+        set: {
+          [`blocked_by_${profile.id}`]: true,
+        },
+      })
     } catch {
-      // Ignore channel hide failure
+      // Ignore channel update failure
     }
   }
 
@@ -452,9 +458,9 @@ export async function blockUserChat(targetUserId: string, channelId?: string) {
 }
 
 /**
- * Unblock a user in Stream Chat.
+ * Unblock a user in Stream Chat and restore interaction state.
  */
-export async function unblockUserChat(targetUserId: string) {
+export async function unblockUserChat(targetUserId: string, channelId?: string) {
   const supabase = await createClient()
   const {
     data: { user: authUser },
@@ -472,7 +478,79 @@ export async function unblockUserChat(targetUserId: string) {
   const serverClient = getStreamServerClient()
   await serverClient.unBlockUser(targetUserId, profile.id)
 
+  if (channelId) {
+    try {
+      const channel = serverClient.channel('messaging', channelId)
+      await channel.updatePartial({
+        unset: [`blocked_by_${profile.id}` as any],
+      })
+    } catch {
+      // Ignore channel update failure
+    }
+  }
+
   return { success: true }
+}
+
+export interface BlockedUserItem {
+  id: string
+  username: string
+  display_name: string
+  avatar_url: string | null
+  blocked_at?: string
+}
+
+/**
+ * Fetch users blocked by the current authenticated user.
+ */
+export async function fetchBlockedUsers(): Promise<BlockedUserItem[]> {
+  const supabase = await createClient()
+  const {
+    data: { user: authUser },
+    error: authError,
+  } = await supabase.auth.getUser()
+  if (authError || !authUser) return []
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', authUser.id)
+    .single()
+  if (!profile) return []
+
+  const serverClient = getStreamServerClient()
+  try {
+    const res = await serverClient.getBlockedUsers(profile.id)
+    const blocks = res.blocks || []
+    if (blocks.length === 0) return []
+
+    const blockedUserIds = blocks
+      .map((b) => b.blocked_user_id || (b.blocked_user as any)?.id)
+      .filter(Boolean)
+
+    // Enrich with Supabase profile data to guarantee fresh display names and avatars
+    const { data: userProfiles } = await supabase
+      .from('users')
+      .select('id, username, display_name, avatar_url')
+      .in('id', blockedUserIds)
+
+    const profileMap = new Map((userProfiles || []).map((u) => [u.id, u]))
+
+    return blocks.map((b) => {
+      const bId = b.blocked_user_id || (b.blocked_user as any)?.id
+      const p = profileMap.get(bId)
+      return {
+        id: bId,
+        username: p?.username || (b.blocked_user as any)?.username || (b.blocked_user as any)?.name || 'User',
+        display_name: p?.display_name || (b.blocked_user as any)?.name || 'User',
+        avatar_url: p?.avatar_url || (b.blocked_user as any)?.image || null,
+        blocked_at: b.created_at || (b as any).blocked_at || undefined,
+      }
+    })
+  } catch (err) {
+    console.error('Failed to fetch blocked users from Stream:', err)
+    return []
+  }
 }
 
 /**

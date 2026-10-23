@@ -43,6 +43,7 @@ import
         LogOut,
         Trash2,
         Ban,
+        ShieldCheck,
     } from 'lucide-react'
 import { useChatClient } from '@/components/app/ChatProvider'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -69,6 +70,7 @@ import GroupInfoModal from '@/components/app/chat/GroupInfoModal'
 import AddMembersModal from '@/components/app/chat/AddMembersModal'
 import SharedMediaDrawer from '@/components/app/chat/SharedMediaDrawer'
 import ChatWallpaper from '@/components/app/chat/ChatWallpaper'
+import ChatEmptyStateIndicator from '@/components/app/chat/ChatEmptyStateIndicator'
 import { ForwardMessageProvider, useForwardMessage } from '@/components/app/chat/ForwardMessageContext'
 import ForwardMessageModal from '@/components/app/chat/ForwardMessageModal'
 import { CustomMessageActions } from '@/components/app/chat/ForwardMessageAction'
@@ -78,6 +80,8 @@ import {
     leaveGroupChat,
     deleteOrHideConversation,
     blockUserChat,
+    unblockUserChat,
+    fetchBlockedUsers,
 } from '@/lib/actions/chat'
 import { playSendMessageSound, playReceiveMessageSound } from '@/lib/chat-sound'
 import { toast } from '@/components/toast'
@@ -100,9 +104,20 @@ interface CustomChannelHeaderProps
 {
     onToggleSearch: () => void
     isSearchOpen: boolean
+    isBlocked?: boolean
+    onUnblock?: () => Promise<void>
+    isUnblocking?: boolean
+    onBlocked?: () => void
 }
 
-function CustomChannelHeader({ onToggleSearch, isSearchOpen }: CustomChannelHeaderProps)
+function CustomChannelHeader({
+    onToggleSearch,
+    isSearchOpen,
+    isBlocked = false,
+    onUnblock,
+    isUnblocking = false,
+    onBlocked,
+}: CustomChannelHeaderProps)
 {
     const router = useRouter()
     const { channel } = useChannelStateContext()
@@ -291,9 +306,12 @@ function CustomChannelHeader({ onToggleSearch, isSearchOpen }: CustomChannelHead
         {
             setIsBlocking(true)
             await blockUserChat(otherMember.user.id, channel.id)
-            toast.success(`Blocked ${otherMember.user.name || 'user'}`)
+            toast.success(`Blocked ${otherMember.user.name || 'user'}. Conversation history preserved.`)
             setBlockConfirmOpen(false)
-            router.push('/app/chat')
+            if (onBlocked)
+            {
+                onBlocked()
+            }
         } catch (err: any)
         {
             console.error('Failed to block user:', err)
@@ -346,6 +364,12 @@ function CustomChannelHeader({ onToggleSearch, isSearchOpen }: CustomChannelHead
                         <p className="text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">
                             {name}
                         </p>
+                        {isBlocked && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20 shrink-0">
+                                <Ban className="w-3 h-3" />
+                                Blocked
+                            </span>
+                        )}
                         {isMuted && (
                             <span title="Notifications muted">
                                 <BellOff className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" />
@@ -479,13 +503,24 @@ function CustomChannelHeader({ onToggleSearch, isSearchOpen }: CustomChannelHead
                                     <Trash2 className="w-4 h-4" />
                                     Delete Conversation
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={() => setBlockConfirmOpen(true)}
-                                    className="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-sm font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 focus:text-rose-500 focus:bg-rose-500/10"
-                                >
-                                    <Ban className="w-4 h-4" />
-                                    Block {otherMember?.user?.name || 'User'}
-                                </DropdownMenuItem>
+                                {isBlocked ? (
+                                    <DropdownMenuItem
+                                        onClick={onUnblock}
+                                        disabled={isUnblocking}
+                                        className="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-sm font-medium text-primary hover:text-primary hover:bg-primary/10 focus:text-primary focus:bg-primary/10"
+                                    >
+                                        <ShieldCheck className="w-4 h-4 text-primary" />
+                                        {isUnblocking ? 'Unblocking...' : `Unblock ${otherMember?.user?.name || 'User'}`}
+                                    </DropdownMenuItem>
+                                ) : (
+                                    <DropdownMenuItem
+                                        onClick={() => setBlockConfirmOpen(true)}
+                                        className="flex items-center gap-2.5 px-3 py-2 cursor-pointer rounded-lg text-sm font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 focus:text-rose-500 focus:bg-rose-500/10"
+                                    >
+                                        <Ban className="w-4 h-4" />
+                                        Block {otherMember?.user?.name || 'User'}
+                                    </DropdownMenuItem>
+                                )}
                             </>
                         )}
                     </DropdownMenuContent>
@@ -1019,6 +1054,68 @@ export default function ChannelPage()
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [isSearchOpen, setIsSearchOpen] = useState(false)
+    const [blockedUserIds, setBlockedUserIds] = useState<Set<string>>(new Set())
+    const [isUnblocking, setIsUnblocking] = useState(false)
+
+    useEffect(() =>
+    {
+        let isMounted = true
+        fetchBlockedUsers()
+            .then((list) =>
+            {
+                if (isMounted)
+                {
+                    setBlockedUserIds(new Set(list.map((u) => u.id)))
+                }
+            })
+            .catch((err) =>
+            {
+                console.error('Failed to load blocked users:', err)
+            })
+        return () =>
+        {
+            isMounted = false
+        }
+    }, [])
+
+    const currentUserId = client?.userID
+    const members = Object.values(channel?.state?.members || {})
+    const otherMember = members.find((m) => m.user?.id !== currentUserId)
+    const otherUserId = otherMember?.user?.id
+    const isChannelMarkedBlocked = Boolean(
+        currentUserId && (channel?.data as any)?.[`blocked_by_${currentUserId}`]
+    )
+    const isBlocked = Boolean(
+        (otherUserId && blockedUserIds.has(otherUserId)) || isChannelMarkedBlocked
+    )
+
+    const handleUnblock = async () =>
+    {
+        if (!otherUserId || !channel) return
+        try
+        {
+            setIsUnblocking(true)
+            await unblockUserChat(otherUserId, channel.id)
+            setBlockedUserIds((prev) =>
+            {
+                const next = new Set(prev)
+                next.delete(otherUserId)
+                return next
+            })
+            if (currentUserId && (channel.data as any)?.[`blocked_by_${currentUserId}`])
+            {
+                delete (channel.data as any)[`blocked_by_${currentUserId}`]
+            }
+            toast.success('User unblocked')
+        } catch (err: any)
+        {
+            console.error('Failed to unblock user:', err)
+            toast.error(err.message || 'Failed to unblock user')
+        } finally
+        {
+            setIsUnblocking(false)
+        }
+    }
 
     // Keyboard shortcut Cmd+F / Ctrl+F to toggle in-conversation search
     useEffect(() =>
@@ -1148,7 +1245,7 @@ export default function ChannelPage()
                     className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card text-sm font-medium text-foreground hover:bg-muted transition-colors"
                 >
                     <ArrowLeft className="w-4 h-4" />
-                    Back to Messages
+                    Back to Chat
                 </button>
             </div>
         )
@@ -1158,10 +1255,10 @@ export default function ChannelPage()
 
     return (
         <ForwardMessageProvider>
-            <div className="relative flex flex-col h-[calc(100dvh-4rem)] w-full overflow-hidden bg-background">
+            <div className={`relative flex flex-col h-[calc(100dvh-4rem)] w-full overflow-hidden bg-background ${isBlocked ? 'chat-view-blocked' : ''}`}>
                 <ChatWallpaper />
                 <Chat client={client!} theme={streamTheme}>
-                    <Channel channel={channel} doSendMessageRequest={handleSendMessage}>
+                    <Channel channel={channel} doSendMessageRequest={handleSendMessage} EmptyPlaceholder={<ChatEmptyStateIndicator />}>
                         <ComponentProvider
                             value={{
                                 Avatar: CustomStreamAvatar as any,
@@ -1171,19 +1268,70 @@ export default function ChannelPage()
                                 MessageActions: CustomMessageActions,
                                 reactionOptions: customReactionOptions as any,
                                 ReactionSelector: CustomReactionSelector as any,
+                                EmptyStateIndicator: ChatEmptyStateIndicator,
                             }}
                         >
                             <Window>
                                 <CustomChannelHeader
                                     onToggleSearch={() => setIsSearchOpen((v) => !v)}
                                     isSearchOpen={isSearchOpen}
+                                    isBlocked={isBlocked}
+                                    onUnblock={handleUnblock}
+                                    isUnblocking={isUnblocking}
+                                    onBlocked={() =>
+                                    {
+                                        if (otherUserId)
+                                        {
+                                            setBlockedUserIds((prev) => new Set([...prev, otherUserId]))
+                                        }
+                                    }}
                                 />
+                                {isBlocked && (
+                                    <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-rose-500/10 border-b border-rose-500/20 text-rose-500 text-xs font-medium z-10 shrink-0">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <Ban className="w-4 h-4 shrink-0" />
+                                            <span className="truncate">This user is blocked. Previous messages are preserved.</span>
+                                        </div>
+                                        <button
+                                            onClick={handleUnblock}
+                                            disabled={isUnblocking}
+                                            className="shrink-0 px-3 py-1 rounded-lg bg-rose-500 text-white text-xs font-semibold hover:bg-rose-600 transition-colors disabled:opacity-50"
+                                        >
+                                            {isUnblocking ? 'Unblocking...' : 'Unblock'}
+                                        </button>
+                                    </div>
+                                )}
                                 {isSearchOpen && (
                                     <InChatSearchBar onClose={() => setIsSearchOpen(false)} />
                                 )}
                                 <PinnedMessageBanner />
                                 <MessageList returnAllReadData />
-                                <MessageComposer audioRecordingEnabled={true} />
+                                {isBlocked ? (
+                                    <div className="p-4 border-t border-border bg-card/95 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3 z-10 shrink-0">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-9 h-9 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
+                                                <Ban className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-semibold text-foreground">
+                                                    Conversation is blocked
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Unblock {otherMember?.user?.name || 'this user'} to send and receive new messages.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={handleUnblock}
+                                            disabled={isUnblocking}
+                                            className="w-full sm:w-auto px-5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
+                                        >
+                                            {isUnblocking ? 'Unblocking...' : 'Unblock User'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <MessageComposer audioRecordingEnabled={true} />
+                                )}
                             </Window>
                             <Thread />
                         </ComponentProvider>
@@ -1192,6 +1340,45 @@ export default function ChannelPage()
                 <ForwardModalHost client={client} currentChannelId={channelId as string} />
                 <style dangerouslySetInnerHTML={{
                     __html: `
+                        .str-chat .str-chat__empty-channel,
+                        .str-chat__empty-channel,
+                        .str-chat__empty-channel-text,
+                        .str-chat .str-chat__message-list,
+                        .str-chat__message-list,
+                        .str-chat .str-chat__message-list-scroll,
+                        .str-chat__message-list-scroll,
+                        .str-chat .str-chat__main-panel-inner,
+                        .str-chat__main-panel-inner {
+                            background: transparent !important;
+                            background-color: transparent !important;
+                        }
+                        .chat-view-blocked .str-chat__list,
+                        .chat-view-blocked .str-chat__message-list {
+                            backdrop-filter: blur(8px) !important;
+                            -webkit-backdrop-filter: blur(8px) !important;
+                            background-color: rgba(6, 17, 28, 0.45) !important;
+                        }
+                        /* Message bubble and attachment image constraints */
+                        .str-chat .str-chat__message-attachment,
+                        .str-chat .str-chat__message-attachment--image,
+                        .str-chat .str-chat__gallery,
+                        .str-chat .str-chat__gallery-image {
+                            max-width: 360px !important;
+                            border-radius: 16px !important;
+                            overflow: hidden !important;
+                        }
+                        .str-chat .str-chat__message-attachment img,
+                        .str-chat .str-chat__message-attachment--image img,
+                        .str-chat .str-chat__gallery img,
+                        .str-chat .str-chat__modal-gallery__image img {
+                            max-width: 360px !important;
+                            max-height: 280px !important;
+                            width: auto !important;
+                            height: auto !important;
+                            object-fit: cover !important;
+                            border-radius: 16px !important;
+                            display: block !important;
+                        }
                         .str-chat .str-chat__context-menu,
                         .str-chat__context-menu,
                         .str-chat .str-chat__attachment-selector-actions-menu,

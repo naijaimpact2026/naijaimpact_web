@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Copy, Eye, EyeOff, Loader2, Radio, Square } from 'lucide-react'
+import { Check, Copy, Eye, EyeOff, GraduationCap, Loader2, Radio, Sparkles, Square, Ticket } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -30,38 +30,196 @@ const STREAM_CATEGORIES = [
     'Technology',
 ]
 
+const TICKET_PRESETS = [1000, 2500, 5000, 10000]
+
 export function GoLiveForm()
 {
     const router = useRouter()
     const [title, setTitle] = useState('')
-    const [category, setCategory] = useState('Entertainment')
+    const [category, setCategory] = useState('Education')
     const [description, setDescription] = useState('')
+    const [streamType, setStreamType] = useState<'free' | 'paid'>('free')
+    const [presetPrice, setPresetPrice] = useState<number>(2500)
+    const [customPrice, setCustomPrice] = useState<string>('')
+    const [topicsInput, setTopicsInput] = useState<string>('')
     const [pending, startTransition] = useTransition()
+
+    const effectivePrice = customPrice ? Number(customPrice) || 0 : presetPrice
+    const creatorNet = Math.round(effectivePrice * 0.9)
+    const fee10 = effectivePrice - creatorNet
 
     function handleSubmit(e: React.FormEvent)
     {
         e.preventDefault()
+        if (streamType === 'paid' && effectivePrice < 500) {
+            toast.error('Minimum ticket price for paid workshops is ₦500')
+            return
+        }
+
         startTransition(async () =>
         {
             const taggedDescription = category
                 ? `[${category}] ${description.trim()}`.trim()
                 : description.trim()
 
-            const res = await createLiveStream({ title, description: taggedDescription })
+            const workshopTopics = topicsInput
+                .split(/[\n,]/)
+                .map((t) => t.trim())
+                .filter(Boolean)
+
+            const res = await createLiveStream({
+                title,
+                description: taggedDescription,
+                isPaid: streamType === 'paid',
+                ticketPrice: streamType === 'paid' ? effectivePrice : 0,
+                workshopTopics: streamType === 'paid' ? workshopTopics : [],
+            })
+
             if (!res.ok) { toast.error(res.error); return }
-            toast.success('Live stream studio ready! Turn on your camera and click Go Live.')
+            toast.success(
+                streamType === 'paid'
+                    ? 'Paid workshop studio ready! Attendees will be paywalled with tickets.'
+                    : 'Live stream studio ready! Turn on your camera and click Go Live.'
+            )
             setTitle('')
             setDescription('')
+            setCustomPrice('')
+            setTopicsInput('')
             router.refresh()
         })
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-border bg-card p-5">
-            <div className="space-y-1.5">
-                <label htmlFor="stream-title" className="text-sm font-medium text-foreground">Stream title</label>
-                <Input id="stream-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} required disabled={pending} placeholder="e.g. Founders' Friday Q&A" />
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
+            {/* Stream Format Selector */}
+            <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Broadcast format</label>
+                <div className="grid grid-cols-2 gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setStreamType('free')}
+                        className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-xs sm:text-sm font-semibold transition-all ${
+                            streamType === 'free'
+                                ? 'border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary/30'
+                                : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground'
+                        }`}
+                    >
+                        <Radio className="h-4 w-4 shrink-0" />
+                        <span>Free Public Stream</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setStreamType('paid')
+                            if (category === 'Entertainment') setCategory('Education')
+                        }}
+                        className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-xs sm:text-sm font-semibold transition-all ${
+                            streamType === 'paid'
+                                ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 shadow-sm ring-1 ring-amber-500/30'
+                                : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground'
+                        }`}
+                    >
+                        <Ticket className="h-4 w-4 shrink-0 text-amber-500" />
+                        <span>Paid Mini-Class / Workshop</span>
+                    </button>
+                </div>
             </div>
+
+            <div className="space-y-1.5">
+                <label htmlFor="stream-title" className="text-sm font-medium text-foreground">
+                    {streamType === 'paid' ? 'Workshop / Masterclass title' : 'Stream title'}
+                </label>
+                <Input
+                    id="stream-title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    maxLength={120}
+                    required
+                    disabled={pending}
+                    placeholder={streamType === 'paid' ? 'e.g. Mastering Next.js 15 & High-Value Freelancing' : "e.g. Founders' Friday Q&A"}
+                />
+            </div>
+
+            {/* Paid Workshop Controls */}
+            {streamType === 'paid' && (
+                <div className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 animate-in fade-in-50 duration-200">
+                    <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wide">
+                            <Ticket className="h-3.5 w-3.5" /> Ticket Pricing (NGN)
+                        </span>
+                        <span className="text-[11px] font-semibold text-muted-foreground">90/10 Creator Split</span>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-1.5">
+                        {TICKET_PRESETS.map((p) => (
+                            <button
+                                key={p}
+                                type="button"
+                                onClick={() => {
+                                    setPresetPrice(p)
+                                    setCustomPrice('')
+                                }}
+                                className={`rounded-lg py-1.5 text-xs font-bold transition-all ${
+                                    effectivePrice === p && !customPrice
+                                        ? 'bg-amber-500 text-white shadow-sm'
+                                        : 'border border-amber-500/20 bg-background/80 text-foreground hover:bg-amber-500/15'
+                                }`}
+                            >
+                                ₦{p.toLocaleString('en-NG')}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <Input
+                            type="number"
+                            min="500"
+                            step="500"
+                            placeholder="Custom ticket amount (min ₦500)"
+                            value={customPrice}
+                            onChange={(e) => setCustomPrice(e.target.value)}
+                            disabled={pending}
+                            className="text-xs bg-background"
+                        />
+                    </div>
+
+                    {/* Dynamic Payout Transparency Card */}
+                    <div className="rounded-lg bg-card/80 border border-border p-3 space-y-1.5 text-xs">
+                        <div className="flex justify-between items-center text-muted-foreground">
+                            <span>Ticket Price:</span>
+                            <span className="font-semibold text-foreground">₦{effectivePrice.toLocaleString('en-NG')}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-muted-foreground">
+                            <span>Platform & Gateway Cost (10%):</span>
+                            <span>-₦{fee10.toLocaleString('en-NG')}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-1 border-t border-border/60 text-xs font-bold">
+                            <span className="text-foreground">Your 90% Net Take-Home:</span>
+                            <span className="text-emerald-600 dark:text-emerald-400">
+                                +₦{creatorNet.toLocaleString('en-NG')} / attendee
+                            </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground pt-1">
+                            Earnings credit immediately into your Hubnovo Wallet balance upon each ticket purchase.
+                        </p>
+                    </div>
+
+                    {/* Workshop Topics / Syllabus */}
+                    <div className="space-y-1.5 pt-1">
+                        <label htmlFor="stream-topics" className="text-xs font-semibold text-foreground">
+                            Learning Topics & Syllabus <span className="text-muted-foreground font-normal">(comma-separated)</span>
+                        </label>
+                        <Input
+                            id="stream-topics"
+                            value={topicsInput}
+                            onChange={(e) => setTopicsInput(e.target.value)}
+                            disabled={pending}
+                            placeholder="e.g. Intro, UI Systems, Supabase Auth, Live Q&A"
+                            className="text-xs bg-background"
+                        />
+                    </div>
+                </div>
+            )}
 
             <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">Category</label>
@@ -85,15 +243,23 @@ export function GoLiveForm()
 
             <div className="space-y-1.5">
                 <label htmlFor="stream-description" className="text-sm font-medium text-foreground">Description <span className="text-muted-foreground font-normal">(optional)</span></label>
-                <Textarea id="stream-description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} rows={3} disabled={pending} placeholder="What will you be discussing or streaming?" />
+                <Textarea id="stream-description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} rows={3} disabled={pending} placeholder="What will attendees learn or experience during this session?" />
             </div>
             <button
                 type="submit"
                 disabled={pending || !title.trim()}
-                className="inline-flex items-center gap-2 rounded-full bg-destructive px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50 ${
+                    streamType === 'paid' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-destructive'
+                }`}
             >
-                {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Radio className="h-4 w-4" />}
-                Create live stream
+                {pending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                ) : streamType === 'paid' ? (
+                    <Ticket className="h-4 w-4" />
+                ) : (
+                    <Radio className="h-4 w-4" />
+                )}
+                {streamType === 'paid' ? 'Create Paid Workshop' : 'Create live stream'}
             </button>
         </form>
     )

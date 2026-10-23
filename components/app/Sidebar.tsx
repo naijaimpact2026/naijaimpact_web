@@ -53,7 +53,7 @@ const navItems = [
     { icon: Wrench, label: 'Artisans & Pros', href: '/app/artisans' },
     { icon: Rocket, label: 'Business LaunchPad', href: '/app/services' },
     { icon: BookOpen, label: 'Learn', href: '/app/learn' },
-    { icon: MessageCircle, label: 'Messages', href: '/app/chat', badgeProp: 'messageCount' as const },
+    { icon: MessageCircle, label: 'Chat', href: '/app/chat', badgeProp: 'messageCount' as const },
     { icon: Bell, label: 'Notifications', href: '/app/notifications', badgeProp: 'notificationCount' as const },
     { icon: HandCoins, label: 'Crowdfunding', href: '/app/funding', badgeText: 'Soon' },
     { icon: Wallet, label: 'Saving / Wallet', href: '/app/fintech', badgeText: 'Soon' },

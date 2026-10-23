@@ -158,7 +158,8 @@ export async function fetchCourses(
             video_url,
             course_outline,
             created_at,
-            updated_at
+            updated_at,
+            category:lms_courses_categories(id, name)
         `)
         .order('created_at', {
             ascending: false,
@@ -190,8 +191,7 @@ export async function fetchCourses(
         ? data.slice(0, limit)
         : data
 
-    // Instructor lookup
-
+    // Batch-resolve instructor profiles
     const userIds = [
         ...new Set(
             pageData
@@ -227,36 +227,6 @@ export async function fetchCourses(
         }
     }
 
-    // Category lookup
-
-    const categoryIds = [
-        ...new Set(
-            pageData
-                .map((row: any) => row.category_id)
-                .filter(Boolean)
-        ),
-    ]
-
-    const categoryMap = new Map<
-        string,
-        string
-    >()
-
-    if (categoryIds.length > 0) {
-        const { data: categories } =
-            await supabase
-                .from('lms_courses_categories')
-                .select('id, name')
-                .in('id', categoryIds)
-
-        for (const category of categories ?? []) {
-            categoryMap.set(
-                category.id,
-                category.name
-            )
-        }
-    }
-
     const courses: Course[] =
         pageData.map((row: any) => ({
             id: row.id,
@@ -268,13 +238,7 @@ export async function fetchCourses(
             category_id:
                 row.category_id ?? null,
             category_name:
-                row.category_id
-                    ? (
-                        categoryMap.get(
-                            row.category_id
-                        ) ?? null
-                    )
-                    : null,
+                row.category?.name ?? null,
             amount: row.amount ?? 0,
             is_free:
                 row.is_free ?? true,
@@ -341,7 +305,8 @@ export async function fetchCourseById(
                 video_url,
                 course_outline,
                 created_at,
-                updated_at
+                updated_at,
+                category:lms_courses_categories(name)
             `)
             .eq('id', courseId)
             .single()
@@ -350,68 +315,30 @@ export async function fetchCourseById(
         return null
     }
 
-    // Instructor
+    const courseRow = row as any
+    const categoryName = courseRow.category?.name ?? null
 
-    const { data: instructor } =
-        await supabase
+    // Parallelize instructor details and user enrollment lookup
+    const [
+        { data: instructor },
+        { data: enrollmentData },
+    ] = await Promise.all([
+        supabase
             .from('users')
-            .select(
-                'display_name, avatar_url'
-            )
-            .eq(
-                'id',
-                (row as any).user_id
-            )
-            .single()
-
-    // Category
-
-    let categoryName:
-        string | null = null
-
-    if ((row as any).category_id) {
-        const { data: category } =
-            await supabase
-                .from(
-                    'lms_courses_categories'
-                )
-                .select('name')
-                .eq(
-                    'id',
-                    (row as any).category_id
-                )
-                .single()
-
-        categoryName =
-            category?.name ?? null
-    }
-
-    let enrollment:
-        Enrollment | null = null
-
-    if (profile) {
-        const { data: enrollmentData } =
-            await supabase
-                .from(
-                    'lms_courses_enrollment'
-                )
+            .select('display_name, avatar_url')
+            .eq('id', courseRow.user_id)
+            .maybeSingle(),
+        profile
+            ? supabase
+                .from('lms_courses_enrollment')
                 .select('*')
-                .eq(
-                    'user_id',
-                    profile.id
-                )
-                .eq(
-                    'course_id',
-                    courseId
-                )
+                .eq('user_id', profile.id)
+                .eq('course_id', courseId)
                 .maybeSingle()
+            : Promise.resolve({ data: null }),
+    ])
 
-        enrollment =
-            enrollmentData ?? null
-    }
-
-    const courseRow =
-        row as any
+    const enrollment: Enrollment | null = enrollmentData ?? null
 
     const outline =
         parseCourseOutline(courseRow.course_outline)

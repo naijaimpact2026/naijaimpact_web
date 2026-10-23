@@ -15,9 +15,10 @@ export const UPLOAD_LIMITS: Record<UserRole, { maxDurationS: number; maxBytes: n
 }
 
 /**
- * Who can go live. Opened to all users per instruction.
+ * Who can go live. Restricted to active creators and admins.
+ * Normal users can activate creator status via the Become a Creator flow.
  */
-export const LIVE_STREAM_ROLES: UserRole[] = ['user', 'creator', 'admin']
+export const LIVE_STREAM_ROLES: UserRole[] = ['creator', 'admin']
 
 /**
  * Live is the expensive part of Mux and Cloudflare, so cap it per role:
@@ -63,9 +64,17 @@ export const PLAYBACK_MAX_RESOLUTION = '720p'
 
 export const MUX_RTMP_URL = 'rtmps://global-live.mux.com:443/app'
 
+/** users.role is the `user_role` enum: user | creator | admin | super_admin. */
 export function normalizeRole(role: string | null | undefined): UserRole
 {
-    return role === 'admin' || role === 'creator' ? role : 'user'
+    if (role === 'admin' || role === 'super_admin') return 'admin'
+    return role === 'creator' ? 'creator' : 'user'
+}
+
+export function isCreatorOrAdmin(role: string | null | undefined): boolean
+{
+    const r = normalizeRole(role)
+    return r === 'creator' || r === 'admin'
 }
 
 export function getUploadLimits(role: string | null | undefined)

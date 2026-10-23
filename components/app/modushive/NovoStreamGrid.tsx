@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { formatDuration } from '@/lib/modushive/config'
+import StreamThumbnail from '@/components/app/modushive/StreamThumbnail'
 import type { LiveStreamWithHost, VideoWithOwner } from '@/lib/types'
 
 interface NovoStreamGridProps {
@@ -116,27 +117,13 @@ export default function NovoStreamGrid({
                                 className="group block overflow-hidden rounded-2xl border border-destructive/30 bg-card/70 hover:border-destructive transition-all hover:shadow-md"
                             >
                                 <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                                    {stream.thumbnail_url ? (
-                                        <Image
-                                            src={stream.thumbnail_url}
-                                            alt={stream.title}
-                                            fill
-                                            unoptimized
-                                            className="object-cover transition-transform duration-500 group-hover:scale-105"
-                                        />
-                                    ) : (
-                                        <div className="flex h-full w-full items-center justify-center bg-muted/80">
-                                            <Radio className="h-8 w-8 text-destructive animate-pulse" />
-                                        </div>
-                                    )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
-
-                                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                                        <span className="inline-flex items-center gap-1 rounded-md bg-red-600 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white shadow-sm">
-                                            <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                                            Live
-                                        </span>
-                                    </div>
+                                    <StreamThumbnail
+                                        title={stream.title}
+                                        thumbnailUrl={stream.thumbnail_url}
+                                        status={stream.status}
+                                        isPaid={stream.is_paid}
+                                        ticketPrice={stream.ticket_price}
+                                    />
                                 </div>
 
                                 <div className="p-3">
@@ -202,30 +189,13 @@ export default function NovoStreamGrid({
                                 className="group block overflow-hidden rounded-2xl border border-border/70 bg-card/70 hover:border-border transition-all hover:shadow-md"
                             >
                                 <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                                    {video.thumbnail_url ? (
-                                        <Image
-                                            src={video.thumbnail_url}
-                                            alt={video.title}
-                                            fill
-                                            unoptimized
-                                            className="object-cover transition-transform duration-500 group-hover:scale-105"
-                                        />
-                                    ) : (
-                                        <div className="flex h-full w-full items-center justify-center bg-muted/80">
-                                            <Clapperboard className="h-6 w-6 text-muted-foreground/40" />
-                                        </div>
-                                    )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
-
-                                    <div className="absolute top-2 left-2 flex items-center gap-1">
-                                        <span className="inline-flex items-center gap-1 rounded-md bg-black/75 backdrop-blur-md px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-white">
-                                            <Play className="h-2.5 w-2.5 fill-white text-white" />
-                                            {video.kind === 'live_replay' ? 'Replay' : 'Video'}
-                                        </span>
-                                    </div>
-
+                                    <StreamThumbnail
+                                        title={video.title}
+                                        thumbnailUrl={video.thumbnail_url}
+                                        isReplay={video.kind === 'live_replay'}
+                                    />
                                     {video.duration_s && (
-                                        <div className="absolute bottom-2 right-2">
+                                        <div className="absolute bottom-2 right-2 z-10">
                                             <span className="rounded-md bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums">
                                                 {formatDuration(video.duration_s)}
                                             </span>

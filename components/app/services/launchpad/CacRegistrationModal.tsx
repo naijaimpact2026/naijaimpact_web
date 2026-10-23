@@ -25,6 +25,7 @@ import {
 import type { BusinessProfile, CacApplication } from '@/lib/types'
 import { toast } from '@/components/toast'
 import Link from 'next/link'
+import LaunchpadModalPortal from './LaunchpadModalPortal'
 
 interface CacRegistrationModalProps {
     isOpen: boolean
@@ -96,8 +97,8 @@ export default function CacRegistrationModal({
     // If user has not yet created a business profile
     if (!business) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                <div className="relative w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl p-6 text-center space-y-4">
+            <LaunchpadModalPortal isOpen={isOpen} onClose={onClose}>
+                <div className="relative w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl p-6 text-center space-y-4 my-auto">
                     <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center mx-auto">
                         <AlertCircle className="w-7 h-7" />
                     </div>
@@ -125,7 +126,7 @@ export default function CacRegistrationModal({
                         </button>
                     </div>
                 </div>
-            </div>
+            </LaunchpadModalPortal>
         )
     }
 
@@ -210,8 +211,8 @@ export default function CacRegistrationModal({
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="relative w-full max-w-2xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        <LaunchpadModalPortal isOpen={isOpen} onClose={onClose}>
+            <div className="relative w-full max-w-2xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] my-auto">
                 {/* Header */}
                 <div className="px-6 py-4.5 border-b border-border/80 flex items-center justify-between bg-muted/30">
                     <div className="flex items-center gap-3">
@@ -648,6 +649,6 @@ export default function CacRegistrationModal({
                     )}
                 </div>
             </div>
-        </div>
+        </LaunchpadModalPortal>
     )
 }
