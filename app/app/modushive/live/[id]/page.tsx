@@ -5,8 +5,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { getLiveStream } from '@/lib/modushive/queries'
 import { isMuxConfigured, signPlayback } from '@/lib/modushive/mux'
+import { checkStreamTicketAccess, getViewerWalletBalance } from '@/lib/actions/creator-earnings'
 import MuxVideoPlayer from '@/components/app/modushive/MuxVideoPlayer'
 import LiveStreamLayout from '@/components/app/modushive/LiveStreamLayout'
+import WorkshopTicketGate from '@/components/app/modushive/WorkshopTicketGate'
 import { ProcessingRefresher } from '@/components/app/modushive/VideoActions'
 
 export const dynamic = 'force-dynamic'
@@ -14,12 +16,18 @@ export const dynamic = 'force-dynamic'
 export default async function LiveStreamPage({ params }: { params: Promise<{ id: string }> })
 {
     const { id } = await params
-    const [{ profile }, stream] = await Promise.all([getCurrentUser(), getLiveStream(id)])
+    const [{ profile }, stream, ticketAccess] = await Promise.all([
+        getCurrentUser(),
+        getLiveStream(id),
+        checkStreamTicketAccess(id),
+    ])
     if (!stream) notFound()
 
     const isLive = stream.status === 'live' && Boolean(stream.playback_id)
-    const tokens = isLive && stream.provider === 'mux' && stream.playback_id ? await signPlayback(stream.playback_id, stream.playback_policy) : undefined
+    const isLocked = ticketAccess.isPaid && !ticketAccess.hasAccess
+    const tokens = !isLocked && isLive && stream.provider === 'mux' && stream.playback_id ? await signPlayback(stream.playback_id, stream.playback_policy) : undefined
     const host = stream.host
+    const viewerWalletBalance = profile ? await getViewerWalletBalance() : 0
 
     return (
         <div className="w-full px-3 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5 space-y-3 sm:space-y-4">
@@ -34,7 +42,20 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                     </Link>
                 }
                 videoSlot={
-                    isLive ? (
+                    isLocked ? (
+                        <WorkshopTicketGate
+                            liveStreamId={stream.id}
+                            title={stream.title}
+                            description={stream.description}
+                            ticketPrice={ticketAccess.ticketPrice}
+                            workshopTopics={ticketAccess.workshopTopics}
+                            creatorName={host?.display_name ?? 'Creator'}
+                            creatorAvatar={host?.avatar_url ?? undefined}
+                            isLive={isLive}
+                            viewerLoggedIn={Boolean(profile)}
+                            viewerWalletBalance={viewerWalletBalance}
+                        />
+                    ) : isLive ? (
                         stream.provider === 'cloudflare' ? (
                             <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-black shadow-lg">
                                 <iframe
@@ -74,6 +95,21 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                                     <Radio className="h-3 w-3" /> Live
                                 </span>
                             )}
+                            {ticketAccess.isPaid && (
+                                ticketAccess.isHost ? (
+                                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                                        👑 Workshop Host • ₦{ticketAccess.ticketPrice.toLocaleString('en-NG')}
+                                    </span>
+                                ) : ticketAccess.ticket ? (
+                                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                                        ✓ Verified Workshop Pass
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                                        🎟️ Ticket Required • ₦{ticketAccess.ticketPrice.toLocaleString('en-NG')}
+                                    </span>
+                                )
+                            )}
                             <h1 className="text-lg sm:text-xl font-bold text-foreground">{stream.title}</h1>
                         </div>
                         <div className="flex items-center gap-3">
@@ -93,7 +129,7 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                         )}
                     </div>
                 }
-                chatChannelId={stream.status !== 'ended' ? stream.chat_channel_id : null}
+                chatChannelId={!isLocked && stream.status !== 'ended' ? stream.chat_channel_id : null}
                 hostId={stream.host_id}
                 creatorName={host?.display_name ?? 'Creator'}
                 creatorAvatar={host?.avatar_url ?? undefined}

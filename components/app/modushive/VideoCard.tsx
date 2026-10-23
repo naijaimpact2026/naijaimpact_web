@@ -74,9 +74,16 @@ export function LiveCard({ stream }: { stream: LiveStreamWithHost })
         <Link href={`/app/modushive/live/${stream.id}`} className="group block">
             <div className="relative aspect-video overflow-hidden rounded-2xl border border-destructive/40 bg-muted">
                 <Thumbnail src={stream.thumbnail_url} alt={stream.title} />
-                <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-md bg-destructive px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                    <Radio className="w-3 h-3" /> Live
-                </span>
+                <div className="absolute top-2 left-2 flex items-center gap-1.5 flex-wrap">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-destructive px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                        <Radio className="w-3 h-3" /> Live
+                    </span>
+                    {stream.is_paid && (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/95 backdrop-blur-sm px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                            🎟️ ₦{Number(stream.ticket_price).toLocaleString('en-NG')}
+                        </span>
+                    )}
+                </div>
             </div>
             <h3 className="mt-2.5 line-clamp-2 text-sm font-semibold leading-snug text-foreground group-hover:text-primary transition-colors">{stream.title}</h3>
             <Byline person={stream.host} at={stream.started_at ?? stream.created_at} />

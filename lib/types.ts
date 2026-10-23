@@ -1276,6 +1276,22 @@ export type LiveStream = {
   ended_at: string | null
   created_at: string
   updated_at: string
+  is_paid?: boolean
+  ticket_price?: number
+  currency?: string
+  workshop_topics?: string[]
+  scheduled_for?: string | null
+}
+
+export type LiveStreamTicket = {
+  id: string
+  live_stream_id: string
+  buyer_id: string
+  creator_id: string
+  price_paid: number
+  payment_method: 'wallet' | 'paystack'
+  payment_reference: string | null
+  created_at: string
 }
 
 export type LiveStreamWithHost = LiveStream & {

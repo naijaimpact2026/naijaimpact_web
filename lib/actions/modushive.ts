@@ -212,7 +212,14 @@ function getStreamChatServer(): StreamChat | null
     return apiKey && apiSecret ? StreamChat.getInstance(apiKey, apiSecret) : null
 }
 
-export async function createLiveStream(input: { title: string; description?: string }): Promise<ActionResult<{ id: string }>>
+export async function createLiveStream(input: {
+    title: string
+    description?: string
+    isPaid?: boolean
+    ticketPrice?: number
+    workshopTopics?: string[]
+    scheduledFor?: string | null
+}): Promise<ActionResult<{ id: string }>>
 {
     const canUseCF = isCloudflareStreamConfigured()
     const canUseMux = isMuxConfigured()
@@ -349,6 +356,11 @@ export async function createLiveStream(input: { title: string; description?: str
         chatChannelId = null
     }
 
+    const isPaid = Boolean(input.isPaid && (input.ticketPrice ?? 0) > 0)
+    const ticketPrice = isPaid ? Number(input.ticketPrice ?? 0) : 0
+    const workshopTopics = Array.isArray(input.workshopTopics) ? input.workshopTopics.filter(Boolean) : []
+    const scheduledFor = input.scheduledFor ? new Date(input.scheduledFor).toISOString() : null
+
     const { error } = await supabase.from('live_streams').insert({
         id,
         host_id: profile.id,
@@ -360,6 +372,11 @@ export async function createLiveStream(input: { title: string; description?: str
         playback_id: playbackId,
         playback_policy: provider === 'cloudflare' ? 'public' : policy,
         chat_channel_id: chatChannelId,
+        is_paid: isPaid,
+        ticket_price: ticketPrice,
+        currency: 'NGN',
+        workshop_topics: workshopTopics,
+        scheduled_for: scheduledFor,
     })
     if (!error && streamKeyData)
         await supabase.from('live_stream_keys').insert({ live_stream_id: id, stream_key: streamKeyData })
