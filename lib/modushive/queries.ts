@@ -80,14 +80,33 @@ export async function getVideo(id: string, db?: SupabaseClient): Promise<VideoWi
 async function withStreamThumbnails(rows: LiveStreamRow[]): Promise<LiveStreamWithHost[]>
 {
     const canSign = isMuxConfigured()
-    return Promise.all(rows.map(async (s) => ({
-        ...s,
-        thumbnail_url: s.playback_id
-            ? s.provider === 'cloudflare'
-                ? `https://videodelivery.net/${s.playback_id}/thumbnails/thumbnail.jpg`
-                : canSign ? await getThumbnailUrl(s.playback_id, s.playback_policy, { time: 1 }) : null
-            : null,
-    })))
+    return Promise.all(rows.map(async (s) => {
+        // 1. If explicit saved snapshot exists on the row, prioritize it
+        if ((s as any).thumbnail_url) {
+            return { ...s, thumbnail_url: (s as any).thumbnail_url }
+        }
+
+        // 2. If stream is ended and has a replay video asset, construct replay thumbnail
+        if (s.replay_video_id && s.playback_id && s.provider === 'cloudflare') {
+            return {
+                ...s,
+                thumbnail_url: `https://videodelivery.net/${s.playback_id}/thumbnails/thumbnail.jpg`,
+            }
+        }
+
+        // 3. For Mux streams with signed playback policy, generate Mux thumbnail
+        if (s.provider === 'mux' && s.playback_id && canSign) {
+            const muxUrl = await getThumbnailUrl(s.playback_id, s.playback_policy, { time: 1 }).catch(() => null)
+            return { ...s, thumbnail_url: muxUrl }
+        }
+
+        // 4. For raw live inputs without a confirmed video asset, return null so
+        // StreamThumbnail renders the stylish branded fallback card instead of 204 error
+        return {
+            ...s,
+            thumbnail_url: null,
+        }
+    }))
 }
 
 export async function listLiveNow(db?: SupabaseClient): Promise<LiveStreamWithHost[]>

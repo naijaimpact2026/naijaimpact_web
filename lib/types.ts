@@ -1283,6 +1283,7 @@ export type LiveStream = {
   scheduled_for?: string | null
   pinned_product_id?: string | null
   pinned_product_data?: PinnedProduct | null
+  thumbnail_url?: string | null
 }
 
 export interface PinnedProduct {

@@ -35,9 +35,10 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { endLiveStream, getLiveStreamKey, markLiveStreamActive } from '@/lib/actions/modushive'
+import { endLiveStream, getLiveStreamKey, markLiveStreamActive, saveLiveStreamThumbnail } from '@/lib/actions/modushive'
 import LiveChat from '@/components/app/modushive/LiveChat'
 import StudioPinProductModal from '@/components/app/modushive/StudioPinProductModal'
+import StudioEndBroadcastModal from '@/components/app/modushive/StudioEndBroadcastModal'
 import type { PinnedProduct } from '@/lib/types'
 
 interface BrowserStudioProps {
@@ -62,10 +63,15 @@ export function BrowserStudio({
     const router = useRouter()
     const [viewerCount, setViewerCount] = useState(0)
     const [showPinModal, setShowPinModal] = useState(false)
+    const [showConcludedModal, setShowConcludedModal] = useState(false)
+    const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null)
+    const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
     const [pinnedProduct, setPinnedProduct] = useState<PinnedProduct | null>(initialPinnedProduct ?? null)
     const videoRef = useRef<HTMLVideoElement>(null)
     const pcRef = useRef<RTCPeerConnection | null>(null)
     const localStreamRef = useRef<MediaStream | null>(null)
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+    const recordedChunksRef = useRef<Blob[]>([])
     const audioContextRef = useRef<AudioContext | null>(null)
     const animFrameRef = useRef<number | null>(null)
 
@@ -290,6 +296,28 @@ export function BrowserStudio({
             const answerSdp = await response.text()
             await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp })
 
+            // Start in-browser MediaRecorder for instant HD backup and replay
+            try {
+                recordedChunksRef.current = []
+                if (typeof MediaRecorder !== 'undefined' && localStreamRef.current) {
+                    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+                        ? 'video/webm;codecs=vp9,opus'
+                        : MediaRecorder.isTypeSupported('video/webm')
+                        ? 'video/webm'
+                        : ''
+                    if (mimeType) {
+                        const recorder = new MediaRecorder(localStreamRef.current, { mimeType })
+                        recorder.ondataavailable = (e) => {
+                            if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data)
+                        }
+                        recorder.start(1000)
+                        mediaRecorderRef.current = recorder
+                    }
+                }
+            } catch (recErr) {
+                console.warn('[studio] MediaRecorder fallback notice:', recErr)
+            }
+
             // Mark stream as live in database
             await markLiveStreamActive(liveStreamId)
 
@@ -309,11 +337,44 @@ export function BrowserStudio({
     // End stream
     function handleEndBroadcast() {
         startEndingTransition(async () => {
+            // 1. Capture snapshot from video element
+            let capturedDataUrl: string | null = null
+            if (videoRef.current) {
+                try {
+                    const videoEl = videoRef.current
+                    const canvas = document.createElement('canvas')
+                    canvas.width = videoEl.videoWidth || 640
+                    canvas.height = videoEl.videoHeight || 360
+                    const ctx = canvas.getContext('2d')
+                    if (ctx) {
+                        ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height)
+                        capturedDataUrl = canvas.toDataURL('image/jpeg', 0.8)
+                        setSnapshotUrl(capturedDataUrl)
+                        await saveLiveStreamThumbnail(liveStreamId, capturedDataUrl).catch(() => {})
+                    }
+                } catch (err) {
+                    console.warn('[studio] canvas snapshot failed:', err)
+                }
+            }
+
+            // 2. Stop in-browser recorder and compile Blob
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                try {
+                    mediaRecorderRef.current.stop()
+                    if (recordedChunksRef.current.length > 0) {
+                        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
+                        setRecordedBlob(blob)
+                    }
+                } catch {}
+            }
+
+            // 3. Close WebRTC PeerConnection
             if (pcRef.current) {
                 pcRef.current.close()
                 pcRef.current = null
             }
 
+            // 4. End stream in DB
             const res = await endLiveStream(liveStreamId)
             if (!res.ok) {
                 toast.error(res.error)
@@ -322,7 +383,8 @@ export function BrowserStudio({
 
             setStatus('ended')
             setShowEndModal(false)
-            toast.success('Live stream ended. The recording will process into a replay.')
+            setShowConcludedModal(true)
+            toast.success('Live stream ended.')
             router.refresh()
         })
     }
@@ -783,6 +845,18 @@ export function BrowserStudio({
                 liveStreamId={liveStreamId}
                 currentPinnedProduct={pinnedProduct}
                 onProductPinned={setPinnedProduct}
+            />
+
+            {/* End Broadcast Summary & Replay Publish Modal */}
+            <StudioEndBroadcastModal
+                isOpen={showConcludedModal}
+                onClose={() => setShowConcludedModal(false)}
+                liveStreamId={liveStreamId}
+                title={streamTitle}
+                durationSeconds={duration}
+                viewerCount={viewerCount}
+                snapshotUrl={snapshotUrl}
+                recordedBlob={recordedBlob}
             />
         </div>
     )

@@ -97,6 +97,28 @@ export async function getCloudflareLiveInput(uid: string): Promise<{
 }
 
 /**
+ * Retrieves all recorded videos produced by a Cloudflare Live Input.
+ */
+export async function getCloudflareLiveInputVideos(uid: string): Promise<Array<{ uid: string; status?: { state: string }; duration?: number }>> {
+    const accountId = getAccountId()
+    const token = getApiToken()
+
+    try {
+        const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs/${uid}/videos`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
+        const data = await res.json()
+        if (!data.success || !Array.isArray(data.result)) return []
+        return data.result
+    } catch (err) {
+        console.error('[cloudflare-stream] failed to get live input videos:', err)
+        return []
+    }
+}
+
+/**
  * Deletes a live input when no longer needed.
  */
 export async function deleteCloudflareLiveInput(uid: string): Promise<void> {

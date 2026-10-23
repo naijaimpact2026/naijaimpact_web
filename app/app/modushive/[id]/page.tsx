@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { getVideo } from '@/lib/modushive/queries'
 import { isMuxConfigured, signPlayback } from '@/lib/modushive/mux'
+import { presignDownload } from '@/lib/modushive/r2'
 import { normalizeRole } from '@/lib/modushive/config'
 import MuxVideoPlayer from '@/components/app/modushive/MuxVideoPlayer'
 import { DeleteVideoButton } from '@/components/app/modushive/VideoActions'
@@ -18,8 +19,13 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
     const [{ profile }, video] = await Promise.all([getCurrentUser(), getVideo(id)])
     if (!video) notFound()
 
-    const canPlay = video.status === 'ready' && video.playback_id && isMuxConfigured()
-    const tokens = canPlay ? await signPlayback(video.playback_id!, video.playback_policy) : undefined
+    const isCloudflare = video.provider === 'cloudflare' && Boolean(video.playback_id)
+    const isMux = video.provider === 'mux' && Boolean(video.playback_id) && isMuxConfigured()
+    const isR2 = video.provider === 'r2' && Boolean(video.source_r2_key)
+    const r2Url = isR2 ? await presignDownload(video.source_r2_key!).catch(() => null) : null
+
+    const canPlay = video.status === 'ready' && (isCloudflare || isMux || Boolean(r2Url))
+    const tokens = isMux ? await signPlayback(video.playback_id!, video.playback_policy) : undefined
     const canDelete = profile && (profile.id === video.owner_id || normalizeRole(profile.role) === 'admin')
     const owner = video.owner
 
@@ -30,7 +36,22 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
             </Link>
 
             {canPlay ? (
-                <MuxVideoPlayer playbackId={video.playback_id!} tokens={tokens} title={video.title} videoId={video.id} viewerId={profile?.id} />
+                isCloudflare ? (
+                    <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-black shadow-lg">
+                        <iframe
+                            src={`https://iframe.videodelivery.net/${video.playback_id}?autoplay=false`}
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                            allowFullScreen
+                            className="h-full w-full border-0"
+                        />
+                    </div>
+                ) : isMux ? (
+                    <MuxVideoPlayer playbackId={video.playback_id!} tokens={tokens} title={video.title} videoId={video.id} viewerId={profile?.id} />
+                ) : r2Url ? (
+                    <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-black shadow-lg">
+                        <video src={r2Url} controls playsInline className="h-full w-full" />
+                    </div>
+                ) : null
             ) : (
                 <div className="flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-2xl bg-muted text-center">
                     {video.status === 'errored'
