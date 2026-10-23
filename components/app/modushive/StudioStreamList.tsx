@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
-import { ExternalLink, Film, Play } from 'lucide-react'
+import { ExternalLink, Film, Play, Radio } from 'lucide-react'
 import StreamThumbnail from '@/components/app/modushive/StreamThumbnail'
 import PublishStreamVideoModal from '@/components/app/modushive/PublishStreamVideoModal'
 import { EndStreamButton } from '@/components/app/modushive/StudioControls'
@@ -27,12 +27,33 @@ interface StudioStreamListProps {
 }
 
 export default function StudioStreamList({ streams }: StudioStreamListProps) {
+    const [streamList, setStreamList] = useState<LiveStreamWithHost[]>(streams)
     const [selectedStreamForPublish, setSelectedStreamForPublish] = useState<LiveStreamWithHost | null>(null)
 
+    useEffect(() => {
+        setStreamList(streams)
+    }, [streams])
+
+    if (streamList.length === 0) {
+        return (
+            <div className="rounded-2xl border border-dashed border-border/80 bg-muted/20 p-8 text-center">
+                <Radio className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" />
+                <p className="text-sm font-semibold text-foreground">No broadcasts in your studio</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Start a new broadcast to go live to your community.</p>
+            </div>
+        )
+    }
+
     return (
-        <>
+        <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                <span>
+                    Showing <strong className="text-foreground">{streamList.length}</strong> {streamList.length === 1 ? 'broadcast' : 'broadcasts'}
+                </span>
+            </div>
+
             <ul className="space-y-3">
-                {streams.map((s) => (
+                {streamList.map((s) => (
                     <li
                         key={s.id}
                         className="space-y-4 rounded-2xl border border-border bg-card p-4 transition-all hover:border-border/80"
@@ -99,7 +120,13 @@ export default function StudioStreamList({ streams }: StudioStreamListProps) {
 
                                 {s.status !== 'ended' && <EndStreamButton liveStreamId={s.id} />}
 
-                                <DeleteLiveStreamButton liveStreamId={s.id} streamTitle={s.title} />
+                                <DeleteLiveStreamButton
+                                    liveStreamId={s.id}
+                                    streamTitle={s.title}
+                                    onDeleted={() => {
+                                        setStreamList((prev) => prev.filter((item) => item.id !== s.id))
+                                    }}
+                                />
                             </div>
                         </div>
                     </li>
@@ -113,6 +140,6 @@ export default function StudioStreamList({ streams }: StudioStreamListProps) {
                     stream={selectedStreamForPublish}
                 />
             )}
-        </>
+        </div>
     )
 }

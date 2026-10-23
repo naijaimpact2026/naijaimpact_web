@@ -84,7 +84,7 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                             <MuxVideoPlayer live playbackId={stream.playback_id!} tokens={tokens} title={stream.title} videoId={stream.id} viewerId={profile?.id} />
                         )
                     ) : stream.status === 'ended' && replayVideo && replayVideo.status === 'ready' ? (
-                        replayVideo.provider === 'cloudflare' && !replayVideo.playback_id?.startsWith('http') ? (
+                        (replayVideo.provider === 'cloudflare' && replayVideo.playback_id !== stream.provider_stream_id && !replayVideo.playback_id?.startsWith('http')) ? (
                             <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-border bg-black shadow-lg">
                                 <iframe
                                     src={`https://iframe.videodelivery.net/${replayVideo.playback_id}?autoplay=false`}

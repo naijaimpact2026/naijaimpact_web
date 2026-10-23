@@ -198,8 +198,9 @@ export default function PublishStreamVideoModal({
 
                         {/* File Upload Zone */}
                         <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-foreground">
-                                Attach Recording File (optional)
+                            <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                                <span>Attach Broadcast Recording</span>
+                                <span className="text-[11px] font-normal text-primary">Recommended</span>
                             </label>
                             <div 
                                 onClick={() => fileInputRef.current?.click()}
@@ -226,11 +227,16 @@ export default function PublishStreamVideoModal({
                                             Click to select MP4 or WebM recording
                                         </p>
                                         <p className="text-[11px] text-muted-foreground">
-                                            Or publish without a file to link existing broadcast session
+                                            Upload your recorded video file so community viewers can watch the replay anytime
                                         </p>
                                     </>
                                 )}
                             </div>
+                            {!selectedFile && (
+                                <p className="text-[11px] text-muted-foreground px-1">
+                                    💡 You can also publish now and attach the recording file later from the video page.
+                                </p>
+                            )}
                         </div>
 
                         {loading && uploadProgress > 0 && (

@@ -132,3 +132,19 @@ export async function deleteCloudflareLiveInput(uid: string): Promise<void> {
         },
     }).catch((err) => console.error('[cloudflare-stream] delete input error:', err))
 }
+
+/**
+ * Deletes an on-demand video asset in Cloudflare Stream.
+ */
+export async function deleteCloudflareVideo(uid: string): Promise<void> {
+    const accountId = getAccountId()
+    const token = getApiToken()
+
+    await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/${uid}`, {
+        method: 'DELETE',
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    }).catch((err) => console.error('[cloudflare-stream] delete video error:', err))
+}
+

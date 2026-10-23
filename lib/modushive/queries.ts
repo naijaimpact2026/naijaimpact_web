@@ -171,7 +171,7 @@ export async function listStudioStreams(hostId?: string, db?: SupabaseClient): P
         .from('live_streams')
         .select(`*, host:users!live_streams_host_id_fkey(${OWNER_COLUMNS})`)
         .order('created_at', { ascending: false })
-        .limit(30)
+        .limit(50)
     if (hostId) query = query.eq('host_id', hostId)
 
     const { data, error } = await query
@@ -179,6 +179,6 @@ export async function listStudioStreams(hostId?: string, db?: SupabaseClient): P
     if (error || !data) return []
     const rows = data as LiveStreamRow[]
     const active = rows.filter((s) => s.status !== 'ended')
-    const ended = rows.filter((s) => s.status === 'ended').slice(0, 10)
+    const ended = rows.filter((s) => s.status === 'ended')
     return withStreamThumbnails([...active, ...ended])
 }
