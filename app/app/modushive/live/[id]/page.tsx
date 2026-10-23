@@ -12,6 +12,7 @@ import LiveStreamLayout from '@/components/app/modushive/LiveStreamLayout'
 import WorkshopTicketGate from '@/components/app/modushive/WorkshopTicketGate'
 import PinnedProductOverlay from '@/components/app/modushive/PinnedProductOverlay'
 import HostReplayAction from '@/components/app/modushive/HostReplayAction'
+import DeleteLiveStreamButton from '@/components/app/modushive/DeleteLiveStreamButton'
 import { ProcessingRefresher } from '@/components/app/modushive/VideoActions'
 
 export const dynamic = 'force-dynamic'
@@ -46,9 +47,14 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
 
             <LiveStreamLayout
                 backLink={
-                    <Link href="/app/modushive" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-                        <ArrowLeft className="h-4 w-4" /> Livestream
-                    </Link>
+                    <div className="flex items-center justify-between w-full">
+                        <Link href="/app/modushive" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+                            <ArrowLeft className="h-4 w-4" /> Livestream
+                        </Link>
+                        {ticketAccess.isHost && (
+                            <DeleteLiveStreamButton liveStreamId={stream.id} streamTitle={stream.title} redirectTo="/app/modushive/studio" />
+                        )}
+                    </div>
                 }
                 videoSlot={
                     isLocked ? (

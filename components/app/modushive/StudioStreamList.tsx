@@ -7,6 +7,7 @@ import { ExternalLink, Film, Play } from 'lucide-react'
 import StreamThumbnail from '@/components/app/modushive/StreamThumbnail'
 import PublishStreamVideoModal from '@/components/app/modushive/PublishStreamVideoModal'
 import { EndStreamButton } from '@/components/app/modushive/StudioControls'
+import DeleteLiveStreamButton from '@/components/app/modushive/DeleteLiveStreamButton'
 import type { LiveStreamWithHost } from '@/lib/types'
 
 const STATUS_LABELS: Record<string, string> = {
@@ -97,6 +98,8 @@ export default function StudioStreamList({ streams }: StudioStreamListProps) {
                                 </Link>
 
                                 {s.status !== 'ended' && <EndStreamButton liveStreamId={s.id} />}
+
+                                <DeleteLiveStreamButton liveStreamId={s.id} streamTitle={s.title} />
                             </div>
                         </div>
                     </li>

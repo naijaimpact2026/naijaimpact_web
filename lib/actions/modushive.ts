@@ -525,6 +525,39 @@ export async function endLiveStream(liveStreamId: string): Promise<ActionResult>
     return { ok: true }
 }
 
+/** Deletes a live stream, cleaning up any remote inputs and database records. */
+export async function deleteLiveStream(liveStreamId: string): Promise<ActionResult>
+{
+    const stream = await getOwnStream(liveStreamId)
+    if (!stream) return { ok: false, error: 'Live stream not found or unauthorized.' }
+
+    const supabase = createServiceClient()
+
+    // 1. Clean up provider live input
+    if (stream.provider === 'cloudflare' && stream.provider_stream_id && isCloudflareStreamConfigured()) {
+        await deleteCloudflareLiveInput(stream.provider_stream_id).catch(() => {})
+    } else if (stream.provider_stream_id && isMuxConfigured()) {
+        await getMux().video.liveStreams.delete(stream.provider_stream_id).catch(() => {})
+    }
+
+    // 2. Delete linked records
+    await supabase.from('live_stream_keys').delete().eq('live_stream_id', liveStreamId)
+    await supabase.from('live_shopping_pinned_products').delete().eq('live_stream_id', liveStreamId)
+    await supabase.from('live_stream_tickets').delete().eq('live_stream_id', liveStreamId)
+
+    // 3. Delete live_streams row
+    const { error } = await supabase.from('live_streams').delete().eq('id', liveStreamId)
+    if (error) {
+        console.error('[modushive] deleteLiveStream error:', error)
+        return { ok: false, error: 'Could not delete live stream. Please try again.' }
+    }
+
+    revalidatePath('/app/modushive')
+    revalidatePath('/app/modushive/studio')
+    revalidatePath(`/app/modushive/live/${liveStreamId}`)
+    return { ok: true }
+}
+
 /** Saves a canvas snapshot captured during broadcast as the stream's poster/thumbnail */
 export async function saveLiveStreamThumbnail(liveStreamId: string, thumbnailUrl: string): Promise<ActionResult>
 {
