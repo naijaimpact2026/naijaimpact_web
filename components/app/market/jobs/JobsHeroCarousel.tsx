@@ -21,6 +21,7 @@ export default function JobsHeroCarousel() {
     const [emblaRef, emblaApi] = useEmblaCarousel({
         loop: true,
         align: 'start',
+        skipSnaps: false,
     })
     const [currentIndex, setCurrentIndex] = useState(0)
     const [isPaused, setIsPaused] = useState(false)
@@ -67,11 +68,11 @@ export default function JobsHeroCarousel() {
             aria-label="Hubnovo Opportunities Highlights"
         >
             {/* Embla Viewport */}
-            <div ref={emblaRef} className="overflow-hidden w-full">
+            <div ref={emblaRef} className="overflow-hidden w-full select-none [contain:paint] [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]">
                 {/* Embla Container */}
-                <div className="flex w-full touch-pan-y">
+                <div className="flex w-full touch-pan-y [transform:translate3d(0,0,0)] [-webkit-transform:translate3d(0,0,0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden] will-change-transform">
                     {/* ══ SLIDE 1: DISCOVER JOBS & HIRE TALENT ══ */}
-                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full">
+                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]">
                         <div
                             className="relative overflow-hidden px-6 py-6 sm:px-8 sm:py-6 lg:px-10 lg:py-7 text-white w-full min-w-0"
                             style={{ background: 'linear-gradient(135deg, #091E3A 0%, #102A43 50%, #0E6EDC 120%)' }}
@@ -142,7 +143,7 @@ export default function JobsHeroCarousel() {
                     </div>
 
                     {/* ══ SLIDE 2: RECRUIT TOP TALENT ══ */}
-                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full">
+                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]">
                         <div
                             className="relative overflow-hidden px-6 py-6 sm:px-8 sm:py-6 lg:px-10 lg:py-7 text-white w-full min-w-0"
                             style={{ background: 'linear-gradient(135deg, #06192E 0%, #0A3663 50%, #0284C7 120%)' }}
@@ -209,7 +210,7 @@ export default function JobsHeroCarousel() {
                     </div>
 
                     {/* ══ SLIDE 3: FREELANCE & REMOTE GIGS ══ */}
-                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full">
+                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]">
                         <div
                             className="relative overflow-hidden px-6 py-6 sm:px-8 sm:py-6 lg:px-10 lg:py-7 text-white w-full min-w-0"
                             style={{ background: 'linear-gradient(135deg, #0A1E33 0%, #15395B 50%, #0369A1 120%)' }}

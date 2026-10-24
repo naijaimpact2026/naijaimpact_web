@@ -133,31 +133,26 @@ export default function CommunityGuidanceCarousel()
         })
     }, [api])
 
-    // Auto-scroll every 6.5 seconds
+    // Auto-scroll every 6.5 seconds with seamless loop
     useEffect(() =>
     {
         if (!api) return
         const interval = setInterval(() =>
         {
-            if (api.canScrollNext())
-            {
-                api.scrollNext()
-            } else
-            {
-                api.scrollTo(0)
-            }
+            api.scrollNext()
         }, 6500)
 
         return () => clearInterval(interval)
     }, [api])
 
     return (
-        <section className="relative group rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm border border-border bg-card">
+        <section className="relative group rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm border border-border bg-card [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [contain:paint]">
             <Carousel
                 setApi={setApi}
                 opts={{
                     loop: true,
                     align: 'start',
+                    skipSnaps: false,
                 }}
                 className="w-full"
             >
@@ -168,7 +163,7 @@ export default function CommunityGuidanceCarousel()
                         return (
                             <CarouselItem key={slide.id} className="pl-0">
                                 <div
-                                    className={`relative px-5 py-6 sm:px-9 sm:py-8 bg-gradient-to-r ${slide.bgGradient} text-white flex flex-col justify-between min-h-[210px] sm:min-h-[230px] md:min-h-[240px] overflow-hidden`}
+                                    className={`relative px-5 py-6 sm:px-9 sm:py-8 bg-gradient-to-r ${slide.bgGradient} text-white flex flex-col justify-between min-h-[210px] sm:min-h-[230px] md:min-h-[240px] overflow-hidden [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]`}
                                 >
                                     {/* Ambient background glow & watermark */}
                                     <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/20 pointer-events-none" />

@@ -29,6 +29,7 @@ export default function ArtisanHeroCarousel({
     const [emblaRef, emblaApi] = useEmblaCarousel({
         loop: true,
         align: 'start',
+        skipSnaps: false,
     })
     const [currentIndex, setCurrentIndex] = useState(0)
     const [isPaused, setIsPaused] = useState(false)
@@ -76,11 +77,11 @@ export default function ArtisanHeroCarousel({
             aria-label="Hubnovo Artisans and Professionals Highlights"
         >
             {/* Embla Viewport */}
-            <div ref={emblaRef} className="overflow-hidden w-full">
+            <div ref={emblaRef} className="overflow-hidden w-full select-none [contain:paint] [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]">
                 {/* Embla Container */}
-                <div className="flex w-full touch-pan-y">
+                <div className="flex w-full touch-pan-y [transform:translate3d(0,0,0)] [-webkit-transform:translate3d(0,0,0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden] will-change-transform">
                     {/* ══ SLIDE 1: MAIN HERO - HIRE VETTED ARTISANS ══ */}
-                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full">
+                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]">
                         <div
                             className="relative overflow-hidden px-6 py-6 sm:px-8 sm:py-6 lg:px-10 lg:py-7 w-full min-w-0"
                             style={{ background: 'linear-gradient(135deg, #102A43 0%, #0E6EDC 130%)' }}
@@ -157,7 +158,7 @@ export default function ArtisanHeroCarousel({
                     </div>
 
                     {/* ══ SLIDE 2: EARN AS AN ARTISAN ══ */}
-                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full">
+                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]">
                         <div
                             className="relative overflow-hidden px-6 py-6 sm:px-8 sm:py-6 lg:px-10 lg:py-7 w-full min-w-0"
                             style={{ background: 'linear-gradient(135deg, #091E3A 0%, #0D4A68 50%, #0891B2 120%)' }}
@@ -225,7 +226,7 @@ export default function ArtisanHeroCarousel({
                     </div>
 
                     {/* ══ SLIDE 3: 100% ESCROW PROTECTION ══ */}
-                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full">
+                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]">
                         <div
                             className="relative overflow-hidden px-6 py-6 sm:px-8 sm:py-6 lg:px-10 lg:py-7 w-full min-w-0"
                             style={{ background: 'linear-gradient(135deg, #0A2E28 0%, #0D5C4B 50%, #047857 120%)' }}

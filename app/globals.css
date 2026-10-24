@@ -1259,4 +1259,41 @@ html.dark [data-testid="attachment-selector-actions-menu"],
   pointer-events: none;
 }
 
+/* ── Carousel Anti-Flicker & GPU Layer Isolation (Foldable / High Refresh AMOLED) ── */
+[data-slot="carousel"],
+.embla {
+  position: relative;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+[data-slot="carousel-content"],
+.embla__viewport {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
+  contain: paint;
+}
+
+[data-slot="carousel-content"] > div,
+.embla__container {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+[data-slot="carousel-item"],
+.embla__slide {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+
 

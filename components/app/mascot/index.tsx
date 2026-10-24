@@ -19,7 +19,7 @@ export default function NovoCompanion({ user }: NovoCompanionProps) {
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [isWardrobeOpen, setIsWardrobeOpen] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const [wanderMode, setWanderMode] = useState(true)
+  const [wanderMode, setWanderMode] = useState(false)
   const [customLookId, setCustomLookId] = useState<string | null>(null)
   const [dockedSide, setDockedSide] = useState<'left' | 'right'>('right')
   const [mounted, setMounted] = useState(false)
@@ -32,9 +32,11 @@ export default function NovoCompanion({ user }: NovoCompanionProps) {
         setSoundEnabled(savedSound === 'true')
       }
 
-      const savedWander = localStorage.getItem('novo_wander_mode')
+      const savedWander = localStorage.getItem('novo_wander_mode_v2')
       if (savedWander !== null) {
         setWanderMode(savedWander === 'true')
+      } else {
+        setWanderMode(false)
       }
 
       const savedLook = localStorage.getItem('novo_custom_look_id')
@@ -71,7 +73,7 @@ export default function NovoCompanion({ user }: NovoCompanionProps) {
     setWanderMode((prev) => {
       const next = !prev
       try {
-        localStorage.setItem('novo_wander_mode', next.toString())
+        localStorage.setItem('novo_wander_mode_v2', next.toString())
       } catch { }
       return next
     })
