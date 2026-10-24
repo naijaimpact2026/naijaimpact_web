@@ -40,6 +40,7 @@ export default function MarketHeroCarousel({
     const [emblaRef, emblaApi] = useEmblaCarousel({
         loop: true,
         align: 'start',
+        skipSnaps: false,
     })
     const [currentIndex, setCurrentIndex] = useState(0)
     const [isPaused, setIsPaused] = useState(false)
@@ -92,11 +93,11 @@ export default function MarketHeroCarousel({
             aria-label="Hubnovo Marketplace Highlights"
         >
             {/* Embla Viewport */}
-            <div ref={emblaRef} className="overflow-hidden w-full">
+            <div ref={emblaRef} className="overflow-hidden w-full select-none [contain:paint] [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]">
                 {/* Embla Container */}
-                <div className="flex w-full touch-pan-y">
+                <div className="flex w-full touch-pan-y [transform:translate3d(0,0,0)] [-webkit-transform:translate3d(0,0,0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden] will-change-transform">
                     {/* ══ SLIDE 1: MAIN MARKETPLACE & SEARCH ══ */}
-                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full">
+                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]">
                         <div
                             className="relative overflow-hidden px-6 py-6 sm:px-8 sm:py-6 lg:px-10 lg:py-7 w-full min-w-0"
                             style={{ background: 'linear-gradient(135deg, #102A43 0%, #0E6EDC 130%)' }}
@@ -187,7 +188,7 @@ export default function MarketHeroCarousel({
                     </div>
 
                     {/* ══ SLIDE 2: VERIFIED ARTISANS & SKILLED PROS ══ */}
-                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full">
+                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]">
                         <div
                             className="relative overflow-hidden px-6 py-6 sm:px-8 sm:py-6 lg:px-10 lg:py-7 w-full min-w-0"
                             style={{ background: 'linear-gradient(135deg, #091E3A 0%, #0D4A68 50%, #0891B2 120%)' }}
@@ -269,7 +270,7 @@ export default function MarketHeroCarousel({
                     </div>
 
                     {/* ══ SLIDE 3: DIGITAL STOREFRONTS & BRANDS ══ */}
-                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full">
+                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]">
                         <div
                             className="relative overflow-hidden px-6 py-6 sm:px-8 sm:py-6 lg:px-10 lg:py-7 w-full min-w-0"
                             style={{ background: 'linear-gradient(135deg, #06271C 0%, #0D4A36 50%, #059669 115%)' }}
@@ -347,7 +348,7 @@ export default function MarketHeroCarousel({
                     </div>
 
                     {/* ══ SLIDE 4: JOBS & CAREER OPPORTUNITIES ══ */}
-                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full">
+                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]">
                         <div
                             className="relative overflow-hidden px-6 py-6 sm:px-8 sm:py-6 lg:px-10 lg:py-7 w-full min-w-0"
                             style={{ background: 'linear-gradient(135deg, #0B1528 0%, #1E295D 50%, #3B82F6 120%)' }}
@@ -420,7 +421,7 @@ export default function MarketHeroCarousel({
                     </div>
 
                     {/* ══ SLIDE 5: 100% ESCROW & SAFE TRADE ══ */}
-                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full">
+                    <div className="w-full min-w-0 shrink-0 grow-0 basis-full [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]">
                         <div
                             className="relative overflow-hidden px-6 py-6 sm:px-8 sm:py-6 lg:px-10 lg:py-7 w-full min-w-0"
                             style={{ background: 'linear-gradient(135deg, #131233 0%, #311568 50%, #7C3AED 120%)' }}

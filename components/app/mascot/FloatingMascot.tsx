@@ -87,20 +87,35 @@ export default function FloatingMascot({
     }
   }, [])
 
+  // Default docked position in the bottom-right corner
+  const getDefaultBottomRightPosition = useCallback((): { x: number; y: number } => {
+    if (typeof window === 'undefined') return { x: 0, y: 0 }
+    const isMobile = window.innerWidth < 1024
+    const size = isMobile ? 80 : 96
+    const margin = isMobile ? 12 : 20
+    const bottomSafe = isMobile ? 86 : 28 // Clears mobile bottom navigation bar
+    const x = window.innerWidth - size - margin
+    const y = window.innerHeight - size - bottomSafe
+
+    return clampPosition(x, y)
+  }, [clampPosition])
+
   // Initialize position on client mount
   useEffect(() => {
     if (typeof window === 'undefined') return
 
     try {
-      const savedX = localStorage.getItem('novo_mascot_x')
-      const savedY = localStorage.getItem('novo_mascot_y')
       const savedMin = localStorage.getItem('novo_mascot_minimized')
-
       if (savedMin === 'true') {
         setIsMinimized(true)
       }
 
-      if (savedX && savedY) {
+      // Check if user has explicitly dragged the mascot to a custom position
+      const hasUserDragged = localStorage.getItem('novo_mascot_user_dragged') === 'true'
+      const savedX = localStorage.getItem('novo_mascot_x')
+      const savedY = localStorage.getItem('novo_mascot_y')
+
+      if (hasUserDragged && savedX && savedY) {
         const clamped = clampPosition(parseFloat(savedX), parseFloat(savedY))
         setPosition({
           x: clamped.x,
@@ -108,22 +123,42 @@ export default function FloatingMascot({
           dockedSide: clamped.x > window.innerWidth / 2 ? 'right' : 'left'
         })
       } else {
-        // Default to bottom-right
-        const defX = window.innerWidth - 110
-        const defY = window.innerHeight - (window.innerWidth < 1024 ? 180 : 130)
-        const clamped = clampPosition(defX, defY)
+        // By default, stay anchored in the bottom-right corner
+        const def = getDefaultBottomRightPosition()
         setPosition({
-          x: clamped.x,
-          y: clamped.y,
+          x: def.x,
+          y: def.y,
           dockedSide: 'right'
         })
       }
     } catch {
-      // Ignore
+      const def = getDefaultBottomRightPosition()
+      setPosition({
+        x: def.x,
+        y: def.y,
+        dockedSide: 'right'
+      })
     }
 
     setIsInitialized(true)
-  }, [clampPosition])
+  }, [clampPosition, getDefaultBottomRightPosition])
+
+  // Return smoothly to bottom-right if wanderMode is turned off and user hasn't custom dragged
+  useEffect(() => {
+    if (!wanderMode && isInitialized && position.x !== -9999) {
+      try {
+        const hasUserDragged = localStorage.getItem('novo_mascot_user_dragged') === 'true'
+        if (!hasUserDragged) {
+          const def = getDefaultBottomRightPosition()
+          setPosition({
+            x: def.x,
+            y: def.y,
+            dockedSide: 'right'
+          })
+        }
+      } catch {}
+    }
+  }, [wanderMode, isInitialized, getDefaultBottomRightPosition, position.x])
 
   // Notify parent of position changes for smart chatbox docking
   useEffect(() => {
@@ -132,11 +167,23 @@ export default function FloatingMascot({
     }
   }, [position, isInitialized, onPositionChange])
 
-  // Handle window resizing
+  // Handle window resizing - keep docked to bottom-right unless manually placed by user
   useEffect(() => {
     function handleResize() {
       setPosition((prev) => {
         if (prev.x === -9999) return prev
+        try {
+          const hasUserDragged = localStorage.getItem('novo_mascot_user_dragged') === 'true'
+          if (!hasUserDragged) {
+            const def = getDefaultBottomRightPosition()
+            return {
+              x: def.x,
+              y: def.y,
+              dockedSide: 'right'
+            }
+          }
+        } catch {}
+
         const clamped = clampPosition(prev.x, prev.y)
         return {
           ...prev,
@@ -149,7 +196,7 @@ export default function FloatingMascot({
 
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [clampPosition])
+  }, [clampPosition, getDefaultBottomRightPosition])
 
   // ── Waving Animation Trigger ──
   const triggerWave = useCallback(() => {
@@ -311,12 +358,6 @@ export default function FloatingMascot({
         dockedSide: clamped.x > safeWidth / 2 ? 'right' : 'left'
       }))
 
-      // Persist new position
-      try {
-        localStorage.setItem('novo_mascot_x', clamped.x.toString())
-        localStorage.setItem('novo_mascot_y', clamped.y.toString())
-      } catch {}
-
       // Stop walking animation after transition completes (1.2s)
       setTimeout(() => {
         setIsWalking(false)
@@ -409,16 +450,16 @@ export default function FloatingMascot({
 
     lastInteractionRef.current = Date.now()
 
-    // Persist position
-    try {
-      localStorage.setItem('novo_mascot_x', position.x.toString())
-      localStorage.setItem('novo_mascot_y', position.y.toString())
-    } catch {}
-
     // If it was just a tap / click (not a drag), trigger click action!
     if (!hasDraggedRef.current) {
       handleMascotClick()
     } else {
+      // Persist custom user-dragged position
+      try {
+        localStorage.setItem('novo_mascot_user_dragged', 'true')
+        localStorage.setItem('novo_mascot_x', position.x.toString())
+        localStorage.setItem('novo_mascot_y', position.y.toString())
+      } catch {}
       playMascotHop(!soundEnabled)
     }
   }
@@ -586,7 +627,7 @@ export default function FloatingMascot({
         <button
           type="button"
           onClick={onToggleWander}
-          title={wanderMode ? 'Wander Mode ON (Roaming)' : 'Wander Mode OFF (Docked)'}
+          title={wanderMode ? 'Wander Mode ON (Roaming) — Click to Dock in Corner' : 'Wander Mode OFF (Docked in Corner) — Click to Roam'}
           className={`p-1 rounded-full transition-colors ${
             wanderMode
               ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/15'
