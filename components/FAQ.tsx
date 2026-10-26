@@ -3,23 +3,23 @@ import { Plus } from 'lucide-react'
 const faqs = [
   {
     q: 'What is Hubnovo?',
-    a: 'Hubnovo is one app for your savings, ajo circles, credit score, micro-loans and insurance, plus a community where you can post, chat, learn and offer your services.',
+    a: 'Hubnovo is one app for your community, learning, marketplace and job search. Post and chat with people, take or teach courses, open a storefront, hire artisans and pros, and find work, all from one free account.',
   },
   {
     q: 'Does it cost anything to join?',
-    a: 'No. Creating a Hubnovo account is free, and every product is available from your free account.',
+    a: 'No. Creating a Hubnovo account is free, and you can use the community, Learn, Marketplace and Jobs from your free account.',
   },
   {
-    q: 'How does NaijaAjo work?',
-    a: 'You start or join a circle of 2 to 20 members and agree on an amount and a schedule (weekly, bi-weekly or monthly). Everyone contributes each cycle, and one member receives the payout in turn. Every contribution is recorded, so there are no arguments about who has paid.',
+    q: 'Can I sell my products or services on Hubnovo?',
+    a: 'Yes. Open a storefront in the Marketplace to list products, or list your skills in Artisans & Pros so people near you can hire you. Marketplace payments are processed securely by Paystack.',
   },
   {
-    q: 'How is my TradeCred score calculated?',
-    a: 'Your score runs from 0 to 1000 and reflects your activity on Hubnovo, including your savings, transactions and ajo history. You can see a breakdown by category and tips to improve it.',
+    q: 'How do I post a job or apply for one?',
+    a: 'Go to Jobs & Careers. Job seekers can browse roles and apply in a few taps, then track every application. Employers can post a job for free and review applicants in the app.',
   },
   {
-    q: 'How do I add money to my wallet?',
-    a: 'Fund your wallet securely through Paystack from the Wallet page. Your balance updates once the payment is confirmed.',
+    q: 'When are savings, ajo and loans coming?',
+    a: "We're building savings, ajo circles, credit and crowdfunding now. They aren't available yet. Create your account and we'll let you know as each one opens.",
   },
   {
     q: 'I need help with my account. Who do I contact?',

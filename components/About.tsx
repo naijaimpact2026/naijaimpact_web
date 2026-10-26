@@ -5,7 +5,7 @@ const values = [
   },
   {
     title: 'Measurable impact',
-    description: 'We track real outcomes: money saved, campaigns funded, courses completed.',
+    description: 'We measure what matters: people connected, skills learned, businesses started and jobs filled.',
   },
   {
     title: 'Works for everyone',
@@ -13,11 +13,6 @@ const values = [
   },
 ]
 
-const stats = [
-  { number: '50K+', label: 'Members' },
-  { number: '₦2B+', label: 'Transacted' },
-  { number: '36', label: 'States reached' },
-]
 
 export default function About() {
   return (
@@ -33,26 +28,15 @@ export default function About() {
           <div className="space-y-5 text-lg leading-relaxed text-ink-soft">
             <p>
               We started with a simple question: why should a market trader in Kano and a software
-              engineer in Lagos need different apps to manage their community, savings and social
-              life?
+              engineer in Lagos need different apps to meet their people, learn a skill, sell their
+              work and find their next job?
             </p>
             <p>
-              Hubnovo is our answer. One platform that respects how Nigerians actually live, save
+              Hubnovo is our answer. One platform that respects how Nigerians actually live, work
               and support each other.
             </p>
           </div>
         </div>
-
-        <dl className="mt-16 grid grid-cols-3 border-y border-line">
-          {stats.map((s, i) => (
-            <div key={s.label} className={`py-8 sm:py-10 ${i > 0 ? 'border-l border-line pl-5 sm:pl-10' : ''}`}>
-              <dt className="text-sm text-slate-500">{s.label}</dt>
-              <dd className="mt-2 font-display text-3xl font-bold tracking-tight text-ink sm:text-5xl">
-                {s.number}
-              </dd>
-            </div>
-          ))}
-        </dl>
 
         <div className="mt-16 grid gap-10 md:grid-cols-3">
           {values.map((v) => (

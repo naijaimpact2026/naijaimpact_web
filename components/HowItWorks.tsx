@@ -7,12 +7,12 @@ const steps = [
     description: 'Sign up with your email or Google. It takes about two minutes and costs nothing.',
   },
   {
-    title: 'Verify and set your PIN',
-    description: 'Confirm your email with a one-time code and set the PIN that protects every payment.',
+    title: 'Set up your profile',
+    description: 'Confirm your email with a one-time code, then tell people what you do and what you care about.',
   },
   {
-    title: 'Start saving with your people',
-    description: 'Fund your wallet, set a savings goal or join an ajo circle, and watch your score grow.',
+    title: 'Find your people',
+    description: 'Follow people and topics, join a course, open a storefront or apply for your next job.',
   },
 ]
 

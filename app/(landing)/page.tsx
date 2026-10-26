@@ -1,9 +1,9 @@
 import Header from '@/components/Header'
 import Hero from '@/components/Hero'
+import FeatureShowcase from '@/components/FeatureShowcase'
 import Features from '@/components/Features'
-import FintechSection from '@/components/FintechSection'
+import ComingSoon from '@/components/ComingSoon'
 import About from '@/components/About'
-import Testimonials from '@/components/Testimonials'
 import HowItWorks from '@/components/HowItWorks'
 import Security from '@/components/Security'
 import FAQ from '@/components/FAQ'
@@ -42,11 +42,11 @@ export default async function Home({ searchParams }: HomePageProps) {
     <main className="bg-white text-ink [color-scheme:light]">
       <Header />
       <Hero />
-      <FintechSection />
+      <FeatureShowcase />
       <Features />
+      <ComingSoon />
       <HowItWorks />
       <Security />
-      <Testimonials />
       <About />
       <FAQ />
       <Contact />

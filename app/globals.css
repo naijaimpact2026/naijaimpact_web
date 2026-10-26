@@ -5,6 +5,11 @@
 
 html {
   scroll-behavior: smooth;
+  /* Anything wider than the screen gets clipped instead of making Android
+     Chrome zoom the whole page out (Galaxy Fold, tablets). Must be on html —
+     on body it doesn't stop the zoom-out. `clip`, not `hidden`, so
+     position: sticky keeps working. */
+  overflow-x: clip;
 }
 
 @theme {
@@ -112,10 +117,6 @@ html.dark {
 
   body {
     @apply bg-background text-foreground;
-    /* Anything wider than the screen gets clipped instead of making mobile
-       browsers zoom the whole page out (Galaxy Fold, tablets). `clip`, not
-       `hidden`, so position: sticky keeps working. */
-    overflow-x: clip;
   }
 
   h1,

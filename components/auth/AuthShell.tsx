@@ -114,14 +114,14 @@ function LoginPanel() {
 function SignupPanel() {
   const points = [
     'Free account, set up in about two minutes',
-    'Save on your own or in an ajo circle',
-    'Build your TradeCred score as you go',
-    'Learn, chat and work with your community',
+    'Connect and chat with your community',
+    'Take courses and learn new skills',
+    'Sell your work and find your next job',
   ]
   return (
     <>
       <h2 className="text-balance font-display text-4xl font-bold leading-[1.1] tracking-[-0.025em] xl:text-[44px]">
-        Save, borrow and grow with your people.
+        Connect, learn and grow with your people.
       </h2>
       <ul className="mt-10 space-y-5">
         {points.map((p) => (

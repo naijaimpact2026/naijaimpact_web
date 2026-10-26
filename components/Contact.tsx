@@ -18,7 +18,7 @@ export default function Contact() {
           <div className="relative flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-xl">
               <h2 className="text-balance font-display text-4xl font-bold leading-[1.08] tracking-[-0.025em] text-white sm:text-5xl">
-                Start saving with your people today.
+                Start growing with your people today.
               </h2>
               <p className="mt-5 text-lg leading-relaxed text-white/80">
                 Create your free account in about two minutes.
