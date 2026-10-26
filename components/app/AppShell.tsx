@@ -86,9 +86,13 @@ function AppShellInner({ children, user }: AppShellInnerProps)
                 />
             )}
 
-            {/* Main content — full width, no left margin offset */}
-            <main className={`flex-1 min-h-screen pt-16 ${isChatConversation ? 'pb-0' : 'pb-16'} lg:pb-0 overflow-x-clip`}>
-                <div key={pathname} className="w-full animate-in fade-in duration-200 slide-in-from-bottom-1">
+            {/* Main content — full width, no left margin offset. min-w-0 lets this
+                flex item shrink to the screen: without it, any wide child (carousel,
+                long link) stretches main past the viewport and mobile browsers zoom
+                the whole page out to fit. No per-route remount/fade either — it
+                flashed the whole page on every navigation, worst on tablets. */}
+            <main className={`flex-1 min-w-0 min-h-screen pt-16 ${isChatConversation ? 'pb-0' : 'pb-16'} lg:pb-0 overflow-x-clip`}>
+                <div className="w-full">
                     {children}
                 </div>
             </main>

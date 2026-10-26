@@ -19,9 +19,7 @@ export default function NovoCompanion({ user }: NovoCompanionProps) {
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [isWardrobeOpen, setIsWardrobeOpen] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const [wanderMode, setWanderMode] = useState(false)
   const [customLookId, setCustomLookId] = useState<string | null>(null)
-  const [dockedSide, setDockedSide] = useState<'left' | 'right'>('right')
   const [mounted, setMounted] = useState(false)
 
   // Load preferences from localStorage on mount
@@ -30,13 +28,6 @@ export default function NovoCompanion({ user }: NovoCompanionProps) {
       const savedSound = localStorage.getItem('novo_sound_enabled')
       if (savedSound !== null) {
         setSoundEnabled(savedSound === 'true')
-      }
-
-      const savedWander = localStorage.getItem('novo_wander_mode_v2')
-      if (savedWander !== null) {
-        setWanderMode(savedWander === 'true')
-      } else {
-        setWanderMode(false)
       }
 
       const savedLook = localStorage.getItem('novo_custom_look_id')
@@ -69,16 +60,6 @@ export default function NovoCompanion({ user }: NovoCompanionProps) {
     })
   }
 
-  function handleToggleWander() {
-    setWanderMode((prev) => {
-      const next = !prev
-      try {
-        localStorage.setItem('novo_wander_mode_v2', next.toString())
-      } catch { }
-      return next
-    })
-  }
-
   function handleSelectCustomLook(lookId: string | null) {
     setCustomLookId(lookId)
     try {
@@ -97,7 +78,7 @@ export default function NovoCompanion({ user }: NovoCompanionProps) {
 
   return (
     <>
-      {/* Draggable, animated floating mascot */}
+      {/* Mascot, pinned to the bottom-right corner */}
       <FloatingMascot
         currentLook={currentLook}
         onOpenChat={() => {
@@ -108,11 +89,7 @@ export default function NovoCompanion({ user }: NovoCompanionProps) {
         isChatOpen={isChatOpen}
         soundEnabled={soundEnabled}
         onToggleSound={handleToggleSound}
-        wanderMode={wanderMode}
-        onToggleWander={handleToggleWander}
         screenPath={pathname}
-        userName={displayName}
-        onPositionChange={(pos) => setDockedSide(pos.dockedSide)}
       />
 
       {/* AI Chat Box */}
@@ -127,7 +104,7 @@ export default function NovoCompanion({ user }: NovoCompanionProps) {
         userRole={displayRole}
         soundEnabled={soundEnabled}
         onToggleSound={handleToggleSound}
-        dockedSide={dockedSide}
+        dockedSide="right"
       />
 
       {/* Wardrobe Modal */}

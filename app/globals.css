@@ -112,6 +112,10 @@ html.dark {
 
   body {
     @apply bg-background text-foreground;
+    /* Anything wider than the screen gets clipped instead of making mobile
+       browsers zoom the whole page out (Galaxy Fold, tablets). `clip`, not
+       `hidden`, so position: sticky keeps working. */
+    overflow-x: clip;
   }
 
   h1,

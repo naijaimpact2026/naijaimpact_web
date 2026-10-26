@@ -65,22 +65,22 @@ export default function SpeechBubble({
       }}
       aria-label="Mascot suggestion"
     >
-      <div className="relative group px-3.5 py-2.5 rounded-2xl bg-card/95 dark:bg-slate-900/95 backdrop-blur-md border border-emerald-500/35 dark:border-emerald-400/30 shadow-[0_8px_28px_rgba(0,168,107,0.22)] dark:shadow-[0_8px_28px_rgba(0,0,0,0.6)] text-foreground text-xs leading-relaxed font-medium hover:border-emerald-500 hover:shadow-[0_8px_32px_rgba(0,168,107,0.32)] transition-all">
+      <div className="relative group px-3.5 py-2.5 rounded-2xl bg-card dark:bg-slate-900 border border-emerald-500/35 dark:border-emerald-400/30 shadow-[0_8px_28px_rgba(0,168,107,0.22)] dark:shadow-[0_8px_28px_rgba(0,0,0,0.6)] text-foreground text-xs leading-relaxed font-medium hover:border-emerald-500 hover:shadow-[0_8px_32px_rgba(0,168,107,0.32)] transition-all">
         {/* Tail pointing toward mascot */}
         {isNearTop ? (
           // Tail pointing UP toward mascot above
           <div
-            className={`absolute -top-2 w-0 h-0 border-x-8 border-x-transparent border-b-8 border-b-card/95 dark:border-b-slate-900/95 ${tailSideClass}`}
+            className={`absolute -top-2 w-0 h-0 border-x-8 border-x-transparent border-b-8 border-b-card dark:border-b-slate-900 ${tailSideClass}`}
           />
         ) : (
           // Tail pointing DOWN toward mascot below
           <div
-            className={`absolute -bottom-2 w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-card/95 dark:border-t-slate-900/95 ${tailSideClass}`}
+            className={`absolute -bottom-2 w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-card dark:border-t-slate-900 ${tailSideClass}`}
           />
         )}
 
         <div className="flex items-start gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5 animate-pulse" />
+          <Sparkles className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
           <p className="flex-1 text-[12px] line-clamp-3 text-slate-800 dark:text-slate-100 font-medium">
             {message}
           </p>
@@ -91,7 +91,9 @@ export default function SpeechBubble({
                 e.stopPropagation()
                 onClose()
               }}
-              className="p-1 -mr-1 -mt-1 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/80 transition-colors"
+              // ~32px touch target: a finger that just misses a 20px X would
+              // land on the bubble, which opens the chat.
+              className="flex items-center justify-center w-8 h-8 -mr-2.5 -mt-2 shrink-0 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/80 transition-colors touch-manipulation"
               aria-label="Dismiss tip"
             >
               <X className="w-3 h-3" />
