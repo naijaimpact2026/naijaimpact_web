@@ -14,6 +14,7 @@ import {
     CheckCircle2,
     TrendingUp,
 } from 'lucide-react'
+import Image from 'next/image'
 import FeatureInterestForm from './FeatureInterestForm'
 import type { User as UserType } from '@/lib/types'
 
@@ -87,7 +88,7 @@ export default function SavingWalletComingSoon({
                         </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row md:flex-col gap-2 shrink-0">
+                    <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0">
                         <div className="px-4 py-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md text-left">
                             <span className="text-[11px] uppercase tracking-wider text-slate-300 font-bold block">
                                 Launch Target
@@ -95,6 +96,37 @@ export default function SavingWalletComingSoon({
                             <span className="text-lg font-black text-white">
                                 Q1 Private Beta
                             </span>
+                        </div>
+
+                        {/* Human Social Proof Stack */}
+                        <div className="flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md">
+                            <div className="flex -space-x-2 shrink-0">
+                                <Image
+                                    src="/images/testimonials/aisha-musa.jpg"
+                                    alt="Aisha Musa"
+                                    width={30}
+                                    height={30}
+                                    className="w-7 h-7 rounded-full object-cover ring-2 ring-emerald-400"
+                                />
+                                <Image
+                                    src="/images/testimonials/adebayo-oluwaseun.jpg"
+                                    alt="Adebayo Oluwaseun"
+                                    width={30}
+                                    height={30}
+                                    className="w-7 h-7 rounded-full object-cover ring-2 ring-emerald-400"
+                                />
+                                <Image
+                                    src="/images/avatars/chioma.jpg"
+                                    alt="Chioma Okafor"
+                                    width={30}
+                                    height={30}
+                                    className="w-7 h-7 rounded-full object-cover ring-2 ring-emerald-400"
+                                />
+                            </div>
+                            <div className="text-left text-xs leading-tight">
+                                <span className="font-extrabold text-white block">1,200+ Waitlisted</span>
+                                <span className="text-[10px] text-emerald-300 font-medium">Merchants &amp; Savers</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -153,6 +185,49 @@ export default function SavingWalletComingSoon({
                     <p className="text-xs text-muted-foreground leading-relaxed">
                         Generate instant Naira virtual cards for online business subscriptions, ad spend, and supplier settlements directly from your Hubnovo balance.
                     </p>
+                </div>
+            </div>
+
+            {/* Community Spotlight Banner */}
+            <div className="rounded-2xl border border-border bg-gradient-to-r from-emerald-500/5 via-card to-cyan-500/5 p-5 sm:p-6 shadow-xs">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+                    <div className="relative md:col-span-4 h-48 sm:h-52 w-full rounded-xl overflow-hidden border border-border/80 shadow-sm">
+                        <Image
+                            src="/images/people/nigerian-community-collaborating.jpg"
+                            alt="Nigerian entrepreneurs collaborating on thrift savings"
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 100vw, 33vw"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-3">
+                            <span className="text-[11px] font-bold text-white bg-emerald-600/90 px-2.5 py-1 rounded-full backdrop-blur-sm">
+                                Verified Pilot Group &bull; Kano &amp; Lagos
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="md:col-span-8 space-y-3">
+                        <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Community Thrift in Practice</span>
+                        </div>
+                        <blockquote className="text-sm sm:text-base font-semibold text-foreground italic leading-relaxed">
+                            &ldquo;Moving our weekly &#8358;50,000 thrift contribution from paper ledger books to Hubnovo automated Ajo means zero missed payments and NDIC-backed security for all 12 members in our Kasuwar Kurmi circle.&rdquo;
+                        </blockquote>
+                        <div className="flex items-center gap-3 pt-1">
+                            <Image
+                                src="/images/testimonials/aisha-musa.jpg"
+                                alt="Aisha Musa"
+                                width={40}
+                                height={40}
+                                className="w-10 h-10 rounded-full object-cover ring-2 ring-emerald-500/30"
+                            />
+                            <div>
+                                <p className="text-xs font-extrabold text-foreground">Aisha Musa</p>
+                                <p className="text-[11px] text-muted-foreground">Kasuwar Kurmi Market Cooperative Lead &bull; Kano</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

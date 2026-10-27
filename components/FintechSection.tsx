@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowRight, Check, Lock, ShieldCheck } from 'lucide-react'
 
 // Product visuals are illustrative UI renders, not live data.
@@ -32,29 +33,33 @@ function SafeVisual() {
 
 function AjoVisual() {
   const members = [
-    { initials: 'AO', status: 'Paid out', done: true },
-    { initials: 'ZH', status: 'Paid out', done: true },
-    { initials: 'CO', status: 'This month', current: true },
-    { initials: 'EO', status: 'Next' },
+    { name: 'Adebayo O.', image: '/images/testimonials/adebayo-oluwaseun.jpg', status: 'Paid out (₦200k)', done: true },
+    { name: 'Aisha M.', image: '/images/testimonials/aisha-musa.jpg', status: 'Paid out (₦200k)', done: true },
+    { name: 'Chioma O.', image: '/images/avatars/chioma.jpg', status: 'This month (₦200k)', current: true },
+    { name: 'Emeka O.', image: '/images/testimonials/emeka-obi.jpg', status: 'Next in line' },
   ]
   return (
     <div className="rounded-xl bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-ink">Payout order</p>
-        <p className="text-xs text-slate-500">₦20,000 / month</p>
+        <p className="text-sm font-semibold text-ink">Lekki Traders Ajo Payout</p>
+        <p className="text-xs font-semibold text-brand">₦20,000 / month</p>
       </div>
       <ol className="mt-3 space-y-2">
         {members.map((m, i) => (
           <li
-            key={m.initials}
-            className={`flex items-center gap-3 rounded-lg px-2.5 py-2 ${m.current ? 'bg-brand/[0.07]' : ''}`}
+            key={m.name}
+            className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 ${m.current ? 'bg-brand/[0.08] ring-1 ring-brand/20' : ''}`}
           >
-            <span className="w-4 text-xs font-semibold text-slate-400">{i + 1}</span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[10px] font-bold text-white">
-              {m.initials}
-            </span>
-            <span className="flex-1 text-sm text-ink">{m.status}</span>
-            {m.done && <Check className="h-4 w-4 text-brand" strokeWidth={2.5} />}
+            <span className="w-3.5 text-xs font-semibold text-slate-400">{i + 1}</span>
+            <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full ring-1 ring-brand/20">
+              <Image src={m.image} alt={m.name} fill className="object-cover" sizes="28px" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-ink truncate leading-tight">{m.name}</p>
+              <p className="text-[10px] text-slate-500 truncate">{m.status}</p>
+            </div>
+            {m.done && <Check className="h-4 w-4 text-brand shrink-0" strokeWidth={2.5} />}
+            {m.current && <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-brand text-white shrink-0">Current</span>}
           </li>
         ))}
       </ol>

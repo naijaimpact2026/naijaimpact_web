@@ -83,7 +83,7 @@ function LoginPanel() {
         Pick up where you left off: your savings goals, ajo contributions and conversations are
         all in one place.
       </p>
-      {/* illustrative UI card, not live data */}
+      {/* illustrative UI card, with authentic Nigerian members */}
       <div className="mt-12 max-w-sm rounded-2xl bg-white p-5 text-ink shadow-2xl" aria-hidden="true">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold">Lekki Traders Circle</p>
@@ -93,17 +93,25 @@ function LoginPanel() {
         <div className="mt-4 h-2 rounded-full bg-slate-100">
           <div className="h-full w-[70%] rounded-full bg-brand" />
         </div>
-        <div className="mt-5 flex -space-x-1.5">
-          {['AO', 'ZH', 'CO', 'EO', 'FA'].map((i) => (
-            <span
-              key={i}
-              className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-ink text-[10px] font-bold text-white"
-            >
-              {i}
-            </span>
-          ))}
-          <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-[10px] font-bold text-slate-600">
-            +5
+        <div className="mt-5 flex items-center justify-between">
+          <div className="flex -space-x-2">
+            {[
+              { src: '/images/testimonials/adebayo-oluwaseun.jpg', alt: 'Adebayo' },
+              { src: '/images/testimonials/aisha-musa.jpg', alt: 'Aisha' },
+              { src: '/images/avatars/chioma.jpg', alt: 'Chioma' },
+              { src: '/images/testimonials/emeka-obi.jpg', alt: 'Emeka' },
+              { src: '/images/avatars/fatima.jpg', alt: 'Fatima' },
+            ].map((m) => (
+              <div
+                key={m.alt}
+                className="relative h-9 w-9 overflow-hidden rounded-full border-2 border-white shadow-xs"
+              >
+                <Image src={m.src} alt={m.alt} fill className="object-cover" sizes="36px" />
+              </div>
+            ))}
+          </div>
+          <span className="text-xs font-bold text-brand bg-brand/10 px-2.5 py-1 rounded-full">
+            +5,000 circles
           </span>
         </div>
       </div>
@@ -133,6 +141,26 @@ function SignupPanel() {
           </li>
         ))}
       </ul>
+
+      {/* Social proof trust badge with real Nigerian members */}
+      <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md max-w-md">
+        <div className="flex items-center gap-3">
+          <div className="flex -space-x-2">
+            {[
+              { src: '/images/avatars/chioma.jpg', alt: 'Chioma' },
+              { src: '/images/testimonials/aisha-musa.jpg', alt: 'Aisha' },
+              { src: '/images/testimonials/adebayo-oluwaseun.jpg', alt: 'Adebayo' },
+            ].map((m) => (
+              <div key={m.alt} className="relative h-8 w-8 overflow-hidden rounded-full border-2 border-slate-900 shadow-xs">
+                <Image src={m.src} alt={m.alt} fill className="object-cover" sizes="32px" />
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-slate-300 font-medium leading-relaxed">
+            Joined by <span className="text-white font-bold">50,000+ Nigerians</span> saving and growing together across 36 states.
+          </p>
+        </div>
+      </div>
     </>
   )
 }
@@ -208,11 +236,19 @@ export default function AuthShell({
         </footer>
       </div>
 
-      {/* Brand panel */}
+      {/* Brand panel with authentic Nigerian community backdrop */}
       <aside className="relative hidden w-1/2 overflow-hidden bg-ink text-white lg:flex">
+        <Image
+          src="/images/people/nigerian-community-collaborating.jpg"
+          alt="Nigerian community collaborating"
+          fill
+          className="object-cover object-center opacity-20 mix-blend-luminosity scale-105"
+          priority
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/90 to-ink/75" />
         <div className="absolute -bottom-40 -right-40 h-[520px] w-[520px] rounded-full border border-white/[0.07]" />
         <div className="absolute -bottom-20 -right-20 h-[320px] w-[320px] rounded-full border border-white/[0.07]" />
-        <div className="relative flex w-full flex-col justify-center px-14 py-16 xl:px-20">
+        <div className="relative z-10 flex w-full flex-col justify-center px-14 py-16 xl:px-20">
           <Panel />
         </div>
       </aside>

@@ -5,7 +5,12 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { Search, Bell, MessageCircle, Menu, PenSquare, X } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+    getDeterministicAfricanAvatar,
+} from '@/components/ui/avatar'
 import type { User } from '@/lib/types'
 
 interface TopBarProps
@@ -129,7 +134,10 @@ function TopBar({ user, notificationCount = 0, messageCount = 0, onMenuToggle }:
 
                 <Link href={profileHref} className="flex items-center gap-2 pl-1 sm:pl-1.5 pr-1 py-1 rounded-full hover:bg-muted transition-colors shrink-0" aria-label="Profile">
                     <Avatar className="h-8 w-8 ring-1 ring-border shrink-0">
-                        <AvatarImage src={user?.avatar_url ?? undefined} alt={user?.display_name ?? 'User'} />
+                        <AvatarImage
+                            src={user?.avatar_url || (user ? getDeterministicAfricanAvatar(user.id || user.display_name) : undefined)}
+                            alt={user?.display_name ?? 'User'}
+                        />
                         <AvatarFallback className="bg-primary/15 text-primary text-xs font-bold">
                             {getInitials(user?.display_name)}
                         </AvatarFallback>

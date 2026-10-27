@@ -58,7 +58,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         accentColor: '#f97316',
         accentDot: 'bg-amber-400',
         ctaGradient: 'from-orange-500 to-amber-600',
-        imageUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80',
+        imageUrl: '/images/people/african-artisan-tech.jpg',
     },
     {
         id: 'community-feed',
@@ -79,7 +79,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         accentColor: '#3b82f6',
         accentDot: 'bg-sky-400',
         ctaGradient: 'from-blue-600 to-indigo-600',
-        imageUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=80',
+        imageUrl: '/images/people/nigerian-community-collaborating.jpg',
     },
     {
         id: 'marketplace',
@@ -100,7 +100,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         accentColor: '#10b981',
         accentDot: 'bg-emerald-400',
         ctaGradient: 'from-emerald-500 to-teal-600',
-        imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=800&q=80',
+        imageUrl: '/images/people/african-market-merchant.jpg',
     },
     {
         id: 'learn',
@@ -121,7 +121,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         accentColor: '#8b5cf6',
         accentDot: 'bg-violet-400',
         ctaGradient: 'from-violet-600 to-purple-600',
-        imageUrl: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80',
+        imageUrl: '/images/people/african-skills-student.jpg',
     },
     {
         id: 'jobs',
@@ -142,7 +142,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         accentColor: '#0284c7',
         accentDot: 'bg-sky-400',
         ctaGradient: 'from-sky-500 to-blue-600',
-        imageUrl: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=800&q=80',
+        imageUrl: '/images/people/african-jobs-executive.jpg',
     },
     {
         id: 'launchpad',
@@ -163,7 +163,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         accentColor: '#f43f5e',
         accentDot: 'bg-rose-400',
         ctaGradient: 'from-rose-500 to-pink-600',
-        imageUrl: 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=800&q=80',
+        imageUrl: '/images/people/african-cac-launchpad.jpg',
     },
     {
         id: 'wallet',
@@ -184,7 +184,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         accentColor: '#059669',
         accentDot: 'bg-emerald-400',
         ctaGradient: 'from-emerald-600 to-teal-600',
-        imageUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=800&q=80',
+        imageUrl: 'https://images.unsplash.com/photo-1589156280159-27698a70f29e?auto=format&fit=crop&w=800&q=80',
     },
     {
         id: 'funding',
@@ -205,7 +205,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         accentColor: '#06b6d4',
         accentDot: 'bg-cyan-400',
         ctaGradient: 'from-cyan-500 to-blue-600',
-        imageUrl: 'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=800&q=80',
+        imageUrl: '/images/people/nigerian-community-collaborating.jpg',
     },
     {
         id: 'chat',
@@ -226,7 +226,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         accentColor: '#6366f1',
         accentDot: 'bg-indigo-400',
         ctaGradient: 'from-indigo-500 to-purple-600',
-        imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
+        imageUrl: '/images/people/african-chat-voice.jpg',
     },
     {
         id: 'livestream',
@@ -247,7 +247,7 @@ export const PLATFORM_FEATURES: PlatformFeature[] = [
         accentColor: '#ef4444',
         accentDot: 'bg-red-400',
         ctaGradient: 'from-rose-600 to-red-600',
-        imageUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80',
+        imageUrl: '/images/people/african-livestream-host.jpg',
     },
 ]
 

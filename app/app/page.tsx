@@ -1,13 +1,10 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { fetchCourses } from '@/lib/actions/learn'
 import HomeRightSidebar from '@/components/app/home/HomeRightSidebar'
 import HeroIllustration from '@/components/illustrations/HeroIllustration'
-import CourseIllustration from '@/components/illustrations/CourseIllustration'
-import JobsIllustration from '@/components/illustrations/JobsIllustration'
-import MarketIllustration from '@/components/illustrations/MarketIllustration'
-import FundingIllustration from '@/components/illustrations/FundingIllustration'
 import EcosystemTeaserBanner from '@/components/app/home/EcosystemTeaserBanner'
 import
 {
@@ -104,6 +101,7 @@ export default async function HomePage()
                                     </button>
                                 </div>
                             </div>
+
                             <HeroIllustration className="hidden md:block w-56 h-40 shrink-0" />
                         </div>
                     </section>
@@ -128,7 +126,7 @@ export default async function HomePage()
                         </div>
                     </section>
 
-                    {/* Featured opportunities */}
+                    {/* Featured opportunities with authentic African photography */}
                     <section>
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="font-display text-lg font-bold text-foreground">Featured Opportunities</h2>
@@ -136,47 +134,43 @@ export default async function HomePage()
                         </div>
                         <div className="grid sm:grid-cols-2 gap-4">
                             <OpportunityCard
-                                illustration={<CourseIllustration className="w-full h-full" />}
-                                bannerGradient="from-blue-700 via-indigo-800 to-sky-900"
+                                imageUrl="/images/people/african-skills-student.jpg"
                                 tag="Trending"
                                 tagClass="bg-primary text-white"
                                 title={featuredCourse ? featuredCourse.title : 'Free Digital Skills Training'}
-                                sub="Learn in-demand skills and boost your career."
+                                sub="Master in-demand digital and vocational skills from top African instructors."
                                 meta={featuredCourse ? [`${featuredCourse.is_free ? 'Free' : 'Paid'}`, timeAgo(featuredCourse.created_at)] : ['Online', 'Free']}
                                 cta="Join Now"
                                 href="/app/learn"
                             />
                             <OpportunityCard
-                                illustration={<JobsIllustration className="w-full h-full" />}
-                                bannerGradient="from-rose-700 via-orange-800 to-amber-900"
-                                tag="Hot"
-                                tagClass="bg-destructive text-white"
-                                title="Remote Job Opportunities"
-                                sub="Work from anywhere. Global opportunities."
-                                meta={['Worldwide', 'Various']}
-                                cta="Coming Soon"
-                                href={null}
+                                imageUrl="/images/people/african-jobs-executive.jpg"
+                                tag="Hiring"
+                                tagClass="bg-blue-600 text-white"
+                                title="Verified Career Opportunities"
+                                sub="Discover verified tech, remote, and artisan openings across Nigeria with escrow protection."
+                                meta={['Lagos · Remote', 'Verified Employers']}
+                                cta="Explore Jobs"
+                                href="/app/jobs"
                             />
                             <OpportunityCard
-                                illustration={<MarketIllustration className="w-full h-full" />}
-                                bannerGradient="from-emerald-800 via-teal-800 to-cyan-900"
-                                tag="Featured"
-                                tagClass="bg-cyan text-white"
+                                imageUrl="/images/people/african-market-merchant.jpg"
+                                tag="Featured Trade"
+                                tagClass="bg-emerald-600 text-white"
                                 title="Support Small Businesses"
-                                sub="Shop from local entrepreneurs and make an impact."
-                                meta={['Nationwide', 'Verified']}
+                                sub="Shop directly from verified local Nigerian artisans, boutiques and merchants."
+                                meta={['Nationwide Delivery', '100% Escrow Safe']}
                                 cta="Shop Now"
                                 href="/app/market"
                             />
                             <OpportunityCard
-                                illustration={<FundingIllustration className="w-full h-full" />}
-                                bannerGradient="from-purple-800 via-indigo-900 to-slate-900"
-                                tag="Impact"
-                                tagClass="bg-secondary text-white"
+                                imageUrl="/images/people/nigerian-community-collaborating.jpg"
+                                tag="Community Impact"
+                                tagClass="bg-rose-600 text-white"
                                 title="Fund a Community Project"
-                                sub="Help provide clean water in rural communities."
-                                meta={['Community', 'Goal-based']}
-                                cta="Support Now"
+                                sub="Back grassroots educational, clean water, and solar tech initiatives across Nigeria."
+                                meta={['36 States', 'Goal-based Audit']}
+                                cta="Discover Campaigns"
                                 href="/app/funding"
                             />
                         </div>
@@ -260,6 +254,7 @@ function TodayCard({
 }
 
 function OpportunityCard({
+    imageUrl,
     illustration,
     bannerGradient,
     tag,
@@ -270,7 +265,8 @@ function OpportunityCard({
     cta,
     href,
 }: {
-    illustration: React.ReactNode
+    imageUrl?: string
+    illustration?: React.ReactNode
     bannerGradient?: string
     tag: string
     tagClass: string
@@ -283,14 +279,28 @@ function OpportunityCard({
 {
     return (
         <div className="group rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all duration-300">
-            {/* Graphic Background Banner with illustration */}
-            <div className={`relative h-36 w-full overflow-hidden bg-gradient-to-tr ${bannerGradient || 'from-slate-800 to-slate-900'} p-3`}>
-                {/* Decorative glow */}
-                <div className="absolute inset-0 bg-black/20 pointer-events-none" />
-                <div className="relative w-full h-full flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-                    {illustration}
-                </div>
-                <span className={`absolute top-3 left-3 z-10 text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-md ${tagClass}`}>
+            {/* Graphic or Photographic Background Banner */}
+            <div className={`relative h-44 w-full overflow-hidden ${!imageUrl ? (bannerGradient || 'bg-slate-900') : 'bg-slate-900'}`}>
+                {imageUrl ? (
+                    <>
+                        <Image
+                            src={imageUrl}
+                            alt={title}
+                            fill
+                            sizes="(max-width: 640px) 100vw, 50vw"
+                            className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/20 pointer-events-none" />
+                    </>
+                ) : (
+                    <>
+                        <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+                        <div className="relative w-full h-full flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                            {illustration}
+                        </div>
+                    </>
+                )}
+                <span className={`absolute top-3 left-3 z-10 text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-md backdrop-blur-md ${tagClass}`}>
                     {tag}
                 </span>
             </div>

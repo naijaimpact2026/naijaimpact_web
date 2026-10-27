@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { ArrowDownLeft, ArrowUpRight, Plus, Users, Send, Landmark, Bell } from 'lucide-react'
 
 // Static, illustrative render of the Hubnovo app home screen for marketing
@@ -37,12 +38,18 @@ export default function AppPhoneMockup({ className = '' }: { className?: string 
           {/* greeting */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/10 text-[11px] font-bold text-brand">
-                CO
-              </span>
+              <div className="relative h-8 w-8 overflow-hidden rounded-full ring-2 ring-brand/30 shadow-xs">
+                <Image
+                  src="/images/avatars/chioma.jpg"
+                  alt="Chioma"
+                  fill
+                  className="object-cover"
+                  sizes="32px"
+                />
+              </div>
               <div className="leading-tight">
                 <p className="text-[10px] text-slate-500">Good morning</p>
-                <p className="text-[12px] font-semibold text-ink">Chioma</p>
+                <p className="text-[12px] font-semibold text-ink">Chioma Okafor</p>
               </div>
             </div>
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm">

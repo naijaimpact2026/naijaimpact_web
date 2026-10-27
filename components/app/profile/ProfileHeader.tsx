@@ -3,7 +3,12 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+    getDeterministicAfricanAvatar,
+} from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
     BadgeCheck,
@@ -138,7 +143,10 @@ export default function ProfileHeader({
                 {/* Avatar overlapping the banner */}
                 <div className="relative w-fit -mt-10 sm:-mt-12">
                     <Avatar className="h-20 w-20 sm:h-24 sm:w-24 shrink-0 ring-4 ring-card">
-                        <AvatarImage src={profile.avatar_url ?? undefined} alt={profile.display_name} />
+                        <AvatarImage
+                            src={profile.avatar_url || getDeterministicAfricanAvatar(profile.id || profile.display_name)}
+                            alt={profile.display_name}
+                        />
                         <AvatarFallback className="bg-primary/15 text-primary text-2xl font-bold">
                             {initials}
                         </AvatarFallback>

@@ -265,13 +265,13 @@ export const FEATURED_SECTORS: BusinessSector[] = [
     {
         id: 'fashion',
         title: 'Fashion & Retail',
-        image: '/images/launchpad/sectors/fashion.jpg',
+        image: '/images/people/african-market-merchant.jpg',
         category: 'Apparel & Accessories',
     },
     {
         id: 'tech',
         title: 'Tech & Digital',
-        image: '/images/launchpad/sectors/tech.jpg',
+        image: '/images/people/african-skills-student.jpg',
         category: 'Software & Online Services',
     },
     {
@@ -283,19 +283,19 @@ export const FEATURED_SECTORS: BusinessSector[] = [
     {
         id: 'solar',
         title: 'Renewable Energy',
-        image: '/images/launchpad/sectors/solar.jpg',
+        image: '/images/people/african-artisan-tech.jpg',
         category: 'Solar & Clean Tech',
     },
     {
         id: 'creative',
         title: 'Creative Arts',
-        image: '/images/launchpad/sectors/creative.jpg',
+        image: '/images/people/african-livestream-host.jpg',
         category: 'Media, Film & Design',
     },
     {
         id: 'services',
         title: 'Services',
-        image: '/images/launchpad/sectors/services.jpg',
+        image: '/images/people/african-jobs-executive.jpg',
         category: 'Professional & Trade Services',
     },
 ]
@@ -378,5 +378,26 @@ export const SUCCESS_STORIES: SuccessStory[] = [
         author: 'Amaka O.',
         role: 'CEO, Zuri Agro-Exports',
         image: '/images/launchpad/hero-entrepreneur.jpg',
+    },
+    {
+        id: 'adebayo-o',
+        quote: 'We completed our CAC business registration through Hubnovo and onboarded 40 certified solar installers across Oyo State.',
+        author: 'Adebayo Oluwaseun',
+        role: 'Founder, SwiftSolar West Africa',
+        image: '/images/testimonials/adebayo-oluwaseun.jpg',
+    },
+    {
+        id: 'aisha-m',
+        quote: 'Moving our Kasuwar Kurmi fabric guild online grew our order volume from 5 local stalls to regular deliveries across 12 states.',
+        author: 'Aisha Musa',
+        role: 'Founder, Northern Heritage Weaves',
+        image: '/images/testimonials/aisha-musa.jpg',
+    },
+    {
+        id: 'kelechi-team',
+        quote: 'From a student startup idea in Yaba to raising community seed capital and launching our first dispatch fleet on Hubnovo.',
+        author: 'Kelechi & Team',
+        role: 'Co-Founders, Delta Express Logistics',
+        image: '/images/people/african-cac-launchpad.jpg',
     },
 ]

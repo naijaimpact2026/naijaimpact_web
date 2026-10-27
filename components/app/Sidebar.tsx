@@ -29,7 +29,12 @@ import
     Clapperboard,
     Radio,
 } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+    getDeterministicAfricanAvatar,
+} from '@/components/ui/avatar'
 import type { User as UserType } from '@/lib/types'
 
 interface SidebarProps
@@ -235,7 +240,9 @@ function Sidebar({
                         className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted transition-colors lg:justify-center xl:justify-start"
                     >
                         <Avatar className="h-8 w-8 shrink-0 ring-1 ring-border">
-                            <AvatarImage src={user?.avatar_url ?? undefined} />
+                            <AvatarImage
+                                src={user?.avatar_url || (user ? getDeterministicAfricanAvatar(user.id || user.display_name) : undefined)}
+                            />
                             <AvatarFallback className="bg-primary/15 text-primary text-xs font-bold">
                                 {getInitials(user?.display_name)}
                             </AvatarFallback>

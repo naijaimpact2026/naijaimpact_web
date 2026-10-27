@@ -49,7 +49,7 @@ export default async function ExplorePage() {
                     </div>
 
                     <h1 className="font-display text-3xl sm:text-4xl font-black text-foreground tracking-tight leading-tight">
-                        Ten Engines for Growth, Trade & Impact
+                        Hubnovo at a Glance
                     </h1>
 
                     <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
