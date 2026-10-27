@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Share2, Check, Link2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { Share2, Check, Link2, Flag } from 'lucide-react'
+import { toast } from '@/components/toast'
+import ReportPostModal from './ReportPostModal'
 
 interface Props
 {
@@ -12,6 +13,7 @@ interface Props
     commentCount: number
     authorUsername: string
     createdAt: string
+    allowSharing?: boolean
 }
 
 export default function PostDetailActions({
@@ -21,16 +23,23 @@ export default function PostDetailActions({
     commentCount,
     authorUsername,
     createdAt,
+    allowSharing = true,
 }: Props)
 {
     const [copied, setCopied] = useState(false)
+    const [reportModalOpen, setReportModalOpen] = useState(false)
 
     async function handleShare()
     {
+        if (allowSharing === false)
+        {
+            toast.error('Sharing has been disabled for this post by the author.')
+            return
+        }
         const url = `${window.location.origin}/app/feed/${postId}`
         if (navigator.share)
         {
-            try { await navigator.share({ title: caption.slice(0, 60) || 'Hubnovo post', url }) }
+            try { await navigator.share({ title: caption.slice(0, 60) || 'HubNovo post', url }) }
             catch { /* cancelled */ }
         } else
         {
@@ -74,13 +83,36 @@ export default function PostDetailActions({
 
             <button
                 onClick={handleShare}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-border text-xs font-medium text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                aria-disabled={allowSharing === false}
+                className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl border text-xs font-medium transition-colors ${
+                    allowSharing === false
+                        ? 'border-border/60 text-muted-foreground/60 cursor-not-allowed bg-muted/30'
+                        : 'border-border text-muted-foreground hover:border-primary hover:text-primary'
+                }`}
             >
-                {copied
-                    ? <><Check className="w-3.5 h-3.5" /> Copied!</>
-                    : <><Share2 className="w-3.5 h-3.5" /> Share this post</>
-                }
+                {allowSharing === false ? (
+                    <>Sharing disabled</>
+                ) : copied ? (
+                    <><Check className="w-3.5 h-3.5" /> Copied!</>
+                ) : (
+                    <><Share2 className="w-3.5 h-3.5" /> Share this post</>
+                )}
             </button>
+
+            <button
+                type="button"
+                onClick={() => setReportModalOpen(true)}
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-destructive/20 text-xs font-medium text-destructive/80 hover:bg-destructive/5 hover:text-destructive transition-colors"
+            >
+                <Flag className="w-3.5 h-3.5" /> Report this post
+            </button>
+
+            <ReportPostModal
+                open={reportModalOpen}
+                onOpenChange={setReportModalOpen}
+                postId={postId}
+                authorUsername={authorUsername}
+            />
         </div>
     )
 }

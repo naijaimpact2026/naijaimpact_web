@@ -32,3 +32,29 @@ export function toPublicStorageUrl(url: string | null | undefined): string | nul
         return url
     }
 }
+
+/**
+ * Whether a `next/image` `src` should skip Next's optimizer (`unoptimized`).
+ *
+ * True for:
+ *  - anything that isn't a real http(s) URL — e.g. `palette:amber`, a sentinel
+ *    some forms store in an image-url field to mean "no upload, render a
+ *    solid-color placeholder instead" (see BusinessProfileModal.tsx). Passing
+ *    those through the optimizer throws ("hostname \"\" is not configured"),
+ *    since they don't have a real hostname to validate.
+ *  - Supabase Storage URLs, since the render/transform endpoint needs a
+ *    bucket policy that may not be enabled on this project (see
+ *    toPublicStorageUrl above) — safer to leave those unoptimized.
+ *
+ * False (safe to optimize) for ordinary http(s) URLs elsewhere — Cloudinary
+ * in practice, since that's where post/avatar uploads go.
+ */
+export function shouldSkipImageOptimization(url: string): boolean {
+    try {
+        const parsed = new URL(url)
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return true
+        return parsed.hostname.endsWith('.supabase.co') || parsed.hostname.endsWith('.supabase.in')
+    } catch {
+        return true
+    }
+}

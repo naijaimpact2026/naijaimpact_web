@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { signUpload, CLOUDINARY_CLOUD_NAME } from '@/lib/cloudinary'
+import { rateLimit, RATE_LIMITED } from '@/lib/rate-limit'
 
 // Required for App Router — allow up to 5 minutes for large video uploads
 export const maxDuration = 300
@@ -32,14 +33,17 @@ const VIDEO_SIZE_LIMIT = 500 * 1024 * 1024  // 500 MB
 // ─── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  // 1. Verify Supabase session
+  // 1. Verify the Supabase session with the auth server (getSession() only
+  //    reads the cookie and can't be trusted on the server).
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  if (!(await rateLimit(`upload:${user.id}`, 60, 3600))) {
+    return NextResponse.json({ error: RATE_LIMITED }, { status: 429 })
   }
 
   // 2. Parse multipart/form-data
@@ -115,10 +119,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!cloudinaryResponse.ok) {
     const errorBody = await cloudinaryResponse.text()
     console.error('[upload] Cloudinary error response:', errorBody)
-    return NextResponse.json(
-      { error: 'Cloudinary upload failed', detail: errorBody },
-      { status: cloudinaryResponse.status }
-    )
+    return NextResponse.json({ error: 'Upload failed' }, { status: 502 })
   }
 
   // 9. Extract and return relevant fields

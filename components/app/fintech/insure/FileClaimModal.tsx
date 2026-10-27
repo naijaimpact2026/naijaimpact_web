@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2 } from 'lucide-react'
+import { Loader2, CheckCircle2 } from 'lucide-react'
 import
     {
         Dialog,
@@ -126,7 +126,7 @@ export default function FileClaimModal({
 
                 {success ? (
                     <div className="py-8 text-center space-y-2">
-                        <div className="text-4xl">✅</div>
+                        <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
                         <p className="font-semibold text-emerald-600">Claim submitted successfully!</p>
                         <p className="text-sm text-muted-foreground">
                             Our team will review your claim and get back to you.

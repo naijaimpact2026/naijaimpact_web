@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { PlusCircle, Target, Loader2, Trophy } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/components/toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -107,7 +107,7 @@ function ContributeModal({
             const newTotal = goal.current_amount + values.amount
             if (newTotal >= goal.target_amount)
             {
-                toast.success(`🎉 Goal achieved! "${goal.name}" is complete!`)
+                toast.success(`Goal achieved! "${goal.name}" is complete!`)
             } else
             {
                 toast.success(`₦${values.amount.toLocaleString()} added to "${goal.name}"`)
@@ -207,9 +207,11 @@ export default function GoalsTab({ goals }: GoalsTabProps)
         }
     }
 
-    const totalSaved = goals.reduce((sum, g) => sum + g.current_amount, 0)
-    const activeGoals = goals.filter((g) => g.status === 'active')
-    const achievedGoals = goals.filter((g) => g.status === 'achieved')
+    const { totalSaved, activeGoals, achievedGoals } = useMemo(() => ({
+        totalSaved: goals.reduce((sum, g) => sum + g.current_amount, 0),
+        activeGoals: goals.filter((g) => g.status === 'active'),
+        achievedGoals: goals.filter((g) => g.status === 'achieved'),
+    }), [goals])
 
     return (
         <div className="space-y-6">
@@ -283,9 +285,9 @@ export default function GoalsTab({ goals }: GoalsTabProps)
                                         value={pct}
                                         className={`h-2.5 ${isAchieved ? '[&>div]:bg-emerald-500' : '[&>div]:gradient-primary'}`}
                                     />
-                                    <p className="text-xs text-muted-foreground">
+                                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
                                         {isAchieved
-                                            ? 'Goal completed 🎉'
+                                            ? <><Trophy className="w-3.5 h-3.5 text-emerald-500" /> Goal completed</>
                                             : `₦${(goal.target_amount - goal.current_amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })} remaining`}
                                     </p>
                                 </div>

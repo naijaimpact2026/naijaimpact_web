@@ -1,12 +1,13 @@
 'use client'
 
+import { memo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import
 {
     Home,
-    FileText,
+    Compass,
     Search,
     HandCoins,
     MessageCircle,
@@ -21,6 +22,12 @@ import
     Settings,
     X,
     ShoppingBag,
+    Sprout,
+    ArrowRight,
+    Wrench,
+    Rocket,
+    Clapperboard,
+    Radio,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { User as UserType } from '@/lib/types'
@@ -36,17 +43,20 @@ interface SidebarProps
 }
 
 const navItems = [
-    { icon: Home, label: 'Community', href: '/app/feed' },
+    { icon: Home, label: 'Home', href: '/app' },
+    { icon: Compass, label: 'Explore', href: '/app/explore' },
     { icon: Search, label: 'Search', href: '/app/search' },
-    { icon: HandCoins, label: 'Crowd Funding', href: '/app/funding' },
+    { icon: Users, label: 'Community', href: '/app/feed' },
+    { icon: Radio, label: 'Livestream', href: '/app/modushive' },
+    { icon: ShoppingBag, label: 'Marketplace', href: '/app/market' },
+    { icon: Briefcase, label: 'Jobs & Careers', href: '/app/jobs' },
+    { icon: Wrench, label: 'Artisans & Pros', href: '/app/artisans' },
+    { icon: Rocket, label: 'Business LaunchPad', href: '/app/services' },
+    { icon: BookOpen, label: 'Learn', href: '/app/learn' },
     { icon: MessageCircle, label: 'Chat', href: '/app/chat', badgeProp: 'messageCount' as const },
     { icon: Bell, label: 'Notifications', href: '/app/notifications', badgeProp: 'notificationCount' as const },
-    { icon: Wallet, label: 'Wallet', href: '/app/wallet' },
-    { icon: BookOpen, label: 'Learn', href: '/app/learn' },
-    { icon: Briefcase, label: 'Business Launch', href: '/app/services' },
-    { icon: ShoppingBag, label: 'NaijaMarket', href: '/app/market' },
-    { icon: LayoutGrid, label: 'Fintech', href: '/app/fintech' },
-    { icon: Users, label: 'Groups', href: '/app/funding' },
+    { icon: HandCoins, label: 'Crowdfunding', href: '/app/funding', badgeText: 'Soon' },
+    { icon: Wallet, label: 'Saving / Wallet', href: '/app/fintech', badgeText: 'Soon' },
 ]
 
 function getInitials(name: string | null | undefined): string
@@ -55,7 +65,7 @@ function getInitials(name: string | null | undefined): string
     return name.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2)
 }
 
-export default function Sidebar({
+function Sidebar({
     user,
     onSignOut,
     notificationCount = 0,
@@ -68,132 +78,186 @@ export default function Sidebar({
     const profileHref = user?.username ? `/app/profile/${user.username}` : '/app/settings/onboarding'
     const badgeCounts: Record<string, number> = { messageCount, notificationCount }
 
-    const isActive = (href: string, label?: string) =>
+    const isActive = (href: string) =>
     {
-        if (label === 'Microblog') return false
-        if (href === '/app/feed') return pathname === '/app/feed' || pathname.startsWith('/app/feed/')
-        return pathname.startsWith(href)
+        if (href === '/app') return pathname === '/app'
+        return pathname === href || pathname.startsWith(href + '/')
+    }
+
+    async function handleInviteFriends()
+    {
+        const url = typeof window !== 'undefined' ? window.location.origin : 'https://hubnovo.com'
+        const shareData = { title: 'Hubnovo', text: 'Join me on Hubnovo — People. Opportunities. Prosperity.', url }
+
+        if (navigator.share)
+        {
+            try { await navigator.share(shareData) } catch { /* user cancelled — not an error */ }
+            return
+        }
+
+        try
+        {
+            await navigator.clipboard.writeText(url)
+            const { toast } = await import('sonner')
+            toast.success('Invite link copied to clipboard')
+        } catch { /* clipboard unavailable — silently no-op */ }
     }
 
     return (
         <>
-            {/* Sidebar drawer */}
+            {/* Sidebar — the only global nav chrome (no top bar). Overlay drawer below lg,
+                persistent rail from lg up. Compact (icon-only) at lg, full width with labels at xl+. */}
             <aside
-                style={{ transform: isOpen ? 'translateX(0)' : 'translateX(-100%)', background: 'linear-gradient(160deg, #0a2d1c 0%, #0f3d25 50%, #0a2d1c 100%)' }}
-                className="fixed top-0 left-0 h-full w-64 z-40 flex flex-col shadow-2xl transition-transform duration-300 ease-in-out"
+                className={`fixed top-0 left-0 h-full w-64 z-40 flex flex-col bg-card border-r border-border shadow-2xl transition-transform duration-300 ease-in-out
+                    lg:sticky lg:top-16 lg:z-0 lg:h-[calc(100vh-4rem)] lg:w-20 lg:shrink-0 lg:shadow-none lg:translate-x-0
+                    xl:w-64
+                    ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >
-                {/* Header */}
-                <div className="flex items-center justify-between px-4 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                    <Link href="/app/feed" onClick={onClose} className="flex items-center gap-2">
-                        <Image src="/logo.png" alt="Hubnovo" width={28} height={28} className="rounded-md" unoptimized />
+                {/* Header — mobile/tablet drawer only (lg+ already has the logo in the top bar) */}
+                <div className="flex items-center justify-between px-4 py-4 border-b border-border lg:hidden">
+                    <Link href="/app" onClick={onClose} className="flex items-center gap-2">
+                        {/* Light Mode Logo */}
+                        <Image src="/logo.png" alt="Hubnovo" width={30} height={30} className="rounded-md shrink-0 dark:hidden" unoptimized />
+                        {/* Dark Mode Logo */}
+                        <Image src="/logo-darkmode (1).png" alt="Hubnovo" width={30} height={30} className="rounded-md shrink-0 hidden dark:block" unoptimized />
                         <div className="leading-none">
-                            <p className="font-bold text-sm text-white tracking-tight">Hubnovo</p>
-                            <p className="text-[8px] font-medium" style={{ color: '#6ee7b7' }}>Empower. Equip. Elevate.</p>
+                            {/* Light Mode Wordmark */}
+                            <Image src="/logo-wordmark.png" alt="Hubnovo" width={84} height={28} className="h-4 w-auto dark:hidden" unoptimized />
+                            {/* Dark Mode Wordmark */}
+                            <Image src="/logo-darkmode (2).png" alt="Hubnovo" width={84} height={28} className="h-4 w-auto hidden dark:block" unoptimized />
+                            <p className="text-[8px] font-medium text-emerald mt-0.5">People. Opportunities. Prosperity.</p>
                         </div>
                     </Link>
                     <button
                         onClick={onClose}
-                        className="p-1.5 rounded-full transition-colors"
-                        style={{ color: '#6ee7b7' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        className="p-1.5 rounded-full text-muted-foreground hover:bg-muted transition-colors"
                         aria-label="Close menu"
                     >
                         <X className="w-4 h-4" />
                     </button>
                 </div>
 
-                {/* Navigation */}
-                <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-                    {navItems.map(({ icon: Icon, label, href, badgeProp }) =>
-                    {
-                        const active = isActive(href, label)
-                        const count = badgeProp ? badgeCounts[badgeProp] : 0
-                        return (
-                            <Link
-                                key={href + label}
-                                href={href}
-                                onClick={onClose}
-                                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${active
-                                    ? 'text-primary'
-                                    : 'text-green-100/70 hover:text-white'
-                                    }`}
-                                style={active ? { background: 'rgba(110,231,183,0.15)' } : undefined}
-                                onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-                                onMouseLeave={e => { if (!active) e.currentTarget.style.background = '' }}
-                            >
-                                <Icon className={`w-5 h-5 shrink-0 ${active ? 'text-primary' : ''}`} />
-                                <span className="flex-1">{label}</span>
-                                {count > 0 && (
-                                    <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold leading-none shrink-0">
-                                        {count > 99 ? '99+' : count}
+                {/* Nav + invite card share one scroll area, so on short screens the
+                    card scrolls below Settings instead of covering the last items. */}
+                <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+                    {/* Navigation */}
+                    <nav className="px-2 py-3 space-y-0.5">
+                        {navItems.map(({ icon: Icon, label, href, badgeProp, badgeText }: any) =>
+                        {
+                            const active = isActive(href)
+                            const count = badgeProp ? badgeCounts[badgeProp] : 0
+                            return (
+                                <Link
+                                    key={href + label}
+                                    href={href}
+                                    onClick={onClose}
+                                    title={label}
+                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all lg:justify-center xl:justify-start ${active
+                                        ? 'bg-primary/10 text-primary'
+                                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                        }`}
+                                >
+                                    <span className="relative shrink-0">
+                                        <Icon className="w-5 h-5" strokeWidth={active ? 2.4 : 1.9} />
+                                        {count > 0 && (
+                                            <span className="lg:flex xl:hidden absolute -top-1.5 -right-2 items-center justify-center min-w-[16px] h-4 px-0.5 rounded-full bg-destructive text-white text-[9px] font-bold leading-none">
+                                                {count > 99 ? '99+' : count}
+                                            </span>
+                                        )}
+                                        {badgeText && (
+                                            <span className="lg:flex xl:hidden absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                                        )}
                                     </span>
-                                )}
-                            </Link>
-                        )
-                    })}
+                                    <span className="flex-1 lg:hidden xl:inline">{label}</span>
+                                    {badgeText && (
+                                        <span className="hidden xl:inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25 leading-none shrink-0">
+                                            {badgeText}
+                                        </span>
+                                    )}
+                                    {count > 0 && (
+                                        <span className="hidden xl:flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-white text-[10px] font-bold leading-none shrink-0">
+                                            {count > 99 ? '99+' : count}
+                                        </span>
+                                    )}
+                                </Link>
+                            )
+                        })}
 
-                    <Link
-                        href={profileHref}
-                        onClick={onClose}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${pathname.startsWith('/app/profile')
-                            ? 'text-primary'
-                            : 'text-green-100/70 hover:text-white'
-                            }`}
-                        style={pathname.startsWith('/app/profile') ? { background: 'rgba(110,231,183,0.15)' } : {}}
-                    >
-                        <User className="w-5 h-5 shrink-0" />
-                        <span>Profile</span>
-                    </Link>
+                        <Link
+                            href={profileHref}
+                            onClick={onClose}
+                            title="Profile"
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all lg:justify-center xl:justify-start ${pathname.startsWith('/app/profile')
+                                ? 'bg-primary/10 text-primary'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                }`}
+                        >
+                            <User className="w-5 h-5 shrink-0" strokeWidth={pathname.startsWith('/app/profile') ? 2.4 : 1.9} />
+                            <span className="lg:hidden xl:inline">Profile</span>
+                        </Link>
 
-                    <Link
-                        href="/app/settings"
-                        onClick={onClose}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${pathname.startsWith('/app/settings')
-                            ? 'text-primary'
-                            : 'text-green-100/70 hover:text-white'
-                            }`}
-                        style={pathname.startsWith('/app/settings') ? { background: 'rgba(110,231,183,0.15)' } : {}}
-                    >
-                        <Settings className="w-5 h-5 shrink-0" />
-                        <span>Settings</span>
-                    </Link>
-                </nav>
+                        <Link
+                            href="/app/settings"
+                            onClick={onClose}
+                            title="Settings"
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all lg:justify-center xl:justify-start ${pathname.startsWith('/app/settings')
+                                ? 'bg-primary/10 text-primary'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                }`}
+                        >
+                            <Settings className="w-5 h-5 shrink-0" strokeWidth={pathname.startsWith('/app/settings') ? 2.4 : 1.9} />
+                            <span className="lg:hidden xl:inline">Settings</span>
+                        </Link>
+                    </nav>
+
+                    {/* Invite friends — full sidebar (xl+) only */}
+                    <div className="hidden xl:block px-3 pb-3">
+                        <div className="relative overflow-hidden rounded-2xl p-4 text-white" style={{ background: 'linear-gradient(135deg, #0A1E33 0%, #102A43 55%, #00688A 100%)' }}>
+                            <Sprout className="absolute -right-2 -bottom-2 w-16 h-16 opacity-20" />
+                            <p className="relative font-display font-bold text-sm leading-tight">A Brighter Tomorrow Together</p>
+                            <p className="relative text-[11px] text-white/80 mt-1">People. Opportunities. Prosperity.</p>
+                            <button
+                                onClick={handleInviteFriends}
+                                className="relative mt-3 inline-flex items-center gap-1.5 bg-white text-secondary text-xs font-bold px-3.5 py-2 rounded-full hover:bg-white/90 transition-colors"
+                            >
+                                Invite Friends <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 {/* User + sign out */}
-                <div className="px-2 py-3 space-y-1" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                <div className="px-2 py-3 space-y-1 border-t border-border">
                     <Link
                         href={profileHref}
                         onClick={onClose}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors"
-                        style={{ color: 'inherit' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        title={user?.display_name ?? 'User'}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted transition-colors lg:justify-center xl:justify-start"
                     >
-                        <Avatar className="h-8 w-8 shrink-0" style={{ border: '1px solid rgba(255,255,255,0.2)' }}>
+                        <Avatar className="h-8 w-8 shrink-0 ring-1 ring-border">
                             <AvatarImage src={user?.avatar_url ?? undefined} />
-                            <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
+                            <AvatarFallback className="bg-primary/15 text-primary text-xs font-bold">
                                 {getInitials(user?.display_name)}
                             </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-white truncate">{user?.display_name ?? 'User'}</p>
-                            <p className="text-[10px] truncate" style={{ color: '#6ee7b7' }}>@{user?.username ?? 'username'}</p>
+                        <div className="flex-1 min-w-0 lg:hidden xl:block">
+                            <p className="text-xs font-semibold text-foreground truncate">{user?.display_name ?? 'User'}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">@{user?.username ?? 'username'}</p>
                         </div>
                     </Link>
 
                     <button
                         onClick={() => { onClose(); onSignOut() }}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-                        style={{ color: '#fca5a5' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.15)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        title="Sign out"
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-all lg:justify-center xl:justify-start"
                     >
                         <LogOut className="w-4 h-4 shrink-0" />
-                        Sign out
+                        <span className="lg:hidden xl:inline">Sign out</span>
                     </button>
                 </div>
             </aside>
         </>
     )
 }
+
+export default memo(Sidebar)

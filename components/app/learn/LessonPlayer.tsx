@@ -173,9 +173,9 @@ export default function LessonPlayer({
                         max-w-[240px]
                         truncate
                         font-medium
-                        text-slate-500
+                        text-muted-foreground
                         transition-colors
-                        hover:text-emerald-700
+                        hover:text-primary
                     "
                 >
                     {courseTitle}
@@ -185,14 +185,14 @@ export default function LessonPlayer({
                     className="
                         h-4 w-4
                         shrink-0
-                        text-slate-300
+                        text-muted-foreground
                     "
                 />
 
                 <span className="
                     truncate
                     font-semibold
-                    text-slate-900
+                    text-foreground
                 ">
                     {lesson.title}
                 </span>
@@ -223,7 +223,7 @@ export default function LessonPlayer({
                             items-center justify-center
                             rounded-full
                             border border-emerald-100
-                            bg-white
+                            bg-card
                             shadow-sm
                         ">
                             <Trophy
@@ -235,11 +235,12 @@ export default function LessonPlayer({
                         </div>
 
                         <h2 className="
+                            font-display
                             text-xl
                             font-bold
-                            text-slate-900
+                            text-foreground
                         ">
-                            Course Completed! 🎉
+                            Course Completed!
                         </h2>
 
                         <p className="
@@ -247,7 +248,7 @@ export default function LessonPlayer({
                             max-w-md
                             text-sm
                             leading-relaxed
-                            text-slate-600
+                            text-muted-foreground
                         ">
                             Congratulations! You&apos;ve
                             completed{' '}
@@ -392,8 +393,8 @@ export default function LessonPlayer({
 
             <div className="
                 rounded-xl
-                border border-slate-200
-                bg-white
+                border border-border
+                bg-card
                 p-5
                 sm:p-6
             ">
@@ -415,16 +416,17 @@ export default function LessonPlayer({
                             font-semibold
                             uppercase
                             tracking-wide
-                            text-emerald-700
+                            text-primary
                         ">
                             Lesson
                         </div>
 
                         <h1 className="
+                            font-display
                             text-xl
                             font-bold
                             leading-tight
-                            text-slate-900
+                            text-foreground
                             sm:text-2xl
                         ">
                             {lesson.title}
@@ -434,7 +436,7 @@ export default function LessonPlayer({
                             <p className="
                                 mt-2
                                 text-sm
-                                text-slate-500
+                                text-muted-foreground
                             ">
                                 {Math.ceil(
                                     lesson.duration_s / 60
@@ -454,7 +456,7 @@ export default function LessonPlayer({
                             <p className="
                                 text-xl
                                 font-bold
-                                text-slate-900
+                                text-foreground
                             ">
                                 {Math.round(
                                     currentProgress
@@ -463,7 +465,7 @@ export default function LessonPlayer({
 
                             <p className="
                                 text-xs
-                                text-slate-500
+                                text-muted-foreground
                             ">
                                 Course progress
                             </p>
@@ -480,13 +482,13 @@ export default function LessonPlayer({
                             w-full
                             overflow-hidden
                             rounded-full
-                            bg-slate-100
+                            bg-muted
                         ">
                             <div
                                 className="
                                     h-full
                                     rounded-full
-                                    bg-emerald-600
+                                    bg-primary
                                     transition-all
                                     duration-500
                                 "
@@ -516,8 +518,8 @@ export default function LessonPlayer({
                 flex-col
                 gap-3
                 rounded-xl
-                border border-slate-200
-                bg-white
+                border border-border
+                bg-card
                 p-4
                 sm:flex-row
                 sm:items-center
@@ -539,9 +541,9 @@ export default function LessonPlayer({
                     disabled={!prevLesson}
                     className="
                         gap-1.5
-                        border-slate-200
-                        text-slate-700
-                        hover:border-slate-300
+                        border-border
+                        text-foreground
+                        hover:border-muted-foreground/40
                     "
                 >
                     <ChevronLeft className="h-4 w-4" />
@@ -562,11 +564,11 @@ export default function LessonPlayer({
                             className="
                                 min-w-[190px]
                                 gap-2
-                                bg-emerald-700
+                                bg-primary
                                 font-semibold
-                                text-white
+                                text-primary-foreground
                                 shadow-sm
-                                hover:bg-emerald-800
+                                hover:bg-primary/90
                             "
                         >
                             {marking ? (
@@ -600,12 +602,12 @@ export default function LessonPlayer({
                             <Badge className="
                                 gap-1.5
                                 border
-                                border-emerald-200
-                                bg-emerald-50
+                                border-primary/20
+                                bg-primary/10
                                 px-4 py-2
                                 text-sm
                                 font-semibold
-                                text-emerald-700
+                                text-primary
                             ">
                                 <CheckCircle
                                     className="
@@ -633,9 +635,9 @@ export default function LessonPlayer({
                     disabled={!nextLesson}
                     className="
                         gap-1.5
-                        border-slate-200
-                        text-slate-700
-                        hover:border-slate-300
+                        border-border
+                        text-foreground
+                        hover:border-muted-foreground/40
                     "
                 >
                     Next
@@ -652,11 +654,11 @@ export default function LessonPlayer({
                 <div className="
                     text-center
                     text-xs
-                    text-slate-400
+                    text-muted-foreground
                     lg:hidden
                 ">
                     {totalLessons > 0
-                        ? `Keep going — you're ${Math.round(
+                        ? `Keep going, you're ${Math.round(
                             currentProgress
                         )}% through the course`
                         : 'Keep learning to complete this course'}

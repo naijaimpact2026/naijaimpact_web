@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { fetchServiceById } from '@/lib/actions/services'
 import EditServiceForm from '@/components/app/services/EditServiceForm'
 
@@ -18,18 +18,9 @@ export default async function EditServicePage({ params }: EditServicePageProps)
     if (!service) notFound()
 
     // Only the provider may edit
-    const supabase = await createClient()
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { authUser, profile } = await getCurrentUser()
 
     if (!authUser) redirect('/auth/login')
-
-    const { data: profile } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_id', authUser.id)
-        .single()
 
     if (!profile || profile.id !== service.provider_id)
     {

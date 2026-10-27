@@ -1,10 +1,14 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { z } from 'zod'
-import bcrypt from 'bcryptjs'
+import { getCurrentUser } from '@/lib/supabase/auth'
+import { setWalletPin } from '@/lib/wallet-pin'
+import { rateLimit, RATE_LIMITED } from '@/lib/rate-limit'
 
 // ─── Validation schemas ───────────────────────────────────────────────────────
 
@@ -18,9 +22,13 @@ const onboardingSchema = z.object({
     .min(3, 'Username must be at least 3 characters')
     .max(30, 'Username must be 30 characters or fewer')
     .regex(
-      /^[a-z0-9_]+$/,
-      'Username may only contain lowercase letters, numbers, and underscores',
-    ),
+      /^[a-zA-Z0-9_]+$/,
+      'Username may only contain letters, numbers, and underscores',
+    )
+    .refine((v) => !v.toLowerCase().startsWith('user_'), {
+      message: 'Username cannot start with "user_". Please choose a personalized username.',
+    })
+    .transform((v) => v.toLowerCase()),
   bio: z
     .string()
     .max(160, 'Bio must be 160 characters or fewer')
@@ -28,6 +36,7 @@ const onboardingSchema = z.object({
     .or(z.literal('')),
   profession: z.string().max(100).optional().or(z.literal('')),
   avatar_url: z.string().url().optional().or(z.literal('')),
+  location: z.string().max(100).optional().or(z.literal('')),
 })
 
 const updateProfileSchema = z.object({
@@ -55,14 +64,6 @@ const updateNotificationsSchema = z.object({
   notifications_mentions: z.boolean(),
 })
 
-const setPinSchema = z.object({
-  pin: z
-    .string()
-    .length(6, 'PIN must be exactly 6 digits')
-    .regex(/^\d{6}$/, 'PIN must contain only digits'),
-  current_pin: z.string().optional(),
-})
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ActionResult<T = void> =
@@ -82,6 +83,7 @@ export type ActionResult<T = void> =
   bio?: string
   profession?: string
   avatar_url?: string
+  location?: string
 }): Promise<ActionResult> {
   const supabase = await createClient()
 
@@ -114,29 +116,44 @@ export type ActionResult<T = void> =
     bio,
     profession,
     avatar_url,
+    location,
   } = parsed.data
 
-  // 3. Check whether this user already has a profile
-  const { data: existingProfile, error: profileCheckError } = await supabase
+  // Use service client to query and write to users table to avoid RLS permission blocks on un-onboarded accounts
+  const db = process.env.SUPABASE_SERVICE_ROLE_KEY ? createServiceClient() : supabase
+
+  // 3. Check whether this user already has a profile (by auth_id, id, or email)
+  const cleanEmail = (user.email || '').trim().toLowerCase()
+
+  let existingProfile: { id: string; auth_id: string | null; username: string | null; email: string | null } | null = null
+
+  // Check by auth_id or id first
+  const { data: profileLookupData } = await db
     .from('users')
-    .select('id, auth_id, username')
-    .eq('auth_id', user.id)
+    .select('id, auth_id, username, email')
+    .or(`auth_id.eq.${user.id},id.eq.${user.id}`)
     .maybeSingle()
 
-  if (profileCheckError) {
-    console.error('Profile lookup error:', profileCheckError)
+  if (profileLookupData) {
+    existingProfile = profileLookupData
+  } else if (cleanEmail) {
+    // If not found, check by email
+    const { data: emailMatch } = await db
+      .from('users')
+      .select('id, auth_id, username, email')
+      .eq('email', cleanEmail)
+      .maybeSingle()
 
-    return {
-      success: false,
-      error: 'Unable to find your profile. Please try again.',
+    if (emailMatch) {
+      existingProfile = emailMatch
     }
   }
 
-  // 4. Check username uniqueness
-  const { data: existingUsername, error: usernameError } = await supabase
+  // 4. Check username uniqueness (case-insensitive)
+  const { data: existingUsername, error: usernameError } = await db
     .from('users')
-    .select('id, auth_id')
-    .eq('username', username)
+    .select('id, auth_id, username')
+    .ilike('username', username)
     .maybeSingle()
 
   if (usernameError) {
@@ -150,7 +167,9 @@ export type ActionResult<T = void> =
 
   if (
     existingUsername &&
-    existingUsername.auth_id !== user.id
+    existingUsername.auth_id !== user.id &&
+    existingUsername.id !== user.id &&
+    (!existingProfile || existingUsername.id !== existingProfile.id)
   ) {
     return {
       success: false,
@@ -161,56 +180,48 @@ export type ActionResult<T = void> =
   // 5. Data to save
   const profileData = {
     display_name,
+    fullname: display_name,
     username,
     bio: bio || null,
     profession: profession || null,
     avatar_url: avatar_url || null,
+    location: location || null,
     onboarded: true,
+    auth_id: user.id,
     updated_at: new Date().toISOString(),
   }
 
-  let updateError
-
-  // 6. Update existing profile
+  // 6. Update existing profile or create new one
   if (existingProfile) {
-    const result = await supabase
+    const { error: updateError } = await db
       .from('users')
       .update(profileData)
-      .eq('auth_id', user.id)
-
-    updateError = result.error
+      .eq('id', existingProfile.id)
 
     if (updateError) {
-      console.error('completeOnboarding insert error:', updateError)
-  
+      console.error('completeOnboarding update error:', updateError)
+
       return {
-          success: false,
-          error: `Profile creation failed: ${updateError.message}`,
+        success: false,
+        error: `Profile update failed: ${updateError.message}`,
       }
-  }
-  }
-
-  // 7. Create profile if it doesn't exist
-  else {
-    const result = await supabase
-    .from('users')
-    .insert({
-      id: user.id,
-      auth_id: user.id,
-      email: user.email ?? '',
-      fullname: display_name,
+    }
+  } else {
+    const { error: insertError } = await db
+      .from('users')
+      .upsert({
+        id: user.id,
+        email: cleanEmail,
         ...profileData,
-      })
+      }, { onConflict: 'id' })
 
-    updateError = result.error
+    if (insertError) {
+      console.error('completeOnboarding insert error:', insertError)
 
-    if (updateError) {
-      console.error('completeOnboarding insert error:', updateError)
-
-      if (updateError.code === '23505') {
+      if (insertError.code === '23505') {
         return {
           success: false,
-          error: 'That username is already taken. Please choose another.',
+          error: 'That username or account already exists. Please try signing in.',
         }
       }
 
@@ -222,12 +233,24 @@ export type ActionResult<T = void> =
   }
 
   // 8. Revalidate pages that display the profile
+  revalidatePath('/app')
   revalidatePath('/app/feed')
   revalidatePath('/app/profile')
   revalidatePath('/app/settings')
 
-  // 9. Redirect
-  redirect('/app/feed')
+  // Cache the "onboarded" flag in a cookie so middleware can skip the
+  // users.onboarded DB query on future navigations — this flag only ever
+  // flips false -> true, never back, so it's safe to cache indefinitely.
+  const cookieStore = await cookies()
+  cookieStore.set('onboarded', '1', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 365,
+  })
+
+  return { success: true }
 }
 /**
  * Updates display_name, bio, profession, and avatar_url for the current user.
@@ -279,66 +302,25 @@ export async function updateProfile(formData: {
 }
 
 /**
- * Sets or changes the 6-digit wallet PIN for the current user.
+ * Sets or changes the wallet PIN (4–6 digits, shared with the mobile app).
  * If the user already has a PIN, current_pin must be provided and correct.
- * Requirement: 10.8
  */
 export async function setPin(formData: {
   pin: string
   current_pin?: string
 }): Promise<ActionResult> {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
+  const { profile } = await getCurrentUser()
+  if (!profile) {
     return { success: false, error: 'You must be signed in to set a PIN.' }
   }
 
-  const parsed = setPinSchema.safeParse(formData)
-  if (!parsed.success) {
-    return { success: false, error: parsed.error.errors[0]?.message ?? 'Invalid PIN.' }
-  }
+  if (!(await rateLimit(`pin-set:${profile.id}`, 5, 900))) return { success: false, error: RATE_LIMITED }
 
-  // Fetch current PIN hash
-  const { data: profile, error: fetchError } = await supabase
-    .from('users')
-    .select('wallet_pin')
-    .eq('auth_id', user.id)
-    .single()
-
-  if (fetchError || !profile) {
-    return { success: false, error: 'Failed to fetch profile. Please try again.' }
-  }
-
-  // If user already has a PIN, verify the current one
-  if (profile.wallet_pin) {
-    if (!formData.current_pin) {
-      return { success: false, error: 'Please enter your current PIN to change it.' }
-    }
-    const match = await bcrypt.compare(formData.current_pin, profile.wallet_pin)
-    if (!match) {
-      return { success: false, error: 'Current PIN is incorrect.' }
-    }
-  }
-
-  // Hash the new PIN and save
-  const hash = await bcrypt.hash(formData.pin, 12)
-
-  const { error: updateError } = await supabase
-    .from('users')
-    .update({ wallet_pin: hash, updated_at: new Date().toISOString() })
-    .eq('auth_id', user.id)
-
-  if (updateError) {
-    console.error('setPin error:', updateError.message)
-    return { success: false, error: 'Failed to save PIN. Please try again.' }
-  }
+  const result = await setWalletPin(profile.id, formData.pin, formData.current_pin || undefined)
+  if (!result.ok) return { success: false, error: result.error }
 
   revalidatePath('/app/settings')
+  revalidatePath('/app/wallet')
 
   return { success: true }
 }
@@ -467,18 +449,7 @@ export async function followUser(targetId: string): Promise<ActionResult> {
     return { success: false, error: 'Failed to follow user. Please try again.' }
   }
 
-  // Insert notification — silent on failure
-  try {
-    await supabase.from('notifications').insert({
-      recipient_id: targetId,
-      actor_id: profile.id,
-      type: 'follow',
-      reference_id: profile.id,
-      read: false,
-    })
-  } catch (err) {
-    console.error('followUser notification error:', err)
-  }
+  // The follow notification is created by the on_new_follower_notification trigger.
 
   revalidatePath('/app/profile')
 
@@ -553,7 +524,7 @@ export async function fetchFollowList(
     // people who follow userId
     let query = supabase
       .from('user_follows')
-      .select('follower:users(id, username, display_name, avatar_url), created_at')
+      .select('follower:users!user_follows_follower_id_fkey(id, username, display_name, avatar_url), created_at')
       .eq('following_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit + 1)
@@ -574,7 +545,7 @@ export async function fetchFollowList(
     // people userId follows
     let query = supabase
       .from('user_follows')
-      .select('following:users(id, username, display_name, avatar_url), created_at')
+      .select('following:users!user_follows_following_id_fkey(id, username, display_name, avatar_url), created_at')
       .eq('follower_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit + 1)
@@ -638,4 +609,115 @@ export async function deleteAccount(): Promise<ActionResult> {
   await supabase.auth.signOut()
 
   redirect('/')
+}
+
+/**
+ * Block a user by targetId. Also removes any existing follow relationship
+ * in either direction so a blocked user can't keep showing up as a follower.
+ */
+export async function blockUser(targetId: string): Promise<ActionResult> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'You must be signed in to block users.' }
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    return { success: false, error: 'User profile not found.' }
+  }
+
+  if (profile.id === targetId) {
+    return { success: false, error: 'You cannot block yourself.' }
+  }
+
+  // block_user also removes follows in both directions (the other person's
+  // follow row isn't deletable by this user directly).
+  const { error: blockError } = await supabase.rpc('block_user', { p_target: targetId })
+
+  if (blockError) {
+    console.error('blockUser error:', blockError.message)
+    return { success: false, error: 'Failed to block user. Please try again.' }
+  }
+
+  revalidatePath('/app/feed')
+
+  return { success: true }
+}
+
+/**
+ * Unblock a previously-blocked user.
+ */
+export async function unblockUser(targetId: string): Promise<ActionResult> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return { success: false, error: 'You must be signed in to unblock users.' }
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    return { success: false, error: 'User profile not found.' }
+  }
+
+  const { error: unblockError } = await supabase.rpc('unblock_user', { p_target: targetId })
+
+  if (unblockError) {
+    console.error('unblockUser error:', unblockError.message)
+    return { success: false, error: 'Failed to unblock user. Please try again.' }
+  }
+
+  revalidatePath('/app/feed')
+
+  return { success: true }
+}
+
+/**
+ * IDs of users the current user has blocked — used to filter them out of
+ * feeds, search, and suggestions.
+ */
+export async function fetchBlockedUserIds(): Promise<string[]> {
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return []
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (!profile) return []
+
+  const { data } = await supabase
+    .from('blocked_users')
+    .select('blocked_id')
+    .eq('blocker_id', profile.id)
+    .limit(500)
+
+  return (data ?? []).map((row) => row.blocked_id)
 }

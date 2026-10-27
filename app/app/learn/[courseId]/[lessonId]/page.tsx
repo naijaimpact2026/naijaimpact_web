@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { fetchLesson, fetchCourseById } from '@/lib/actions/learn'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import LessonPlayer from '@/components/app/learn/LessonPlayer'
 import { Badge } from '@/components/ui/badge'
 import { BookOpen } from 'lucide-react'
@@ -19,13 +19,9 @@ export default async function LessonPage({ params }: LessonPageProps) {
     const { courseId, lessonId } = await params
 
     // Auth check
-    const supabase = await createClient()
+    const { authUser } = await getCurrentUser()
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    if (!authUser) {
         redirect('/auth/login')
     }
 

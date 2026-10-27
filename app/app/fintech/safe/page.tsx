@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import SafeDashboardClient from '@/components/app/fintech/safe/SafeDashboardClient'
 import type { SafeFlexibleAccount, SafeLockedSavings, SafeGoalSavings } from '@/lib/types'
 
@@ -6,11 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function SafePage()
 {
-    const supabase = await createClient()
-
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { authUser, profile } = await getCurrentUser()
 
     if (!authUser)
     {
@@ -20,13 +17,6 @@ export default async function SafePage()
             </main>
         )
     }
-
-    // Resolve platform users.id
-    const { data: profile } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_id', authUser.id)
-        .single()
 
     if (!profile)
     {
@@ -38,6 +28,7 @@ export default async function SafePage()
     }
 
     const userId = profile.id
+    const supabase = await createClient()
 
     // ── Fetch all savings data in parallel ───────────────────────────────────
     const [

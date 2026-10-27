@@ -30,7 +30,10 @@ import {
 
 import { fetchCourses } from '@/lib/actions/learn'
 import type { Course, Category } from '@/lib/actions/learn'
+import type { FundingAd } from '@/lib/actions/funding-ads'
 import { toPublicStorageUrl } from '@/lib/supabase-image'
+import LearnRightSidebar from './LearnRightSidebar'
+import CourseVideoPreview from './CourseVideoPreview'
 
 interface Props {
     initialCourses: Course[]
@@ -43,6 +46,13 @@ interface Props {
     completedCount: number
     inProgressCourseIds: string[]
     completedCourseIds: string[]
+    continueLearning: {
+        courseId: string
+        title: string
+        coverImageUrl: string | null
+        progress: number
+    } | null
+    featuredFunding: FundingAd[]
     view?: string | null
 }
 
@@ -165,6 +175,17 @@ const TRACKS: Track[] = [
     },
 ]
 
+// Explicit literal class pairs (not dynamic string concatenation) so
+// Tailwind's scanner picks them up — used for track/category icon tints.
+const TINT: Record<string, string> = {
+    emerald: 'bg-emerald/10 text-emerald',
+    blue: 'bg-cyan/10 text-cyan',
+    amber: 'bg-amber-500/10 text-amber-600',
+    violet: 'bg-purple-500/10 text-purple-600',
+    rose: 'bg-rose-500/10 text-rose-600',
+    orange: 'bg-orange-500/10 text-orange-600',
+}
+
 const PIPELINE = [
     {
         step: '01',
@@ -258,11 +279,14 @@ function CourseCard({
     enrolled: boolean
     completed: boolean
 }) {
+    const [isHovered, setIsHovered] = useState(false)
     const imageUrl = getCourseImage(course)
 
     return (
         <Link
             href={`/app/learn/${course.id}`}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
             className="
                 group
                 flex
@@ -271,65 +295,35 @@ function CourseCard({
                 overflow-hidden
                 rounded-xl
                 border
-                border-slate-200
-                bg-white
+                border-border
+                bg-card
                 shadow-sm
                 transition-all
-                duration-200
-                hover:-translate-y-0.5
-                hover:border-emerald-200
-                hover:shadow-md
+                duration-300
+                hover:-translate-y-1
+                hover:border-primary/40
+                hover:shadow-xl
             "
         >
-            {/* Cover */}
-
-            <div className="relative aspect-video overflow-hidden bg-slate-100">
-                {imageUrl ? (
-                    <Image
-                        src={imageUrl}
-                        alt={course.title}
-                        fill
-                        sizes="
-                            (max-width: 640px) 100vw,
-                            (max-width: 1024px) 50vw,
-                            25vw
-                        "
-                        className="
-                            object-cover
-                            transition-transform
-                            duration-300
-                            group-hover:scale-105
-                        "
-                    />
-                ) : (
-                    <div
-                        className="
-                            flex
-                            h-full
-                            w-full
-                            items-center
-                            justify-center
-                            bg-gradient-to-br
-                            from-emerald-50
-                            to-slate-100
-                        "
-                    >
-                        <GraduationCap className="h-12 w-12 text-emerald-300" />
-                    </div>
-                )}
+            {/* Cover / Video on Hover */}
+            <div className="relative aspect-video overflow-hidden bg-muted">
+                <CourseVideoPreview
+                    course={course}
+                    coverUrl={imageUrl}
+                    isHovered={isHovered}
+                />
 
                 {/* Free / price */}
-
-                <div className="absolute right-2 top-2">
+                <div className="absolute right-2 top-2 z-20">
                     <span
                         className="
                             rounded-md
-                            bg-white/95
+                            bg-card/95
                             px-2
                             py-1
                             text-xs
                             font-bold
-                            text-slate-900
+                            text-foreground
                             shadow-sm
                             backdrop-blur
                         "
@@ -341,16 +335,15 @@ function CourseCard({
                 </div>
 
                 {/* Completed */}
-
                 {completed && (
-                    <div className="absolute left-2 top-2">
+                    <div className="absolute left-2 top-2 z-20">
                         <span
                             className="
                                 inline-flex
                                 items-center
                                 gap-1
                                 rounded-md
-                                bg-emerald-600
+                                bg-primary
                                 px-2
                                 py-1
                                 text-[11px]
@@ -364,41 +357,6 @@ function CourseCard({
                         </span>
                     </div>
                 )}
-
-                {/* Play overlay */}
-
-                <div
-                    className="
-                        absolute
-                        inset-0
-                        flex
-                        items-center
-                        justify-center
-                        bg-slate-950/0
-                        transition-colors
-                        group-hover:bg-slate-950/20
-                    "
-                >
-                    <div
-                        className="
-                            flex
-                            h-11
-                            w-11
-                            scale-90
-                            items-center
-                            justify-center
-                            rounded-full
-                            bg-white
-                            opacity-0
-                            shadow-lg
-                            transition-all
-                            group-hover:scale-100
-                            group-hover:opacity-100
-                        "
-                    >
-                        <Play className="ml-0.5 h-5 w-5 fill-emerald-600 text-emerald-600" />
-                    </div>
-                </div>
             </div>
 
             {/* Content */}
@@ -413,7 +371,7 @@ function CourseCard({
                                 font-bold
                                 uppercase
                                 tracking-wide
-                                text-emerald-700
+                                text-primary
                             "
                         >
                             {course.category_name}
@@ -427,12 +385,12 @@ function CourseCard({
                             className="
                                 shrink-0
                                 rounded-full
-                                bg-emerald-50
+                                bg-primary/10
                                 px-2
                                 py-0.5
                                 text-[10px]
                                 font-semibold
-                                text-emerald-700
+                                text-primary
                             "
                         >
                             In progress
@@ -447,9 +405,9 @@ function CourseCard({
                         text-sm
                         font-bold
                         leading-5
-                        text-slate-900
+                        text-foreground
                         transition-colors
-                        group-hover:text-emerald-700
+                        group-hover:text-primary
                     "
                 >
                     {course.title}
@@ -462,7 +420,7 @@ function CourseCard({
                             line-clamp-2
                             text-xs
                             leading-5
-                            text-slate-500
+                            text-muted-foreground
                         "
                     >
                         {course.description}
@@ -481,13 +439,13 @@ function CourseCard({
                                     items-center
                                     justify-center
                                     rounded-full
-                                    bg-slate-100
+                                    bg-muted
                                 "
                             >
-                                <Users className="h-3.5 w-3.5 text-slate-500" />
+                                <Users className="h-3.5 w-3.5 text-muted-foreground" />
                             </div>
 
-                            <span className="truncate text-xs text-slate-500">
+                            <span className="truncate text-xs text-muted-foreground">
                                 {course.instructor?.display_name ??
                                     'Hubnovo Instructor'}
                             </span>
@@ -498,10 +456,10 @@ function CourseCard({
                                 h-4
                                 w-4
                                 shrink-0
-                                text-slate-300
+                                text-muted-foreground
                                 transition-transform
                                 group-hover:translate-x-0.5
-                                group-hover:text-emerald-600
+                                group-hover:text-primary
                             "
                         />
                     </div>
@@ -518,17 +476,17 @@ function SkeletonCard() {
                 overflow-hidden
                 rounded-xl
                 border
-                border-slate-200
-                bg-white
+                border-border
+                bg-card
             "
         >
-            <div className="aspect-video animate-pulse bg-slate-100" />
+            <div className="aspect-video animate-pulse bg-muted" />
 
             <div className="space-y-3 p-4">
-                <div className="h-3 w-20 animate-pulse rounded bg-slate-100" />
-                <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
-                <div className="h-4 w-3/4 animate-pulse rounded bg-slate-100" />
-                <div className="h-3 w-1/2 animate-pulse rounded bg-slate-100" />
+                <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+                <div className="h-4 w-full animate-pulse rounded bg-muted" />
+                <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
             </div>
         </div>
     )
@@ -545,6 +503,8 @@ export default function LearnHubHome({
     completedCount,
     inProgressCourseIds,
     completedCourseIds,
+    continueLearning,
+    featuredFunding,
     view,
 }: Props) {
     const [courses, setCourses] = useState<Course[]>(initialCourses)
@@ -590,6 +550,17 @@ export default function LearnHubHome({
             courseMatchesSearch(course, search)
         )
     }, [courses, activeTrack, search])
+
+    // Real course counts per track — no fabricated numbers.
+    const trackCourseCounts = useMemo(() => {
+        const counts: Record<string, number> = {}
+        for (const track of TRACKS) {
+            counts[track.id] = courses.filter((course) =>
+                courseMatchesTrack(course, track)
+            ).length
+        }
+        return counts
+    }, [courses])
 
     const myCourses = useMemo(() => {
         return courses.filter(
@@ -646,231 +617,13 @@ export default function LearnHubHome({
     }
 
     return (
-        <div className="min-h-screen bg-slate-50">
-
-            {/* ─────────────────────────────────────────────────────
-                TOP LEARNING NAV
-            ───────────────────────────────────────────────────── */}
-
-            <div className="border-b border-slate-200 bg-white">
-                <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
-                    <div
-                        className="
-                            flex
-                            min-h-16
-                            flex-wrap
-                            items-center
-                            gap-4
-                            py-3
-                        "
-                    >
-                        <Link
-                            href="/app/learn"
-                            className="flex shrink-0 items-center gap-2"
-                        >
-                            <div
-                                className="
-                                    flex
-                                    h-9
-                                    w-9
-                                    items-center
-                                    justify-center
-                                    rounded-lg
-                                    bg-emerald-600
-                                "
-                            >
-                                <GraduationCap className="h-5 w-5 text-white" />
-                            </div>
-
-                            <div className="hidden sm:block">
-                                <p className="text-sm font-extrabold text-slate-900">
-                                    Hubnovo
-                                </p>
-
-                                <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600">
-                                    Learn
-                                </p>
-                            </div>
-                        </Link>
-
-                        <button
-                            type="button"
-                            onClick={() => setView('catalogue')}
-                            className="
-                                hidden
-                                items-center
-                                gap-1.5
-                                text-sm
-                                font-semibold
-                                text-slate-600
-                                hover:text-emerald-700
-                                lg:flex
-                            "
-                        >
-                            Explore
-                            <ChevronRight className="h-3.5 w-3.5 rotate-90" />
-                        </button>
-
-                        <div
-                            className="
-                            relative
-                            w-full
-                            min-w-0
-                            flex-1
-                            sm:max-w-md
-                        "
-                        >
-                            <Search
-                                className="
-                                    pointer-events-none
-                                    absolute
-                                    left-3
-                                    top-1/2
-                                    h-4
-                                    w-4
-                                    -translate-y-1/2
-                                    text-slate-400
-                                "
-                            />
-
-                            <input
-                                value={search}
-                                onChange={(event) =>
-                                    setSearch(event.target.value)
-                                }
-                                placeholder="What do you want to learn?"
-                                className="
-                                    h-10
-                                    w-full
-                                    rounded-lg
-                                    border
-                                    border-slate-200
-                                    bg-slate-50
-                                    pl-9
-                                    pr-4
-                                    text-sm
-                                    text-slate-900
-                                    outline-none
-                                    transition
-                                    placeholder:text-slate-400
-                                    focus:border-emerald-400
-                                    focus:bg-white
-                                    focus:ring-2
-                                    focus:ring-emerald-100
-                                "
-                            />
-                        </div>
-
-                        <nav className="hidden items-center gap-5 md:flex">
-                            <button
-                                type="button"
-                                onClick={() => setView('my-courses')}
-                                className="
-                                    text-sm
-                                    font-semibold
-                                    text-slate-600
-                                    hover:text-emerald-700
-                                "
-                            >
-                                My Learning
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setView('tracks')}
-                                className="
-                                    text-sm
-                                    font-semibold
-                                    text-slate-600
-                                    hover:text-emerald-700
-                                "
-                            >
-                                Career Tracks
-                            </button>
-                        </nav>
-
-                        <div className="ml-auto flex items-center gap-3">
-                            <Link
-                                href="/app/learn/create"
-                                className="
-                                    hidden
-                                    items-center
-                                    gap-1.5
-                                    rounded-lg
-                                    px-3
-                                    py-2
-                                    text-sm
-                                    font-semibold
-                                    text-slate-600
-                                    hover:bg-slate-50
-                                    hover:text-emerald-700
-                                    sm:flex
-                                "
-                            >
-                                <Plus className="h-4 w-4" />
-                                Teach
-                            </Link>
-
-                            <button
-                                type="button"
-                                onClick={() => setView('streak')}
-                                className="
-                                    hidden
-                                    items-center
-                                    gap-1
-                                    rounded-lg
-                                    px-2
-                                    py-2
-                                    text-sm
-                                    font-semibold
-                                    text-orange-600
-                                    hover:bg-orange-50
-                                    sm:flex
-                                "
-                            >
-                                <Flame className="h-4 w-4" />
-                                Streak
-                            </button>
-
-                            <div
-                                className="
-                                    flex
-                                    h-9
-                                    w-9
-                                    items-center
-                                    justify-center
-                                    overflow-hidden
-                                    rounded-full
-                                    bg-emerald-100
-                                    text-xs
-                                    font-bold
-                                    text-emerald-700
-                                "
-                            >
-                                {avatarUrl ? (
-                                    <Image
-                                        src={toPublicStorageUrl(avatarUrl)}
-                                        alt={displayName}
-                                        width={36}
-                                        height={36}
-                                        className="h-full w-full object-cover"
-                                    />
-                                ) : (
-                                    displayName
-                                        .slice(0, 1)
-                                        .toUpperCase()
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div className="min-h-screen bg-background">
 
             {/* ─────────────────────────────────────────────────────
                 HERO
             ───────────────────────────────────────────────────── */}
 
-            <section className="border-b border-slate-200 bg-white">
+            <section className="border-b border-border bg-card">
                 <div
                     className="
                         mx-auto
@@ -898,12 +651,12 @@ export default function LearnHubHome({
                                     items-center
                                     gap-2
                                     rounded-full
-                                    bg-emerald-50
+                                    bg-primary/10
                                     px-3
                                     py-1.5
                                     text-xs
                                     font-bold
-                                    text-emerald-700
+                                    text-primary
                                 "
                             >
                                 <Flame className="h-3.5 w-3.5" />
@@ -912,16 +665,17 @@ export default function LearnHubHome({
 
                             <h1
                                 className="
+                                    font-display
                                     text-2xl
-                                    font-black
+                                    font-extrabold
                                     tracking-tight
-                                    text-slate-950
+                                    text-foreground
                                     sm:text-4xl
                                     lg:text-5xl
                                 "
                             >
                                 Keep learning,{' '}
-                                <span className="text-emerald-600">
+                                <span className="text-primary">
                                     {displayName}
                                 </span>
                                 .
@@ -933,7 +687,7 @@ export default function LearnHubHome({
                                     max-w-2xl
                                     text-base
                                     leading-7
-                                    text-slate-600
+                                    text-muted-foreground
                                     sm:text-lg
                                 "
                             >
@@ -955,14 +709,15 @@ export default function LearnHubHome({
                                         justify-center
                                         gap-2
                                         rounded-lg
-                                        bg-emerald-600
+                                        bg-primary
                                         px-5
                                         py-3
                                         text-sm
                                         font-bold
                                         text-white
                                         shadow-sm
-                                        hover:bg-emerald-700
+                                        hover:bg-primary/90
+                                        animate-heartbeat
                                         sm:w-auto
                                     "
                                 >
@@ -983,15 +738,15 @@ export default function LearnHubHome({
                                         gap-2
                                         rounded-lg
                                         border
-                                        border-slate-200
-                                        bg-white
+                                        border-border
+                                        bg-card
                                         px-5
                                         py-3
                                         text-sm
                                         font-bold
-                                        text-slate-700
-                                        hover:border-emerald-200
-                                        hover:text-emerald-700
+                                        text-foreground
+                                        hover:border-primary/30
+                                        hover:text-primary
                                         sm:w-auto
                                     "
                                 >
@@ -1016,24 +771,24 @@ export default function LearnHubHome({
                                 className="
                                     rounded-xl
                                     border
-                                    border-slate-200
-                                    bg-white
+                                    border-border
+                                    bg-card
                                     p-4
                                     text-left
                                     shadow-sm
                                     transition
-                                    hover:border-emerald-200
+                                    hover:border-primary/30
                                     hover:shadow-md
                                     sm:p-5
                                 "
                             >
-                                <BookOpen className="h-5 w-5 text-emerald-600" />
+                                <BookOpen className="h-5 w-5 text-primary" />
 
-                                <p className="mt-4 text-2xl font-black text-slate-900">
+                                <p className="mt-4 text-2xl font-black text-foreground">
                                     {enrolledCount}
                                 </p>
 
-                                <p className="text-xs font-medium text-slate-500">
+                                <p className="text-xs font-medium text-muted-foreground">
                                     Courses enrolled
                                 </p>
                             </button>
@@ -1046,24 +801,24 @@ export default function LearnHubHome({
                                 className="
                                     rounded-xl
                                     border
-                                    border-slate-200
-                                    bg-white
+                                    border-border
+                                    bg-card
                                     p-4
                                     text-left
                                     shadow-sm
                                     transition
-                                    hover:border-emerald-200
+                                    hover:border-primary/30
                                     hover:shadow-md
                                     sm:p-5
                                 "
                             >
                                 <Award className="h-5 w-5 text-amber-500" />
 
-                                <p className="mt-4 text-2xl font-black text-slate-900">
+                                <p className="mt-4 text-2xl font-black text-foreground">
                                     {completedCount}
                                 </p>
 
-                                <p className="text-xs font-medium text-slate-500">
+                                <p className="text-xs font-medium text-muted-foreground">
                                     Certificates earned
                                 </p>
                             </button>
@@ -1073,21 +828,21 @@ export default function LearnHubHome({
                                     col-span-2
                                     rounded-xl
                                     border
-                                    border-slate-200
-                                    bg-slate-50
+                                    border-border
+                                    bg-muted
                                     p-4
                                 "
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <Target className="h-4 w-4 text-emerald-600" />
+                                        <Target className="h-4 w-4 text-primary" />
 
-                                        <span className="text-xs font-bold text-slate-700">
+                                        <span className="text-xs font-bold text-foreground">
                                             Keep your learning momentum
                                         </span>
                                     </div>
 
-                                    <span className="text-xs font-bold text-emerald-700">
+                                    <span className="text-xs font-bold text-primary">
                                         {completedCount > 0
                                             ? 'Great work'
                                             : 'Start today'}
@@ -1104,6 +859,8 @@ export default function LearnHubHome({
             ───────────────────────────────────────────────────── */}
 
             <main className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 lg:px-8">
+                <div className="flex gap-6 items-start">
+                <div className="flex-1 min-w-0">
 
                 {/* View navigation */}
 
@@ -1114,7 +871,7 @@ export default function LearnHubHome({
                         gap-1
                         overflow-x-auto
                         border-b
-                        border-slate-200
+                        border-border
                     "
                 >
                     {[
@@ -1144,14 +901,24 @@ export default function LearnHubHome({
                                 sm:text-sm
                                 ${
                                     activeView === id
-                                        ? 'border-emerald-600 text-emerald-700'
-                                        : 'border-transparent text-slate-500 hover:text-slate-900'
+                                        ? 'border-primary text-primary'
+                                        : 'border-transparent text-muted-foreground hover:text-foreground'
                                 }
                             `}
                         >
                             {label}
                         </button>
                     ))}
+                </div>
+
+                <div className="relative mb-8 max-w-md">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                        placeholder="Search courses, skills, instructors, or topics..."
+                        className="h-10 w-full rounded-lg border border-border bg-muted pl-9 pr-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:ring-2 focus:ring-primary/20"
+                    />
                 </div>
 
                 {/* ─────────────────────────────────────────────
@@ -1163,20 +930,20 @@ export default function LearnHubHome({
                         <section className="mb-8">
                             <div className="flex items-end justify-between gap-4">
                                 <div>
-                                    <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-primary">
                                         Learning marketplace
                                     </p>
 
-                                    <h2 className="mt-1 text-2xl font-black text-slate-950">
+                                    <h2 className="mt-1 text-2xl font-display font-extrabold text-foreground">
                                         Explore courses
                                     </h2>
 
-                                    <p className="mt-1 text-sm text-slate-500">
+                                    <p className="mt-1 text-sm text-muted-foreground">
                                         Learn practical skills from experienced instructors.
                                     </p>
                                 </div>
 
-                                <span className="hidden text-sm text-slate-400 sm:block">
+                                <span className="hidden text-sm text-muted-foreground sm:block">
                                     {filteredCourses.length} courses
                                 </span>
                             </div>
@@ -1185,8 +952,9 @@ export default function LearnHubHome({
                         {/* Categories */}
 
                         <div className="mb-8 flex gap-2 overflow-x-auto pb-1">
-                            <button
-                                type="button"
+                            <Link
+                                href="/app/learn?view=catalogue"
+                                scroll={false}
                                 onClick={() => setActiveTrack(null)}
                                 className={`
                                     shrink-0
@@ -1198,40 +966,38 @@ export default function LearnHubHome({
                                     font-bold
                                     transition
                                     ${
-                                        !activeTrack
-                                            ? 'border-emerald-600 bg-emerald-600 text-white'
-                                            : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700'
+                                        !activeTrack && !activeCategoryId
+                                            ? 'border-primary bg-primary text-white'
+                                            : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-primary'
                                     }
                                 `}
                             >
                                 All
-                            </button>
+                            </Link>
 
                             {categories.map((category) => (
-                                <button
+                                <Link
                                     key={category.id}
-                                    type="button"
-                                    onClick={() => {
-                                        setActiveTrack(null)
-                                    }}
-                                    className="
+                                    href={`/app/learn?category=${category.id}&view=catalogue`}
+                                    scroll={false}
+                                    className={`
                                         shrink-0
                                         rounded-full
                                         border
-                                        border-slate-200
-                                        bg-white
                                         px-4
                                         py-2
                                         text-xs
                                         font-bold
-                                        text-slate-600
                                         transition
-                                        hover:border-emerald-300
-                                        hover:text-emerald-700
-                                    "
+                                        ${
+                                            activeCategoryId === category.id
+                                                ? 'border-primary bg-primary text-white'
+                                                : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-primary'
+                                        }
+                                    `}
                                 >
                                     {category.name}
-                                </button>
+                                </Link>
                             ))}
                         </div>
 
@@ -1242,10 +1008,9 @@ export default function LearnHubHome({
                                 className="
                                     grid
                                     grid-cols-1
-                                    gap-5
+                                    gap-6
                                     sm:grid-cols-2
                                     lg:grid-cols-3
-                                    xl:grid-cols-4
                                 "
                             >
                                 {filteredCourses.map((course) => (
@@ -1267,20 +1032,20 @@ export default function LearnHubHome({
                                     rounded-2xl
                                     border
                                     border-dashed
-                                    border-slate-300
-                                    bg-white
+                                    border-border
+                                    bg-card
                                     px-6
                                     py-16
                                     text-center
                                 "
                             >
-                                <Search className="mx-auto h-8 w-8 text-slate-300" />
+                                <Search className="mx-auto h-8 w-8 text-muted-foreground" />
 
-                                <h3 className="mt-4 text-base font-bold text-slate-900">
+                                <h3 className="mt-4 text-base font-bold text-foreground">
                                     No courses found
                                 </h3>
 
-                                <p className="mt-1 text-sm text-slate-500">
+                                <p className="mt-1 text-sm text-muted-foreground">
                                     Try another search or explore a different learning track.
                                 </p>
 
@@ -1294,8 +1059,8 @@ export default function LearnHubHome({
                                         mt-5
                                         text-sm
                                         font-bold
-                                        text-emerald-700
-                                        hover:text-emerald-800
+                                        text-primary
+                                        hover:text-primary
                                     "
                                 >
                                     Clear filters
@@ -1315,16 +1080,16 @@ export default function LearnHubHome({
                                         gap-2
                                         rounded-lg
                                         border
-                                        border-slate-200
-                                        bg-white
+                                        border-border
+                                        bg-card
                                         px-5
                                         py-2.5
                                         text-sm
                                         font-bold
-                                        text-slate-700
+                                        text-foreground
                                         shadow-sm
-                                        hover:border-emerald-200
-                                        hover:text-emerald-700
+                                        hover:border-primary/30
+                                        hover:text-primary
                                         disabled:cursor-not-allowed
                                         disabled:opacity-50
                                     "
@@ -1344,8 +1109,8 @@ export default function LearnHubHome({
                                 overflow-hidden
                                 rounded-2xl
                                 border
-                                border-emerald-100
-                                bg-white
+                                border-primary/15
+                                bg-card
                             "
                         >
                             <div
@@ -1354,16 +1119,16 @@ export default function LearnHubHome({
                                     lg:grid-cols-[1fr_1.1fr]
                                 "
                             >
-                                <div className="bg-emerald-700 p-6 text-white sm:p-10">
+                                <div className="bg-primary/90 p-6 text-white sm:p-10">
                                     <span className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold">
                                         Learn-to-Earn
                                     </span>
 
-                                    <h2 className="mt-4 text-2xl font-black sm:text-3xl">
+                                    <h2 className="mt-4 text-2xl font-display font-extrabold sm:text-3xl">
                                         Turn learning into opportunity.
                                     </h2>
 
-                                    <p className="mt-4 max-w-lg text-sm leading-6 text-emerald-50">
+                                    <p className="mt-4 max-w-lg text-sm leading-6 text-white/85">
                                     Hubnovo connects practical learning
                                         with recognition, skills development and
                                         real-world impact.
@@ -1382,8 +1147,8 @@ export default function LearnHubHome({
                                                         justify-center
                                                         rounded-full
                                                         border-2
-                                                        border-emerald-700
-                                                        bg-emerald-500
+                                                        border-white/20
+                                                        bg-secondary
                                                     "
                                                 >
                                                     <Users className="h-3.5 w-3.5" />
@@ -1391,7 +1156,7 @@ export default function LearnHubHome({
                                             ))}
                                         </div>
 
-                                        <span className="text-xs font-semibold text-emerald-50">
+                                        <span className="text-xs font-semibold text-white/85">
                                             Learn with a growing community
                                         </span>
                                     </div>
@@ -1406,7 +1171,7 @@ export default function LearnHubHome({
                                                 key={item.step}
                                                 className="
                                                     border-b
-                                                    border-slate-100
+                                                    border-border
                                                     p-5
                                                     last:border-b-0
                                                     sm:border-r
@@ -1415,18 +1180,18 @@ export default function LearnHubHome({
                                                 "
                                             >
                                                 <div className="flex items-center justify-between">
-                                                    <Icon className="h-5 w-5 text-emerald-600" />
+                                                    <Icon className="h-5 w-5 text-primary" />
 
-                                                    <span className="text-xs font-black text-slate-300">
+                                                    <span className="text-xs font-black text-muted-foreground">
                                                         {item.step}
                                                     </span>
                                                 </div>
 
-                                                <h3 className="mt-5 text-sm font-black text-slate-900">
+                                                <h3 className="mt-5 text-sm font-black text-foreground">
                                                     {item.title}
                                                 </h3>
 
-                                                <p className="mt-2 text-xs leading-5 text-slate-500">
+                                                <p className="mt-2 text-xs leading-5 text-muted-foreground">
                                                     {item.description}
                                                 </p>
                                             </div>
@@ -1445,15 +1210,15 @@ export default function LearnHubHome({
                 {activeView === 'my-courses' && (
                     <section>
                         <div className="mb-8">
-                            <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">
+                            <p className="text-xs font-bold uppercase tracking-wider text-primary">
                                 Your learning
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-slate-950">
+                            <h2 className="mt-1 text-2xl font-display font-extrabold text-foreground">
                                 My Courses
                             </h2>
 
-                            <p className="mt-1 text-sm text-slate-500">
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 Continue where you left off.
                             </p>
                         </div>
@@ -1463,10 +1228,9 @@ export default function LearnHubHome({
                                 className="
                                     grid
                                     grid-cols-1
-                                    gap-5
+                                    gap-6
                                     sm:grid-cols-2
                                     lg:grid-cols-3
-                                    xl:grid-cols-4
                                 "
                             >
                                 {myCourses.map((course) => (
@@ -1483,14 +1247,14 @@ export default function LearnHubHome({
                                 ))}
                             </div>
                         ) : (
-                            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-                                <BookOpen className="mx-auto h-8 w-8 text-slate-300" />
+                            <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
+                                <BookOpen className="mx-auto h-8 w-8 text-muted-foreground" />
 
-                                <h3 className="mt-4 text-base font-bold text-slate-900">
+                                <h3 className="mt-4 text-base font-bold text-foreground">
                                     Your learning list is empty
                                 </h3>
 
-                                <p className="mt-1 text-sm text-slate-500">
+                                <p className="mt-1 text-sm text-muted-foreground">
                                     Enrol in a course to start building your skills.
                                 </p>
 
@@ -1499,7 +1263,7 @@ export default function LearnHubHome({
                                     onClick={() =>
                                         setView('catalogue')
                                     }
-                                    className="mt-5 text-sm font-bold text-emerald-700"
+                                    className="mt-5 text-sm font-bold text-primary"
                                 >
                                     Browse courses
                                 </button>
@@ -1515,15 +1279,15 @@ export default function LearnHubHome({
                 {activeView === 'tracks' && (
                     <section>
                         <div className="mb-8">
-                            <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">
+                            <p className="text-xs font-bold uppercase tracking-wider text-primary">
                                 Guided learning
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-slate-950">
+                            <h2 className="mt-1 text-2xl font-display font-extrabold text-foreground">
                                 Career Tracks
                             </h2>
 
-                            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
                                 Follow a focused path based on the skills you
                                 want to build.
                             </p>
@@ -1545,40 +1309,36 @@ export default function LearnHubHome({
                                             group
                                             rounded-2xl
                                             border
-                                            border-slate-200
-                                            bg-white
+                                            border-border
+                                            bg-card
                                             p-6
                                             text-left
                                             shadow-sm
                                             transition-all
                                             hover:-translate-y-0.5
-                                            hover:border-emerald-200
+                                            hover:border-primary/30
                                             hover:shadow-md
                                         "
                                     >
                                         <div
-                                            className="
-                                                flex
-                                                h-11
-                                                w-11
-                                                items-center
-                                                justify-center
-                                                rounded-xl
-                                                bg-emerald-50
-                                            "
+                                            className={`flex h-11 w-11 items-center justify-center rounded-xl ${TINT[track.color] ?? 'bg-primary/10 text-primary'}`}
                                         >
-                                            <Icon className="h-5 w-5 text-emerald-600" />
+                                            <Icon className="h-5 w-5" />
                                         </div>
 
-                                        <h3 className="mt-5 text-base font-black text-slate-900 group-hover:text-emerald-700">
+                                        <h3 className="mt-5 text-base font-black text-foreground group-hover:text-primary">
                                             {track.title}
                                         </h3>
 
-                                        <p className="mt-2 text-sm leading-6 text-slate-500">
+                                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
                                             {track.description}
                                         </p>
 
-                                        <div className="mt-5 flex items-center gap-1 text-xs font-bold text-emerald-700">
+                                        <p className="mt-3 text-xs font-semibold text-muted-foreground">
+                                            {trackCourseCounts[track.id] ?? 0} course{trackCourseCounts[track.id] === 1 ? '' : 's'}
+                                        </p>
+
+                                        <div className="mt-3 flex items-center gap-1 text-xs font-bold text-primary">
                                             Explore track
                                             <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                                         </div>
@@ -1596,54 +1356,51 @@ export default function LearnHubHome({
                 {activeView === 'categories' && (
                     <section>
                         <div className="mb-8">
-                            <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">
+                            <p className="text-xs font-bold uppercase tracking-wider text-primary">
                                 Browse
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-slate-950">
+                            <h2 className="mt-1 text-2xl font-display font-extrabold text-foreground">
                                 Course Categories
                             </h2>
                         </div>
 
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {categories.map((category) => (
-                                <button
+                        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                            {categories.map((category, i) => (
+                                <Link
                                     key={category.id}
-                                    type="button"
-                                    onClick={() => {
-                                        setActiveView('catalogue')
-                                    }}
+                                    href={`/app/learn?category=${category.id}&view=catalogue`}
                                     className="
                                         rounded-xl
                                         border
-                                        border-slate-200
-                                        bg-white
+                                        border-border
+                                        bg-card
                                         p-5
                                         text-left
                                         shadow-sm
                                         transition
-                                        hover:border-emerald-200
+                                        hover:border-primary/30
                                         hover:shadow-md
                                     "
                                 >
                                     <div className="flex items-center justify-between">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
-                                            <BookOpen className="h-5 w-5 text-emerald-600" />
+                                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${Object.values(TINT)[i % Object.values(TINT).length]}`}>
+                                            <BookOpen className="h-5 w-5" />
                                         </div>
 
-                                        <ChevronRight className="h-4 w-4 text-slate-300" />
+                                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                     </div>
 
-                                    <h3 className="mt-4 text-sm font-bold text-slate-900">
+                                    <h3 className="mt-4 text-sm font-bold text-foreground">
                                         {category.name}
                                     </h3>
 
                                     {category.description && (
-                                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+                                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
                                             {category.description}
                                         </p>
                                     )}
-                                </button>
+                                </Link>
                             ))}
                         </div>
                     </section>
@@ -1660,7 +1417,7 @@ export default function LearnHubHome({
                                 Achievements
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-slate-950">
+                            <h2 className="mt-1 text-2xl font-display font-extrabold text-foreground">
                                 My Certificates
                             </h2>
                         </div>
@@ -1673,25 +1430,25 @@ export default function LearnHubHome({
                                         className="
                                             rounded-2xl
                                             border
-                                            border-emerald-100
-                                            bg-white
+                                            border-primary/15
+                                            bg-card
                                             p-6
                                             shadow-sm
                                         "
                                     >
                                         <div className="flex items-start justify-between">
-                                            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50">
-                                                <Award className="h-6 w-6 text-emerald-600" />
+                                            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
+                                                <Award className="h-6 w-6 text-primary" />
                                             </div>
 
-                                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                                            <CheckCircle2 className="h-5 w-5 text-primary" />
                                         </div>
 
-                                        <h3 className="mt-5 text-base font-black text-slate-900">
+                                        <h3 className="mt-5 text-base font-black text-foreground">
                                             {course.title}
                                         </h3>
 
-                                        <p className="mt-1 text-xs text-slate-500">
+                                        <p className="mt-1 text-xs text-muted-foreground">
                                             Course completion certificate
                                         </p>
 
@@ -1704,7 +1461,7 @@ export default function LearnHubHome({
                                                 gap-1
                                                 text-xs
                                                 font-bold
-                                                text-emerald-700
+                                                text-primary
                                             "
                                         >
                                             View course
@@ -1714,14 +1471,14 @@ export default function LearnHubHome({
                                 ))}
                             </div>
                         ) : (
-                            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-                                <Award className="mx-auto h-8 w-8 text-slate-300" />
+                            <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
+                                <Award className="mx-auto h-8 w-8 text-muted-foreground" />
 
-                                <h3 className="mt-4 text-base font-bold text-slate-900">
+                                <h3 className="mt-4 text-base font-bold text-foreground">
                                     No certificates yet
                                 </h3>
 
-                                <p className="mt-1 text-sm text-slate-500">
+                                <p className="mt-1 text-sm text-muted-foreground">
                                     Complete a course to earn your first certificate.
                                 </p>
 
@@ -1730,7 +1487,7 @@ export default function LearnHubHome({
                                     onClick={() =>
                                         setView('catalogue')
                                     }
-                                    className="mt-5 text-sm font-bold text-emerald-700"
+                                    className="mt-5 text-sm font-bold text-primary"
                                 >
                                     Explore courses
                                 </button>
@@ -1746,23 +1503,23 @@ export default function LearnHubHome({
                 {activeView === 'instructors' && (
                     <section>
                         <div className="mb-8">
-                            <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">
+                            <p className="text-xs font-bold uppercase tracking-wider text-primary">
                                 Learn from practitioners
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-slate-950">
+                            <h2 className="mt-1 text-2xl font-display font-extrabold text-foreground">
                                 Our Instructors
                             </h2>
                         </div>
 
-                        <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-                            <Users className="mx-auto h-8 w-8 text-slate-300" />
+                        <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
+                            <Users className="mx-auto h-8 w-8 text-muted-foreground" />
 
-                            <h3 className="mt-4 text-base font-bold text-slate-900">
+                            <h3 className="mt-4 text-base font-bold text-foreground">
                                 Instructor profiles coming soon
                             </h3>
 
-                            <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-500">
+                            <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-muted-foreground">
                                 Discover experienced professionals and
                                 practitioners teaching practical skills on
                                 Hubnovo.
@@ -1782,59 +1539,59 @@ export default function LearnHubHome({
                                 Learning momentum
                             </p>
 
-                            <h2 className="mt-1 text-2xl font-black text-slate-950">
+                            <h2 className="mt-1 text-2xl font-display font-extrabold text-foreground">
                                 Your Learning Streak
                             </h2>
                         </div>
 
                         <div className="grid gap-5 md:grid-cols-3">
-                            <div className="rounded-2xl border border-orange-100 bg-white p-7 shadow-sm">
+                            <div className="rounded-2xl border border-orange-100 bg-card p-7 shadow-sm">
                                 <Flame className="h-7 w-7 text-orange-500" />
 
-                                <p className="mt-5 text-3xl font-black text-slate-900">
+                                <p className="mt-5 text-3xl font-black text-foreground">
                                     0
                                 </p>
 
-                                <p className="text-sm text-slate-500">
+                                <p className="text-sm text-muted-foreground">
                                     Current streak
                                 </p>
                             </div>
 
-                            <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
-                                <Target className="h-7 w-7 text-emerald-600" />
+                            <div className="rounded-2xl border border-border bg-card p-7 shadow-sm">
+                                <Target className="h-7 w-7 text-primary" />
 
-                                <p className="mt-5 text-3xl font-black text-slate-900">
+                                <p className="mt-5 text-3xl font-black text-foreground">
                                     {completedCount}
                                 </p>
 
-                                <p className="text-sm text-slate-500">
+                                <p className="text-sm text-muted-foreground">
                                     Courses completed
                                 </p>
                             </div>
 
-                            <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+                            <div className="rounded-2xl border border-border bg-card p-7 shadow-sm">
                                 <BarChart2 className="h-7 w-7 text-blue-600" />
 
-                                <p className="mt-5 text-3xl font-black text-slate-900">
+                                <p className="mt-5 text-3xl font-black text-foreground">
                                     {enrolledCount}
                                 </p>
 
-                                <p className="text-sm text-slate-500">
+                                <p className="text-sm text-muted-foreground">
                                     Learning goals started
                                 </p>
                             </div>
                         </div>
 
-                        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-7">
+                        <div className="mt-6 rounded-2xl border border-border bg-card p-7">
                             <div className="flex items-center gap-3">
-                                <Clock className="h-5 w-5 text-slate-400" />
+                                <Clock className="h-5 w-5 text-muted-foreground" />
 
                                 <div>
-                                    <h3 className="text-sm font-bold text-slate-900">
+                                    <h3 className="text-sm font-bold text-foreground">
                                         Build the habit
                                     </h3>
 
-                                    <p className="mt-1 text-xs text-slate-500">
+                                    <p className="mt-1 text-xs text-muted-foreground">
                                         Even a few minutes of learning each day
                                         compounds over time.
                                     </p>
@@ -1843,6 +1600,10 @@ export default function LearnHubHome({
                         </div>
                     </section>
                 )}
+                </div>
+
+                <LearnRightSidebar continueLearning={continueLearning} featuredFunding={featuredFunding} />
+                </div>
             </main>
         </div>
     )

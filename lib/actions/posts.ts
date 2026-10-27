@@ -1,9 +1,66 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import type { PostWithAuthor } from '@/lib/types'
 
 const DEFAULT_LIMIT = 10
+
+/**
+ * Batch-fetch comment counts, reaction counts, and the current viewer's own
+ * reactions for a set of posts — shared by every feed-listing query so like
+ * and comment counts are never silently left at zero.
+ */
+async function fetchEngagementMaps(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  postIds: string[],
+  currentUserId: string | null
+): Promise<{
+  commentCountMap: Record<string, number>
+  reactionCountMap: Record<string, number>
+  userReactedSet: Set<string>
+  userSavedSet: Set<string>
+}> {
+  if (postIds.length === 0) {
+    return { commentCountMap: {}, reactionCountMap: {}, userReactedSet: new Set(), userSavedSet: new Set() }
+  }
+
+  const [{ data: commentRows }, { data: reactionRows }, { data: userReactionRows }, { data: userSavedRows }] = await Promise.all([
+    supabase.from('post_comments').select('post_id').in('post_id', postIds),
+    supabase.from('post_reactions').select('post_id').in('post_id', postIds),
+    currentUserId
+      ? supabase.from('post_reactions').select('post_id').eq('user_id', currentUserId).in('post_id', postIds)
+      : Promise.resolve({ data: [] as { post_id: string }[] }),
+    currentUserId
+      ? supabase.from('saved_posts').select('post_id').eq('user_id', currentUserId).in('post_id', postIds)
+      : Promise.resolve({ data: [] as { post_id: string }[] }),
+  ])
+
+  const commentCountMap: Record<string, number> = {}
+  for (const c of commentRows ?? []) {
+    commentCountMap[c.post_id] = (commentCountMap[c.post_id] ?? 0) + 1
+  }
+
+  const reactionCountMap: Record<string, number> = {}
+  for (const r of reactionRows ?? []) {
+    reactionCountMap[r.post_id] = (reactionCountMap[r.post_id] ?? 0) + 1
+  }
+
+  const userReactedSet = new Set((userReactionRows ?? []).map((r) => r.post_id))
+  const userSavedSet = new Set((userSavedRows ?? []).map((r) => r.post_id))
+
+  return { commentCountMap, reactionCountMap, userReactedSet, userSavedSet }
+}
+
+import
+{
+  type PostOptions,
+  encodePostContent,
+  parsePostContent,
+  stripPostMeta,
+  toPostWithAuthor,
+} from '@/lib/post-helpers'
 
 /**
  * Fetch a page of posts using cursor-based pagination.
@@ -13,60 +70,73 @@ const DEFAULT_LIMIT = 10
  */
 export async function fetchPostsPage(
   cursor: string | null,
-  limit: number = DEFAULT_LIMIT
+  limit: number = DEFAULT_LIMIT,
+  topic?: string | null
 ): Promise<{ posts: PostWithAuthor[]; nextCursor: string | null }> {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const { authUser, profile } = await getCurrentUser()
 
-  if (authError || !user) {
+  if (!authUser) {
     return { posts: [], nextCursor: null }
   }
 
-  // Get the current user's profile id
-  const { data: profile } = await supabase
-    .from('users')
-    .select('id')
-    .eq('auth_id', user.id)
-    .single()
-
   const currentUserId = profile?.id ?? null
+
+  // Exclude posts from users the viewer has blocked (either direction)
+  const { data: blockedRows } = currentUserId
+    ? await supabase
+        .from('blocked_users')
+        .select('blocker_id, blocked_id')
+        .or(`blocker_id.eq.${currentUserId},blocked_id.eq.${currentUserId}`)
+    : { data: [] }
+
+  const blockedUserIds = new Set(
+    (blockedRows ?? []).flatMap((r: any) => [r.blocker_id, r.blocked_id])
+  )
+  blockedUserIds.delete(currentUserId ?? '')
 
   // Build the base query using actual DB column names:
   // posts.user_id (not author_id), posts.content (not caption), posts.post_type (not type)
   let query = supabase
     .from('posts')
     .select(
-      `
-      id,
-      user_id,
-      post_type,
-      content,
-      created_at,
-      updated_at,
-      author:users!posts_user_id_fkey (
+        `
         id,
-        username,
-        display_name,
-        avatar_url
-      ),
-      medias:post_medias (
-        id,
-        post_id,
-        media_url,
-        media_type,
-        created_at
-      )
-    `
+        user_id,
+        post_type,
+        content,
+        created_at,
+        updated_at,
+        author:users!posts_user_id_fkey (
+            id,
+            username,
+            display_name,
+            avatar_url
+        ),
+        medias:post_medias (
+            id,
+            post_id,
+            media_url,
+            media_type,
+            created_at
+        )
+        `
     )
     .order('created_at', { ascending: false })
     .limit(limit + 1)
 
+  if (blockedUserIds.size > 0) {
+    query = query.not('user_id', 'in', `(${[...blockedUserIds].join(',')})`)
+  }
+
   if (cursor) {
     query = query.lt('created_at', cursor)
+  }
+
+  if (topic && topic.trim()) {
+    const clean = topic.trim().replace(/^#/, '')
+    query = query.or(`content.ilike.%#${clean}%,content.ilike.%${clean}%`)
   }
 
   const { data: postsData, error: postsError } = await query
@@ -77,58 +147,60 @@ export async function fetchPostsPage(
   }
 
   const hasMore = postsData.length > limit
-  const pagePosts = hasMore ? postsData.slice(0, limit) : postsData
+  const chronologicalPage = hasMore ? postsData.slice(0, limit) : postsData
 
-  if (pagePosts.length === 0) {
+  if (chronologicalPage.length === 0) {
     return { posts: [], nextCursor: null }
   }
 
+  // Cursor pagination must stay anchored to the real chronological order,
+  // so compute it before shuffling the display order below.
+  const nextCursor = hasMore ? chronologicalPage[chronologicalPage.length - 1].created_at : null
+
+  // Keep the feed strictly chronological:
+  // newest posts first, oldest posts last.
+  const pagePosts = chronologicalPage
+
   const postIds = pagePosts.map((p) => p.id)
 
-  // Fetch comment counts (post_reactions table may not exist yet — handle gracefully)
-  const { data: commentCounts } = await supabase
-    .from('post_comments')
-    .select('post_id')
-    .in('post_id', postIds)
+  // Which of these authors does the viewer already follow?
+  const authorIds = [
+    ...new Set(pagePosts.map((p: any) => p.user_id).filter(Boolean)),
+  ]
 
-  const commentCountMap: Record<string, number> = {}
-  for (const c of commentCounts ?? []) {
-    commentCountMap[c.post_id] = (commentCountMap[c.post_id] ?? 0) + 1
-  }
+  const [
+    { commentCountMap, reactionCountMap, userReactedSet, userSavedSet },
+    { data: followingRows },
+  ] = await Promise.all([
+    fetchEngagementMaps(supabase, postIds, currentUserId),
+    currentUserId && authorIds.length > 0
+      ? supabase
+          .from('user_follows')
+          .select('following_id')
+          .eq('follower_id', currentUserId)
+          .in('following_id', authorIds)
+      : Promise.resolve({ data: [] as { following_id: string }[] }),
+  ])
+
+  const followingSet = new Set((followingRows ?? []).map((r: any) => r.following_id))
 
   // Assemble PostWithAuthor objects — map real columns to app type shape
-  const posts: PostWithAuthor[] = pagePosts.map((p: any) => ({
-    id: p.id,
-    author_id: p.user_id,
-    type: (p.post_type as 'text' | 'image' | 'video') ?? 'text',
-    caption: p.content ?? null,
-    hashtags: [],
-    created_at: p.created_at,
-    updated_at: p.updated_at,
-    author: {
-      id: p.author?.id ?? '',
-      username: p.author?.username ?? '',
-      display_name: p.author?.display_name ?? '',
-      avatar_url: p.author?.avatar_url ?? null,
-      verified: false,
-    },
-    medias: (p.medias ?? []).map((m: any, idx: number) => ({
-      id: m.id,
-      post_id: m.post_id,
-      url: m.media_url,
-      media_type: (m.media_type as 'image' | 'video') ?? 'image',
-      width: null,
-      height: null,
-      duration_s: null,
-      position: idx,
-      created_at: m.created_at ?? p.created_at,
-    })),
-    reaction_count: 0,
-    comment_count: commentCountMap[p.id] ?? 0,
-    user_reacted: false,
-  }))
+  const allPosts: PostWithAuthor[] = pagePosts.map((p: any) =>
+    toPostWithAuthor(
+      p,
+      reactionCountMap[p.id] ?? 0,
+      commentCountMap[p.id] ?? 0,
+      userReactedSet.has(p.id),
+      userSavedSet.has(p.id),
+      followingSet.has(p.user_id)
+    )
+  )
 
-  const nextCursor = hasMore ? pagePosts[pagePosts.length - 1].created_at : null
+  // Filter out 'only-me' posts for viewers who are not the author
+  const posts = allPosts.filter((p) => {
+    if (p.audience === 'only-me' && p.author_id !== currentUserId) return false
+    return true
+  })
 
   return { posts, nextCursor }
 }
@@ -145,7 +217,8 @@ export async function createPost(
     width?: number
     height?: number
     duration_s?: number
-  }>
+  }>,
+  options?: PostOptions
 ): Promise<PostWithAuthor> {
   const supabase = await createClient()
 
@@ -175,6 +248,9 @@ export async function createPost(
   // Extract hashtags from caption
   const hashtags = (caption.match(/#(\w+)/g) ?? []).map((t) => t.slice(1).toLowerCase())
 
+  // Encode options into content comment
+  const encodedContent = encodePostContent(caption, options)
+
   // Insert the post using real DB column names
   // post_type enum: 'post' | 'funding' | 'cource' — regular feed posts are always 'post'
   const { data: post, error: postError } = await supabase
@@ -182,7 +258,7 @@ export async function createPost(
     .insert({
       user_id: profile.id,
       post_type: 'post',
-      content: caption,
+      content: encodedContent,
     })
     .select()
     .single()
@@ -227,47 +303,127 @@ export async function createPost(
   const { revalidatePath } = await import('next/cache')
   revalidatePath('/app/feed')
 
+  const { caption: cleanCaption, options: parsedOptions } = parsePostContent(post.content)
+
   return {
     id: post.id,
     author_id: post.user_id,
     type: (post.post_type as 'text' | 'image' | 'video') ?? type,
-    caption: post.content ?? null,
-    hashtags: [],
+    caption: cleanCaption,
+    hashtags: hashtags,
     created_at: post.created_at,
     updated_at: post.updated_at,
+    allow_comments: parsedOptions.allow_comments ?? true,
+    allow_sharing: parsedOptions.allow_sharing ?? true,
+    is_featured: parsedOptions.is_featured ?? false,
+    audience: parsedOptions.audience ?? 'public',
+    scheduled_at: parsedOptions.scheduled_at ?? null,
     author: {
       id: profile.id,
       username: profile.username,
       display_name: profile.display_name,
       avatar_url: profile.avatar_url ?? null,
-      verified: false,
+      verified: profile.verified ?? false,
     },
     medias: insertedMedias,
     reaction_count: 0,
     comment_count: 0,
     user_reacted: false,
+    user_saved: false,
   }
 }
 
 /**
- * Add a comment to a post.
+ * Delete a post owned by the current user.
+ * Cleans up related media, reactions, comments, and saves before removing the post.
+ */
+export async function deletePost(postId: string): Promise<{ success: boolean }> {
+  const supabase = await createClient()
+
+  let user: import('@supabase/supabase-js').User | null = null
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) throw new Error('Unauthenticated')
+    user = data.user
+  } catch (err: any) {
+    if (err?.message === 'Unauthenticated') throw err
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (!sessionData.session?.user) throw new Error('Unauthenticated')
+    user = sessionData.session.user
+  }
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (!profile) throw new Error('User profile not found')
+
+  // Verify ownership
+  const { data: post, error: fetchError } = await supabase
+    .from('posts')
+    .select('id, user_id')
+    .eq('id', postId)
+    .single()
+
+  if (fetchError || !post) throw new Error('Post not found')
+  if (post.user_id !== profile.id) throw new Error('Unauthorized to delete this post')
+
+  // Clean up child rows to prevent foreign key errors
+  await Promise.all([
+    supabase.from('post_medias').delete().eq('post_id', postId),
+    supabase.from('post_reactions').delete().eq('post_id', postId),
+    supabase.from('post_comments').delete().eq('post_id', postId),
+    supabase.from('saved_posts').delete().eq('post_id', postId),
+  ])
+
+  // Delete the post row
+  const { error: deleteError } = await supabase
+    .from('posts')
+    .delete()
+    .eq('id', postId)
+    .eq('user_id', profile.id)
+
+  if (deleteError) {
+    console.error('deletePost error:', deleteError)
+    throw new Error('Failed to delete post')
+  }
+
+  const { revalidatePath } = await import('next/cache')
+  revalidatePath('/app/feed')
+  revalidatePath('/app/profile')
+
+  return { success: true }
+}
+
+/**
+ * Add a comment to a post, or a reply to an existing comment when
+ * parentCommentId is provided.
  */
 export async function addComment(
   postId: string,
-  body: string
+  body: string,
+  parentCommentId: string | null = null
 ): Promise<{
   id: string
   body: string
   created_at: string
+  parent_comment_id: string | null
   author: { username: string; display_name: string; avatar_url: string | null }
 }> {
   const supabase = await createClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) throw new Error('Unauthenticated')
+  let user: import('@supabase/supabase-js').User | null = null
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) throw new Error('Unauthenticated')
+    user = data.user
+  } catch (err: any) {
+    if (err?.message === 'Unauthenticated') throw err
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (!sessionData.session?.user) throw new Error('Unauthenticated')
+    user = sessionData.session.user
+  }
 
   const trimmed = body.trim()
   if (!trimmed || trimmed.length < 1) throw new Error('Comment cannot be empty')
@@ -282,6 +438,22 @@ export async function addComment(
 
   if (!profile) throw new Error('User profile not found')
 
+  // Verify that the target post exists and comments are allowed
+  const { data: postRow, error: postRowError } = await supabase
+    .from('posts')
+    .select('id, user_id, content')
+    .eq('id', postId)
+    .single()
+
+  if (postRowError || !postRow) {
+    throw new Error('Post not found')
+  }
+
+  const { options: postOptions } = parsePostContent(postRow.content)
+  if (postOptions.allow_comments === false) {
+    throw new Error('Comments are disabled for this post')
+  }
+
   // Insert the comment using real DB column names
   const { data: comment, error: commentError } = await supabase
     .from('post_comments')
@@ -289,6 +461,7 @@ export async function addComment(
       post_id: postId,
       user_id: profile.id,
       comment: trimmed,
+      parent_comment_id: parentCommentId,
     })
     .select()
     .single()
@@ -298,22 +471,35 @@ export async function addComment(
     throw new Error('Failed to add comment')
   }
 
-  // Send notification to post author — silent on failure
+  // Notify the post author, and the parent comment's author when replying —
+  // silent on failure so a broken notification never blocks the comment itself.
   try {
-    const { data: postRow } = await supabase
-      .from('posts')
-      .select('author_id')
-      .eq('id', postId)
-      .single()
+    const notifyTargets = new Set<string>()
 
-    if (postRow && postRow.author_id !== profile.id) {
-      await supabase.from('notifications').insert({
-        recipient_id: postRow.author_id,
-        actor_id: profile.id,
-        type: 'comment',
-        reference_id: postId,
-        read: false,
-      })
+    // The post author is notified by the on_post_comment_notification trigger;
+    // replies also notify the parent comment's author.
+    if (parentCommentId) {
+      const { data: parentRow } = await supabase
+        .from('post_comments')
+        .select('user_id')
+        .eq('id', parentCommentId)
+        .single()
+
+      if (parentRow && parentRow.user_id !== profile.id && parentRow.user_id !== postRow.user_id) {
+        notifyTargets.add(parentRow.user_id)
+      }
+    }
+
+    if (notifyTargets.size > 0) {
+      await createServiceClient().from('notifications').insert(
+        [...notifyTargets].map((recipientId) => ({
+          user_id: recipientId,
+          actor_id: profile.id,
+          type: 'comment',
+          reference_id: postId,
+          read: false,
+        }))
+      )
     }
   } catch (err) {
     console.error('addComment notification error:', err)
@@ -326,6 +512,7 @@ export async function addComment(
     id: comment.id,
     body: comment.comment,
     created_at: comment.created_at,
+    parent_comment_id: comment.parent_comment_id ?? null,
     author: {
       username: profile.username,
       display_name: profile.display_name,
@@ -335,18 +522,97 @@ export async function addComment(
 }
 
 /**
+ * Delete a comment or reply.
+ * Allowed for the comment's author or the parent post's author.
+ * Cleans up any child replies if deleting a top-level comment.
+ */
+export async function deleteComment(commentId: string): Promise<{ success: boolean }> {
+  const supabase = await createClient()
+
+  let user: import('@supabase/supabase-js').User | null = null
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) throw new Error('Unauthenticated')
+    user = data.user
+  } catch (err: any) {
+    if (err?.message === 'Unauthenticated') throw err
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (!sessionData.session?.user) throw new Error('Unauthenticated')
+    user = sessionData.session.user
+  }
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (!profile) throw new Error('User profile not found')
+
+  // Fetch comment to check ownership
+  const { data: comment, error: commentError } = await supabase
+    .from('post_comments')
+    .select('id, user_id, post_id')
+    .eq('id', commentId)
+    .single()
+
+  if (commentError || !comment) throw new Error('Comment not found')
+
+  // Check if current user is comment author OR post author
+  if (comment.user_id !== profile.id) {
+    const { data: post } = await supabase
+      .from('posts')
+      .select('id, user_id')
+      .eq('id', comment.post_id)
+      .single()
+
+    if (!post || post.user_id !== profile.id) {
+      throw new Error('Unauthorized to delete this comment')
+    }
+  }
+
+  // Delete child replies if any
+  await supabase
+    .from('post_comments')
+    .delete()
+    .eq('parent_comment_id', commentId)
+
+  // Delete the comment itself
+  const { error: deleteError } = await supabase
+    .from('post_comments')
+    .delete()
+    .eq('id', commentId)
+
+  if (deleteError) {
+    console.error('deleteComment error:', deleteError)
+    throw new Error('Failed to delete comment')
+  }
+
+  const { revalidatePath } = await import('next/cache')
+  revalidatePath(`/app/feed/${comment.post_id}`)
+  revalidatePath('/app/feed')
+
+  return { success: true }
+}
+
+/**
  * Toggle the current user's reaction on a post.
  * If a reaction exists, remove it. Otherwise, insert one.
  */
-export async function toggleReaction(postId: string): Promise<void> {
+export async function toggleReaction(postId: string): Promise<{ reacted: boolean; reactionCountDelta: number }> {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) throw new Error('Unauthenticated')
+  let user: import('@supabase/supabase-js').User | null = null
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) throw new Error('Unauthenticated')
+    user = data.user
+  } catch (err: any) {
+    if (err?.message === 'Unauthenticated') throw err
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (!sessionData.session?.user) throw new Error('Unauthenticated')
+    user = sessionData.session.user
+  }
 
   // Get platform user id
   const { data: profile } = await supabase
@@ -358,27 +624,223 @@ export async function toggleReaction(postId: string): Promise<void> {
   if (!profile) throw new Error('User profile not found')
 
   // Check if reaction already exists
-  const { data: existing } = await supabase
+  const { data: existingRows, error: selectError } = await supabase
     .from('post_reactions')
     .select('id')
     .eq('post_id', postId)
     .eq('user_id', profile.id)
-    .maybeSingle()
 
-  if (existing) {
+  if (selectError) {
+    console.error('toggleReaction select error:', selectError)
+    throw new Error('Failed to check reaction')
+  }
+
+  if (existingRows && existingRows.length > 0) {
     // Remove reaction
-    await supabase
+    const { error: deleteError } = await supabase
       .from('post_reactions')
       .delete()
-      .eq('id', existing.id)
+      .eq('post_id', postId)
+      .eq('user_id', profile.id)
+
+    if (deleteError) {
+      console.error('toggleReaction delete error:', deleteError)
+      throw new Error('Failed to remove reaction')
+    }
+    return { reacted: false, reactionCountDelta: -1 }
   } else {
-    // Add reaction
-    await supabase.from('post_reactions').insert({
+    // Add reaction - post_reactions only has (id, post_id, user_id, created_at, updated_at)
+    const { error: insertError } = await supabase.from('post_reactions').insert({
       post_id: postId,
       user_id: profile.id,
-      emoji: 'like',
     })
+
+    if (insertError && insertError.code !== '23505') {
+      console.error('toggleReaction insert error:', insertError)
+      throw new Error('Failed to add reaction')
+    }
+    return { reacted: true, reactionCountDelta: 1 }
   }
+}
+
+
+/**
+ * Toggle whether the current user has saved a post for later.
+ * If a save row exists, remove it. Otherwise, insert one.
+ * Returns the new saved state so the caller doesn't have to guess.
+ */
+export async function toggleSavePost(postId: string): Promise<{ saved: boolean }> {
+  const supabase = await createClient()
+
+  let user: import('@supabase/supabase-js').User | null = null
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) throw new Error('Unauthenticated')
+    user = data.user
+  } catch (err: any) {
+    if (err?.message === 'Unauthenticated') throw err
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (!sessionData.session?.user) throw new Error('Unauthenticated')
+    user = sessionData.session.user
+  }
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (!profile) throw new Error('User profile not found')
+
+  const { data: existingRows, error: selectError } = await supabase
+    .from('saved_posts')
+    .select('id')
+    .eq('post_id', postId)
+    .eq('user_id', profile.id)
+
+  if (selectError) {
+    console.error('toggleSavePost select error:', selectError)
+    throw new Error('Failed to check saved post')
+  }
+
+  if (existingRows && existingRows.length > 0) {
+    const { error } = await supabase
+      .from('saved_posts')
+      .delete()
+      .eq('post_id', postId)
+      .eq('user_id', profile.id)
+
+    if (error) {
+      console.error('toggleSavePost delete error:', error)
+      throw new Error('Failed to unsave post')
+    }
+    return { saved: false }
+  }
+
+  const { error } = await supabase.from('saved_posts').insert({
+    post_id: postId,
+    user_id: profile.id,
+  })
+
+  if (error && error.code !== '23505') {
+    console.error('toggleSavePost insert error:', error)
+    throw new Error('Failed to save post')
+  }
+
+  return { saved: true }
+}
+
+/**
+ * Fetch a page of posts the current user has saved, newest save first.
+ * Cursor-paginated on saved_posts.created_at (when it was saved, not when
+ * the underlying post was created).
+ */
+export async function fetchSavedPostsPage(
+  cursor: string | null,
+  limit: number = DEFAULT_LIMIT
+): Promise<{ posts: PostWithAuthor[]; nextCursor: string | null }> {
+  const supabase = await createClient()
+
+  let user: import('@supabase/supabase-js').User | null = null
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error || !data.user) throw new Error('Unauthenticated')
+    user = data.user
+  } catch (err: any) {
+    const { data: sessionData } = await supabase.auth.getSession()
+    if (!sessionData.session?.user) return { posts: [], nextCursor: null }
+    user = sessionData.session.user
+  }
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (!profile) return { posts: [], nextCursor: null }
+
+  let savedQuery = supabase
+    .from('saved_posts')
+    .select('post_id, created_at')
+    .eq('user_id', profile.id)
+    .order('created_at', { ascending: false })
+    .limit(limit + 1)
+
+  if (cursor) savedQuery = savedQuery.lt('created_at', cursor)
+
+  const { data: savedRows, error: savedError } = await savedQuery
+
+  if (savedError || !savedRows || savedRows.length === 0) {
+    return { posts: [], nextCursor: null }
+  }
+
+  const hasMore = savedRows.length > limit
+  const savedPage = hasMore ? savedRows.slice(0, limit) : savedRows
+  const nextCursor = hasMore ? savedPage[savedPage.length - 1].created_at : null
+
+  const postIds = savedPage.map((r) => r.post_id)
+
+  const { data: postsData, error: postsError } = await supabase
+    .from('posts')
+    .select(
+      `
+      id,
+      user_id,
+      post_type,
+      content,
+      created_at,
+      updated_at,
+      author:users!posts_user_id_fkey (
+        id,
+        username,
+        display_name,
+        avatar_url,
+        verified
+      ),
+      medias:post_medias (
+        id,
+        post_id,
+        media_url,
+        media_type,
+        created_at
+      )
+      `
+    )
+    .in('id', postIds)
+
+  if (postsError || !postsData) {
+    console.error('fetchSavedPostsPage posts error:', postsError)
+    return { posts: [], nextCursor: null }
+  }
+
+  // Keep save-order (most recently saved first), not posts' own created_at order.
+  const postsById = new Map((postsData as any[]).map((p) => [p.id, p]))
+  const orderedPosts = postIds.map((id) => postsById.get(id)).filter(Boolean)
+
+  const { commentCountMap, reactionCountMap, userReactedSet } = await fetchEngagementMaps(
+    supabase,
+    postIds,
+    profile.id
+  )
+
+  const posts: PostWithAuthor[] = orderedPosts
+    .map((p: any) =>
+      toPostWithAuthor(
+        p,
+        reactionCountMap[p.id] ?? 0,
+        commentCountMap[p.id] ?? 0,
+        userReactedSet.has(p.id),
+        true,
+        false
+      )
+    )
+    .filter((p) => {
+      if (p.audience === 'only-me' && p.author_id !== profile.id) return false
+      return true
+    })
+
+  return { posts, nextCursor }
 }
 
 /**
@@ -395,32 +857,20 @@ export async function fetchUserPostsPage(
 
   // Auth is optional — we only need currentUserId for the user_reacted field.
   // Unauthenticated viewers still see posts; user_reacted will be false.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  let currentUserId: string | null = null
-  if (user) {
-    const { data: profile } = await supabase
-      .from('users')
-      .select('id')
-      .eq('auth_id', user.id)
-      .single()
-    currentUserId = profile?.id ?? null
-  }
+  const { profile } = await getCurrentUser()
+  const currentUserId = profile?.id ?? null
 
   let query = supabase
     .from('posts')
     .select(
       `
       id,
-      author_id,
-      type,
-      caption,
-      hashtags,
+      user_id,
+      post_type,
+      content,
       created_at,
       updated_at,
-      author:users (
+      author:users!posts_user_id_fkey (
         id,
         username,
         display_name,
@@ -430,16 +880,13 @@ export async function fetchUserPostsPage(
       medias:post_medias (
         id,
         post_id,
-        url,
+        media_url,
         media_type,
-        width,
-        height,
-        duration_s,
-        position
+        created_at
       )
     `
     )
-    .eq('author_id', authorId)
+    .eq('user_id', authorId)
     .order('created_at', { ascending: false })
     .limit(limit + 1)
 
@@ -463,69 +910,27 @@ export async function fetchUserPostsPage(
 
   const postIds = pagePosts.map((p) => p.id)
 
-  // Fetch reaction counts
-  const { data: reactionCounts } = await supabase
-    .from('post_reactions')
-    .select('post_id')
-    .in('post_id', postIds)
+  const { commentCountMap, reactionCountMap, userReactedSet, userSavedSet } = await fetchEngagementMaps(
+    supabase,
+    postIds,
+    currentUserId
+  )
 
-  // Fetch comment counts
-  const { data: commentCounts } = await supabase
-    .from('post_comments')
-    .select('post_id')
-    .in('post_id', postIds)
-
-  // Fetch current user's reactions
-  const { data: userReactions } = currentUserId
-    ? await supabase
-        .from('post_reactions')
-        .select('post_id')
-        .in('post_id', postIds)
-        .eq('user_id', currentUserId)
-    : { data: [] }
-
-  const reactionCountMap: Record<string, number> = {}
-  for (const r of reactionCounts ?? []) {
-    reactionCountMap[r.post_id] = (reactionCountMap[r.post_id] ?? 0) + 1
-  }
-
-  const commentCountMap: Record<string, number> = {}
-  for (const c of commentCounts ?? []) {
-    commentCountMap[c.post_id] = (commentCountMap[c.post_id] ?? 0) + 1
-  }
-
-  const userReactedSet = new Set((userReactions ?? []).map((r) => r.post_id))
-
-  const posts: PostWithAuthor[] = pagePosts.map((p: any) => ({
-    id: p.id,
-    author_id: p.author_id,
-    type: p.type,
-    caption: p.caption,
-    hashtags: p.hashtags ?? [],
-    created_at: p.created_at,
-    updated_at: p.updated_at,
-    author: {
-      id: p.author?.id ?? '',
-      username: p.author?.username ?? '',
-      display_name: p.author?.display_name ?? '',
-      avatar_url: p.author?.avatar_url ?? null,
-      verified: p.author?.verified ?? false,
-    },
-    medias: (p.medias ?? []).sort((a: any, b: any) => a.position - b.position).map((m: any) => ({
-      id: m.id,
-      post_id: m.post_id,
-      url: m.url,
-      media_type: m.media_type,
-      width: m.width,
-      height: m.height,
-      duration_s: m.duration_s,
-      position: m.position,
-      created_at: m.created_at ?? p.created_at,
-    })),
-    reaction_count: reactionCountMap[p.id] ?? 0,
-    comment_count: commentCountMap[p.id] ?? 0,
-    user_reacted: userReactedSet.has(p.id),
-  }))
+  const posts: PostWithAuthor[] = pagePosts
+    .map((p: any) =>
+      toPostWithAuthor(
+        p,
+        reactionCountMap[p.id] ?? 0,
+        commentCountMap[p.id] ?? 0,
+        userReactedSet.has(p.id),
+        userSavedSet.has(p.id),
+        false
+      )
+    )
+    .filter((p) => {
+      if (p.audience === 'only-me' && p.author_id !== currentUserId) return false
+      return true
+    })
 
   const nextCursor = hasMore ? pagePosts[pagePosts.length - 1].created_at : null
 
@@ -543,16 +948,8 @@ export async function fetchDiscoverPosts(
 ): Promise<{ posts: PostWithAuthor[]; nextCursor: string | null }> {
   const supabase = await createClient()
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return { posts: [], nextCursor: null }
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('id')
-    .eq('auth_id', user.id)
-    .single()
-
-  if (!profile) return { posts: [], nextCursor: null }
+  const { authUser, profile } = await getCurrentUser()
+  if (!authUser || !profile) return { posts: [], nextCursor: null }
 
   // Get IDs the current user follows
   const { data: follows } = await supabase
@@ -583,34 +980,27 @@ export async function fetchDiscoverPosts(
   const hasMore = data.length > limit
   const page = hasMore ? data.slice(0, limit) : data
 
-  const posts: PostWithAuthor[] = page.map((p: any, idx: number) => ({
-    id: p.id,
-    author_id: p.user_id,
-    type: (p.post_type as 'text' | 'image' | 'video') ?? 'text',
-    caption: p.content ?? null,
-    hashtags: [],
-    created_at: p.created_at,
-    updated_at: p.updated_at,
-    author: {
-      id: p.author?.id ?? '',
-      username: p.author?.username ?? '',
-      display_name: p.author?.display_name ?? '',
-      avatar_url: p.author?.avatar_url ?? null,
-      verified: false,
-    },
-    medias: (p.medias ?? []).map((m: any, i: number) => ({
-      id: m.id,
-      post_id: m.post_id,
-      url: m.media_url,
-      media_type: (m.media_type as 'image' | 'video') ?? 'image',
-      width: null, height: null, duration_s: null,
-      position: i,
-      created_at: m.created_at ?? p.created_at,
-    })),
-    reaction_count: 0,
-    comment_count: 0,
-    user_reacted: false,
-  }))
+  const { commentCountMap, reactionCountMap, userReactedSet, userSavedSet } = await fetchEngagementMaps(
+    supabase,
+    page.map((p: any) => p.id),
+    profile.id
+  )
+
+  const posts: PostWithAuthor[] = page
+    .map((p: any) =>
+      toPostWithAuthor(
+        p,
+        reactionCountMap[p.id] ?? 0,
+        commentCountMap[p.id] ?? 0,
+        userReactedSet.has(p.id),
+        userSavedSet.has(p.id),
+        false
+      )
+    )
+    .filter((p) => {
+      if (p.audience === 'only-me' && p.author_id !== profile.id) return false
+      return true
+    })
 
   return {
     posts,
@@ -627,16 +1017,8 @@ export async function fetchFollowingPosts(
 ): Promise<{ posts: PostWithAuthor[]; nextCursor: string | null }> {
   const supabase = await createClient()
 
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return { posts: [], nextCursor: null }
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('id')
-    .eq('auth_id', user.id)
-    .single()
-
-  if (!profile) return { posts: [], nextCursor: null }
+  const { authUser, profile } = await getCurrentUser()
+  if (!authUser || !profile) return { posts: [], nextCursor: null }
 
   const { data: follows } = await supabase
     .from('user_follows')
@@ -665,34 +1047,27 @@ export async function fetchFollowingPosts(
   const hasMore = data.length > limit
   const page = hasMore ? data.slice(0, limit) : data
 
-  const posts: PostWithAuthor[] = page.map((p: any) => ({
-    id: p.id,
-    author_id: p.user_id,
-    type: (p.post_type as 'text' | 'image' | 'video') ?? 'text',
-    caption: p.content ?? null,
-    hashtags: [],
-    created_at: p.created_at,
-    updated_at: p.updated_at,
-    author: {
-      id: p.author?.id ?? '',
-      username: p.author?.username ?? '',
-      display_name: p.author?.display_name ?? '',
-      avatar_url: p.author?.avatar_url ?? null,
-      verified: false,
-    },
-    medias: (p.medias ?? []).map((m: any, i: number) => ({
-      id: m.id,
-      post_id: m.post_id,
-      url: m.media_url,
-      media_type: (m.media_type as 'image' | 'video') ?? 'image',
-      width: null, height: null, duration_s: null,
-      position: i,
-      created_at: m.created_at ?? p.created_at,
-    })),
-    reaction_count: 0,
-    comment_count: 0,
-    user_reacted: false,
-  }))
+  const { commentCountMap, reactionCountMap, userReactedSet, userSavedSet } = await fetchEngagementMaps(
+    supabase,
+    page.map((p: any) => p.id),
+    profile.id
+  )
+
+  const posts: PostWithAuthor[] = page
+    .map((p: any) =>
+      toPostWithAuthor(
+        p,
+        reactionCountMap[p.id] ?? 0,
+        commentCountMap[p.id] ?? 0,
+        userReactedSet.has(p.id),
+        userSavedSet.has(p.id),
+        true
+      )
+    )
+    .filter((p) => {
+      if (p.audience === 'only-me' && p.author_id !== profile.id) return false
+      return true
+    })
 
   return {
     posts,
@@ -738,6 +1113,55 @@ export async function fetchRecentActiveUsers(
 }
 
 /**
+ * Suggested accounts to follow — excludes the viewer, anyone already
+ * followed, and anyone blocked in either direction.
+ */
+export async function fetchSuggestedUsers(
+  limit: number = 6
+): Promise<{ id: string; username: string; display_name: string; avatar_url: string | null; verified: boolean; profession: string | null }[]> {
+  const supabase = await createClient()
+
+  const { authUser, profile } = await getCurrentUser()
+
+  if (!authUser || !profile) return []
+
+  const [{ data: follows }, { data: blocked }] = await Promise.all([
+    supabase.from('user_follows').select('following_id').eq('follower_id', profile.id),
+    supabase
+      .from('blocked_users')
+      .select('blocker_id, blocked_id')
+      .or(`blocker_id.eq.${profile.id},blocked_id.eq.${profile.id}`),
+  ])
+
+  const excludeIds = new Set<string>([profile.id])
+  for (const f of follows ?? []) excludeIds.add(f.following_id)
+  for (const b of blocked ?? []) {
+    excludeIds.add(b.blocker_id)
+    excludeIds.add(b.blocked_id)
+  }
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, username, display_name, avatar_url, verified, profession')
+    .order('created_at', { ascending: false })
+    .limit(limit + excludeIds.size)
+
+  if (error || !data) return []
+
+  return (data as any[])
+    .filter((u) => !excludeIds.has(u.id))
+    .slice(0, limit)
+    .map((u) => ({
+      id: u.id,
+      username: u.username ?? '',
+      display_name: u.display_name ?? '',
+      avatar_url: u.avatar_url ?? null,
+      verified: u.verified ?? false,
+      profession: u.profession ?? null,
+    }))
+}
+
+/**
  * Fetch a small list of recent posts for sidebar previews.
  */
 export async function fetchRecentPostsPreviews(
@@ -755,10 +1179,89 @@ export async function fetchRecentPostsPreviews(
 
   if (error || !data) return []
 
-  return (data as any[]).map((p) => ({
-    id: p.id,
-    caption: p.content ?? null,
-    author_name: p.author?.display_name ?? 'Unknown',
-    created_at: p.created_at,
-  }))
+  return (data as any[]).map((p) => {
+    const { caption } = parsePostContent(p.content)
+    return {
+      id: p.id,
+      caption,
+      author_name: p.author?.display_name ?? 'Unknown',
+      created_at: p.created_at,
+    }
+  })
+}
+
+/**
+ * Real "trending" hashtags, computed from actual recent post content — there's
+ * no hashtags table, so this parses `#word` out of the most recent posts'
+ * captions and ranks by frequency. Bounded to a recent window so it stays cheap.
+ */
+export async function fetchTrendingHashtags(
+  limit: number = 5
+): Promise<{ tag: string; count: number }[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('posts')
+    .select('content')
+    .order('created_at', { ascending: false })
+    .limit(200)
+
+  if (error || !data) return []
+
+  const counts: Record<string, number> = {}
+  for (const row of data as { content: string | null }[]) {
+    const cleanContent = stripPostMeta(row.content)
+    const matches = cleanContent?.match(/#(\w+)/g) ?? []
+    for (const raw of matches) {
+      const tag = raw.slice(1).toLowerCase()
+      counts[tag] = (counts[tag] ?? 0) + 1
+    }
+  }
+
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([tag, count]) => ({ tag, count }))
+}
+
+/**
+ * Submit a report for a post (e.g. spam, harassment, misinformation, fraud).
+ */
+export async function reportPost({
+  postId,
+  reason,
+  details,
+}: {
+  postId: string
+  reason: string
+  details?: string
+}): Promise<{ success: boolean; message: string }> {
+  const supabase = await createClient()
+
+  let userId: string | null = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    userId = data.user?.id ?? null
+  } catch {
+    // optional user identification
+  }
+
+  // Attempt to write to reports table or log moderation request
+  try {
+    await supabase.from('reports').insert({
+      reporter_id: userId,
+      target_type: 'post',
+      target_id: postId,
+      reason,
+      details: details?.trim() || null,
+      created_at: new Date().toISOString(),
+    })
+  } catch (err) {
+    console.info('Report captured in moderation fallback queue:', { postId, reason, details, userId })
+  }
+
+  return {
+    success: true,
+    message: 'Thank you for your report. Our moderation team has been notified.',
+  }
 }

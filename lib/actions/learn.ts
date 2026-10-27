@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 
 // ─────────────────────────────────────────────
 // Types
@@ -51,8 +52,53 @@ export type Enrollment = {
     user_id: string
     course_id: string
     status: string
+    progress: number
+    last_lesson_id: string | null
     created_at: string
     updated_at: string
+}
+
+// ─────────────────────────────────────────────
+// course_outline is stored as a Postgres text[] column, not jsonb — each
+// section is saved as an individually JSON-stringified array element, so it
+// has to be parsed back out here rather than used as-is.
+// ─────────────────────────────────────────────
+
+function parseCourseOutline(raw: unknown): CourseOutlineSection[] {
+    if (!Array.isArray(raw)) return []
+
+    const sections: CourseOutlineSection[] = []
+
+    for (const entry of raw) {
+        let section: any = entry
+
+        if (typeof entry === 'string') {
+            try {
+                section = JSON.parse(entry)
+            } catch {
+                continue // skip malformed/non-JSON entries
+            }
+        }
+
+        if (!section || typeof section !== 'object' || typeof section.title !== 'string') {
+            continue
+        }
+
+        sections.push({
+            title: section.title,
+            lessons: Array.isArray(section.lessons)
+                ? section.lessons
+                    .filter((l: any) => l && typeof l.title === 'string')
+                    .map((l: any) => ({
+                        title: l.title,
+                        video_url: l.video_url ?? null,
+                        duration_mins: l.duration_mins,
+                    }))
+                : [],
+        })
+    }
+
+    return sections
 }
 
 // ─────────────────────────────────────────────
@@ -89,12 +135,9 @@ export async function fetchCourses(
 }> {
     const supabase = await createClient()
 
-    const {
-        data: { user },
-        error: authError,
-    } = await supabase.auth.getUser()
+    const { authUser } = await getCurrentUser()
 
-    if (authError || !user) {
+    if (!authUser) {
         return {
             courses: [],
             nextCursor: null,
@@ -115,7 +158,8 @@ export async function fetchCourses(
             video_url,
             course_outline,
             created_at,
-            updated_at
+            updated_at,
+            category:lms_courses_categories(id, name)
         `)
         .order('created_at', {
             ascending: false,
@@ -147,8 +191,7 @@ export async function fetchCourses(
         ? data.slice(0, limit)
         : data
 
-    // Instructor lookup
-
+    // Batch-resolve instructor profiles
     const userIds = [
         ...new Set(
             pageData
@@ -184,36 +227,6 @@ export async function fetchCourses(
         }
     }
 
-    // Category lookup
-
-    const categoryIds = [
-        ...new Set(
-            pageData
-                .map((row: any) => row.category_id)
-                .filter(Boolean)
-        ),
-    ]
-
-    const categoryMap = new Map<
-        string,
-        string
-    >()
-
-    if (categoryIds.length > 0) {
-        const { data: categories } =
-            await supabase
-                .from('lms_courses_categories')
-                .select('id, name')
-                .in('id', categoryIds)
-
-        for (const category of categories ?? []) {
-            categoryMap.set(
-                category.id,
-                category.name
-            )
-        }
-    }
-
     const courses: Course[] =
         pageData.map((row: any) => ({
             id: row.id,
@@ -225,24 +238,14 @@ export async function fetchCourses(
             category_id:
                 row.category_id ?? null,
             category_name:
-                row.category_id
-                    ? (
-                        categoryMap.get(
-                            row.category_id
-                        ) ?? null
-                    )
-                    : null,
+                row.category?.name ?? null,
             amount: row.amount ?? 0,
             is_free:
                 row.is_free ?? true,
             video_url:
                 row.video_url ?? null,
             course_outline:
-                Array.isArray(
-                    row.course_outline
-                )
-                    ? row.course_outline
-                    : [],
+                parseCourseOutline(row.course_outline),
             created_at:
                 row.created_at,
             updated_at:
@@ -281,12 +284,9 @@ export async function fetchCourseById(
 } | null> {
     const supabase = await createClient()
 
-    const {
-        data: { user },
-        error: authError,
-    } = await supabase.auth.getUser()
+    const { authUser, profile } = await getCurrentUser()
 
-    if (authError || !user) {
+    if (!authUser) {
         return null
     }
 
@@ -305,7 +305,8 @@ export async function fetchCourseById(
                 video_url,
                 course_outline,
                 created_at,
-                updated_at
+                updated_at,
+                category:lms_courses_categories(name)
             `)
             .eq('id', courseId)
             .single()
@@ -314,87 +315,33 @@ export async function fetchCourseById(
         return null
     }
 
-    // Instructor
+    const courseRow = row as any
+    const categoryName = courseRow.category?.name ?? null
 
-    const { data: instructor } =
-        await supabase
+    // Parallelize instructor details and user enrollment lookup
+    const [
+        { data: instructor },
+        { data: enrollmentData },
+    ] = await Promise.all([
+        supabase
             .from('users')
-            .select(
-                'display_name, avatar_url'
-            )
-            .eq(
-                'id',
-                (row as any).user_id
-            )
-            .single()
-
-    // Category
-
-    let categoryName:
-        string | null = null
-
-    if ((row as any).category_id) {
-        const { data: category } =
-            await supabase
-                .from(
-                    'lms_courses_categories'
-                )
-                .select('name')
-                .eq(
-                    'id',
-                    (row as any).category_id
-                )
-                .single()
-
-        categoryName =
-            category?.name ?? null
-    }
-
-    // Current user's profile
-
-    const { data: profile } =
-        await supabase
-            .from('users')
-            .select('id')
-            .eq(
-                'auth_id',
-                user.id
-            )
-            .single()
-
-    let enrollment:
-        Enrollment | null = null
-
-    if (profile) {
-        const { data: enrollmentData } =
-            await supabase
-                .from(
-                    'lms_courses_enrollment'
-                )
+            .select('display_name, avatar_url')
+            .eq('id', courseRow.user_id)
+            .maybeSingle(),
+        profile
+            ? supabase
+                .from('lms_courses_enrollment')
                 .select('*')
-                .eq(
-                    'user_id',
-                    profile.id
-                )
-                .eq(
-                    'course_id',
-                    courseId
-                )
+                .eq('user_id', profile.id)
+                .eq('course_id', courseId)
                 .maybeSingle()
+            : Promise.resolve({ data: null }),
+    ])
 
-        enrollment =
-            enrollmentData ?? null
-    }
-
-    const courseRow =
-        row as any
+    const enrollment: Enrollment | null = enrollmentData ?? null
 
     const outline =
-        Array.isArray(
-            courseRow.course_outline
-        )
-            ? courseRow.course_outline
-            : []
+        parseCourseOutline(courseRow.course_outline)
 
     return {
         course: {
@@ -719,12 +666,9 @@ export async function fetchLesson(
     const supabase =
         await createClient()
 
-    const {
-        data: { user },
-        error: authError,
-    } = await supabase.auth.getUser()
+    const { authUser, profile } = await getCurrentUser()
 
-    if (authError || !user) {
+    if (!authUser) {
         return null
     }
 
@@ -746,11 +690,7 @@ export async function fetchLesson(
 
     const outline:
         CourseOutlineSection[] =
-        Array.isArray(
-            row.course_outline
-        )
-            ? row.course_outline
-            : []
+        parseCourseOutline(row.course_outline)
 
     const {
         lessons,
@@ -784,18 +724,6 @@ export async function fetchLesson(
             ? lessons[index + 1]
             : null
 
-    // User profile
-
-    const { data: profile } =
-        await supabase
-            .from('users')
-            .select('id')
-            .eq(
-                'auth_id',
-                user.id
-            )
-            .single()
-
     let enrollment:
         {
             id: string
@@ -808,6 +736,7 @@ export async function fetchLesson(
     if (profile) {
         const {
             data: enrollmentData,
+            error: enrollmentError,
         } = await supabase
             .from(
                 'lms_courses_enrollment'
@@ -824,6 +753,10 @@ export async function fetchLesson(
                 courseId
             )
             .maybeSingle()
+
+        if (enrollmentError) {
+            console.error('fetchLesson enrollment lookup error:', enrollmentError)
+        }
 
         if (enrollmentData) {
             enrollment = {
@@ -909,11 +842,7 @@ export async function markLessonComplete(
 
     const outline:
         CourseOutlineSection[] =
-        Array.isArray(
-            row?.course_outline
-        )
-            ? row.course_outline
-            : []
+        parseCourseOutline(row?.course_outline)
 
     const {
         lessons,
@@ -940,6 +869,7 @@ export async function markLessonComplete(
 
     const {
         data: enrollment,
+        error: enrollmentError,
     } =
         await supabase
             .from(
@@ -957,6 +887,10 @@ export async function markLessonComplete(
                 courseId
             )
             .maybeSingle()
+
+    if (enrollmentError) {
+        console.error('markLessonComplete enrollment lookup error:', enrollmentError)
+    }
 
     if (!enrollment) {
         throw new Error(

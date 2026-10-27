@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import type { ServiceWithProvider, PricingTier } from '@/lib/types'
 
 const DEFAULT_LIMIT = 12
@@ -29,12 +30,9 @@ export async function fetchServices(
 ): Promise<{ services: ServiceWithProvider[]; nextCursor: string | null }> {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const { authUser } = await getCurrentUser()
 
-  if (authError || !user) {
+  if (!authUser) {
     return { services: [], nextCursor: null }
   }
 
@@ -120,12 +118,9 @@ export async function fetchServiceById(id: string): Promise<
 > {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const { authUser } = await getCurrentUser()
 
-  if (authError || !user) return null
+  if (!authUser) return null
 
   const { data, error } = await supabase
     .from('services')

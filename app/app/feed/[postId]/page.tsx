@@ -1,12 +1,14 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import PostCard from '@/components/app/feed/PostCard'
 import PostDetailComments from '@/components/app/feed/PostDetailComments'
 import PostDetailActions from '@/components/app/feed/PostDetailActions'
+import { ArrowLeft, Clock, ImageIcon, Rocket } from 'lucide-react'
 import type { PostWithAuthor } from '@/lib/types'
-import { ArrowLeft, Clock } from 'lucide-react'
 import { fetchRecentPostsPreviews } from '@/lib/actions/posts'
+import { toPostWithAuthor, stripPostMeta } from '@/lib/post-helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,29 +43,18 @@ async function getPost(postId: string, currentUserId: string | null): Promise<Po
     ])
 
     let userReacted = false
+    let userSaved = false
     if (currentUserId)
     {
-        const { data: r } = await supabase
-            .from('post_reactions').select('id').eq('post_id', postId).eq('user_id', currentUserId).maybeSingle()
+        const [{ data: r }, { data: s }] = await Promise.all([
+            supabase.from('post_reactions').select('id').eq('post_id', postId).eq('user_id', currentUserId).maybeSingle(),
+            supabase.from('saved_posts').select('id').eq('post_id', postId).eq('user_id', currentUserId).maybeSingle(),
+        ])
         userReacted = !!r
+        userSaved = !!s
     }
 
-    return {
-        id: p.id, author_id: p.user_id,
-        type: (p.post_type as 'text' | 'image' | 'video') ?? 'text',
-        caption: p.content ?? null, hashtags: [],
-        created_at: p.created_at, updated_at: p.updated_at,
-        author: {
-            id: p.author?.id ?? '', username: p.author?.username ?? '',
-            display_name: p.author?.display_name ?? '', avatar_url: p.author?.avatar_url ?? null, verified: false,
-        },
-        medias: (p.medias ?? []).map((m: any, i: number) => ({
-            id: m.id, post_id: m.post_id, url: m.media_url,
-            media_type: (m.media_type as 'image' | 'video') ?? 'image',
-            width: null, height: null, duration_s: null, position: i, created_at: m.created_at ?? p.created_at,
-        })),
-        reaction_count: rc ?? 0, comment_count: cc ?? 0, user_reacted: userReacted,
-    }
+    return toPostWithAuthor(p, rc ?? 0, cc ?? 0, userReacted, userSaved, false)
 }
 
 async function getComments(postId: string)
@@ -71,14 +62,15 @@ async function getComments(postId: string)
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('post_comments')
-        .select(`id, comment, created_at,
+        .select(`id, comment, created_at, parent_comment_id,
             author:users!post_comments_user_id_fkey (username, display_name, avatar_url)`)
-        .eq('post_id', postId).order('created_at', { ascending: false }).limit(30)
+        .eq('post_id', postId).order('created_at', { ascending: false }).limit(100)
 
     if (error || !data) return []
     return (data as any[]).map(c => ({
         id: c.id, body: c.comment ?? '',
         created_at: c.created_at,
+        parent_comment_id: c.parent_comment_id ?? null,
         author: { username: c.author?.username ?? '', display_name: c.author?.display_name ?? '', avatar_url: c.author?.avatar_url ?? null },
     }))
 }
@@ -86,15 +78,12 @@ async function getComments(postId: string)
 export default async function PostDetailPage({ params }: PageProps)
 {
     const { postId } = await params
-    const supabase = await createClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
+    const { profile } = await getCurrentUser()
 
-    let currentUserId: string | null = null
-    if (authUser)
-    {
-        const { data: profile } = await supabase.from('users').select('id').eq('auth_id', authUser.id).single()
-        currentUserId = profile?.id ?? null
-    }
+    const currentUserId = profile?.id ?? null
+    const currentUserProfile = profile
+        ? { username: profile.username, display_name: profile.display_name, avatar_url: profile.avatar_url }
+        : null
 
     const [post, initialComments, recentPosts] = await Promise.all([
         getPost(postId, currentUserId),
@@ -103,8 +92,9 @@ export default async function PostDetailPage({ params }: PageProps)
     ])
 
     if (!post) notFound()
+    if (post.audience === 'only-me' && post.author_id !== currentUserId) notFound()
 
-    const otherRecentPosts = recentPosts.filter(p => p.id !== postId).slice(0, 5)
+    const otherRecentPosts = recentPosts.filter((p: any) => p.id !== postId).slice(0, 5)
 
     return (
         <div className="w-full max-w-6xl mx-auto px-3 py-4 overflow-x-hidden">
@@ -127,11 +117,13 @@ export default async function PostDetailPage({ params }: PageProps)
                     </div>
 
                     {/* Comments section */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm p-4">
+                    <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
                         <PostDetailComments
                             postId={postId}
                             initialComments={initialComments}
                             commentCount={post.comment_count}
+                            currentUser={currentUserProfile}
+                            allowComments={post.allow_comments ?? true}
                         />
                     </div>
                 </div>
@@ -147,11 +139,12 @@ export default async function PostDetailPage({ params }: PageProps)
                         commentCount={post.comment_count}
                         authorUsername={post.author.username}
                         createdAt={post.created_at}
+                        allowSharing={post.allow_sharing ?? true}
                     />
 
                     {/* Recent Posts */}
                     {otherRecentPosts.length > 0 && (
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm p-4">
+                        <div className="bg-card rounded-2xl border border-border shadow-sm p-4">
                             <div className="flex items-center justify-between mb-3">
                                 <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
                                     <Clock className="w-3.5 h-3.5 text-primary" />
@@ -162,20 +155,23 @@ export default async function PostDetailPage({ params }: PageProps)
                                 </Link>
                             </div>
                             <div className="space-y-1">
-                                {otherRecentPosts.map((rp) => (
-                                    <Link key={rp.id} href={`/app/feed/${rp.id}`}
-                                        className="block p-2.5 rounded-xl hover:bg-muted transition-colors group">
-                                        <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-relaxed">
-                                            {rp.caption
-                                                ? (rp.caption.length > 65 ? `${rp.caption.slice(0, 65)}…` : rp.caption)
-                                                : '📷 Media post'}
-                                        </p>
-                                        <div className="flex items-center justify-between mt-1">
-                                            <span className="text-[10px] text-muted-foreground font-medium truncate">{rp.author_name}</span>
-                                            <span className="text-[10px] text-muted-foreground shrink-0 ml-2">{timeAgo(rp.created_at)}</span>
-                                        </div>
-                                    </Link>
-                                ))}
+                                {otherRecentPosts.map((rp: any) => {
+                                    const text = stripPostMeta(rp.caption)
+                                    return (
+                                        <Link key={rp.id} href={`/app/feed/${rp.id}`}
+                                            className="block p-2.5 rounded-xl hover:bg-muted transition-colors group">
+                                            <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-relaxed">
+                                                {text
+                                                    ? (text.length > 65 ? `${text.slice(0, 65)}…` : text)
+                                                    : <span className="inline-flex items-center gap-1"><ImageIcon className="w-3 h-3" /> Media post</span>}
+                                            </p>
+                                            <div className="flex items-center justify-between mt-1">
+                                                <span className="text-[10px] text-muted-foreground font-medium truncate">{rp.author_name}</span>
+                                                <span className="text-[10px] text-muted-foreground shrink-0 ml-2">{timeAgo(rp.created_at)}</span>
+                                            </div>
+                                        </Link>
+                                    )
+                                })}
                             </div>
                         </div>
                     )}
@@ -184,7 +180,7 @@ export default async function PostDetailPage({ params }: PageProps)
                     <div className="rounded-2xl text-white p-4 shadow-sm relative overflow-hidden"
                         style={{ background: 'linear-gradient(135deg,#065f46 0%,#0f766e 100%)' }}>
                         <p className="text-[10px] font-medium opacity-70 mb-1">Sponsored</p>
-                        <h3 className="font-bold text-sm leading-tight mb-1">Grow with Hubnovo</h3>
+                        <h3 className="font-bold text-sm leading-tight mb-1">Grow with HubNovo</h3>
                         <p className="text-xs opacity-80 mb-3">Access funding, tools and a supportive community.</p>
                         <Link href="/app/funding">
                             <span className="inline-block bg-white text-xs font-bold px-4 py-1.5 rounded-full hover:opacity-90 transition-opacity cursor-pointer"
@@ -192,14 +188,14 @@ export default async function PostDetailPage({ params }: PageProps)
                                 Learn More
                             </span>
                         </Link>
-                        <span className="absolute right-3 bottom-2 text-3xl opacity-20 pointer-events-none">🚀</span>
+                        <Rocket className="absolute right-3 bottom-2 w-8 h-8 opacity-20 pointer-events-none" />
                     </div>
                 </aside>
             </div>
 
             {/* Mobile: Recent Posts below comments */}
             {otherRecentPosts.length > 0 && (
-                <div className="xl:hidden mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm p-4">
+                <div className="xl:hidden mt-4 bg-card rounded-2xl border border-border shadow-sm p-4">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
                             <Clock className="w-3.5 h-3.5 text-primary" />
@@ -208,20 +204,23 @@ export default async function PostDetailPage({ params }: PageProps)
                         <Link href="/app/feed" className="text-xs text-primary font-medium hover:underline">See all</Link>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                        {otherRecentPosts.map((rp) => (
-                            <Link key={rp.id} href={`/app/feed/${rp.id}`}
-                                className="block p-2.5 rounded-xl hover:bg-muted transition-colors group">
-                                <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                                    {rp.caption
-                                        ? (rp.caption.length > 55 ? `${rp.caption.slice(0, 55)}…` : rp.caption)
-                                        : '📷 Media post'}
-                                </p>
-                                <div className="flex items-center justify-between mt-1">
-                                    <span className="text-[10px] text-muted-foreground truncate">{rp.author_name}</span>
-                                    <span className="text-[10px] text-muted-foreground shrink-0 ml-1">{timeAgo(rp.created_at)}</span>
-                                </div>
-                            </Link>
-                        ))}
+                        {otherRecentPosts.map((rp: any) => {
+                            const text = stripPostMeta(rp.caption)
+                            return (
+                                <Link key={rp.id} href={`/app/feed/${rp.id}`}
+                                    className="block p-2.5 rounded-xl hover:bg-muted transition-colors group">
+                                    <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                                        {text
+                                            ? (text.length > 55 ? `${text.slice(0, 55)}…` : text)
+                                            : <span className="inline-flex items-center gap-1"><ImageIcon className="w-3 h-3" /> Media post</span>}
+                                    </p>
+                                    <div className="flex items-center justify-between mt-1">
+                                        <span className="text-[10px] text-muted-foreground truncate">{rp.author_name}</span>
+                                        <span className="text-[10px] text-muted-foreground shrink-0 ml-1">{timeAgo(rp.created_at)}</span>
+                                    </div>
+                                </Link>
+                            )
+                        })}
                     </div>
                 </div>
             )}

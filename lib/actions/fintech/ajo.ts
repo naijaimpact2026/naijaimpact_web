@@ -444,7 +444,7 @@ export async function contributeToAjo(
 
           // ── Insert notification for recipient ────────────────────────────────
           await supabase.from('notifications').insert({
-            recipient_id: recipientUserId,
+            user_id: recipientUserId,
             actor_id: null,
             type: 'ajo_payout',
             reference_id: groupId,
@@ -522,7 +522,7 @@ export async function raiseDispute(
 
     if (!membersError && members && members.length > 0) {
       const notifications = members.map((m: { user_id: string }) => ({
-        recipient_id: m.user_id,
+        user_id: m.user_id,
         actor_id: profile.id,
         type: 'dispute_raised' as const,
         reference_id: groupId,

@@ -1,210 +1,181 @@
-// import Link from 'next/link'
-// import { fetchCampaigns } from '@/lib/actions/funding'
-// import type { FundingFilter, FundingSort } from '@/lib/actions/funding'
-// import FundingList from '@/components/app/funding/FundingList'
-// import { Button } from '@/components/ui/button'
-// import { PlusCircle, TrendingUp, Users, Zap } from 'lucide-react'
-// import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
+import {
+  fetchCampaigns,
+  fetchFundingCategories,
+  fetchFundingStats,
+} from '@/lib/actions/funding'
+import type { FundingFilter, FundingSort, FundingStatusFilter } from '@/lib/actions/funding'
+import FundingExplorer from '@/components/app/funding/FundingExplorer'
+import { Button } from '@/components/ui/button'
+import { PlusCircle, TrendingUp, Users, Zap, Sparkles } from 'lucide-react'
+import CrowdfundingComingSoon from '@/components/app/funding/CrowdfundingComingSoon'
+import { getCurrentUser } from '@/lib/supabase/auth'
 
-// export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic'
+export const metadata = { title: 'Crowdfunding — Hubnovo' }
 
-// interface FundingPageProps
-// {
-//     searchParams: Promise<{ filter?: string; sort?: string }>
-// }
+interface FundingPageProps {
+  searchParams: Promise<{
+    filter?: string
+    category?: string
+    sort?: string
+    q?: string
+    status?: string
+  }>
+}
 
-// const FILTER_OPTIONS: { value: FundingFilter; label: string; emoji: string }[] = [
-//     { value: 'all', label: 'All', emoji: '🌍' },
-//     { value: 'campaign', label: 'Campaigns', emoji: '📣' },
-//     { value: 'project', label: 'Projects', emoji: '🚀' },
-// ]
+function fmt(n: number): string {
+  if (n >= 1_000_000_000) return `₦${(n / 1_000_000_000).toFixed(1)}B`
+  if (n >= 1_000_000) return `₦${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `₦${(n / 1_000).toFixed(0)}K`
+  return `₦${n.toLocaleString('en-NG')}`
+}
 
-// const SORT_OPTIONS: { value: FundingSort; label: string }[] = [
-//     { value: 'recent', label: 'Most Recent' },
-//     { value: 'most_funded', label: 'Most Funded' },
-// ]
+export default async function FundingPage({ searchParams }: FundingPageProps) {
+  const { authUser, profile } = await getCurrentUser()
 
-// async function getFundingStats()
-// {
-//     const supabase = await createClient()
-//     const { data } = await supabase
-//         .from('funding')
-//         .select('amount_raised, donor_count, status')
-//     const active = (data ?? []).filter((c: any) => c.status === 'active')
-//     return {
-//         totalRaised: active.reduce((s: number, c: any) => s + (c.amount_raised ?? 0), 0),
-//         totalDonors: active.reduce((s: number, c: any) => s + (c.donor_count ?? 0), 0),
-//         activeCampaigns: active.length,
-//     }
-// }
+  return (
+    <CrowdfundingComingSoon userProfile={profile} userEmail={authUser?.email ?? ''} />
+  )
+}
 
-// function fmt(n: number)
-// {
-//     if (n >= 1_000_000) return `₦${(n / 1_000_000).toFixed(1)}M`
-//     if (n >= 1_000) return `₦${(n / 1_000).toFixed(0)}K`
-//     return `₦${n.toLocaleString('en-NG')}`
-// }
+/**
+ * ============================================================================
+ * PRESERVED FUNDING EXPLORER (COMMENTED OUT / PRESERVED FOR FUTURE LAUNCH)
+ * Do not delete out the already existing functionality - per instructions.
+ * ============================================================================
+ */
+// @ts-ignore - Preserved inactive component for future launch
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _PreservedFundingPage({ searchParams }: FundingPageProps) {
+  const params = await searchParams
 
-// export default async function FundingPage({ searchParams }: FundingPageProps)
-// {
-//     const params = await searchParams
-//     const filter: FundingFilter =
-//         params.filter === 'campaign' || params.filter === 'project' ? params.filter : 'all'
-//     const sort: FundingSort = params.sort === 'most_funded' ? 'most_funded' : 'recent'
+  const statusFilter: FundingStatusFilter =
+    params.status === 'completed'
+      ? 'completed'
+      : params.status === 'all'
+      ? 'all'
+      : 'active'
 
-//     // const [{ campaigns: initialCampaigns, nextCursor: initialCursor }, stats] =
-//     //     await Promise.all([fetchCampaigns(null, 12, filter, sort), getFundingStats()])
+  const filter: FundingFilter =
+    params.filter === 'campaign' || params.filter === 'project'
+      ? params.filter
+      : 'all'
 
-//     // return (
-//     //     <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+  const sort: FundingSort =
+    params.sort === 'most_funded' || params.sort === 'highest_goal'
+      ? params.sort
+      : 'recent'
 
-//             {/* ── Hero ── inline style guarantees background regardless of Tailwind version */}
-//             <div
-//                 className="relative overflow-hidden rounded-2xl p-6 sm:p-8 text-white"
-//                 style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 45%, #0f766e 100%)' }}
-//             >
-//                 {/* Decorative circles */}
-//                 <div className="pointer-events-none absolute -top-12 -right-12 w-56 h-56 rounded-full opacity-20"
-//                     style={{ background: 'radial-gradient(circle, #34d399, transparent)' }} />
-//                 <div className="pointer-events-none absolute -bottom-10 -left-10 w-44 h-44 rounded-full opacity-10"
-//                     style={{ background: 'radial-gradient(circle, #2dd4bf, transparent)' }} />
+  const categoryId = params.category || 'all'
+  const searchQuery = params.q || ''
 
-//                 <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
-//                     <div className="space-y-2">
-//                         <div className="flex items-center gap-2">
-//                             <span className="text-2xl">🌍</span>
-//                             <span className="text-xs font-bold uppercase tracking-widest" style={{ color: '#6ee7b7' }}>
-//                                  Funding
-//                             </span>
-//                         </div>
-//                         <h1 className="text-2xl sm:text-3xl font-bold leading-tight">
-//                             Fund the Change<br className="hidden sm:block" /> You Want to See
-//                         </h1>
-//                         <p className="text-sm max-w-xs" style={{ color: '#a7f3d0' }}>
-//                             Support campaigns and projects that move Nigeria forward
-//                         </p>
-//                     </div>
+  const [
+    { campaigns: initialCampaigns, nextCursor: initialCursor },
+    stats,
+    categories,
+  ] = await Promise.all([
+    fetchCampaigns(null, 12, filter, categoryId, sort, searchQuery, statusFilter),
+    fetchFundingStats(),
+    fetchFundingCategories(),
+  ])
 
-//                     {/* <Link href="/app/funding/create" className="shrink-0">
-//                         <Button
-//                             className="gap-2 font-semibold shadow-lg"
-//                             style={{ background: '#fff', color: '#064e3b' }}
-//                         >
-//                             <PlusCircle className="h-4 w-4" />
-//                             Start a Campaign
-//                         </Button>
-//                     </Link> */}
-//                 </div>
+  return (
+    <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+      {/* ── Hero Banner (Matching Hubnovo Brand Theme) ── */}
+      <div
+        className="relative overflow-hidden rounded-3xl p-5 sm:p-6 lg:p-7 text-white shadow-xl border border-white/10"
+        style={{
+          background:
+            'linear-gradient(135deg, #0A1E33 0%, #102A43 55%, #004D73 100%)',
+        }}
+      >
+        {/* Ambient Decorative Blurs */}
+        <div
+          className="pointer-events-none absolute -top-16 -right-16 w-80 h-80 rounded-full opacity-20 blur-3xl"
+          style={{
+            background: 'radial-gradient(circle, #00B8D9 0%, transparent 70%)',
+          }}
+        />
+        <div
+          className="pointer-events-none absolute -bottom-16 -left-16 w-72 h-72 rounded-full opacity-15 blur-3xl"
+          style={{
+            background: 'radial-gradient(circle, #00A86B 0%, transparent 70%)',
+          }}
+        />
 
-//                 {/* Stats */}
-//                 {/* <div className="relative z-10 mt-6 grid grid-cols-3 gap-4 pt-5"
-//                     style={{ borderTop: '1px solid rgba(255,255,255,0.15)' }}>
-//                     {[
-//                         { icon: TrendingUp, label: 'Total raised', value: fmt(stats.totalRaised) },
-//                         { icon: Users, label: 'Donors', value: stats.totalDonors.toLocaleString() },
-//                         { icon: Zap, label: 'Active now', value: String(stats.activeCampaigns) },
-//                     ].map(({ icon: Icon, label, value }) => (
-//                         <div key={label} className="flex flex-col gap-0.5">
-//                             <span className="text-xl sm:text-2xl font-bold">{value}</span>
-//                             <span className="flex items-center gap-1 text-[11px] sm:text-xs" style={{ color: '#6ee7b7' }}>
-//                                 <Icon className="w-3 h-3 shrink-0" /> {label}
-//                             </span>
-//                         </div>
-//                     ))}
-//                 </div> */}
-//             </div>
-
-//             {/* ── Filter + Sort ── */}
-//             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-//                 <div className="flex items-center gap-2 flex-wrap">
-//                     {FILTER_OPTIONS.map(({ value, label, emoji }) =>
-//                     {
-//                         const active = filter === value
-//                         return (
-//                             <Link key={value} href={`?filter=${value}&sort=${sort}`}>
-//                                 <span
-//                                     className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer border"
-//                                     style={active
-//                                         ? { background: 'hsl(166,76%,40%)', color: '#fff', borderColor: 'hsl(166,76%,40%)' }
-//                                         : { background: '#fff', color: '#6b7280', borderColor: '#e5e7eb' }
-//                                     }
-//                                 >
-//                                     {emoji} {label}
-//                                 </span>
-//                             </Link>
-//                         )
-//                     })}
-//                 </div>
-
-//                 <div className="flex items-center gap-1 rounded-xl border border-border bg-white p-1">
-//                     {SORT_OPTIONS.map(({ value, label }) =>
-//                     {
-//                         const active = sort === value
-//                         return (
-//                             <Link key={value} href={`?filter=${filter}&sort=${value}`}>
-//                                 <span
-//                                     className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer"
-//                                     style={active
-//                                         ? { background: 'hsl(166,76%,40%)', color: '#fff' }
-//                                         : { color: '#6b7280' }
-//                                     }
-//                                 >
-//                                     {label}
-//                                 </span>
-//                             </Link>
-//                         )
-//                     })}
-//                 </div>
-//             </div>
-
-//             {/* ── Campaign grid ── */}
-//             {/* <FundingList
-//                 initialCampaigns={initialCampaigns}
-//                 initialCursor={initialCursor}
-//                 filter={filter}
-//                 sort={sort}
-//             /> */}
-//         </main>
-//     )
-// }
-'use client'
-
-import { Hourglass } from 'lucide-react'
-
-export default function FundingPage() {
-    return (
-        <main className="min-h-screen bg-white dark:bg-slate-950">
-            <div className="flex min-h-screen items-center justify-center px-6">
-                <div className="w-full max-w-lg text-center">
-
-                    {/* Hourglass */}
-                    <div className="mx-auto mb-8 flex h-28 w-28 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950">
-                        <Hourglass
-                            className="h-14 w-14 text-emerald-600 dark:text-emerald-400"
-                            strokeWidth={1.5}
-                        />
-                    </div>
-
-                    {/* Heading */}
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-                        Funding is Coming Soon
-                    </h1>
-
-                    {/* Description */}
-                    <p className="mx-auto mt-5 max-w-md text-base leading-7 text-gray-500 dark:text-gray-400">
-                        We&apos;re preparing something impactful.
-                        Soon, you&apos;ll be able to discover, support,
-                        and fund great ideas and projects on Hubnovo.
-                    </p>
-
-                    {/* Status */}
-                    <div className="mt-8 inline-flex items-center gap-2 rounded-full bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-600 dark:bg-slate-800 dark:text-gray-300">
-                        <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-500" />
-                        Coming Soon
-                    </div>
-
-                </div>
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+          <div className="space-y-2.5 max-w-xl">
+            <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-white/10 border border-white/15 text-cyan-300 text-xs font-semibold uppercase tracking-wider backdrop-blur-sm">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-300" /> Hubnovo Crowdfunding
             </div>
-        </main>
-    )
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold leading-tight tracking-tight text-white">
+              Fund the Change You Want to See
+            </h1>
+            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+              Back impactful community campaigns, grassroots causes, and innovative Nigerian projects. Every naira counts.
+            </p>
+          </div>
+
+          <Link href="/app/funding/create" className="shrink-0">
+            <Button
+              size="lg"
+              className="gap-2 font-bold shadow-lg shadow-emerald-500/25 bg-emerald-500 text-slate-950 hover:bg-emerald-400 px-5 py-2.5 h-11 rounded-xl text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              <PlusCircle className="h-4.5 w-4.5 text-slate-950" />
+              Start a Campaign
+            </Button>
+          </Link>
+        </div>
+
+        {/* Real-time Stats Grid */}
+        <div
+          className="relative z-10 mt-5 grid grid-cols-3 gap-3 pt-4"
+          style={{ borderTop: '1px solid rgba(255, 255, 255, 0.12)' }}
+        >
+          {[
+            {
+              icon: TrendingUp,
+              label: 'Total Raised',
+              value: fmt(stats.totalRaised),
+              iconColor: 'text-cyan-300',
+            },
+            {
+              icon: Users,
+              label: 'Contributions',
+              value: stats.totalDonors.toLocaleString(),
+              iconColor: 'text-cyan-300',
+            },
+            {
+              icon: Zap,
+              label: 'Active Causes',
+              value: stats.activeCampaigns.toLocaleString(),
+              iconColor: 'text-emerald-400',
+            },
+          ].map(({ icon: Icon, label, value, iconColor }) => (
+            <div key={label} className="flex flex-col gap-0.5">
+              <span className="text-lg sm:text-2xl font-black text-white tracking-tight">
+                {value}
+              </span>
+              <span className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-300">
+                <Icon className={`w-3.5 h-3.5 shrink-0 ${iconColor}`} /> {label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Interactive Funding Explorer (Instant responsive filters + search + grid) ── */}
+      <FundingExplorer
+        initialCampaigns={initialCampaigns}
+        initialCursor={initialCursor}
+        categories={categories}
+        initialStatus={statusFilter}
+        initialFilter={filter}
+        initialCategoryId={categoryId}
+        initialSort={sort}
+        initialSearchQuery={searchQuery}
+      />
+    </main>
+  )
 }

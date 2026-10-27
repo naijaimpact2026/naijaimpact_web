@@ -2,140 +2,148 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { ChevronLeft, Phone, Mail, Globe, Store, Package, BadgeCheck, Star } from 'lucide-react'
+import { ChevronLeft, Phone, Store, Package, BadgeCheck, Star } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import type { StorefrontWithOwner } from '@/lib/types'
+
+interface StorefrontProduct
+{
+    id: string
+    title: string
+    price: number
+    cover_image: string | null
+}
+
+interface StorefrontDetail
+{
+    id: string
+    business_name: string | null
+    bio: string | null
+    logo_url: string | null
+    phone: string | null
+    is_verified: boolean
+    rating: number
+    total_sales: number
+    product_count: number
+    products: StorefrontProduct[]
+    owner: { verified?: boolean } | null
+}
 
 interface Props
 {
-    storefront: StorefrontWithOwner & { products: any[] }
+    storefront: StorefrontDetail
     currentUserId: string
 }
 
 function fmt(n: number)
 {
-    return `₦${n.toLocaleString('en-NG', { minimumFractionDigits: 0 })}`
+    return `₦${n.toLocaleString('en-NG')}`
 }
 
-export default function StorefrontDetailClient({ storefront, currentUserId }: Props)
+export default function StorefrontDetailClient({ storefront }: Props)
 {
     const router = useRouter()
-    const isOwner = storefront.owner_id === currentUserId
 
     return (
-        <div className="min-h-screen bg-[#f0f2f5]">
+        <div className="w-full">
             {/* Back bar */}
-            <div className="sticky top-14 z-20 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-4 py-3 flex items-center gap-3">
+            <div className="sticky top-14 z-20 flex items-center gap-3 border-b border-border bg-card/90 px-4 py-3 backdrop-blur-sm sm:px-6 lg:px-8">
                 <button onClick={() => router.back()}
-                    className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
-                    <ChevronLeft className="w-4 h-4 text-gray-700" />
+                    className="flex h-8 w-8 items-center justify-center rounded-xl bg-muted transition-colors hover:bg-muted/70">
+                    <ChevronLeft className="h-4 w-4 text-foreground" />
                 </button>
-                <p className="text-sm font-bold text-gray-900 flex-1 truncate">{storefront.business_name}</p>
+                <p className="flex-1 truncate text-sm font-bold text-foreground">{storefront.business_name}</p>
             </div>
 
             {/* Cover + Logo */}
-            <div className="relative h-48 bg-green-50">
-                {storefront.cover_url
-                    ? <Image src={storefront.cover_url} alt="" fill className="object-cover" sizes="800px" />
-                    : <div className="absolute inset-0 flex items-center justify-center"><Store className="w-16 h-16 text-green-200" /></div>}
-                {storefront.logo_url && (
-                    <div className="absolute bottom-0 translate-y-1/2 left-6 w-20 h-20 rounded-3xl overflow-hidden border-4 border-white shadow-xl">
+            <div className="relative h-40 bg-gradient-to-br from-primary/10 to-secondary/20">
+                {storefront.logo_url ? (
+                    <div className="absolute bottom-0 left-6 h-20 w-20 translate-y-1/2 overflow-hidden rounded-3xl border-4 border-background shadow-xl sm:left-10">
                         <Image src={storefront.logo_url} alt="" fill className="object-cover" sizes="80px" />
+                    </div>
+                ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <Store className="h-14 w-14 text-primary/20" />
                     </div>
                 )}
             </div>
 
-            <div className="max-w-4xl mx-auto px-4 pt-14 pb-6 space-y-5">
+            <div className="w-full space-y-5 px-4 pb-6 pt-14 sm:px-6 lg:px-8">
                 {/* Store header */}
-                <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+                <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                         <div>
                             <div className="flex items-center gap-2">
-                                <h1 className="text-xl font-black text-gray-900">{storefront.business_name}</h1>
-                                {storefront.owner.verified && <BadgeCheck className="w-5 h-5 text-blue-500" />}
+                                <h1 className="font-display text-xl font-black text-foreground">{storefront.business_name}</h1>
+                                {(storefront.is_verified || storefront.owner?.verified) && <BadgeCheck className="h-5 w-5 text-primary" />}
                             </div>
-                            {storefront.tagline && <p className="text-sm text-gray-600 mt-0.5">{storefront.tagline}</p>}
                         </div>
-                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${storefront.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                            {storefront.status}
-                        </span>
                     </div>
 
-                    {storefront.description && (
-                        <p className="text-sm text-gray-500 mt-4 leading-relaxed">{storefront.description}</p>
+                    {storefront.bio && (
+                        <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{storefront.bio}</p>
                     )}
 
                     {/* Stats row */}
-                    <div className="grid grid-cols-3 gap-3 mt-4">
-                        <div className="text-center p-3 bg-gray-50 rounded-2xl">
-                            <p className="text-xl font-black text-gray-900">{storefront.product_count}</p>
-                            <p className="text-[10px] text-gray-500 mt-0.5">Products</p>
+                    <div className="mt-4 grid grid-cols-3 gap-3">
+                        <div className="rounded-2xl bg-muted p-3 text-center">
+                            <p className="text-xl font-black text-foreground">{storefront.product_count}</p>
+                            <p className="mt-0.5 text-[10px] text-muted-foreground">Products</p>
                         </div>
-                        <div className="text-center p-3 bg-gray-50 rounded-2xl">
-                            <p className="text-xl font-black text-gray-900">{storefront.total_sales}</p>
-                            <p className="text-[10px] text-gray-500 mt-0.5">Sales</p>
+                        <div className="rounded-2xl bg-muted p-3 text-center">
+                            <p className="text-xl font-black text-foreground">{storefront.total_sales}</p>
+                            <p className="mt-0.5 text-[10px] text-muted-foreground">Sales</p>
                         </div>
-                        <div className="text-center p-3 bg-gray-50 rounded-2xl">
+                        <div className="rounded-2xl bg-muted p-3 text-center">
                             <div className="flex items-center justify-center gap-1">
-                                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                                <p className="text-xl font-black text-gray-900">{storefront.rating_average.toFixed(1)}</p>
+                                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                                <p className="text-xl font-black text-foreground">{storefront.rating.toFixed(1)}</p>
                             </div>
-                            <p className="text-[10px] text-gray-500 mt-0.5">Rating</p>
+                            <p className="mt-0.5 text-[10px] text-muted-foreground">Rating</p>
                         </div>
                     </div>
 
                     {/* Contact */}
-                    <div className="flex flex-wrap gap-2 mt-4">
-                        {storefront.phone && (
+                    {storefront.phone && (
+                        <div className="mt-4 flex flex-wrap gap-2">
                             <a href={`tel:${storefront.phone}`}
-                                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-full bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors">
-                                <Phone className="w-3.5 h-3.5" /> {storefront.phone}
+                                className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted/70">
+                                <Phone className="h-3.5 w-3.5" /> {storefront.phone}
                             </a>
-                        )}
-                        {storefront.email && (
-                            <a href={`mailto:${storefront.email}`}
-                                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-full bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors">
-                                <Mail className="w-3.5 h-3.5" /> {storefront.email}
-                            </a>
-                        )}
-                        {storefront.website && (
-                            <a href={storefront.website} target="_blank" rel="noopener noreferrer"
-                                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-full bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors">
-                                <Globe className="w-3.5 h-3.5" /> Website
-                            </a>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Products grid */}
                 <section>
-                    <h2 className="font-bold text-gray-900 mb-3">Products ({storefront.products.length})</h2>
+                    <h2 className="mb-3 font-display font-bold text-foreground">Products ({storefront.products.length})</h2>
                     {storefront.products.length === 0 ? (
-                        <div className="bg-white rounded-3xl border border-gray-100 py-12 text-center">
-                            <Package className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-                            <p className="text-sm text-gray-500">No products listed yet</p>
+                        <div className="rounded-3xl border border-border bg-card py-12 text-center">
+                            <Package className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
+                            <p className="text-sm text-muted-foreground">No products listed yet</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            {storefront.products.map((p: any) => (
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                            {storefront.products.map((p) => (
                                 <Link key={p.id} href={`/app/market/${p.id}`}
-                                    className="bg-white rounded-2xl border-2 border-gray-100 overflow-hidden hover:border-green-300 hover:shadow-md transition-all">
-                                    <div className="relative aspect-square bg-gray-50">
-                                        {p.images?.[0]
-                                            ? <Image src={p.images[0]} alt={p.title} fill className="object-cover" sizes="200px" />
-                                            : <div className="absolute inset-0 flex items-center justify-center"><Package className="w-8 h-8 text-gray-200" /></div>}
+                                    className="overflow-hidden rounded-2xl border border-border bg-card transition-all hover:border-primary/40 hover:shadow-md">
+                                    <div className="relative aspect-square bg-muted">
+                                        {p.cover_image ? (
+                                            <Image src={p.cover_image} alt={p.title} fill className="object-cover" sizes="200px" />
+                                        ) : (
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <Package className="h-8 w-8 text-muted-foreground/30" />
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="p-3">
-                                        <p className="text-xs font-bold text-gray-800 line-clamp-2">{p.title}</p>
-                                        <p className="text-sm font-black text-gray-900 mt-1">{fmt(p.price)}</p>
+                                        <p className="line-clamp-2 text-xs font-bold text-foreground">{p.title}</p>
+                                        <p className="mt-1 text-sm font-black text-foreground">{fmt(p.price)}</p>
                                     </div>
                                 </Link>
                             ))}
                         </div>
                     )}
                 </section>
-
-                <div className="h-4" />
             </div>
         </div>
     )

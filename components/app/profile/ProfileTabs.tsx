@@ -1,249 +1,58 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import Image from 'next/image'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
+import { shouldSkipImageOptimization } from '@/lib/supabase-image'
+import { fetchUserPostsPage, fetchSavedPostsPage } from '@/lib/actions/posts'
 import PostCard from '@/components/app/feed/PostCard'
-import PostCardSkeleton from '@/components/app/feed/PostCardSkeleton'
-import { fetchUserPostsPage } from '@/lib/actions/posts'
-import type { PostWithAuthor, PostMedia } from '@/lib/types'
-import { Grid3X3, LayoutList, X, ChevronLeft, ChevronRight, Play } from 'lucide-react'
-
-// ─── Lightbox ─────────────────────────────────────────────────────────────────
-
-interface LightboxProps
+import type { PostWithAuthor, User } from '@/lib/types'
+import
 {
-    medias: PostMedia[]
-    initialIndex: number
-    onClose: () => void
-}
+    Grid3X3,
+    Bookmark,
+    Image as ImageIcon,
+    Video,
+    Users,
+    Trophy,
+} from 'lucide-react'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 
-function Lightbox({ medias, initialIndex, onClose }: LightboxProps)
-{
-    const [index, setIndex] = useState(initialIndex)
-    const current = medias[index]
-
-    // Close on Escape
-    useEffect(() =>
-    {
-        function onKey(e: KeyboardEvent)
-        {
-            if (e.key === 'Escape') onClose()
-            if (e.key === 'ArrowLeft') setIndex((i) => Math.max(0, i - 1))
-            if (e.key === 'ArrowRight') setIndex((i) => Math.min(medias.length - 1, i + 1))
-        }
-        document.addEventListener('keydown', onKey)
-        return () => document.removeEventListener('keydown', onKey)
-    }, [medias.length, onClose])
-
-    // Prevent background scroll
-    useEffect(() =>
-    {
-        document.body.style.overflow = 'hidden'
-        return () =>
-        {
-            document.body.style.overflow = ''
-        }
-    }, [])
-
-    if (!current) return null
-
-    return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Media lightbox"
-            onClick={onClose}
-        >
-            {/* Close button */}
-            <button
-                className="absolute top-4 right-4 z-10 text-white/80 hover:text-white p-2 rounded-full bg-black/30 hover:bg-black/60 transition-colors"
-                onClick={onClose}
-                aria-label="Close lightbox"
-            >
-                <X className="h-6 w-6" />
-            </button>
-
-            {/* Prev */}
-            {index > 0 && (
-                <button
-                    className="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-white/80 hover:text-white p-2 rounded-full bg-black/30 hover:bg-black/60 transition-colors"
-                    onClick={(e) => { e.stopPropagation(); setIndex((i) => i - 1) }}
-                    aria-label="Previous media"
-                >
-                    <ChevronLeft className="h-7 w-7" />
-                </button>
-            )}
-
-            {/* Next */}
-            {index < medias.length - 1 && (
-                <button
-                    className="absolute right-4 top-1/2 -translate-y-1/2 z-10 text-white/80 hover:text-white p-2 rounded-full bg-black/30 hover:bg-black/60 transition-colors"
-                    onClick={(e) => { e.stopPropagation(); setIndex((i) => i + 1) }}
-                    aria-label="Next media"
-                >
-                    <ChevronRight className="h-7 w-7" />
-                </button>
-            )}
-
-            {/* Media */}
-            <div
-                className="relative max-w-[90vw] max-h-[90vh] w-full h-full flex items-center justify-center"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {current.media_type === 'video' ? (
-                    <video
-                        src={current.url}
-                        controls
-                        autoPlay
-                        className="max-w-full max-h-[90vh] rounded-lg"
-                        aria-label="Video"
-                    />
-                ) : (
-                    <div className="relative w-full h-full flex items-center justify-center">
-                        <Image
-                            src={current.url}
-                            alt={`Media ${index + 1}`}
-                            width={current.width ?? 1200}
-                            height={current.height ?? 800}
-                            className="max-w-full max-h-[90vh] object-contain rounded-lg"
-                            priority
-                        />
-                    </div>
-                )}
-            </div>
-
-            {/* Dot indicators */}
-            {medias.length > 1 && (
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5">
-                    {medias.map((_, i) => (
-                        <button
-                            key={i}
-                            className={`h-1.5 w-1.5 rounded-full transition-colors ${i === index ? 'bg-white' : 'bg-white/40'
-                                }`}
-                            onClick={(e) => { e.stopPropagation(); setIndex(i) }}
-                            aria-label={`Go to media ${i + 1}`}
-                        />
-                    ))}
-                </div>
-            )}
-        </div>
-    )
-}
-
-// ─── Media Grid ───────────────────────────────────────────────────────────────
-
-interface MediaItem
-{
-    media: PostMedia
-    postId: string
-}
-
-interface MediaGridProps
-{
-    allMedia: MediaItem[]
-}
-
-function MediaGrid({ allMedia }: MediaGridProps)
-{
-    const [lightboxOpen, setLightboxOpen] = useState(false)
-    const [lightboxIndex, setLightboxIndex] = useState(0)
-
-    const flatMedias = allMedia.map((m) => m.media)
-
-    function openLightbox(index: number)
-    {
-        setLightboxIndex(index)
-        setLightboxOpen(true)
-    }
-
-    if (allMedia.length === 0)
-    {
-        return (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                <Grid3X3 className="h-12 w-12 mb-3 opacity-30" />
-                <p className="text-sm font-medium">No media yet</p>
-            </div>
-        )
-    }
-
-    return (
-        <>
-            <div
-                className="grid grid-cols-3 gap-0.5"
-                role="list"
-                aria-label="Media gallery"
-            >
-                {allMedia.map(({ media }, i) => (
-                    <button
-                        key={media.id}
-                        role="listitem"
-                        className="relative aspect-square overflow-hidden bg-muted hover:opacity-80 active:opacity-60 transition-opacity focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
-                        onClick={() => openLightbox(i)}
-                        aria-label={`Open media ${i + 1}`}
-                    >
-                        {media.media_type === 'video' ? (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black">
-                                <video
-                                    src={media.url}
-                                    className="h-full w-full object-cover opacity-70"
-                                    muted
-                                    preload="metadata"
-                                    aria-hidden="true"
-                                />
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <Play className="h-8 w-8 text-white drop-shadow" fill="white" />
-                                </div>
-                            </div>
-                        ) : (
-                            <Image
-                                src={media.url}
-                                alt={`Media ${i + 1}`}
-                                fill
-                                className="object-cover"
-                                sizes="(max-width: 768px) 33vw, 200px"
-                            />
-                        )}
-                    </button>
-                ))}
-            </div>
-
-            {lightboxOpen && (
-                <Lightbox
-                    medias={flatMedias}
-                    initialIndex={lightboxIndex}
-                    onClose={() => setLightboxOpen(false)}
-                />
-            )}
-        </>
-    )
-}
-
-// ─── Profile Posts (infinite scroll) ─────────────────────────────────────────
+// ─── Post feed list (infinite scroll — full post cards, matches the main feed) ──
+// Shared by the Posts tab (fetchUserPostsPage) and the Saved tab (fetchSavedPostsPage).
 
 const SKELETON_COUNT = 3
 
-interface ProfilePostsProps
+interface PostFeedListProps
 {
-    authorId: string
     currentUserId: string
-    initialPosts: PostWithAuthor[]
-    initialCursor: string | null
+    /** Server-fetched first page. Omit (along with initialCursor) to have this component fetch its own first page on mount — used for tabs with no server-side data loader, like Saved. */
+    initialPosts?: PostWithAuthor[]
+    initialCursor?: string | null
+    fetchPage: (cursor: string | null) => Promise<{ posts: PostWithAuthor[]; nextCursor: string | null }>
+    emptyIcon: typeof Grid3X3
+    emptyTitle: string
+    emptyDescription?: string
+    exhaustedLabel: string
 }
 
-function ProfilePosts({
-    authorId,
+function PostFeedList({
     currentUserId,
     initialPosts,
     initialCursor,
-}: ProfilePostsProps)
+    fetchPage,
+    emptyIcon: EmptyIcon,
+    emptyTitle,
+    emptyDescription,
+    exhaustedLabel,
+}: PostFeedListProps)
 {
-    const [posts, setPosts] = useState<PostWithAuthor[]>(initialPosts)
-    const [cursor, setCursor] = useState<string | null>(initialCursor)
-    const [loading, setLoading] = useState(false)
-    const [exhausted, setExhausted] = useState(initialCursor === null)
+    const bootstrap = initialPosts === undefined
+
+    const [posts, setPosts] = useState<PostWithAuthor[]>(initialPosts ?? [])
+    const [cursor, setCursor] = useState<string | null>(initialCursor ?? null)
+    const [loading, setLoading] = useState(bootstrap)
+    const [exhausted, setExhausted] = useState(!bootstrap && initialCursor === null)
 
     const sentinelRef = useRef<HTMLDivElement>(null)
     const loadingRef = useRef(false)
@@ -256,7 +65,7 @@ function ProfilePosts({
 
         try
         {
-            const { posts: newPosts, nextCursor } = await fetchUserPostsPage(authorId, cursor)
+            const { posts: newPosts, nextCursor } = await fetchPage(cursor)
             setPosts((prev) =>
             {
                 const existingIds = new Set(prev.map((p) => p.id))
@@ -267,13 +76,20 @@ function ProfilePosts({
             if (nextCursor === null) setExhausted(true)
         } catch (err)
         {
-            console.error('ProfilePosts loadMore error:', err)
+            console.error('PostFeedList loadMore error:', err)
         } finally
         {
             loadingRef.current = false
             setLoading(false)
         }
-    }, [authorId, cursor, exhausted])
+    }, [fetchPage, cursor, exhausted])
+
+    // No server-provided first page (e.g. Saved tab) — fetch it ourselves once, on mount.
+    useEffect(() =>
+    {
+        if (bootstrap) loadMore()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     useEffect(() =>
     {
@@ -295,33 +111,140 @@ function ProfilePosts({
     if (posts.length === 0 && !loading)
     {
         return (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                <LayoutList className="h-12 w-12 mb-3 opacity-30" />
-                <p className="text-sm font-medium">No posts yet</p>
-            </div>
+            <Empty className="py-16">
+                <EmptyHeader>
+                    <EmptyMedia variant="icon"><EmptyIcon /></EmptyMedia>
+                    <EmptyTitle>{emptyTitle}</EmptyTitle>
+                    {emptyDescription && <EmptyDescription>{emptyDescription}</EmptyDescription>}
+                </EmptyHeader>
+            </Empty>
         )
     }
 
     return (
-        <div className="space-y-4">
+        <div className="p-4 space-y-4 bg-muted/30">
             {posts.map((post) => (
-                <PostCard key={post.id} post={post} currentUserId={currentUserId} />
+                <PostCard
+                    key={post.id}
+                    post={post}
+                    currentUserId={currentUserId}
+                    onReactionToggle={(postId, reacted, delta) => {
+                        setPosts((prev) =>
+                            prev.map((p) =>
+                                p.id === postId
+                                    ? {
+                                        ...p,
+                                        user_reacted: reacted,
+                                        reaction_count: Math.max(0, (p.reaction_count || 0) + delta),
+                                    }
+                                    : p
+                            )
+                        )
+                    }}
+                    onSaveToggle={(postId, saved) => {
+                        setPosts((prev) =>
+                            prev.map((p) => (p.id === postId ? { ...p, user_saved: saved } : p))
+                        )
+                    }}
+                    onHide={(postId) => setPosts((prev) => prev.filter((p) => p.id !== postId))}
+                />
             ))}
 
-            {loading && (
-                <div className="space-y-4">
-                    {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-                        <PostCardSkeleton key={`skeleton-${i}`} />
-                    ))}
-                </div>
-            )}
+            {loading && Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+                <div key={`skeleton-${i}`} className="h-64 rounded-2xl animate-pulse bg-muted" />
+            ))}
 
             {!exhausted && <div ref={sentinelRef} className="h-1" aria-hidden="true" />}
 
             {exhausted && posts.length > 0 && (
                 <p className="text-center text-sm text-muted-foreground py-6">
-                    All posts loaded.
+                    {exhaustedLabel}
                 </p>
+            )}
+        </div>
+    )
+}
+
+// ─── Photos / Videos — filtered from already-loaded posts (no fabricated data) ──
+
+function MediaGrid({ posts, type }: { posts: PostWithAuthor[]; type: 'image' | 'video' })
+{
+    const tiles = posts.flatMap((post) =>
+        (post.medias ?? [])
+            .filter((m) => m.media_type === type)
+            .map((m) => ({ media: m, post }))
+    )
+
+    if (tiles.length === 0)
+    {
+        return (
+            <Empty className="py-16">
+                <EmptyHeader>
+                    <EmptyMedia variant="icon">{type === 'image' ? <ImageIcon /> : <Video />}</EmptyMedia>
+                    <EmptyTitle>No {type === 'image' ? 'photos' : 'videos'} yet</EmptyTitle>
+                    <EmptyDescription>{type === 'image' ? 'Photos from posts' : 'Videos from posts'} will show up here.</EmptyDescription>
+                </EmptyHeader>
+            </Empty>
+        )
+    }
+
+    return (
+        <div className="grid grid-cols-3 gap-0.5 sm:gap-1">
+            {tiles.map(({ media, post }) => (
+                <Link
+                    key={media.id}
+                    href={`/app/feed/${post.id}`}
+                    className="relative aspect-square overflow-hidden bg-muted"
+                >
+                    {type === 'video' ? (
+                        <video src={media.url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                    ) : (
+                        <Image src={media.url} alt={post.caption ?? 'Post media'} fill unoptimized={shouldSkipImageOptimization(media.url)} className="object-cover" sizes="(max-width: 640px) 33vw, 300px" />
+                    )}
+                </Link>
+            ))}
+        </div>
+    )
+}
+
+// ─── Simple "coming soon" style empty panel for tabs with no backing data yet ──
+
+function ComingSoonPanel({ icon: Icon, title, description }: { icon: typeof Users; title: string; description: string })
+{
+    return (
+        <Empty className="py-16">
+            <EmptyHeader>
+                <EmptyMedia variant="icon"><Icon /></EmptyMedia>
+                <EmptyTitle>{title}</EmptyTitle>
+                <EmptyDescription>{description}</EmptyDescription>
+            </EmptyHeader>
+        </Empty>
+    )
+}
+
+// ─── About panel ────────────────────────────────────────────────────────────────
+
+function AboutPanel({ profile }: { profile: User })
+{
+    return (
+        <div className="px-4 py-5 space-y-4">
+            <div>
+                <h3 className="text-sm font-bold text-foreground mb-1.5">About Me</h3>
+                <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line">
+                    {profile.bio || 'No bio added yet.'}
+                </p>
+            </div>
+            {profile.skills.length > 0 && (
+                <div>
+                    <h3 className="text-sm font-bold text-foreground mb-2">Skills</h3>
+                    <div className="flex flex-wrap gap-1.5">
+                        {profile.skills.map((skill) => (
+                            <span key={skill} className="text-xs font-medium bg-primary/10 text-primary px-2.5 py-1 rounded-full">
+                                {skill}
+                            </span>
+                        ))}
+                    </div>
+                </div>
             )}
         </div>
     )
@@ -329,50 +252,93 @@ function ProfilePosts({
 
 // ─── Main ProfileTabs component ───────────────────────────────────────────────
 
+const ALL_TABS = [
+    { key: 'posts', label: 'Posts' },
+    { key: 'about', label: 'About' },
+    { key: 'photos', label: 'Photos' },
+    { key: 'videos', label: 'Videos' },
+    { key: 'saved', label: 'Saved' },
+    { key: 'groups', label: 'Groups' },
+    { key: 'achievements', label: 'Achievements' },
+] as const
+
+type ProfileTab = typeof ALL_TABS[number]['key']
+
 interface ProfileTabsProps
 {
+    profile: User
     authorId: string
     currentUserId: string
     initialPosts: PostWithAuthor[]
     initialCursor: string | null
-    allMedia: MediaItem[]
+    isOwnProfile: boolean
 }
 
 export default function ProfileTabs({
+    profile,
     authorId,
     currentUserId,
     initialPosts,
     initialCursor,
-    allMedia,
+    isOwnProfile,
 }: ProfileTabsProps)
 {
+    const [activeTab, setActiveTab] = useState<ProfileTab>('posts')
+
+    // Saved posts are a private bookmark list — only the profile owner sees that tab.
+    const TABS = isOwnProfile ? ALL_TABS : ALL_TABS.filter((tab) => tab.key !== 'saved')
+
     return (
-        <Tabs defaultValue="posts" className="w-full">
-            <TabsList className="w-full grid grid-cols-2 mb-4">
-                <TabsTrigger value="posts" className="gap-1.5">
-                    <LayoutList className="h-4 w-4" />
-                    Posts
-                </TabsTrigger>
-                <TabsTrigger value="media" className="gap-1.5">
-                    <Grid3X3 className="h-4 w-4" />
-                    Media
-                </TabsTrigger>
-            </TabsList>
+        <div className="w-full">
+            <div role="tablist" aria-label="Profile content" className="flex items-center gap-1 border-b border-border overflow-x-auto scrollbar-none px-1">
+                {TABS.map((tab) => (
+                    <button
+                        key={tab.key}
+                        role="tab"
+                        aria-selected={activeTab === tab.key}
+                        onClick={() => setActiveTab(tab.key)}
+                        className={`shrink-0 px-3 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${activeTab === tab.key
+                            ? 'border-primary text-primary'
+                            : 'border-transparent text-muted-foreground hover:text-foreground'
+                            }`}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
 
-            <TabsContent value="posts" className="mt-0">
-                <ProfilePosts
-                    authorId={authorId}
-                    currentUserId={currentUserId}
-                    initialPosts={initialPosts}
-                    initialCursor={initialCursor}
-                />
-            </TabsContent>
-
-            <TabsContent value="media" className="mt-0">
-                <MediaGrid allMedia={allMedia} />
-            </TabsContent>
-        </Tabs>
+            <div role="tabpanel" className="mt-0.5 sm:mt-1">
+                {activeTab === 'posts' && (
+                    <PostFeedList
+                        currentUserId={currentUserId}
+                        initialPosts={initialPosts}
+                        initialCursor={initialCursor}
+                        fetchPage={(cursor) => fetchUserPostsPage(authorId, cursor)}
+                        emptyIcon={Grid3X3}
+                        emptyTitle="No posts yet"
+                        exhaustedLabel="All posts loaded."
+                    />
+                )}
+                {activeTab === 'about' && <AboutPanel profile={profile} />}
+                {activeTab === 'photos' && <MediaGrid posts={initialPosts} type="image" />}
+                {activeTab === 'videos' && <MediaGrid posts={initialPosts} type="video" />}
+                {activeTab === 'saved' && isOwnProfile && (
+                    <PostFeedList
+                        currentUserId={currentUserId}
+                        fetchPage={fetchSavedPostsPage}
+                        emptyIcon={Bookmark}
+                        emptyTitle="No saved posts yet"
+                        emptyDescription="Posts you save will show up here."
+                        exhaustedLabel="All saved posts loaded."
+                    />
+                )}
+                {activeTab === 'groups' && (
+                    <ComingSoonPanel icon={Users} title="Groups coming soon" description="Community groups aren't live yet." />
+                )}
+                {activeTab === 'achievements' && (
+                    <ComingSoonPanel icon={Trophy} title="Achievements coming soon" description="Milestones and achievements aren't tracked yet." />
+                )}
+            </div>
+        </div>
     )
 }
-
-export type { MediaItem }

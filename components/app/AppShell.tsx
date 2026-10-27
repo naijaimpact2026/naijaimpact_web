@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@/lib/types'
 import Sidebar from './Sidebar'
@@ -9,6 +9,11 @@ import BottomNav from './BottomNav'
 import TopBar from './TopBar'
 import { UnreadCountProvider, useUnreadCount } from './UnreadCountContext'
 import NotificationListener from './NotificationListener'
+import ChatProvider from './ChatProvider'
+import { disconnectChatUser } from '@/lib/stream'
+import SignOutPromptModal, { type SignOutFeedback } from './SignOutPromptModal'
+import { recordSignOutFeedback } from '@/lib/actions/auth'
+import NovoCompanion from './mascot'
 
 interface AppShellInnerProps
 {
@@ -19,52 +24,98 @@ interface AppShellInnerProps
 function AppShellInner({ children, user }: AppShellInnerProps)
 {
     const router = useRouter()
+    const pathname = usePathname()
     const { messageCount, notificationCount } = useUnreadCount()
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [signOutModalOpen, setSignOutModalOpen] = useState(false)
+    const [isSigningOut, setIsSigningOut] = useState(false)
 
-    const handleSignOut = async () =>
+    const isChatConversation = pathname.startsWith('/app/chat/')
+
+    const handleConfirmSignOut = async (feedback?: SignOutFeedback) =>
     {
-        const supabase = createClient()
-        await supabase.auth.signOut()
-        router.push('/')
-        router.refresh()
+        setIsSigningOut(true)
+        try
+        {
+            if (feedback?.rating || feedback?.note)
+            {
+                recordSignOutFeedback(feedback).catch(() => {})
+            }
+            await disconnectChatUser()
+            const supabase = createClient()
+            await supabase.auth.signOut()
+            router.push('/')
+            router.refresh()
+        }
+        catch (err)
+        {
+            console.error('Sign out error:', err)
+        }
+        finally
+        {
+            setIsSigningOut(false)
+            setSignOutModalOpen(false)
+        }
     }
 
     return (
-        <div className="flex min-h-screen bg-[#f0f4f2] text-foreground app-bg">
-            {/* Fixed top header */}
+        <div className="flex min-h-screen bg-background text-foreground">
             <TopBar
                 user={user}
                 notificationCount={notificationCount}
+                messageCount={messageCount}
                 onMenuToggle={() => setSidebarOpen((v) => !v)}
             />
 
-            {/* Sidebar drawer — controlled by inline transform so Tailwind purging can't break it */}
+            {/* Sidebar — persistent rail on lg+ (sits below the top bar), overlay drawer below lg */}
             <Sidebar
                 user={user}
-                onSignOut={handleSignOut}
+                onSignOut={() => setSignOutModalOpen(true)}
                 messageCount={messageCount}
                 notificationCount={notificationCount}
                 isOpen={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
             />
 
-            {/* Backdrop for sidebar */}
+            {/* Backdrop for sidebar — mobile/tablet only, sidebar is persistent on lg+ */}
             {sidebarOpen && (
                 <div
-                    className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm"
+                    className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden"
                     onClick={() => setSidebarOpen(false)}
                     aria-hidden="true"
                 />
             )}
 
-            {/* Main content — full width, no left margin offset */}
-            <main className="flex-1 min-h-screen pt-14 pb-16 lg:pb-4 overflow-x-hidden">
-                {children}
+            {/* Main content — full width, no left margin offset. min-w-0 lets this
+                flex item shrink to the screen: without it, any wide child (carousel,
+                long link) stretches main past the viewport and mobile browsers zoom
+                the whole page out to fit. No per-route remount/fade either — it
+                flashed the whole page on every navigation, worst on tablets. */}
+            <main className={`flex-1 min-w-0 min-h-screen pt-16 ${isChatConversation ? 'pb-0' : 'pb-16'} lg:pb-0 overflow-x-clip`}>
+                <div className="w-full">
+                    {children}
+                </div>
             </main>
 
-            {/* Mobile bottom nav */}
-            <BottomNav messageCount={messageCount} notificationCount={notificationCount} />
+            {/* Mobile bottom nav — hide inside active chat conversations so composer is unobstructed */}
+            {!isChatConversation && (
+                <BottomNav
+                    messageCount={messageCount}
+                    notificationCount={notificationCount}
+                    onMenuToggle={() => setSidebarOpen((v) => !v)}
+                />
+            )}
+
+            {/* AI Animated Mascot Companion */}
+            <NovoCompanion user={user} />
+
+            {/* Sign-out Confirmation & Question Modal */}
+            <SignOutPromptModal
+                isOpen={signOutModalOpen}
+                onClose={() => setSignOutModalOpen(false)}
+                onConfirmSignOut={handleConfirmSignOut}
+                isSigningOut={isSigningOut}
+            />
         </div>
     )
 }
@@ -83,7 +134,9 @@ export default function AppShell({ children, user, initialNotificationCount = 0 
             {user && (
                 <NotificationListener userId={user.id} initialUnreadCount={initialNotificationCount} />
             )}
-            <AppShellInner user={user}>{children}</AppShellInner>
+            <ChatProvider>
+                <AppShellInner user={user}>{children}</AppShellInner>
+            </ChatProvider>
         </UnreadCountProvider>
     )
 }

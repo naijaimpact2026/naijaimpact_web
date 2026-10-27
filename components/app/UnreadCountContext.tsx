@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useMemo, useState } from 'react'
 
 interface UnreadCountContextValue
 {
@@ -31,10 +31,16 @@ export function UnreadCountProvider({
     const [messageCount, setMessageCount] = useState(0)
     const [notificationCount, setNotificationCount] = useState(initialNotificationCount)
 
+    // Memoized so a change to one count doesn't force every consumer of the
+    // OTHER count to re-render too (they'd otherwise see a new object
+    // identity on every render of either field).
+    const value = useMemo(
+        () => ({ messageCount, setMessageCount, notificationCount, setNotificationCount }),
+        [messageCount, setMessageCount, notificationCount, setNotificationCount],
+    )
+
     return (
-        <UnreadCountContext.Provider
-            value={{ messageCount, setMessageCount, notificationCount, setNotificationCount }}
-        >
+        <UnreadCountContext.Provider value={value}>
             {children}
         </UnreadCountContext.Provider>
     )

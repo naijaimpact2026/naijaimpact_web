@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CreditCard, FileText, BarChart3, AlertCircle, Calendar } from 'lucide-react'
 import LoanProductCard from './LoanProductCard'
@@ -53,6 +53,20 @@ export default function CreditDashboard({
 {
     const [selectedProduct, setSelectedProduct] = useState<LoanProduct | null>(null)
     const [activeTab, setActiveTab] = useState('apply')
+
+    // Grouped once per `repayments` change instead of every card re-filtering
+    // the full array on every render (was O(loans x repayments) per render).
+    const repaymentsByLoan = useMemo(() =>
+    {
+        const map = new Map<string, LoanRepayment[]>()
+        for (const r of repayments)
+        {
+            const arr = map.get(r.loan_id)
+            if (arr) arr.push(r)
+            else map.set(r.loan_id, [r])
+        }
+        return map
+    }, [repayments])
 
     function handleApplicationSuccess()
     {
@@ -224,7 +238,7 @@ export default function CreditDashboard({
                     ) : (
                         <div className="grid gap-4 sm:grid-cols-2">
                             {loans.map((loan) => (
-                                <ActiveLoanCard key={loan.id} loan={loan} repayments={repayments} />
+                                <ActiveLoanCard key={loan.id} loan={loan} repayments={repaymentsByLoan.get(loan.id) ?? []} />
                             ))}
                         </div>
                     )}

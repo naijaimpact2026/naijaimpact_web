@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, Shield } from 'lucide-react'
+import { Loader2, Shield, CheckCircle2 } from 'lucide-react'
 import
     {
         Dialog,
@@ -13,25 +13,6 @@ import
 import { Button } from '@/components/ui/button'
 import { purchasePolicy } from '@/lib/actions/fintech/insure'
 import type { InsureProduct } from '@/lib/types'
-
-// Paystack global type declaration
-declare global
-{
-    interface Window
-    {
-        PaystackPop: {
-            setup(config: {
-                key: string
-                email: string
-                amount: number
-                ref: string
-                metadata?: Record<string, unknown>
-                onSuccess: (transaction: { reference: string }) => void
-                onClose: () => void
-            }): { openIframe(): void }
-        }
-    }
-}
 
 function formatNGN(amount: number): string
 {
@@ -47,7 +28,8 @@ interface PurchasePolicyModalProps
     onOpenChange: (open: boolean) => void
     product: InsureProduct | null
     userEmail: string
-    onSuccess: () => void
+    userId?: string
+    onSuccess?: () => void
 }
 
 export default function PurchasePolicyModal({
@@ -55,6 +37,7 @@ export default function PurchasePolicyModal({
     onOpenChange,
     product,
     userEmail,
+    userId: _userId,
     onSuccess,
 }: PurchasePolicyModalProps)
 {
@@ -103,7 +86,7 @@ export default function PurchasePolicyModal({
                     {
                         onOpenChange(false)
                         setSuccessMessage(null)
-                        onSuccess()
+                        onSuccess?.()
                     }, 2000)
                 },
                 onClose: () =>
@@ -144,7 +127,7 @@ export default function PurchasePolicyModal({
 
                 {successMessage ? (
                     <div className="py-8 text-center space-y-2">
-                        <div className="text-4xl">🎉</div>
+                        <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
                         <p className="font-semibold text-emerald-600">{successMessage}</p>
                         <p className="text-sm text-muted-foreground">Your policy is now active.</p>
                     </div>

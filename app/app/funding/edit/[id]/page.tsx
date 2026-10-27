@@ -1,61 +1,67 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { fetchCampaignById } from '@/lib/actions/funding'
-import { ArrowLeft } from 'lucide-react'
+import { fetchCampaignById, fetchFundingCategories } from '@/lib/actions/funding'
 import FundingEditForm from '@/components/app/funding/FundingEditForm'
+import { ArrowLeft, Sparkles } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-interface EditCampaignPageProps
-{
-    params: Promise<{ id: string }>
+interface EditFundingPageProps {
+  params: Promise<{ id: string }>
 }
 
-export default async function EditCampaignPage({ params }: EditCampaignPageProps)
-{
-    const { id } = await params
-    const campaign = await fetchCampaignById(id)
+export default async function EditFundingPage({ params }: EditFundingPageProps) {
+  const { id } = await params
 
-    if (!campaign) notFound()
+  const [campaign, categories, supabase] = await Promise.all([
+    fetchCampaignById(id),
+    fetchFundingCategories(),
+    createClient(),
+  ])
 
-    const supabase = await createClient()
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
+  if (!campaign) {
+    notFound()
+  }
 
-    if (!authUser) redirect(`/auth/login`)
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser()
 
-    const { data: profile } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_id', authUser.id)
-        .single()
+  if (!authUser) {
+    redirect(`/auth/login?next=/app/funding/edit/${id}`)
+  }
 
-    // Guard: only the creator can edit
-    if (!profile || profile.id !== campaign.creator_id)
-    {
-        redirect(`/app/funding/${id}`)
-    }
+  if (authUser.id !== campaign.user_id) {
+    redirect(`/app/funding/${id}`)
+  }
 
-    return (
-        <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-            <Link
-                href={`/app/funding/${id}`}
-                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-                <ArrowLeft className="h-4 w-4" />
-                Back to campaign
-            </Link>
+  return (
+    <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <div className="flex items-center justify-between">
+        <Link
+          href={`/app/funding/${campaign.id}`}
+          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to Campaign
+        </Link>
+      </div>
 
-            <div>
-                <h1 className="text-2xl font-bold">Edit Campaign</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                    Update the details of your campaign
-                </p>
-            </div>
+      <div className="space-y-2">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-semibold">
+          <Sparkles className="w-3.5 h-3.5" /> Manage Initiative
+        </div>
+        <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
+          Edit Campaign
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Update the details, impact statement, goal amount, or cover media of your campaign.
+        </p>
+      </div>
 
-            <FundingEditForm campaign={campaign} />
-        </main>
-    )
+      <div className="p-6 sm:p-8 rounded-3xl border border-border bg-card shadow-sm">
+        <FundingEditForm campaign={campaign} categories={categories} />
+      </div>
+    </main>
+  )
 }

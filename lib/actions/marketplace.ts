@@ -11,9 +11,10 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import type {
   NmListing, NmListingDetail, NmSellerProfile,
-  NmOrder, NmEscrow, NmBooking, NmReview,
+  NmOrder, NmEscrow, NmBooking, NmReview, NmTopSeller,
   NmListingType, NmListingCondition, NmDeliveryOption,
 } from '@/lib/types'
 
@@ -23,9 +24,9 @@ const PAGE_SIZE = 24
 
 async function requireAuth() {
   const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) throw new Error('Unauthenticated')
-  return { supabase, authUser: user }
+  const { authUser } = await getCurrentUser()
+  if (!authUser) throw new Error('Unauthenticated')
+  return { supabase, authUser }
 }
 
 /** Get or create nm_seller_profile for current auth user */
@@ -125,6 +126,19 @@ export async function fetchListings(
   const hasMore = data.length > limit
   const page = hasMore ? data.slice(0, limit) : data
 
+  // Which of these listings has the current viewer already saved? Optional auth —
+  // an unauthenticated viewer just sees is_saved: false on everything.
+  const { authUser } = await getCurrentUser()
+  const listingIds = page.map((row: any) => row.id)
+  const { data: savedRows } = authUser && listingIds.length > 0
+    ? await supabase
+        .from('nm_saved_listings')
+        .select('listing_id')
+        .eq('user_id', authUser.id)
+        .in('listing_id', listingIds)
+    : { data: [] as { listing_id: string }[] }
+  const savedSet = new Set((savedRows ?? []).map((r) => r.listing_id))
+
   const listings: NmListingDetail[] = page.map((row: any) => {
     const images: string[] = (row.listing_images ?? [])
       .sort((a: any, b: any) => a.sort_order - b.sort_order)
@@ -149,7 +163,7 @@ export async function fetchListings(
       // Images
       cover_image_url: cover,
       image_urls: images,
-      is_saved: false,
+      is_saved: savedSet.has(row.id),
       // Clean up joined objects
       seller_profile: undefined,
       listing_images: undefined,
@@ -192,6 +206,16 @@ export async function fetchListingById(id: string): Promise<NmListingDetail | nu
     .eq('id', id)
     .then(() => {})
 
+  const { authUser } = await getCurrentUser()
+  const isSaved = authUser
+    ? !!(await supabase
+        .from('nm_saved_listings')
+        .select('id')
+        .eq('user_id', authUser.id)
+        .eq('listing_id', id)
+        .maybeSingle()).data
+    : false
+
   return {
     ...row,
     seller_business_name: sp.business_name ?? null,
@@ -206,7 +230,7 @@ export async function fetchListingById(id: string): Promise<NmListingDetail | nu
     category_type: row.category?.service_type ?? null,
     cover_image_url: images[0] ?? null,
     image_urls: images,
-    is_saved: false,
+    is_saved: isSaved,
     seller_profile: undefined,
     listing_images: undefined,
     category: undefined,
@@ -385,6 +409,92 @@ export async function upsertSellerProfile(updates: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SELLER FOLLOWS + TOP STORES RAIL
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Toggle whether the current user follows a store. Keyed by the raw auth uid,
+ * matching nm_seller_profiles.user_id / nm_orders.buyer_id throughout this file. */
+export async function toggleSellerFollow(sellerId: string): Promise<{ following: boolean }> {
+  const { supabase, authUser } = await requireAuth()
+
+  const { data: existing } = await supabase
+    .from('nm_seller_follows')
+    .select('id')
+    .eq('seller_id', sellerId)
+    .eq('follower_id', authUser.id)
+    .maybeSingle()
+
+  if (existing) {
+    const { error } = await supabase.from('nm_seller_follows').delete().eq('id', existing.id)
+    if (error) throw new Error('Failed to unfollow store')
+    revalidatePath('/app/market')
+    return { following: false }
+  }
+
+  const { error } = await supabase
+    .from('nm_seller_follows')
+    .insert({ seller_id: sellerId, follower_id: authUser.id })
+  if (error) throw new Error('Failed to follow store')
+  revalidatePath('/app/market')
+  return { following: true }
+}
+
+/** Top Stores rail — real sellers ranked by rating, each with a real
+ * (not fabricated) dominant category computed from their own listings and a
+ * real follower count from nm_seller_follows. */
+export async function fetchTopSellers(limit = 4): Promise<NmTopSeller[]> {
+  const supabase = await createClient()
+
+  const { data: sellers, error } = await supabase
+    .from('nm_seller_profiles')
+    .select('*')
+    .order('rating', { ascending: false })
+    .order('total_sales', { ascending: false })
+    .limit(limit)
+
+  if (error || !sellers || sellers.length === 0) return []
+
+  const sellerIds = sellers.map((s: any) => s.id)
+
+  const [{ data: listingRows }, { data: followRows }, { authUser: user }] = await Promise.all([
+    supabase.from('nm_listings').select('seller_id, category:services_categories(name)').in('seller_id', sellerIds).eq('is_active', true),
+    supabase.from('nm_seller_follows').select('seller_id, follower_id').in('seller_id', sellerIds),
+    getCurrentUser(),
+  ])
+
+  // Dominant category per seller = most frequent category among their active listings.
+  const categoryCounts = new Map<string, Map<string, number>>()
+  for (const row of (listingRows ?? []) as any[]) {
+    const catName = row.category?.name
+    if (!catName) continue
+    const counts = categoryCounts.get(row.seller_id) ?? new Map<string, number>()
+    counts.set(catName, (counts.get(catName) ?? 0) + 1)
+    categoryCounts.set(row.seller_id, counts)
+  }
+
+  const followerCountMap = new Map<string, number>()
+  const followingSet = new Set<string>()
+  for (const row of (followRows ?? []) as any[]) {
+    followerCountMap.set(row.seller_id, (followerCountMap.get(row.seller_id) ?? 0) + 1)
+    if (user && row.follower_id === user.id) followingSet.add(row.seller_id)
+  }
+
+  return sellers.map((s: any) => {
+    const counts = categoryCounts.get(s.id)
+    const dominant = counts
+      ? [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+      : null
+
+    return {
+      ...s,
+      dominant_category_name: dominant,
+      follower_count: followerCountMap.get(s.id) ?? 0,
+      is_following: followingSet.has(s.id),
+    } as NmTopSeller
+  })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ORDERS — using nm_orders + nm_escrow via nm_create_escrow_order RPC
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -443,8 +553,7 @@ export async function fetchMyOrders(role: 'buyer' | 'seller'): Promise<NmOrder[]
     query = supabase
       .from('nm_orders')
       .select(`*,
-        listing:nm_listings(id, title),
-        listing_images:nm_listing_images(image_url, sort_order),
+        listing:nm_listings(id, title, listing_images:nm_listing_images(image_url, sort_order)),
         seller_profile:nm_seller_profiles(id, business_name, logo_url, user_id)`)
       .eq('buyer_id', authUser.id)
       .order('created_at', { ascending: false })
@@ -458,8 +567,7 @@ export async function fetchMyOrders(role: 'buyer' | 'seller'): Promise<NmOrder[]
     query = supabase
       .from('nm_orders')
       .select(`*,
-        listing:nm_listings(id, title),
-        listing_images:nm_listing_images(image_url, sort_order),
+        listing:nm_listings(id, title, listing_images:nm_listing_images(image_url, sort_order)),
         buyer_profile:users!nm_orders_buyer_id_fkey(id, fullname, username, profile_image_url)`)
       .eq('seller_id', sp.id)
       .order('created_at', { ascending: false })
@@ -535,8 +643,7 @@ export async function fetchMyBookings(role: 'customer' | 'artisan'): Promise<NmB
   const { data, error } = await supabase
     .from('nm_bookings')
     .select(`*,
-      listing:nm_listings(id, title),
-      listing_images:nm_listing_images(image_url, sort_order)`)
+      listing:nm_listings(id, title, listing_images:nm_listing_images(image_url, sort_order))`)
     .eq(field, authUser.id)
     .order('created_at', { ascending: false })
     .limit(50)
@@ -567,14 +674,35 @@ export async function updateBookingStatus(
 
 export async function fetchListingReviews(listingId: string): Promise<NmReview[]> {
   const supabase = await createClient()
-  const { data } = await supabase
+  const { data: reviews, error } = await supabase
     .from('nm_reviews')
-    .select(`*,
-      reviewer:users!nm_reviews_reviewer_id_fkey(id, fullname, username, profile_image_url)`)
+    .select('*')
     .eq('listing_id', listingId)
     .order('created_at', { ascending: false })
     .limit(50)
-  return (data ?? []) as NmReview[]
+
+  if (error || !reviews || reviews.length === 0) return []
+
+  // nm_reviews.reviewer_id is a FK into auth.users, not public.users, so it can't be
+  // resolved with a PostgREST embed — look reviewer profiles up separately by auth_id.
+  const reviewerIds = [...new Set(reviews.map((r) => r.reviewer_id))]
+
+  const { data: reviewers } = await supabase
+    .from('users')
+    .select('id, auth_id, fullname, username, profile_image_url')
+    .in('auth_id', reviewerIds)
+
+  const reviewerMap = new Map(
+    (reviewers ?? []).map((u) => [
+      u.auth_id,
+      { id: u.id, fullname: u.fullname, username: u.username, profile_image_url: u.profile_image_url },
+    ])
+  )
+
+  return reviews.map((r) => ({
+    ...r,
+    reviewer: reviewerMap.get(r.reviewer_id) ?? null,
+  })) as NmReview[]
 }
 
 export async function submitReview(data: {
@@ -758,7 +886,7 @@ export async function fetchStorefronts(cursor?: string): Promise<{
     .select(`
       id, user_id, business_name, bio, logo_url, state, city, phone,
       tier, is_verified, tradecred_score, rating, total_sales, created_at,
-      owner:users!nm_seller_profiles_user_id_fkey(id, fullname, username, profile_image_url)
+      owner:users!nm_seller_profiles_user_id_fkey(id, fullname, username, profile_image_url, verified)
     `)
     .gt('total_sales', -1)         // all profiles
     .order('total_sales', { ascending: false })
@@ -772,17 +900,23 @@ export async function fetchStorefronts(cursor?: string): Promise<{
   const page = (data ?? []).slice(0, 20)
   const hasMore = (data ?? []).length > 20
 
-  // Attach listing count to each storefront
-  const storefronts = await Promise.all(
-    page.map(async (sp: any) => {
-      const { count } = await supabase
+  // Attach listing count to each storefront — one grouped query instead of
+  // one count query per storefront.
+  const sellerIds = page.map((sp: any) => sp.id)
+  const { data: listingRows } = sellerIds.length > 0
+    ? await supabase
         .from('nm_listings')
-        .select('id', { count: 'exact', head: true })
-        .eq('seller_id', sp.id)
+        .select('seller_id')
+        .in('seller_id', sellerIds)
         .eq('is_active', true)
-      return { ...sp, product_count: count ?? 0 }
-    })
-  )
+    : { data: [] as { seller_id: string }[] }
+
+  const countMap = new Map<string, number>()
+  for (const row of (listingRows ?? []) as { seller_id: string }[]) {
+    countMap.set(row.seller_id, (countMap.get(row.seller_id) ?? 0) + 1)
+  }
+
+  const storefronts = page.map((sp: any) => ({ ...sp, product_count: countMap.get(sp.id) ?? 0 }))
 
   return {
     storefronts,
@@ -800,7 +934,7 @@ export async function fetchStorefrontBySlug(slug: string): Promise<any | null> {
     .select(`
       id, user_id, business_name, bio, logo_url, state, city, phone,
       tier, is_verified, tradecred_score, rating, total_sales, created_at,
-      owner:users!nm_seller_profiles_user_id_fkey(id, fullname, username, profile_image_url)
+      owner:users!nm_seller_profiles_user_id_fkey(id, fullname, username, profile_image_url, verified)
     `)
     .eq('id', slug)
     .maybeSingle()
@@ -830,11 +964,14 @@ export async function fetchStorefrontBySlug(slug: string): Promise<any | null> {
 
 export async function fetchArtisans(filters: {
   category_id?: string
+  service_type?: string
   state?: string
   search?: string
   cursor?: string
+  limit?: number
 } = {}): Promise<{ artisans: any[]; nextCursor: string | null }> {
   const supabase = await createClient()
+  const pageSize = filters.limit ?? 50
 
   let query = supabase
     .from('nm_listings')
@@ -842,15 +979,15 @@ export async function fetchArtisans(filters: {
       id, seller_id, user_id, title, description, price, state, city,
       rating, review_count, is_active, tags, created_at,
       seller_profile:nm_seller_profiles!nm_listings_seller_id_fkey(
-        id, business_name, bio, logo_url, is_verified, tradecred_score, rating
+        id, business_name, bio, logo_url, is_verified, tradecred_score, rating, user_id
       ),
       listing_images:nm_listing_images(image_url, sort_order),
-      category:services_categories(id, name)
+      category:services_categories(id, name, service_type)
     `)
     .eq('listing_type', 'service')
     .eq('is_active', true)
     .order('created_at', { ascending: false })
-    .limit(25)
+    .limit(pageSize + 1)
 
   if (filters.category_id) query = query.eq('category_id', filters.category_id)
   if (filters.state) query = query.eq('state', filters.state)
@@ -858,10 +995,18 @@ export async function fetchArtisans(filters: {
   if (filters.cursor) query = (query as any).lt('created_at', filters.cursor)
 
   const { data, error } = await query
-  if (error) return { artisans: [], nextCursor: null }
+  if (error || !data) {
+    console.error('fetchArtisans error:', error)
+    return { artisans: [], nextCursor: null }
+  }
 
-  const hasMore = (data ?? []).length >= 25
-  const page = (data ?? []).slice(0, 25)
+  let filtered = data
+  if (filters.service_type) {
+    filtered = filtered.filter((row: any) => row.category?.service_type === filters.service_type)
+  }
+
+  const hasMore = filtered.length > pageSize
+  const page = hasMore ? filtered.slice(0, pageSize) : filtered
 
   const artisans = page.map((row: any) => {
     const imgs = (row.listing_images ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order)
@@ -875,6 +1020,7 @@ export async function fetchArtisans(filters: {
       seller_bio: sp.bio ?? null,
       seller_logo_url: sp.logo_url ?? null,
       category_name: row.category?.name ?? null,
+      service_type: row.category?.service_type ?? 'artisan',
       seller_profile: undefined,
       listing_images: undefined,
       category: undefined,
@@ -884,8 +1030,79 @@ export async function fetchArtisans(filters: {
   return { artisans, nextCursor: hasMore ? page[page.length - 1].created_at : null }
 }
 
+/** Fetch a single artisan profile and their services by seller_id, user_id, or listing id */
+export async function fetchArtisanByKey(artisanKey: string): Promise<any | null> {
+  const supabase = await createClient()
+
+  // Query service listings matching this key
+  const { data: listings, error } = await supabase
+    .from('nm_listings')
+    .select(`
+      id, seller_id, user_id, title, description, price, state, city,
+      rating, review_count, is_active, tags, created_at,
+      seller_profile:nm_seller_profiles!nm_listings_seller_id_fkey(
+        id, business_name, bio, logo_url, is_verified, tradecred_score, rating, user_id
+      ),
+      listing_images:nm_listing_images(image_url, sort_order),
+      category:services_categories(id, name, service_type)
+    `)
+    .eq('listing_type', 'service')
+    .or(`seller_id.eq.${artisanKey},user_id.eq.${artisanKey},id.eq.${artisanKey}`)
+    .order('created_at', { ascending: false })
+
+  if (error || !listings || listings.length === 0) {
+    return null
+  }
+
+  const first = listings[0]
+  const rawSp = first.seller_profile as any
+  const sp = (Array.isArray(rawSp) ? rawSp[0] : rawSp) ?? {}
+  const targetUserId = first.user_id || sp.user_id
+
+  let userProfileName: string | null = null
+  let userAvatar: string | null = null
+
+  if (targetUserId) {
+    const { data: u } = await supabase
+      .from('users')
+      .select('display_name, avatar_url, username')
+      .or(`id.eq.${targetUserId},auth_id.eq.${targetUserId}`)
+      .maybeSingle()
+    if (u) {
+      userProfileName = u.display_name
+      userAvatar = u.avatar_url
+    }
+  }
+
+  const mappedServices = listings.map((row: any) => {
+    const imgs = (row.listing_images ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order)
+    return {
+      ...row,
+      cover_image_url: imgs[0]?.image_url ?? null,
+      image_urls: imgs.map((i: any) => i.image_url),
+      category_name: row.category?.name ?? null,
+      service_type: row.category?.service_type ?? 'artisan',
+    }
+  })
+
+  const displayName = sp.business_name || userProfileName || first.title || 'Artisan Professional'
+  const avatarUrl = sp.logo_url || userAvatar || mappedServices[0]?.cover_image_url || null
+
+  return {
+    artisanKey,
+    displayName,
+    avatarUrl,
+    isVerified: sp.is_verified ?? false,
+    bio: sp.bio ?? first.description ?? null,
+    location: [first.city, first.state].filter(Boolean).join(', ') || null,
+    userId: targetUserId || null,
+    services: mappedServices,
+  }
+}
+
 /** Create/update an artisan service listing */
 export async function createOrUpdateArtisanProfile(data: {
+  id?: string
   title?: string
   description?: string
   category_id?: string
@@ -893,48 +1110,95 @@ export async function createOrUpdateArtisanProfile(data: {
   state?: string
   city?: string
   tags?: string[]
-}): Promise<void> {
+  is_active?: boolean
+  images?: string[]
+}): Promise<{ id: string }> {
   const { supabase, authUser } = await requireAuth()
   const sellerId = await getOrCreateSellerProfile(supabase, authUser.id)
 
-  // Check if user already has a service listing
-  const { data: existing } = await supabase
-    .from('nm_listings')
-    .select('id')
-    .eq('user_id', authUser.id)
-    .eq('listing_type', 'service')
-    .maybeSingle()
+  let listingId: string
 
-  if (existing) {
-    await supabase.from('nm_listings')
+  if (data.id) {
+    // Specifically updating an existing service listing
+    const { error: updateErr } = await supabase.from('nm_listings')
       .update({
         ...(data.title && { title: data.title }),
-        ...(data.description && { description: data.description }),
+        ...(data.description !== undefined && { description: data.description }),
         ...(data.category_id !== undefined && { category_id: data.category_id }),
-        ...(data.price && { price: data.price }),
-        ...(data.state && { state: data.state }),
-        ...(data.city && { city: data.city }),
-        ...(data.tags && { tags: data.tags }),
+        ...(data.price !== undefined && { price: data.price }),
+        ...(data.state !== undefined && { state: data.state }),
+        ...(data.city !== undefined && { city: data.city }),
+        ...(data.tags !== undefined && { tags: data.tags }),
+        ...(data.is_active !== undefined && { is_active: data.is_active }),
         updated_at: new Date().toISOString(),
       })
-      .eq('id', existing.id)
+      .eq('id', data.id)
+      .eq('user_id', authUser.id)
+
+    if (updateErr) throw new Error('Failed to update service listing: ' + updateErr.message)
+    listingId = data.id
   } else {
-    await supabase.from('nm_listings').insert({
-      seller_id: sellerId,
-      user_id: authUser.id,
-      title: data.title ?? 'My Services',
-      description: data.description ?? '',
-      listing_type: 'service',
-      price: data.price ?? 0,
-      category_id: data.category_id ?? null,
-      state: data.state ?? null,
-      city: data.city ?? null,
-      tags: data.tags ?? [],
-      delivery_option: 'none',
-      is_active: true,
-    })
+    // Check if user has an existing service listing to update, or create a new one
+    const { data: existingRows } = await supabase
+      .from('nm_listings')
+      .select('id')
+      .eq('user_id', authUser.id)
+      .eq('listing_type', 'service')
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    const existing = existingRows?.[0]
+
+    // If existing and user did not specify a new title, update the most recent one
+    if (existing && !data.title) {
+      listingId = existing.id
+      await supabase.from('nm_listings')
+        .update({
+          ...(data.description !== undefined && { description: data.description }),
+          ...(data.category_id !== undefined && { category_id: data.category_id }),
+          ...(data.price !== undefined && { price: data.price }),
+          ...(data.state !== undefined && { state: data.state }),
+          ...(data.city !== undefined && { city: data.city }),
+          ...(data.tags !== undefined && { tags: data.tags }),
+          ...(data.is_active !== undefined && { is_active: data.is_active }),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id)
+    } else {
+      const { data: created, error } = await supabase.from('nm_listings').insert({
+        seller_id: sellerId,
+        user_id: authUser.id,
+        title: data.title ?? 'My Services',
+        description: data.description ?? '',
+        listing_type: 'service',
+        price: data.price ?? 0,
+        category_id: data.category_id ?? null,
+        state: data.state ?? null,
+        city: data.city ?? null,
+        tags: data.tags ?? [],
+        delivery_option: 'none',
+        is_active: data.is_active ?? true,
+      }).select('id').single()
+
+      if (error || !created) throw new Error('Failed to create artisan profile')
+      listingId = created.id
+    }
   }
+
+  // Re-sync portfolio images if provided
+  if (data.images) {
+    await supabase.from('nm_listing_images').delete().eq('listing_id', listingId)
+    if (data.images.length > 0) {
+      await supabase.from('nm_listing_images').insert(
+        data.images.map((url, i) => ({ listing_id: listingId, image_url: url, sort_order: i }))
+      )
+    }
+  }
+
+  revalidatePath('/app/artisans')
   revalidatePath('/app/market/artisans')
+  revalidatePath(`/app/market/artisans/${listingId}`)
+  return { id: listingId }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import CreditDashboard from '@/components/app/fintech/credit/CreditDashboard'
 import type { LoanProduct, LoanApplication, Loan, LoanRepayment } from '@/lib/types'
 
@@ -6,11 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function CreditPage()
 {
-    const supabase = await createClient()
-
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
+    const { authUser, profile } = await getCurrentUser()
 
     if (!authUser)
     {
@@ -20,13 +17,6 @@ export default async function CreditPage()
             </main>
         )
     }
-
-    // Resolve platform users.id
-    const { data: profile } = await supabase
-        .from('users')
-        .select('id')
-        .eq('auth_id', authUser.id)
-        .single()
 
     if (!profile)
     {
@@ -38,6 +28,7 @@ export default async function CreditPage()
     }
 
     const userId = profile.id
+    const supabase = await createClient()
 
     // ── Fetch all credit data in parallel ────────────────────────────────────
     const [

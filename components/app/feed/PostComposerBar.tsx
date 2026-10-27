@@ -1,13 +1,19 @@
 'use client'
 
-import { Image as ImageIcon, Video, Radio, BarChart2, Calendar } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Image as ImageIcon, BarChart2, Calendar, HandCoins, UserPlus, Radio, type LucideIcon } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { User } from '@/lib/types'
+
+export interface PostComposerOpenOptions {
+    withMedia?: boolean
+    withTagging?: boolean
+}
 
 interface PostComposerBarProps
 {
     user: User | null
-    onOpen: () => void
+    onOpen: (options?: PostComposerOpenOptions) => void
 }
 
 function getInitials(name: string | null | undefined): string
@@ -16,22 +22,55 @@ function getInitials(name: string | null | undefined): string
     return name.split(' ').map((p) => p[0]).join('').toUpperCase().slice(0, 2)
 }
 
-const ACTIONS = [
-    { icon: ImageIcon, label: 'Photo', color: 'text-green-600' },
-    { icon: Video, label: 'Video', color: 'text-purple-600' },
-    { icon: Radio, label: 'Live', color: 'text-red-500' },
-    { icon: BarChart2, label: 'Poll', color: 'text-amber-600' },
-    { icon: Calendar, label: 'Event', color: 'text-blue-600' },
+interface ComposerAction {
+    icon: LucideIcon
+    label: string
+    color: string
+    functional: boolean
+    mode?: 'media' | 'tag' | 'live'
+}
+
+const ACTIONS: ComposerAction[] = [
+    { icon: ImageIcon, label: 'Photo/Video', color: 'text-primary', functional: true, mode: 'media' },
+    { icon: Radio, label: 'Livestream', color: 'text-destructive', functional: true, mode: 'live' },
+    { icon: BarChart2, label: 'Poll', color: 'text-amber-600', functional: false },
+    { icon: Calendar, label: 'Event', color: 'text-secondary', functional: false },
+    { icon: HandCoins, label: 'Opportunity', color: 'text-cyan', functional: false },
+    { icon: UserPlus, label: 'Tag People', color: 'text-rose-500', functional: true, mode: 'tag' },
 ]
 
 export default function PostComposerBar({ user, onOpen }: PostComposerBarProps)
 {
+    const router = useRouter()
+
+    function handleActionClick(action: ComposerAction)
+    {
+        if (!action.functional) return
+        if (action.mode === 'live')
+        {
+            router.push('/app/modushive/studio')
+            return
+        }
+        if (action.mode === 'media')
+        {
+            onOpen({ withMedia: true })
+        }
+        else if (action.mode === 'tag')
+        {
+            onOpen({ withTagging: true })
+        }
+        else
+        {
+            onOpen()
+        }
+    }
+
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="bg-card rounded-2xl border border-border shadow-sm dark:shadow-none overflow-hidden">
             {/* Top: avatar + prompt */}
             <div
                 className="flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/40 transition-colors"
-                onClick={onOpen}
+                onClick={() => onOpen()}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && onOpen()}
@@ -43,7 +82,7 @@ export default function PostComposerBar({ user, onOpen }: PostComposerBarProps)
                         {getInitials(user?.display_name)}
                     </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 bg-muted/60 hover:bg-muted rounded-full px-4 py-2 text-sm text-muted-foreground cursor-pointer">
+                <div className="flex-1 bg-muted/60 hover:bg-muted rounded-full px-4 py-2 text-sm text-muted-foreground cursor-pointer transition-colors">
                     What&apos;s on your mind?
                 </div>
             </div>
@@ -53,17 +92,37 @@ export default function PostComposerBar({ user, onOpen }: PostComposerBarProps)
 
             {/* Action buttons */}
             <div className="flex items-center justify-around px-1 py-1">
-                {ACTIONS.map(({ icon: Icon, label, color }) => (
-                    <button
-                        key={label}
-                        onClick={onOpen}
-                        className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl hover:bg-muted transition-colors text-xs font-medium text-muted-foreground hover:text-foreground min-w-0"
-                        aria-label={label}
-                    >
-                        <Icon className={`w-4 h-4 shrink-0 ${color}`} />
-                        <span className="hidden sm:inline truncate">{label}</span>
-                    </button>
-                ))}
+                {ACTIONS.map((action) => {
+                    const Icon = action.icon
+                    const isFunctional = action.functional
+                    const isLive = action.mode === 'live'
+
+                    return (
+                        <button
+                            key={action.label}
+                            type="button"
+                            onClick={() => handleActionClick(action)}
+                            disabled={!isFunctional}
+                            title={isFunctional ? action.label : `${action.label} (coming soon)`}
+                            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl transition-all text-xs font-medium min-w-0 ${
+                                isFunctional
+                                    ? isLive
+                                        ? 'hover:bg-destructive/10 text-foreground font-semibold active:scale-95'
+                                        : 'hover:bg-muted text-muted-foreground hover:text-foreground active:scale-95'
+                                    : 'text-muted-foreground/40 cursor-default'
+                            }`}
+                            aria-label={isFunctional ? action.label : `${action.label} (coming soon)`}
+                        >
+                            <div className="relative flex items-center justify-center shrink-0">
+                                <Icon className={`w-4 h-4 shrink-0 ${isFunctional ? action.color : ''}`} />
+                                {isLive && (
+                                    <span className="absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5 rounded-full bg-destructive animate-pulse" />
+                                )}
+                            </div>
+                            <span className="hidden sm:inline truncate">{action.label}</span>
+                        </button>
+                    )
+                })}
             </div>
         </div>
     )

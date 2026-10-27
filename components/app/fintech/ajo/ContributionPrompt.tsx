@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Loader2, Wallet, CheckCircle2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/components/toast'
 import { contributeToAjo } from '@/lib/actions/fintech/ajo'
 
 interface ContributionPromptProps

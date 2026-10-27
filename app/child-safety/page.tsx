@@ -1,9 +1,14 @@
 import Link from 'next/link'
-import { ChevronRight, Shield, AlertTriangle, Eye, Lock, Users, Flag, Phone, Heart } from 'lucide-react'
+import {
+    ChevronRight, Shield, AlertTriangle, Eye, Lock, Users, Flag, Phone, Heart,
+    FileText, MessageCircle, User, ShoppingCart, MessageSquare, ImageIcon, Ban,
+    PauseCircle, PhoneOff, Scale, Siren, CheckCircle2, ShieldCheck, Landmark,
+    Zap, Bot, Mail, Building2, Clock, ClipboardList,
+} from 'lucide-react'
 
 export const metadata = {
-    title: 'Child Safety Standards — Hubnovo',
-    description: 'Hubnovo is committed to creating a safe environment for all users with zero tolerance for child exploitation.',
+    title: 'Child Safety Standards — HubNovo',
+    description: 'HubNovo is committed to creating a safe environment for all users with zero tolerance for child exploitation.',
 }
 
 const prohibitedItems = [
@@ -19,21 +24,21 @@ const prohibitedItems = [
 ]
 
 const reportableItems = [
-    { icon: '📝', label: 'Inappropriate posts' },
-    { icon: '💬', label: 'Messages' },
-    { icon: '👤', label: 'Profiles' },
-    { icon: '🛒', label: 'Marketplace listings' },
-    { icon: '👥', label: 'Groups' },
-    { icon: '💭', label: 'Comments' },
-    { icon: '🖼️', label: 'Media' },
+    { icon: FileText, label: 'Inappropriate posts' },
+    { icon: MessageCircle, label: 'Messages' },
+    { icon: User, label: 'Profiles' },
+    { icon: ShoppingCart, label: 'Marketplace listings' },
+    { icon: Users, label: 'Groups' },
+    { icon: MessageSquare, label: 'Comments' },
+    { icon: ImageIcon, label: 'Media' },
 ]
 
 const enforcementActions = [
-    { icon: '🚫', label: 'Content removal', color: '#ef4444', bg: '#fef2f2' },
-    { icon: '⏸️', label: 'Temporary suspension', color: '#f97316', bg: '#fff7ed' },
-    { icon: '🔒', label: 'Permanent account ban', color: '#7c3aed', bg: '#f5f3ff' },
-    { icon: '📵', label: 'Device blocking', color: '#dc2626', bg: '#fef2f2' },
-    { icon: '⚖️', label: 'Reporting to authorities', color: '#1d4ed8', bg: '#eff6ff' },
+    { icon: Ban, label: 'Content removal', color: '#ef4444', bg: '#fef2f2' },
+    { icon: PauseCircle, label: 'Temporary suspension', color: '#f97316', bg: '#fff7ed' },
+    { icon: Lock, label: 'Permanent account ban', color: '#7c3aed', bg: '#f5f3ff' },
+    { icon: PhoneOff, label: 'Device blocking', color: '#dc2626', bg: '#fef2f2' },
+    { icon: Scale, label: 'Reporting to authorities', color: '#1d4ed8', bg: '#eff6ff' },
 ]
 
 const minorProtections = [
@@ -45,16 +50,16 @@ const minorProtections = [
 ]
 
 const reportSteps = [
-    { step: '01', icon: '🚨', title: 'Use the In-App Report Feature', desc: 'Tap the report button on any post, message, profile, or listing.' },
-    { step: '02', icon: '📋', title: 'Select Report Reason', desc: 'Choose the most appropriate reason — select "Child Safety" or "Exploitation" where applicable.' },
-    { step: '03', icon: '📝', title: 'Provide Details', desc: 'Include any relevant information that can help our moderation team act quickly.' },
-    { step: '04', icon: '✅', title: 'Submit & We Review', desc: 'Urgent child safety reports are escalated immediately to our safety team.' },
+    { step: '01', icon: Siren, title: 'Use the In-App Report Feature', desc: 'Tap the report button on any post, message, profile, or listing.' },
+    { step: '02', icon: ClipboardList, title: 'Select Report Reason', desc: 'Choose the most appropriate reason — select "Child Safety" or "Exploitation" where applicable.' },
+    { step: '03', icon: FileText, title: 'Provide Details', desc: 'Include any relevant information that can help our moderation team act quickly.' },
+    { step: '04', icon: CheckCircle2, title: 'Submit & We Review', desc: 'Urgent child safety reports are escalated immediately to our safety team.' },
 ]
 
 const authorities = [
-    { icon: '👮', label: 'National law enforcement agencies' },
-    { icon: '🛡️', label: 'Child protection organizations' },
-    { icon: '🏛️', label: 'Government authorities' },
+    { icon: Shield, label: 'National law enforcement agencies' },
+    { icon: ShieldCheck, label: 'Child protection organizations' },
+    { icon: Landmark, label: 'Government authorities' },
 ]
 
 export default function ChildSafetyPage()
@@ -75,14 +80,14 @@ export default function ChildSafetyPage()
                     style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.4) 1px,transparent 1px)', backgroundSize: '32px 32px' }} />
                 <div className="relative z-10 max-w-4xl mx-auto px-5 pt-10 pb-12 text-center">
                     <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-blue-300 border border-blue-700/50 bg-blue-900/30 mb-6">
-                        🇳🇬 Hubnovo
+                        HubNovo
                     </div>
-                    <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-3xl mx-auto mb-5">
-                        🛡️
+                    <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mx-auto mb-5">
+                        <ShieldCheck className="w-7 h-7 text-white" />
                     </div>
                     <h1 className="text-4xl sm:text-5xl font-black text-white mb-4 leading-tight">Child Safety Standards</h1>
                     <p className="text-blue-200/80 text-base max-w-xl mx-auto leading-relaxed">
-                        At Hubnovo, we are committed to creating a safe environment for all users.
+                        At HubNovo, we are committed to creating a safe environment for all users.
                         We have <span className="text-white font-bold">zero tolerance</span> for any form of child sexual abuse, exploitation, or CSAM.
                     </p>
                     <div className="mt-7 flex items-center justify-center gap-2 flex-wrap">
@@ -102,11 +107,11 @@ export default function ChildSafetyPage()
                 <div className="max-w-4xl mx-auto px-5 py-3 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                            <span className="text-[11px]">🛡️</span>
+                            <ShieldCheck className="w-3 h-3 text-blue-700" />
                         </div>
                         <span className="text-sm font-bold text-gray-800">Child Safety</span>
                         <span className="text-gray-300 hidden sm:block">·</span>
-                        <span className="text-[11px] text-gray-400 hidden sm:block">Hubnovo</span>
+                        <span className="text-[11px] text-gray-400 hidden sm:block">HubNovo</span>
                     </div>
                     <Link href="/privacy-policy"
                         className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 border border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50 rounded-full px-3 py-1.5 transition-colors">
@@ -119,12 +124,12 @@ export default function ChildSafetyPage()
             <div className="max-w-4xl mx-auto px-5 py-6">
                 <div className="grid grid-cols-3 gap-3">
                     {[
-                        { icon: '🚫', label: 'Zero Tolerance', value: 'Policy' },
-                        { icon: '⚡', label: 'Response Time', value: '24–48 hrs' },
-                        { icon: '👮', label: 'Law Enforcement', value: 'Cooperation' },
-                    ].map(({ icon, label, value }) => (
+                        { icon: Ban, label: 'Zero Tolerance', value: 'Policy' },
+                        { icon: Zap, label: 'Response Time', value: '24–48 hrs' },
+                        { icon: Shield, label: 'Law Enforcement', value: 'Cooperation' },
+                    ].map(({ icon: Icon, label, value }) => (
                         <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
-                            <div className="text-2xl mb-1">{icon}</div>
+                            <Icon className="w-6 h-6 mx-auto mb-1 text-emerald-700" />
                             <p className="text-sm font-black text-gray-900">{value}</p>
                             <p className="text-[11px] text-gray-400 mt-0.5">{label}</p>
                         </div>
@@ -138,7 +143,7 @@ export default function ChildSafetyPage()
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                         style={{ background: 'linear-gradient(135deg,#eff6ff,#ffffff)' }}>
-                        <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center text-lg shrink-0">💙</div>
+                        <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center shrink-0"><Heart className="w-4 h-4 text-blue-700" /></div>
                         <div>
                             <span className="text-[10px] font-black text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">01</span>
                             <span className="ml-2 text-sm font-black text-gray-900">Our Commitment</span>
@@ -146,7 +151,7 @@ export default function ChildSafetyPage()
                     </div>
                     <div className="px-5 py-5">
                         <p className="text-sm text-gray-600 leading-relaxed mb-4">
-                            Hubnovo is dedicated to creating a safe, respectful platform for every user. We actively work to detect, remove, and report any content or behavior that endangers children. Any account found violating these standards will be <strong>permanently removed</strong> and may be reported to appropriate law enforcement authorities.
+                            HubNovo is dedicated to creating a safe, respectful platform for every user. We actively work to detect, remove, and report any content or behavior that endangers children. Any account found violating these standards will be <strong>permanently removed</strong> and may be reported to appropriate law enforcement authorities.
                         </p>
                         <div className="rounded-2xl border-2 border-red-100 bg-red-50 p-4">
                             <div className="flex items-center gap-2 mb-3">
@@ -169,7 +174,7 @@ export default function ChildSafetyPage()
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                         style={{ background: 'linear-gradient(135deg,#f0fdf4,#ffffff)' }}>
-                        <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-lg shrink-0">🔐</div>
+                        <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0"><Lock className="w-4 h-4 text-emerald-700" /></div>
                         <div>
                             <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">02</span>
                             <span className="ml-2 text-sm font-black text-gray-900">Safety Features</span>
@@ -187,7 +192,7 @@ export default function ChildSafetyPage()
                                 {reportableItems.map((item) => (
                                     <div key={item.label}
                                         className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
-                                        <span className="text-lg shrink-0">{item.icon}</span>
+                                        <item.icon className="w-4 h-4 shrink-0 text-gray-500" />
                                         <span className="text-xs font-semibold text-gray-700">{item.label}</span>
                                     </div>
                                 ))}
@@ -204,14 +209,14 @@ export default function ChildSafetyPage()
                             <p className="text-sm text-gray-500 mb-3">We use a multi-layered approach to identify and remove prohibited content:</p>
                             <div className="grid sm:grid-cols-3 gap-2">
                                 {[
-                                    { icon: '🤖', label: 'Automated detection systems', color: '#7c3aed', bg: '#f5f3ff' },
-                                    { icon: '👥', label: 'Community reporting', color: '#2563eb', bg: '#eff6ff' },
-                                    { icon: '👁️', label: 'Human moderators', color: '#059669', bg: '#f0fdf4' },
+                                    { icon: Bot, label: 'Automated detection systems', color: '#7c3aed', bg: '#f5f3ff' },
+                                    { icon: Users, label: 'Community reporting', color: '#2563eb', bg: '#eff6ff' },
+                                    { icon: Eye, label: 'Human moderators', color: '#059669', bg: '#f0fdf4' },
                                 ].map((m) => (
                                     <div key={m.label} className="flex items-center gap-2.5 rounded-xl px-3 py-3 border border-gray-100 bg-white">
-                                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0"
+                                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                                             style={{ background: m.bg }}>
-                                            {m.icon}
+                                            <m.icon className="w-4 h-4" style={{ color: m.color }} />
                                         </div>
                                         <span className="text-xs font-semibold text-gray-700">{m.label}</span>
                                     </div>
@@ -225,7 +230,7 @@ export default function ChildSafetyPage()
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                         style={{ background: 'linear-gradient(135deg,#fff7ed,#ffffff)' }}>
-                        <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center text-lg shrink-0">⚖️</div>
+                        <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center shrink-0"><Scale className="w-4 h-4 text-orange-600" /></div>
                         <div>
                             <span className="text-[10px] font-black text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">03</span>
                             <span className="ml-2 text-sm font-black text-gray-900">Account Enforcement</span>
@@ -238,7 +243,7 @@ export default function ChildSafetyPage()
                                 <div key={action.label}
                                     className="flex items-center gap-3 rounded-xl border border-gray-100 p-3.5"
                                     style={{ background: action.bg }}>
-                                    <span className="text-2xl shrink-0">{action.icon}</span>
+                                    <action.icon className="w-5 h-5 shrink-0" style={{ color: action.color }} />
                                     <span className="text-xs font-bold text-gray-800">{action.label}</span>
                                 </div>
                             ))}
@@ -250,25 +255,25 @@ export default function ChildSafetyPage()
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                         style={{ background: 'linear-gradient(135deg,#f5f3ff,#ffffff)' }}>
-                        <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center text-lg shrink-0">🔒</div>
+                        <div className="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center shrink-0"><Lock className="w-4 h-4 text-purple-700" /></div>
                         <div>
                             <span className="text-[10px] font-black text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">04</span>
                             <span className="ml-2 text-sm font-black text-gray-900">Blocking &amp; Privacy Tools</span>
                         </div>
                     </div>
                     <div className="px-5 py-5">
-                        <p className="text-sm text-gray-500 mb-4">Every Hubnovo user has access to privacy tools to protect themselves:</p>
+                        <p className="text-sm text-gray-500 mb-4">Every HubNovo user has access to privacy tools to protect themselves:</p>
                         <div className="grid sm:grid-cols-2 gap-2">
                             {[
-                                { icon: '🚫', label: 'Block other users' },
-                                { icon: '🚨', label: 'Report abusive behaviour' },
-                                { icon: '👁️', label: 'Restrict profile visibility' },
-                                { icon: '📩', label: 'Control who can contact you' },
-                                { icon: '💬', label: 'Manage comment permissions' },
+                                { icon: Ban, label: 'Block other users' },
+                                { icon: Siren, label: 'Report abusive behaviour' },
+                                { icon: Eye, label: 'Restrict profile visibility' },
+                                { icon: Mail, label: 'Control who can contact you' },
+                                { icon: MessageCircle, label: 'Manage comment permissions' },
                             ].map((item) => (
                                 <div key={item.label}
                                     className="flex items-center gap-2.5 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-                                    <span className="text-lg shrink-0">{item.icon}</span>
+                                    <item.icon className="w-4 h-4 shrink-0 text-gray-500" />
                                     <span className="text-sm text-gray-700">{item.label}</span>
                                 </div>
                             ))}
@@ -280,14 +285,14 @@ export default function ChildSafetyPage()
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                         style={{ background: 'linear-gradient(135deg,#fef2f2,#ffffff)' }}>
-                        <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center text-lg shrink-0">🧒</div>
+                        <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center shrink-0"><Users className="w-4 h-4 text-red-700" /></div>
                         <div>
                             <span className="text-[10px] font-black text-red-700 bg-red-100 px-2 py-0.5 rounded-full">05</span>
                             <span className="ml-2 text-sm font-black text-gray-900">Protection of Minors</span>
                         </div>
                     </div>
                     <div className="px-5 py-5">
-                        <p className="text-sm text-gray-500 mb-4">Hubnovo does not permit the following involving minors:</p>
+                        <p className="text-sm text-gray-500 mb-4">HubNovo does not permit the following involving minors:</p>
                         <ul className="space-y-2">
                             {minorProtections.map((item, i) => (
                                 <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
@@ -306,7 +311,7 @@ export default function ChildSafetyPage()
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                         style={{ background: 'linear-gradient(135deg,#f0fdf4,#ffffff)' }}>
-                        <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-lg shrink-0">👮</div>
+                        <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0"><Shield className="w-4 h-4 text-emerald-700" /></div>
                         <div>
                             <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">06</span>
                             <span className="ml-2 text-sm font-black text-gray-900">Cooperation with Law Enforcement</span>
@@ -314,13 +319,13 @@ export default function ChildSafetyPage()
                     </div>
                     <div className="px-5 py-5">
                         <p className="text-sm text-gray-500 mb-4">
-                            Where legally required, Hubnovo cooperates fully with authorities regarding credible reports of child exploitation or abuse:
+                            Where legally required, HubNovo cooperates fully with authorities regarding credible reports of child exploitation or abuse:
                         </p>
                         <div className="grid sm:grid-cols-3 gap-3">
                             {authorities.map((a) => (
                                 <div key={a.label}
                                     className="flex flex-col items-center text-center rounded-xl border border-gray-100 bg-gray-50 p-4 gap-2">
-                                    <span className="text-3xl">{a.icon}</span>
+                                    <a.icon className="w-6 h-6 text-emerald-700" />
                                     <span className="text-xs font-semibold text-gray-700">{a.label}</span>
                                 </div>
                             ))}
@@ -332,7 +337,7 @@ export default function ChildSafetyPage()
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                         style={{ background: 'linear-gradient(135deg,#eff6ff,#ffffff)' }}>
-                        <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center text-lg shrink-0">🚨</div>
+                        <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center shrink-0"><Siren className="w-4 h-4 text-blue-700" /></div>
                         <div>
                             <span className="text-[10px] font-black text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full">07</span>
                             <span className="ml-2 text-sm font-black text-gray-900">Reporting Child Safety Concerns</span>
@@ -346,8 +351,8 @@ export default function ChildSafetyPage()
                             {reportSteps.map((s, i) => (
                                 <div key={s.step} className="flex items-start gap-4">
                                     <div className="flex flex-col items-center shrink-0">
-                                        <div className="w-10 h-10 rounded-xl bg-blue-50 border-2 border-blue-100 flex items-center justify-center text-lg">
-                                            {s.icon}
+                                        <div className="w-10 h-10 rounded-xl bg-blue-50 border-2 border-blue-100 flex items-center justify-center">
+                                            <s.icon className="w-4 h-4 text-blue-700" />
                                         </div>
                                         {i < reportSteps.length - 1 && <div className="w-0.5 h-5 bg-gray-100 mt-1" />}
                                     </div>
@@ -368,7 +373,7 @@ export default function ChildSafetyPage()
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-50"
                         style={{ background: 'linear-gradient(135deg,#fdf4ff,#ffffff)' }}>
-                        <div className="w-9 h-9 rounded-xl bg-pink-100 flex items-center justify-center text-lg shrink-0">📬</div>
+                        <div className="w-9 h-9 rounded-xl bg-pink-100 flex items-center justify-center shrink-0"><Mail className="w-4 h-4 text-pink-700" /></div>
                         <div>
                             <span className="text-[10px] font-black text-pink-700 bg-pink-100 px-2 py-0.5 rounded-full">08</span>
                             <span className="ml-2 text-sm font-black text-gray-900">Contact — Safety Team</span>
@@ -380,20 +385,20 @@ export default function ChildSafetyPage()
                         </p>
                         <div className="grid sm:grid-cols-3 gap-3">
                             {[
-                                { icon: '🏢', label: 'Team', value: 'Hubnovo Safety Team' },
-                                { icon: '✉️', label: 'Email', value: 'hubnovo2026@gmail.com' },
-                                { icon: '⏱️', label: 'Response Time', value: 'Within 24–48 hours' },
-                            ].map(({ icon, label, value }) => (
+                                { icon: Building2, label: 'Team', value: 'HubNovo Safety Team' },
+                                { icon: Mail, label: 'Email', value: 'hubnovo2026@gmail.com' },
+                                { icon: Clock, label: 'Response Time', value: 'Within 24–48 hours' },
+                            ].map(({ icon: Icon, label, value }) => (
                                 <div key={label} className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-center">
-                                    <div className="text-2xl mb-2">{icon}</div>
+                                    <Icon className="w-6 h-6 mx-auto mb-2 text-gray-500" />
                                     <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide">{label}</p>
                                     <p className="text-xs font-bold text-gray-800 mt-1">{value}</p>
                                 </div>
                             ))}
                         </div>
-                        <a href="mailto:hubnovo2026@gmail.com?subject=Child%20Safety%20Concern%20-%20Hubnovo"
+                        <a href="mailto:hubnovo2026@gmail.com?subject=Child%20Safety%20Concern%20-%20HubNovo"
                             className="mt-4 inline-flex items-center gap-2 bg-blue-600 text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors">
-                            ✉️ Email Safety Team
+                            <Mail className="w-4 h-4" /> Email Safety Team
                         </a>
                     </div>
                 </div>
@@ -401,11 +406,11 @@ export default function ChildSafetyPage()
                 {/* ── Zero Tolerance Banner ── */}
                 <div className="rounded-2xl border-2 border-red-200 bg-red-50 p-5">
                     <div className="flex items-start gap-3">
-                        <span className="text-3xl shrink-0">🚫</span>
+                        <Ban className="w-7 h-7 shrink-0 text-red-600" />
                         <div>
                             <p className="text-sm font-black text-red-800 mb-1">Zero-Tolerance Policy</p>
                             <p className="text-sm text-red-700 leading-relaxed">
-                            Hubnovo maintains a strict zero-tolerance policy toward child sexual abuse and exploitation. We are committed to removing prohibited content, banning offending accounts, and cooperating with appropriate authorities to protect children.
+                            HubNovo maintains a strict zero-tolerance policy toward child sexual abuse and exploitation. We are committed to removing prohibited content, banning offending accounts, and cooperating with appropriate authorities to protect children.
                             </p>
                         </div>
                     </div>
@@ -415,19 +420,19 @@ export default function ChildSafetyPage()
                 <div className="rounded-3xl overflow-hidden shadow-sm"
                     style={{ background: 'linear-gradient(150deg,#1a3a5c 0%,#0f2540 55%,#0a1a30 100%)' }}>
                     <div className="px-6 py-8 text-center">
-                        <div className="text-4xl mb-3">💙</div>
+                        <Heart className="w-9 h-9 mb-3 mx-auto text-white/80" />
                         <h3 className="text-xl font-black text-white mb-2">Every child deserves to be safe</h3>
                         <p className="text-blue-300/70 text-sm mb-6 max-w-md mx-auto">
-                            Help us keep Hubnovo a safe space. Report anything suspicious and we will act fast.
+                            Help us keep HubNovo a safe space. Report anything suspicious and we will act fast.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                            <a href="mailto:hubnovo2026@gmail.com?subject=Child%20Safety%20Concern%20-%20Hubnovo"
+                            <a href="mailto:hubnovo2026@gmail.com?subject=Child%20Safety%20Concern%20-%20HubNovo"
                                 className="inline-flex items-center justify-center gap-2 bg-white text-blue-900 font-bold text-sm px-6 py-3 rounded-xl hover:bg-blue-50 transition-colors">
-                                🚨 Report a Concern
+                                <Siren className="w-4 h-4" /> Report a Concern
                             </a>
                             <Link href="/privacy-policy"
                                 className="inline-flex items-center justify-center gap-2 bg-white/10 border border-white/20 text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-white/20 transition-colors">
-                                📄 Privacy Policy
+                                <FileText className="w-4 h-4" /> Privacy Policy
                             </Link>
                         </div>
                     </div>
@@ -435,7 +440,7 @@ export default function ChildSafetyPage()
 
                 {/* Footer */}
                 <div className="text-center pt-2 pb-6">
-                    <p className="text-xs text-gray-400">© 2026 Hubnovo. All rights reserved.</p>
+                    <p className="text-xs text-gray-400">© 2026 HubNovo. All rights reserved.</p>
                     <div className="mt-2 flex items-center justify-center gap-4 text-xs text-gray-400">
                         <Link href="/privacy-policy" className="hover:text-emerald-700 transition-colors font-medium">Privacy Policy</Link>
                         <span>·</span>

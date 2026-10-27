@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Share2, Check } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/components/toast'
 
 interface Props { postId: string; postCaption: string }
 
@@ -17,7 +17,7 @@ export default function PostDetailShareButton({ postId, postCaption }: Props)
         {
             try
             {
-                await navigator.share({ title: postCaption.slice(0, 60) || 'Hubnovo post', url })
+                await navigator.share({ title: postCaption.slice(0, 60) || 'HubNovo post', url })
             } catch { /* user cancelled */ }
         } else
         {
