@@ -21,6 +21,7 @@ import AuthShell, {
     authLink,
     authPrimaryButton,
 } from '@/components/auth/AuthShell'
+import { sanitizeRedirectPath } from '@/lib/security/redirect'
 
 const loginSchema = z.object(authFields)
 
@@ -33,10 +34,8 @@ export default function LoginPage() {
     const [unconfirmedEmail, setUnconfirmedEmail] = useState('')
     const [googleLoading, setGoogleLoading] = useState(false)
 
-    // Where to land after a successful sign-in — set by middleware when it
-    // bounces an unauthenticated visitor here from a deep link, so they end
-    // up back where they were headed instead of always on the generic /app.
-    const next = searchParams.get('next') || '/app'
+    // Where to land after a successful sign-in — sanitized to prevent open redirect attacks
+    const next = sanitizeRedirectPath(searchParams.get('next'), '/app')
 
     useEffect(() =>
     {

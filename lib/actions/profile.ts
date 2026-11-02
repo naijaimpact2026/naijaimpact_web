@@ -605,6 +605,14 @@ export async function deleteAccount(): Promise<ActionResult> {
     return { success: false, error: 'Failed to delete account. Please try again or contact support.' }
   }
 
+  // Purge the auth user row from Supabase auth.users to eliminate orphaned credentials (CWE-284)
+  try {
+    const admin = createServiceClient()
+    await admin.auth.admin.deleteUser(authUser.id)
+  } catch (adminErr) {
+    console.warn('deleteAccount auth.admin.deleteUser warning:', adminErr)
+  }
+
   // Sign out the auth session
   await supabase.auth.signOut()
 

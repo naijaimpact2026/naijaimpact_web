@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import { sanitizeRedirectPath } from '@/lib/security/redirect'
 
 /**
  * Kicks off the Google OAuth flow — redirects the browser to Google, which
@@ -6,7 +7,8 @@ import { createClient } from '@/lib/supabase/client'
  */
 export async function signInWithGoogle(next = '/app'): Promise<{ error?: string }> {
   const supabase = createClient()
-  const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
+  const safeNext = sanitizeRedirectPath(next, '/app')
+  const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}`
 
   try {
     const { error } = await supabase.auth.signInWithOAuth({
