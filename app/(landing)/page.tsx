@@ -2,6 +2,7 @@ import Header from '@/components/Header'
 import Hero from '@/components/Hero'
 import FeatureShowcase from '@/components/FeatureShowcase'
 import Features from '@/components/Features'
+import CommunityStories from '@/components/CommunityStories'
 import ComingSoon from '@/components/ComingSoon'
 import About from '@/components/About'
 import HowItWorks from '@/components/HowItWorks'
@@ -44,6 +45,7 @@ export default async function Home({ searchParams }: HomePageProps) {
       <Hero />
       <FeatureShowcase />
       <Features />
+      <CommunityStories />
       <ComingSoon />
       <HowItWorks />
       <Security />
