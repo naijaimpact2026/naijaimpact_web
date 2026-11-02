@@ -56,7 +56,13 @@ export default function NovoStreamHero({
                             className="object-cover object-center brightness-[0.4] transition-all duration-700 group-hover:scale-105"
                         />
                     ) : (
-                        <div className="h-full w-full bg-gradient-to-br from-slate-950 via-purple-950/60 to-slate-900" />
+                        <Image
+                            src="/images/livestream/creator-broadcasting.jpg"
+                            alt={activeLiveStream.title}
+                            fill
+                            priority
+                            className="object-cover object-center brightness-[0.45] transition-all duration-700 group-hover:scale-105"
+                        />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent" />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/30" />
@@ -147,7 +153,13 @@ export default function NovoStreamHero({
                             className="object-cover object-center brightness-[0.4] transition-all duration-700 group-hover:scale-105"
                         />
                     ) : (
-                        <div className="h-full w-full bg-gradient-to-br from-slate-950 via-indigo-950/60 to-slate-900" />
+                        <Image
+                            src={featuredVideo.kind === 'live_replay' ? '/images/livestream/stream-education.jpg' : '/images/livestream/video-creator-uploading.jpg'}
+                            alt={featuredVideo.title}
+                            fill
+                            priority
+                            className="object-cover object-center brightness-[0.45] transition-all duration-700 group-hover:scale-105"
+                        />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent" />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/30" />
@@ -211,9 +223,20 @@ export default function NovoStreamHero({
     // ── Case 3: Empty state when database has zero live streams and zero videos ──
     return (
         <section
-            className={`relative overflow-hidden rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white p-6 sm:p-10 shadow-2xl ${className}`}
+            className={`group relative overflow-hidden rounded-3xl border border-indigo-500/30 bg-slate-950 text-white p-6 sm:p-10 shadow-2xl ${className}`}
         >
-            <div className="absolute -right-20 -top-20 h-96 w-96 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
+            <div className="absolute inset-0 z-0">
+                <Image
+                    src="/images/livestream/creator-broadcasting.jpg"
+                    alt="NovoStream Broadcasting"
+                    fill
+                    priority
+                    className="object-cover object-center brightness-[0.35] transition-all duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-950/30" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/30" />
+                <div className="absolute -right-20 -top-20 h-96 w-96 rounded-full bg-indigo-500/25 blur-3xl pointer-events-none" />
+            </div>
             <div className="relative z-10 flex flex-col justify-between min-h-[300px] sm:min-h-[340px] max-w-2xl">
                 <div className="flex items-center gap-2">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-1 text-xs font-black uppercase tracking-wider text-white shadow-md">
