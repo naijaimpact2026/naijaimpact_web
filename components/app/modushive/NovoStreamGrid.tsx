@@ -278,7 +278,17 @@ export default function NovoStreamGrid({
             </section>
 
             {/* ── Section 4: Platform Banner ── */}
-            <section className="relative overflow-hidden rounded-3xl border border-indigo-500/30 bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 p-6 sm:p-8 text-white shadow-xl">
+            <section className="group relative overflow-hidden rounded-3xl border border-indigo-500/30 bg-slate-950 p-6 sm:p-8 text-white shadow-xl">
+                <div className="absolute inset-0 z-0">
+                    <Image
+                        src="/images/livestream/video-creator-uploading.jpg"
+                        alt="Creator Hub"
+                        fill
+                        className="object-cover object-right brightness-[0.35] transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-950/30" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/30" />
+                </div>
                 <div className="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-blue-500/20 blur-2xl pointer-events-none" />
                 <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="flex items-center gap-4 text-center md:text-left">

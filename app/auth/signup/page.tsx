@@ -21,6 +21,7 @@ import AuthShell, {
     authLink,
     authPrimaryButton,
 } from '@/components/auth/AuthShell'
+import { sanitizeRedirectPath } from '@/lib/security/redirect'
 
 const signupSchema = z.object({
     ...authFields,
@@ -35,7 +36,7 @@ export default function SignupPage() {
     const [serverError, setServerError] = useState('')
     const [googleLoading, setGoogleLoading] = useState(false)
 
-    const next = searchParams.get('next') || '/app/settings/onboarding'
+    const next = sanitizeRedirectPath(searchParams.get('next'), '/app/settings/onboarding')
 
     const {
         register,

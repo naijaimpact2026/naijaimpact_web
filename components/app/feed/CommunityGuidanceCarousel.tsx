@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import
 {
     Carousel,
@@ -36,6 +37,8 @@ interface GuidanceSlide
     icon: typeof Sparkles
     badge: string
     bgGradient: string
+    image: string
+    imagePosition?: string
     featureList?: { icon: typeof Sparkles; label: string }[]
 }
 
@@ -49,7 +52,9 @@ const GUIDANCE_SLIDES: GuidanceSlide[] = [
         ctaText: 'Explore Ecosystem',
         ctaLink: '/app/explore',
         icon: Sparkles,
-        bgGradient: 'from-blue-700 via-indigo-700 to-sky-700',
+        bgGradient: 'from-blue-900 via-indigo-900 to-sky-950',
+        image: '/images/community/collaborative-innovators.jpg',
+        imagePosition: 'object-center sm:object-right',
         featureList: [
             { icon: Lightbulb, label: 'Share Ideas' },
             { icon: Compass, label: 'Find Opportunities' },
@@ -67,7 +72,9 @@ const GUIDANCE_SLIDES: GuidanceSlide[] = [
         ctaText: 'Enter ModusHive',
         ctaLink: '/app/modushive',
         icon: Radio,
-        bgGradient: 'from-purple-700 via-violet-700 to-pink-700',
+        bgGradient: 'from-purple-950 via-violet-900 to-pink-950',
+        image: '/images/community/podcast-streamer.jpg',
+        imagePosition: 'object-center sm:object-right',
         featureList: [
             { icon: Radio, label: 'Interactive Audio' },
             { icon: Lightbulb, label: 'Industry Insights' },
@@ -85,7 +92,9 @@ const GUIDANCE_SLIDES: GuidanceSlide[] = [
         ctaText: 'Browse Artisans',
         ctaLink: '/app/artisans',
         icon: Wrench,
-        bgGradient: 'from-amber-600 via-orange-600 to-rose-700',
+        bgGradient: 'from-amber-950 via-orange-900 to-rose-950',
+        image: '/images/community/skilled-artisan-workshop.jpg',
+        imagePosition: 'object-center sm:object-right',
         featureList: [
             { icon: Wrench, label: 'Verified Artisans' },
             { icon: Compass, label: 'Milestone Escrow' },
@@ -103,7 +112,9 @@ const GUIDANCE_SLIDES: GuidanceSlide[] = [
         ctaText: 'Explore Opportunities',
         ctaLink: '/app/jobs',
         icon: Briefcase,
-        bgGradient: 'from-emerald-700 via-teal-700 to-cyan-800',
+        bgGradient: 'from-emerald-950 via-teal-900 to-cyan-950',
+        image: '/images/community/career-professional.jpg',
+        imagePosition: 'object-center sm:object-right',
         featureList: [
             { icon: Briefcase, label: 'Verified Listings' },
             { icon: Compass, label: 'Micro-Grants' },
@@ -163,11 +174,25 @@ export default function CommunityGuidanceCarousel()
                         return (
                             <CarouselItem key={slide.id} className="pl-0">
                                 <div
-                                    className={`relative px-5 py-6 sm:px-9 sm:py-8 bg-gradient-to-r ${slide.bgGradient} text-white flex flex-col justify-between min-h-[210px] sm:min-h-[230px] md:min-h-[240px] overflow-hidden [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]`}
+                                    className={`relative px-5 py-6 sm:px-9 sm:py-8 text-white flex flex-col justify-between min-h-[220px] sm:min-h-[240px] md:min-h-[250px] overflow-hidden [transform:translateZ(0)] [-webkit-transform:translateZ(0)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]`}
                                 >
-                                    {/* Ambient background glow & watermark */}
-                                    <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/20 pointer-events-none" />
-                                    <Icon className="absolute -right-6 -bottom-6 w-48 h-48 text-white/10 pointer-events-none rotate-12" />
+                                    {/* Human photographic background with warm cinematic overlay */}
+                                    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-slate-950">
+                                        <Image
+                                            src={slide.image}
+                                            alt={slide.title}
+                                            fill
+                                            priority={slide.id === 'welcome'}
+                                            sizes="(max-width: 1024px) 100vw, 1200px"
+                                            className={`object-cover ${slide.imagePosition ?? 'object-right'} transition-transform duration-1000 ease-out group-hover:scale-105`}
+                                        />
+                                        {/* Colored gradient wash matching slide theme */}
+                                        <div className={`absolute inset-0 bg-gradient-to-r ${slide.bgGradient} opacity-85 mix-blend-multiply`} />
+                                        {/* Left-to-right scrim: ensures crisp readability on the left while humans shine on the right */}
+                                        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/75 to-slate-950/20" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30" />
+                                    </div>
+                                    <Icon className="absolute -right-6 -bottom-6 w-48 h-48 text-white/10 pointer-events-none rotate-12 z-0" />
 
                                     <div className="relative z-10 flex items-start justify-between gap-8">
                                         <div className="max-w-xl">

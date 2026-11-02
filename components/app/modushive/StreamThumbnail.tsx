@@ -57,6 +57,14 @@ export default function StreamThumbnail({
 
     const showImage = Boolean(thumbnailUrl && !imgError)
 
+    const getFallbackImage = () => {
+        if (status === 'live') return '/images/livestream/creator-broadcasting.jpg'
+        if (catKey === 'education') return '/images/livestream/stream-education.jpg'
+        if (catKey === 'music') return '/images/livestream/stream-music.jpg'
+        if (isReplay) return '/images/livestream/video-creator-uploading.jpg'
+        return '/images/livestream/creator-broadcasting.jpg'
+    }
+
     return (
         <div className={`relative h-full w-full overflow-hidden bg-slate-950 select-none ${className}`}>
             {showImage ? (
@@ -69,27 +77,33 @@ export default function StreamThumbnail({
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                 />
             ) : (
-                <div className={`relative h-full w-full flex flex-col items-center justify-center p-3 bg-gradient-to-br ${catConfig.gradient} text-white`}>
-                    {/* Subtle decorative background watermark */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-15 overflow-hidden">
-                        <IconComponent className="h-28 w-28 -rotate-12 translate-x-4 translate-y-2" />
-                    </div>
+                <div className="relative h-full w-full overflow-hidden bg-slate-950">
+                    <Image
+                        src={getFallbackImage()}
+                        alt={title}
+                        fill
+                        className="object-cover brightness-[0.4] transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className={`absolute inset-0 bg-gradient-to-br ${catConfig.gradient} opacity-65 mix-blend-multiply`} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-black/30" />
 
-                    {/* Central Branded Card Icon */}
-                    <div className="relative z-10 flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-md">
-                        {status === 'live' ? (
-                            <Radio className="h-5 w-5 text-red-400 animate-pulse" />
-                        ) : isReplay ? (
-                            <Play className="h-5 w-5 fill-white text-white ml-0.5" />
-                        ) : (
-                            <IconComponent className="h-5 w-5 text-white/90" />
-                        )}
-                    </div>
+                    <div className="relative z-10 flex h-full w-full flex-col items-center justify-center p-3 text-white">
+                        {/* Central Branded Card Icon */}
+                        <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 shadow-lg">
+                            {status === 'live' ? (
+                                <Radio className="h-5 w-5 text-red-400 animate-pulse" />
+                            ) : isReplay ? (
+                                <Play className="h-5 w-5 fill-white text-white ml-0.5" />
+                            ) : (
+                                <IconComponent className="h-5 w-5 text-white/90" />
+                            )}
+                        </div>
 
-                    {/* Monogram / Title Preview */}
-                    <p className="relative z-10 mt-1.5 line-clamp-1 max-w-[85%] text-center text-[11px] font-bold tracking-tight text-white/90 drop-shadow-xs">
-                        {title}
-                    </p>
+                        {/* Monogram / Title Preview */}
+                        <p className="mt-2 line-clamp-1 max-w-[85%] text-center text-[11px] font-bold tracking-tight text-white drop-shadow-sm">
+                            {title}
+                        </p>
+                    </div>
                 </div>
             )}
 

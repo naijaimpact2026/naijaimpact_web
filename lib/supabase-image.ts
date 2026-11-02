@@ -49,11 +49,28 @@ export function toPublicStorageUrl(url: string | null | undefined): string | nul
  * False (safe to optimize) for ordinary http(s) URLs elsewhere — Cloudinary
  * in practice, since that's where post/avatar uploads go.
  */
+const OPTIMIZED_CDNS = new Set([
+  'res.cloudinary.com',
+  'images.unsplash.com',
+  'picsum.photos',
+  'lh3.googleusercontent.com',
+])
+
 export function shouldSkipImageOptimization(url: string): boolean {
+    if (!url || typeof url !== 'string') return true
     try {
         const parsed = new URL(url)
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return true
-        return parsed.hostname.endsWith('.supabase.co') || parsed.hostname.endsWith('.supabase.in')
+        
+        // Supabase storage skips Next optimization to avoid bucket transform issues
+        if (parsed.hostname.endsWith('.supabase.co') || parsed.hostname.endsWith('.supabase.in')) {
+            return true
+        }
+
+        // Only pass through the optimizer if it's in our known trusted CDNs list.
+        // Third-party hosts (e.g. external job company logos, user website links)
+        // bypass the optimizer and render directly as unoptimized <img>, preventing crashes.
+        return !OPTIMIZED_CDNS.has(parsed.hostname)
     } catch {
         return true
     }
