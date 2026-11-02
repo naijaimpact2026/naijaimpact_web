@@ -1,10 +1,9 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { ArrowRight, Check } from 'lucide-react'
 import PhoneFrame from '@/components/illustrations/PhoneFrame'
 
 // The four core experiences, each shown with a real screenshot of the app
-// paired with authentic Nigerian community members who use it.
+// in mobile view (public/landing/).
 
 const features = [
   {
@@ -20,9 +19,6 @@ const features = [
     ],
     image: '/landing/community.png',
     alt: 'The Hubnovo community feed on a phone',
-    humanPhoto: '/images/landing/feature-community.jpg',
-    humanTag: 'Creators & Network',
-    humanCaption: 'Lagos creative founders collaborating in public',
   },
   {
     id: 'learn',
@@ -37,9 +33,6 @@ const features = [
     ],
     image: '/landing/learn.png',
     alt: 'Courses in the Hubnovo Learn hub on a phone',
-    humanPhoto: '/images/landing/feature-learn.jpg',
-    humanTag: 'Practical Skills',
-    humanCaption: 'Mastering tech & professional skills at your pace',
   },
   {
     id: 'marketplace',
@@ -54,9 +47,6 @@ const features = [
     ],
     image: '/landing/marketplace.png',
     alt: 'The Hubnovo marketplace on a phone',
-    humanPhoto: '/images/landing/feature-marketplace.jpg',
-    humanTag: 'Vetted Artisans',
-    humanCaption: 'Fashion designers, mechanics & tailors earning safely',
   },
   {
     id: 'jobs',
@@ -71,9 +61,6 @@ const features = [
     ],
     image: '/landing/jobs.png',
     alt: 'Job listings on Hubnovo on a phone',
-    humanPhoto: '/images/landing/feature-jobs.jpg',
-    humanTag: 'Careers & Gigs',
-    humanCaption: 'Connecting top Nigerian talent directly with hiring teams',
   },
 ]
 
@@ -117,36 +104,10 @@ export default function FeatureShowcase() {
                 </ul>
               </div>
 
-              <div className={`relative flex items-center justify-center ${i % 2 === 1 ? 'lg:order-1' : ''}`}>
-                {/* Ring backdrop */}
+              <div className={`relative flex justify-center ${i % 2 === 1 ? 'lg:order-1' : ''}`}>
+                {/* same quiet ring backdrop as the hero */}
                 <div className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-mist" />
-
-                {/* Companion human photo card paired with the app screenshot */}
-                <div
-                  className={`hidden sm:block absolute ${
-                    i % 2 === 1 ? '-right-3 md:-right-6' : '-left-3 md:-left-6'
-                  } -bottom-3 z-20 w-52 md:w-60 aspect-[4/3] rounded-2xl overflow-hidden shadow-xl border-4 border-white transform ${
-                    i % 2 === 1 ? 'rotate-2' : '-rotate-2'
-                  } hover:rotate-0 transition-transform duration-500 group`}
-                >
-                  <Image
-                    src={f.humanPhoto}
-                    alt={f.humanTag}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
-                  <div className="absolute bottom-2.5 left-3 right-3 text-white">
-                    <span className="inline-block px-2 py-0.5 rounded-full bg-brand text-[9px] font-extrabold uppercase tracking-wider mb-1">
-                      {f.humanTag}
-                    </span>
-                    <p className="text-[11px] leading-snug text-white/95 font-medium line-clamp-1">
-                      {f.humanCaption}
-                    </p>
-                  </div>
-                </div>
-
-                <PhoneFrame src={f.image} alt={f.alt} className="relative z-10 drop-shadow-xl" />
+                <PhoneFrame src={f.image} alt={f.alt} className="relative" />
               </div>
             </article>
           ))}
