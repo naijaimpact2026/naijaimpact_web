@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import Anthropic from '@anthropic-ai/sdk'
 import { ALL_MASCOT_LOOKS } from '@/lib/mascot/config'
+import type { MascotLook } from '@/lib/mascot/types'
+import { getRequestUser } from '@/lib/supabase/request-auth'
+import { clientIp, rateLimit } from '@/lib/rate-limit'
+
+export const dynamic = 'force-dynamic'
 
 interface RequestPayload {
   message: string
@@ -10,6 +16,42 @@ interface RequestPayload {
   userRole?: string
 }
 
+const MODEL = 'claude-opus-5-5'
+const MAX_MESSAGE_CHARS = 2000
+const RATE_LIMITED_REPLY = 'Novo needs a quick breather — please try again in a minute.'
+
+// Created once per server instance; reads ANTHROPIC_API_KEY from the environment.
+let client: Anthropic | null = null
+function getClaude(): Anthropic | null {
+  if (!process.env.ANTHROPIC_API_KEY) return null
+  client ??= new Anthropic()
+  return client
+}
+
+function systemPrompt(look: MascotLook, userName: string, userRole: string, screenPath: string): string {
+  return `You are ${look.name} (${look.role}), the friendly AI companion inside HubNovo, a Nigerian community platform.
+
+What is live on HubNovo today: the community feed and topic communities, chat and group chats, Livestream (NovoStream), Learn (courses, including ones members create), the Marketplace and storefronts, Artisans & Pros, Jobs & Careers, Business LaunchPad (business profiles and CAC registration help), and search.
+Coming soon, NOT available yet: savings and wallet, ajo circles, credit and micro-loans, and crowdfunding. If asked about these, say they are coming soon. Never describe them as working or walk someone through using them.
+
+Persona: warm, practical and encouraging, proud of Nigerian excellence. Use Nigerian context where it helps (Naira ₦, Lagos/Abuja/Kano/Enugu, CAC, local business realities).
+Style: concise and easy to scan on a phone. Use short paragraphs or a few bullet points and bold the key terms. End with 2-3 short suggested next steps in the app.
+Only answer from what you know about HubNovo and general knowledge. If you are unsure whether a HubNovo feature exists, say so rather than guessing.
+
+The user is ${userName} (${userRole}). They are on the screen ${screenPath}.`
+}
+
+/** Last 6 turns, text only, starting with a user turn (the API requires it). */
+function toMessages(history: RequestPayload['history'], message: string): Anthropic.Beta.BetaMessageParam[] {
+  const turns: Anthropic.Beta.BetaMessageParam[] = (Array.isArray(history) ? history : [])
+    .filter((h) => (h?.role === 'user' || h?.role === 'assistant') && typeof h.content === 'string' && h.content.trim())
+    .slice(-6)
+    .map((h) => ({ role: h.role, content: h.content.slice(0, MAX_MESSAGE_CHARS) }))
+  while (turns.length && turns[0].role !== 'user') turns.shift()
+  turns.push({ role: 'user', content: message })
+  return turns
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body: RequestPayload = await req.json()
@@ -18,57 +60,52 @@ export async function POST(req: NextRequest) {
       history = [],
       screenPath = '/app',
       mascotId = 'portal-guide',
-      userName = 'friend',
-      userRole = 'community member'
     } = body
 
-    const cleanMsg = message.trim()
+    const cleanMsg = String(message).trim().slice(0, MAX_MESSAGE_CHARS)
     if (!cleanMsg) {
       return NextResponse.json({ error: 'Message cannot be empty' }, { status: 400 })
     }
 
+    // Signed-in users (web cookie or mobile bearer token) are limited per
+    // account; landing-page visitors per IP. Every message costs an AI call.
+    const { profile } = await getRequestUser(req)
+    const allowed = profile
+      ? await rateLimit(`novo:user:${profile.id}`, 30, 60, { failOpen: true })
+      : await rateLimit(`novo:ip:${await clientIp(req)}`, 8, 60, { failOpen: true })
+    if (!allowed) {
+      return NextResponse.json({ error: RATE_LIMITED_REPLY }, { status: 429 })
+    }
+
+    // Trust the account over the request body for who the user is.
+    const userName = profile?.display_name?.split(' ')[0] || (profile ? 'friend' : body.userName || 'friend')
+    const userRole = profile?.role || 'visitor'
+
     const currentLook =
       ALL_MASCOT_LOOKS.find((m) => m.id === mascotId) || ALL_MASCOT_LOOKS[0]
 
-    // 1. Check for Gemini API Key
-    const geminiKey = process.env.GEMINI_API_KEY
-    if (geminiKey) {
+    const claude = getClaude()
+    if (claude) {
       try {
-        const systemPrompt = `You are ${currentLook.name} (${currentLook.role}), the friendly animated AI companion for HubNovo (NaijaImpact).
-HubNovo empowers Nigerian entrepreneurs, artisans, freelancers, jobseekers, and community changemakers through technology, funding, fintech, verified skills, and education.
-User info: Name: ${userName}, Role: ${userRole}.
-Current screen: ${screenPath}.
-Persona: Warm, empowering, practical, articulate, proud of Nigerian excellence. Speak with professional yet friendly tone. Use Nigerian context (Naira ₦, states like Lagos/Abuja/Rivers/Kano/Enugu, local business realities, CAC verification, Paystack, escrow safety).
-Formatting: Keep answers concise, highly readable, use bullet points, bold key terms, and end with 2-3 short suggested next actions.
-Do not hallucinate or reveal API keys.`
+        const response = await claude.beta.messages.create({
+          model: MODEL,
+          max_tokens: 4096,
+          // Opus 5.5 always thinks; low effort keeps chat replies quick.
+          output_config: { effort: 'low' },
+          // If Claude declines on safety grounds, the API retries on a fallback model.
+          betas: ['server-side-fallback-2026-07-01'],
+          fallbacks: 'default',
+          system: systemPrompt(currentLook, userName, userRole, String(screenPath).slice(0, 200)),
+          messages: toMessages(history, cleanMsg),
+        })
 
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                { role: 'user', parts: [{ text: systemPrompt }] },
-                ...history.slice(-6).map((h) => ({
-                  role: h.role === 'assistant' ? 'model' : 'user',
-                  parts: [{ text: h.content }]
-                })),
-                { role: 'user', parts: [{ text: cleanMsg }] }
-              ],
-              generationConfig: {
-                maxOutputTokens: 800,
-                temperature: 0.7
-              }
-            })
-          }
-        )
+        const reply = response.content
+          .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text')
+          .map((b) => b.text)
+          .join('')
+          .trim()
 
-        if (response.ok) {
-          const data = await response.json()
-          const reply =
-            data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-            'I am here to help you navigate HubNovo!'
+        if (response.stop_reason !== 'refusal' && reply) {
           return NextResponse.json({
             reply,
             suggestions: generateFollowUps(cleanMsg, screenPath),
@@ -76,53 +113,17 @@ Do not hallucinate or reveal API keys.`
           })
         }
       } catch (err) {
-        console.warn('Gemini API call failed, falling back to local engine:', err)
-      }
-    }
-
-    // 2. Check for OpenAI API Key
-    const openaiKey = process.env.OPENAI_API_KEY
-    if (openaiKey) {
-      try {
-        const systemPrompt = `You are ${currentLook.name} (${currentLook.role}), the animated companion on HubNovo (NaijaImpact) in Nigeria. Current screen: ${screenPath}. User: ${userName}. Provide helpful, structured, concise advice with Nigerian context and bullet points.`
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${openaiKey}`
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              ...history.slice(-6).map((h) => ({
-                role: h.role,
-                content: h.content
-              })),
-              { role: 'user', content: cleanMsg }
-            ],
-            max_tokens: 800,
-            temperature: 0.7
-          })
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          const reply = data.choices?.[0]?.message?.content
-          if (reply) {
-            return NextResponse.json({
-              reply,
-              suggestions: generateFollowUps(cleanMsg, screenPath),
-              mascotId: currentLook.id
-            })
-          }
+        if (err instanceof Anthropic.RateLimitError) {
+          console.warn('[novo] Claude rate limited, using local engine')
+        } else if (err instanceof Anthropic.APIError) {
+          console.error(`[novo] Claude API error ${err.status}:`, err.message)
+        } else {
+          console.error('[novo] Claude call failed:', err)
         }
-      } catch (err) {
-        console.warn('OpenAI API call failed, falling back to local engine:', err)
       }
     }
 
-    // 3. Fallback: Intelligent Local Nigerian Context Engine
+    // Fallback: local Nigerian-context answer engine (no key, refusal, or API error)
     const localResponse = generateLocalResponse(cleanMsg, screenPath, currentLook, userName)
     return NextResponse.json({
       reply: localResponse.reply,
