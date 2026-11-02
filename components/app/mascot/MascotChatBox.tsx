@@ -122,6 +122,17 @@ export default function MascotChatBox({
         })
       })
 
+      if (res.status === 429) {
+        const { error } = await res.json().catch(() => ({ error: '' }))
+        setMessages((prev) => [...prev, {
+          id: 'novo-limit-' + Date.now(),
+          role: 'assistant',
+          content: error || 'Novo needs a quick breather — please try again in a minute.',
+          timestamp: Date.now(),
+          mascotLookId: currentLook.id,
+        }])
+        return
+      }
       if (!res.ok) throw new Error('API request failed')
       const data = await res.json()
 
