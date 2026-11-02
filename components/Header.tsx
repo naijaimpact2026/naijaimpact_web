@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { Menu, X } from 'lucide-react'
 
 const navItems = [
+  { label: 'Stories', href: '#stories' },
   { label: 'Features', href: '#features' },
   { label: 'Coming soon', href: '#coming-soon' },
   { label: 'Security', href: '#security' },

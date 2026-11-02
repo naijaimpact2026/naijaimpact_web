@@ -43,9 +43,9 @@ export default async function Home({ searchParams }: HomePageProps) {
     <main className="bg-white text-ink [color-scheme:light]">
       <Header />
       <Hero />
+      <CommunityStories />
       <FeatureShowcase />
       <Features />
-      <CommunityStories />
       <ComingSoon />
       <HowItWorks />
       <Security />
