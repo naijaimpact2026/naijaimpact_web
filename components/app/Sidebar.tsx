@@ -30,6 +30,7 @@ import
     Radio,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import SidebarCompetitions from './SidebarCompetitions'
 import type { User as UserType } from '@/lib/types'
 
 interface SidebarProps
@@ -48,6 +49,7 @@ const navItems = [
     { icon: Search, label: 'Search', href: '/app/search' },
     { icon: Users, label: 'Community', href: '/app/feed' },
     { icon: Radio, label: 'Livestream', href: '/app/modushive' },
+    { group: 'competitions' as const, label: 'Competitions', href: '/app/competitions' },
     { icon: ShoppingBag, label: 'Marketplace', href: '/app/market' },
     { icon: Briefcase, label: 'Jobs & Careers', href: '/app/jobs' },
     { icon: Wrench, label: 'Artisans & Pros', href: '/app/artisans' },
@@ -142,8 +144,9 @@ function Sidebar({
                 <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
                     {/* Navigation */}
                     <nav className="px-2 py-3 space-y-0.5">
-                        {navItems.map(({ icon: Icon, label, href, badgeProp, badgeText }: any) =>
+                        {navItems.map(({ icon: Icon, label, href, badgeProp, badgeText, group }: any) =>
                         {
+                            if (group === 'competitions') return <SidebarCompetitions key={href} onNavigate={onClose} />
                             const active = isActive(href)
                             const count = badgeProp ? badgeCounts[badgeProp] : 0
                             return (

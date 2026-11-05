@@ -1302,3 +1302,15 @@ html.dark [data-testid="attachment-selector-actions-menu"],
 
 
 
+
+/* Modal scroll lock (Radix / react-remove-scroll sets overflow:hidden on <body>).
+   That turns <body> into a scroll container, so `position: sticky` elements like
+   the app sidebar jump back to the top of the page while a dialog is open. Lock
+   the root scroller instead and keep <body> a normal block. Extra specificity
+   (html body) beats the injected rule. */
+html:has(body[data-scroll-locked]) {
+  overflow: hidden;
+}
+html body[data-scroll-locked] {
+  overflow: visible !important;
+}
