@@ -488,7 +488,7 @@ export async function contributeToGoal(
     // If goal achieved, insert notification
     if (achieved) {
       await supabase.from('notifications').insert({
-        recipient_id: profile.id,
+        user_id: profile.id,
         actor_id: null,
         type: 'goal_achieved',
         reference_id: goalId,

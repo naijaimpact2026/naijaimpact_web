@@ -1,9 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
+import { PUBLIC_USER_COLUMNS } from '@/lib/supabase/request-auth'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { fetchUserPostsPage } from '@/lib/actions/posts'
 import ProfileHeader from '@/components/app/profile/ProfileHeader'
-import ProfileTabs, { type MediaItem } from '@/components/app/profile/ProfileTabs'
-import type { PostMedia } from '@/lib/types'
+import ProfileTabs from '@/components/app/profile/ProfileTabs'
+import ProfileAboutCard from '@/components/app/profile/ProfileAboutCard'
+import ProfileImpactStats from '@/components/app/profile/ProfileImpactStats'
+import ProfileBadges from '@/components/app/profile/ProfileBadges'
+import ProfileFeaturedLink from '@/components/app/profile/ProfileFeaturedLink'
+import ProfileQuote from '@/components/app/profile/ProfileQuote'
 import { UserX } from 'lucide-react'
+import type { User } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,29 +24,18 @@ export default async function ProfilePage({ params }: ProfilePageProps)
     const { username } = await params
     const supabase = await createClient()
 
-    // ── Current auth user ────────────────────────────────────────────────────
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
-
-    // Get current user's platform profile id
-    let currentUserId = ''
-    if (authUser)
-    {
-        const { data: currentProfile } = await supabase
-            .from('users')
-            .select('id')
-            .eq('auth_id', authUser.id)
-            .single()
-        currentUserId = currentProfile?.id ?? ''
-    }
+    // ── Current auth user (the viewer, not the profile being viewed) ─────────
+    const { profile: viewerProfile } = await getCurrentUser()
+    const currentUserId = viewerProfile?.id ?? ''
 
     // ── Fetch target user profile ─────────────────────────────────────────────
-    const { data: profile, error: profileError } = await supabase
+    const { data: profileRow, error: profileError } = await supabase
         .from('users')
-        .select('*')
+        .select(PUBLIC_USER_COLUMNS)
         .eq('username', username.toLowerCase())
         .single()
+    // Public columns only (no email): another user's profile goes to the browser.
+    const profile = profileRow as unknown as User | null
 
     // 6.2: Not found → render friendly 404 message
     if (profileError || !profile)
@@ -77,7 +73,7 @@ export default async function ProfilePage({ params }: ProfilePageProps)
         supabase
             .from('posts')
             .select('*', { count: 'exact', head: true })
-            .eq('author_id', profile.id),
+            .eq('user_id', profile.id),
     ])
 
     // ── Is following? ─────────────────────────────────────────────────────────
@@ -102,36 +98,11 @@ export default async function ProfilePage({ params }: ProfilePageProps)
         12
     )
 
-    // ── All media for Media tab ───────────────────────────────────────────────
-    // Fetch all post IDs for this user, then get their medias
-    const { data: postRows } = await supabase
-        .from('posts')
-        .select('id')
-        .eq('author_id', profile.id)
-        .order('created_at', { ascending: false })
-
-    const postIds = (postRows ?? []).map((p) => p.id)
-
-    let allMedia: MediaItem[] = []
-    if (postIds.length > 0)
-    {
-        const { data: mediaRows } = await supabase
-            .from('post_medias')
-            .select('*')
-            .in('post_id', postIds)
-            .order('created_at', { ascending: false })
-
-        allMedia = (mediaRows ?? []).map((m: PostMedia) => ({
-            media: m,
-            postId: m.post_id,
-        }))
-    }
-
     return (
-        <main className="max-w-xl mx-auto px-4 py-6 space-y-4">
-            {/* 6.3: Profile header with avatar, stats, follow button */}
+        <main className="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+            {/* Profile header with cover, avatar, stats, follow button */}
             <ProfileHeader
-                profile={profile}
+                profile={profile as User}
                 currentUserId={currentUserId}
                 followerCount={followerCount ?? 0}
                 followingCount={followingCount ?? 0}
@@ -140,14 +111,32 @@ export default async function ProfilePage({ params }: ProfilePageProps)
                 isOwnProfile={isOwnProfile}
             />
 
-            {/* 6.4–6.6: Posts and Media tabs */}
-            <ProfileTabs
-                authorId={profile.id}
-                currentUserId={currentUserId}
-                initialPosts={initialPosts}
-                initialCursor={initialCursor}
-                allMedia={allMedia}
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_280px] gap-5 items-start">
+                {/* Left rail — persistent About Me / Skills (desktop only; reachable via the About tab on mobile) */}
+                <div className="hidden lg:flex flex-col gap-4">
+                    <ProfileAboutCard profile={profile as User} />
+                </div>
+
+                {/* Center — tabs + content */}
+                <div className="min-w-0 rounded-2xl border border-border bg-card overflow-hidden">
+                    <ProfileTabs
+                        profile={profile as User}
+                        authorId={profile.id}
+                        currentUserId={currentUserId}
+                        initialPosts={initialPosts}
+                        initialCursor={initialCursor}
+                        isOwnProfile={isOwnProfile}
+                    />
+                </div>
+
+                {/* Right rail — impact, badges, featured link, quote */}
+                <div className="flex flex-col gap-4">
+                    <ProfileImpactStats profile={profile as User} isOwnProfile={isOwnProfile} />
+                    <ProfileBadges userId={profile.id} />
+                    <ProfileFeaturedLink profile={profile as User} />
+                    <ProfileQuote profile={profile as User} />
+                </div>
+            </div>
         </main>
     )
 }

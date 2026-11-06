@@ -1,6 +1,6 @@
 // ============================================================
 // lib/types.ts
-// Hubnovo – TypeScript types matching the Supabase DB schema
+// HubNovo – TypeScript types matching the Supabase DB schema
 // Column names are snake_case to match the SQL definitions exactly.
 // ============================================================
 
@@ -11,6 +11,8 @@
 export type User = {
   id: string
   auth_id: string
+  email: string
+  fullname: string
   username: string
   display_name: string
   bio: string | null
@@ -18,14 +20,35 @@ export type User = {
   profession: string | null
   verified: boolean
   onboarded: boolean
-  wallet_pin: string | null
   notifications_follows: boolean
   notifications_reactions: boolean
   notifications_comments: boolean
   notifications_mentions: boolean
   is_private: boolean
+  // ── Hubnovo redesign — profile fields (2026-09-12 migration) ──
+  cover_url: string | null
+  location: string | null
+  website_url: string | null
+  quote: string | null
+  skills: string[]
+  impact_points: number
+  people_reached: number
+  people_trained: number
+  jobs_created: number
+  communities_impacted: number
+  // ModusHive (2026-10-09 migration) — optional until it's applied everywhere
+  role?: 'user' | 'creator' | 'admin'
   created_at: string
   updated_at: string
+}
+
+export type UserBadge = {
+  id: string
+  user_id: string
+  badge_key: string
+  label: string
+  icon: string | null
+  awarded_at: string
 }
 
 export type Post = {
@@ -36,6 +59,11 @@ export type Post = {
   hashtags: string[]
   created_at: string
   updated_at: string
+  allow_comments?: boolean
+  allow_sharing?: boolean
+  is_featured?: boolean
+  audience?: 'public' | 'connections' | 'group' | 'only-me'
+  scheduled_at?: string | null
 }
 
 export type PostMedia = {
@@ -77,21 +105,73 @@ export type UserFollow = {
 // Funding / Payments Tables
 // ─────────────────────────────────────────────
 
+export type FundingType = 'campaign' | 'project'
+
+export type FundingCategory = {
+  id: string
+  name: string
+  description: string | null
+  created_at: string
+}
+
+export type FundingTransaction = {
+  id: string
+  funding_id: string
+  user_id: string
+  amount: number
+  reference: string
+  created_at: string
+}
+
 export type Campaign = {
   id: string
-  creator_id: string
-  type: 'campaign' | 'project'
+  user_id: string
   title: string
-  description: string | null
-  cover_url: string | null
+  funding_type: FundingType
+  category_id: string | null
+  cover_image_url: string | null
   goal_amount: number
-  amount_raised: number
-  deadline: string          // ISO date string (DATE column)
-  status: 'active' | 'completed' | 'cancelled'
-  donor_count: number
+  impact: string | null
+  description: string | null
+  created_at: string
+  updated_at: string
+  status?: 'active' | 'closed' | 'completed'
+  // Backward compatibility / convenience aliases
+  creator_id?: string
+  type?: FundingType
+  cover_url?: string | null
+}
+
+export type FundingPayoutDestination = 'wallet' | 'bank'
+export type FundingPayoutStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+
+export type FundingPayout = {
+  id: string
+  funding_id: string
+  user_id: string
+  amount: number
+  destination: FundingPayoutDestination
+  status: FundingPayoutStatus
+  reference: string
+  bank_name?: string | null
+  account_number?: string | null
+  account_name?: string | null
+  bank_code?: string | null
+  paystack_transfer_code?: string | null
+  notes?: string | null
   created_at: string
   updated_at: string
 }
+
+export type CampaignWithdrawalSummary = {
+  campaignId: string
+  amountRaised: number
+  totalWithdrawn: number
+  availableBalance: number
+  hasPin: boolean
+  pastPayouts: FundingPayout[]
+}
+
 
 export type Wallet = {
   id: string
@@ -116,6 +196,7 @@ export type TransactionType =
   | 'course_purchase'
   | 'campaign_donation'
   | 'marketplace_purchase'
+  | 'cac_registration'
 
 export type Transaction = {
   id: string
@@ -123,9 +204,10 @@ export type Transaction = {
   type: TransactionType
   amount: number
   status: 'pending' | 'success' | 'failed'
-  reference_id: string | null
-  paystack_ref: string | null
-  description: string | null
+  ref?: string | null
+  reference_id?: string | null
+  paystack_ref?: string | null
+  description?: string | null
   created_at: string
 }
 
@@ -195,20 +277,80 @@ export type Service = {
 }
 
 export type NotificationType =
+  // Social — current database values
+  | 'post_reaction'
+  | 'post_comment'
+  | 'comment_reaction'
+  | 'new_follower'
+  | 'mention'
+  | 'post_share'
+
+  // Social — legacy application values kept for compatibility
   | 'follow'
   | 'reaction'
   | 'comment'
-  | 'mention'
+
+  // Funding
+  | 'funding_contribution'
+  | 'funding_milestone'
+  | 'funding_ended'
+
+  // Learning
+  | 'course_published'
+  | 'course_enrollment'
+  | 'course_completed'
+
+  // Services
+  | 'service_request'
+  | 'service_completed'
+  | 'service_review'
+
+  // Ajo / cooperative
   | 'ajo_contribution'
+  | 'ajo_payout'
+
+  // Loans
   | 'loan_approved'
   | 'loan_overdue'
+
+  // Savings
   | 'goal_achieved'
-  | 'ajo_payout'
+
+  // Disputes
   | 'dispute_raised'
+
+  // Wallet / Transactions
+  | 'wallet_deposit'
+  | 'wallet_withdrawal'
+  | 'transaction_received'
+  | 'transaction_sent'
+  | 'transaction_payment_success'
+  | 'transaction_payment_failed'
+  | 'transaction_pending'
+
+  // Opportunities
+  | 'opportunity_funding'
+  | 'opportunity_job'
+  | 'opportunity_scholarship'
+  | 'opportunity_grant'
+  | 'opportunity_business'
+  | 'opportunity_deadline'
+
+  // Platform updates
+  | 'update_platform'
+  | 'update_feature'
+  | 'update_maintenance'
+  | 'update_policy'
+  | 'update_announcement'
+
+  // System
+  | 'chat_message'
+  | 'system'
+  | 'welcome'
 
 export type Notification = {
   id: string
-  recipient_id: string
+  user_id: string
   actor_id: string | null
   type: NotificationType
   reference_id: string | null
@@ -664,11 +806,23 @@ export type PostWithAuthor = Post & {
   reaction_count: number
   comment_count: number
   user_reacted: boolean
+  user_saved: boolean
+  is_following_author?: boolean
 }
 
 export type CampaignWithCreator = Campaign & {
-  creator: Pick<User, 'username' | 'avatar_url'>
+  creator: Pick<User, 'id' | 'username' | 'display_name' | 'avatar_url' | 'verified' | 'bio' | 'profession'>
+  category?: Pick<FundingCategory, 'id' | 'name'> | null
+  amount_raised: number
+  donor_count: number
+  recent_donations?: {
+    id: string
+    amount: number
+    created_at: string
+    donor?: Pick<User, 'id' | 'username' | 'display_name' | 'avatar_url'> | null
+  }[]
 }
+
 
 export type CourseWithInstructor = Course & {
   instructor: Pick<User, 'display_name' | 'avatar_url'>
@@ -825,8 +979,7 @@ export type NmOrder = {
   created_at: string
   updated_at: string
   // Joined relations (when fetched with select)
-  listing?: { id: string; title: string } | null
-  listing_images?: NmListingImage[]
+  listing?: { id: string; title: string; listing_images?: NmListingImage[] } | null
   seller_profile?: Partial<NmSellerProfile> | null
   buyer_profile?: { id: string; fullname: string | null; username: string; profile_image_url: string | null } | null
 }
@@ -870,8 +1023,7 @@ export type NmBooking = {
   created_at: string
   updated_at: string
   // Joined
-  listing?: { id: string; title: string } | null
-  listing_images?: NmListingImage[]
+  listing?: { id: string; title: string; listing_images?: NmListingImage[] } | null
 }
 
 // nm_reviews table
@@ -901,9 +1053,279 @@ export type NmSavedListing = {
   created_at: string
 }
 
+// nm_seller_follows table
+export type NmSellerFollow = {
+  id: string
+  seller_id: string
+  follower_id: string
+  created_at: string
+}
+
+// Top Stores rail — real nm_seller_profiles plus derived, non-fabricated stats
+export type NmTopSeller = NmSellerProfile & {
+  dominant_category_name: string | null
+  follower_count: number
+  is_following: boolean
+}
+
 // services_categories table (used for category filter grid)
 export type ServiceCategory = {
   id: string
   name: string
   service_type: string
+}
+
+// ─────────────────────────────────────────────
+// Jobs & Opportunities Tables
+// ─────────────────────────────────────────────
+
+export type JobType = 'full_time' | 'part_time' | 'contract' | 'internship' | 'freelance'
+export type WorkplaceType = 'remote' | 'on_site' | 'hybrid'
+export type JobSalaryPeriod = 'monthly' | 'yearly' | 'hourly' | 'project'
+export type JobStatus = 'active' | 'paused' | 'closed'
+export type ApplicationStatus = 'submitted' | 'in_review' | 'shortlisted' | 'interviewed' | 'rejected' | 'hired'
+
+export interface Job {
+  id: string
+  employer_id: string
+  title: string
+  company_name: string
+  company_logo_url: string | null
+  category: string
+  job_type: JobType
+  workplace_type: WorkplaceType
+  location_state: string | null
+  location_city: string | null
+  salary_min: number | null
+  salary_max: number | null
+  salary_currency: string
+  salary_period: JobSalaryPeriod
+  is_salary_negotiable: boolean
+  description: string
+  requirements: string[]
+  responsibilities: string[]
+  benefits: string[]
+  tags: string[]
+  application_url: string | null
+  application_deadline: string | null
+  status: JobStatus
+  views_count: number
+  applications_count: number
+  created_at: string
+  updated_at: string
+  // Optional joined data
+  employer?: {
+    id: string
+    display_name: string
+    avatar_url: string | null
+    username: string
+    verified?: boolean
+  } | null
+  is_saved?: boolean
+  has_applied?: boolean
+}
+
+export interface JobApplication {
+  id: string
+  job_id: string
+  applicant_id: string
+  full_name: string
+  email: string
+  phone: string | null
+  resume_url: string | null
+  cover_letter: string | null
+  portfolio_url: string | null
+  experience_years: number
+  expected_salary: number | null
+  status: ApplicationStatus
+  employer_notes: string | null
+  created_at: string
+  updated_at: string
+  job?: Job | null
+  applicant?: {
+    id: string
+    display_name: string
+    avatar_url: string | null
+    username: string
+    email?: string
+  } | null
+}
+
+export interface JobBookmark {
+  id: string
+  user_id: string
+  job_id: string
+  created_at: string
+  job?: Job | null
+}
+
+// ─────────────────────────────────────────────
+// Business Launchpad — 7-Step Journey & CAC
+// ─────────────────────────────────────────────
+
+export type BusinessStage =
+  | 'ideation'
+  | 'planning'
+  | 'registered'
+  | 'launched'
+  | 'scaling'
+
+export interface BusinessProfile {
+  id: string
+  user_id: string
+  name: string
+  tagline: string | null
+  category: string
+  description: string | null
+  location_state: string | null
+  location_city: string | null
+  logo_url: string | null
+  stage: BusinessStage
+  step_progress: number // 1 through 7
+  created_at: string
+  updated_at: string
+}
+
+export type CacApplicationStatus =
+  | 'draft'
+  | 'submitted'
+  | 'name_reservation'
+  | 'filing'
+  | 'approved'
+  | 'rejected'
+
+export interface CacApplication {
+  id: string
+  business_id: string
+  user_id: string
+  proposed_name_1: string
+  proposed_name_2: string
+  business_nature: string
+  proprietor_full_name: string
+  proprietor_nin: string
+  proprietor_phone: string
+  business_address: string
+  business_city: string
+  business_state: string
+  fee_amount: number
+  fee_paid: boolean
+  payment_method: string
+  payment_reference?: string | null
+  status: CacApplicationStatus
+  rejection_reason?: string | null
+  cac_registration_number?: string | null
+  certificate_url?: string | null
+  submitted_at?: string | null
+  approved_at?: string | null
+  created_at: string
+  updated_at: string
+  business?: BusinessProfile | null
+}
+
+// ── ModusHive ───────────────────────────────────────────────
+
+export type PlaybackPolicy = 'public' | 'signed'
+
+export type PlaybackTokens = {
+  playback: string
+  thumbnail: string
+  storyboard: string
+}
+
+export type VideoOwner = Pick<User, 'id' | 'username' | 'display_name' | 'avatar_url' | 'verified'>
+
+export type Video = {
+  id: string
+  owner_id: string
+  title: string
+  description: string | null
+  kind: 'short' | 'live_replay'
+  status: 'uploading' | 'processing' | 'ready' | 'errored'
+  provider: string
+  provider_asset_id: string | null
+  playback_id: string | null
+  playback_policy: PlaybackPolicy
+  source_r2_key: string | null
+  source_size_bytes: number | null
+  duration_s: number | null
+  aspect_ratio: string | null
+  error_message: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** A video as listing/detail pages render it: owner joined, thumbnail pre-signed. */
+export type VideoWithOwner = Video & {
+  owner: VideoOwner | null
+  thumbnail_url: string | null
+}
+
+export type LiveStream = {
+  id: string
+  host_id: string
+  title: string
+  description: string | null
+  status: 'idle' | 'live' | 'ended'
+  provider: string
+  provider_stream_id: string | null
+  playback_id: string | null
+  playback_policy: PlaybackPolicy
+  chat_channel_id: string | null
+  replay_video_id: string | null
+  started_at: string | null
+  ended_at: string | null
+  created_at: string
+  updated_at: string
+  is_paid?: boolean
+  ticket_price?: number
+  currency?: string
+  workshop_topics?: string[]
+  scheduled_for?: string | null
+  pinned_product_id?: string | null
+  pinned_product_data?: PinnedProduct | null
+  thumbnail_url?: string | null
+}
+
+export interface PinnedProduct {
+  id: string
+  title: string
+  price: number
+  description?: string | null
+  cover_image_url?: string | null
+  seller_id?: string
+  seller_name?: string | null
+  delivery_options?: string[]
+}
+
+export interface LiveStreamSale {
+  id: string
+  live_stream_id: string
+  product_id?: string | null
+  buyer_id: string
+  creator_id: string
+  product_title: string
+  product_price: number
+  quantity: number
+  total_amount: number
+  payment_method: 'wallet' | 'paystack'
+  payment_reference?: string | null
+  delivery_option: string
+  delivery_address?: string | null
+  created_at: string
+}
+
+export type LiveStreamTicket = {
+  id: string
+  live_stream_id: string
+  buyer_id: string
+  creator_id: string
+  price_paid: number
+  payment_method: 'wallet' | 'paystack'
+  payment_reference: string | null
+  created_at: string
+}
+
+export type LiveStreamWithHost = LiveStream & {
+  host: VideoOwner | null
+  thumbnail_url: string | null
 }

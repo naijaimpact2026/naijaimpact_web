@@ -1,54 +1,54 @@
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { fetchPostsPage } from '@/lib/actions/posts'
 import FeedInfiniteScroll from '@/components/app/feed/FeedInfiniteScroll'
-import FeedRightSidebar from '@/components/app/feed/FeedRightSidebar'
-import type { User } from '@/lib/types'
+import CommunityLeftRail from '@/components/app/feed/CommunityLeftRail'
+import CommunityMobileTopics from '@/components/app/feed/CommunityMobileTopics'
+import CommunityRightSidebar from '@/components/app/feed/CommunityRightSidebar'
+import CommunityGuidanceCarousel from '@/components/app/feed/CommunityGuidanceCarousel'
 
 export const dynamic = 'force-dynamic'
 
-export default async function FeedPage()
+interface FeedPageProps
 {
-    const supabase = await createClient()
+    searchParams?: Promise<{ topic?: string }>
+}
 
-    const {
-        data: { user: authUser },
-    } = await supabase.auth.getUser()
+export default async function FeedPage({ searchParams }: FeedPageProps)
+{
+    const resolvedParams = searchParams ? await searchParams : undefined
+    const activeTopic = resolvedParams?.topic?.trim() || null
 
-    let currentUserId = ''
-    let userProfile: User | null = null
+    const { profile } = await getCurrentUser()
+    const currentUserId = profile?.id ?? ''
+    const userProfile = profile
 
-    if (authUser)
-    {
-        const { data: profile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('auth_id', authUser.id)
-            .single()
-
-        if (profile)
-        {
-            currentUserId = profile.id
-            userProfile = profile as User
-        }
-    }
-
-    const { posts: initialPosts, nextCursor: initialCursor } = await fetchPostsPage(null, 10)
+    const { posts: initialPosts, nextCursor: initialCursor } = await fetchPostsPage(null, 10, activeTopic)
 
     return (
-        <div className="w-full max-w-6xl mx-auto px-3 py-4 overflow-x-hidden">
-            <div className="flex gap-4 items-start">
-                {/* Main feed column — full width on mobile, constrained on xl */}
-                <div className="w-full min-w-0 xl:flex-1 max-w-2xl mx-auto xl:mx-0">
+        <div className="w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-5">
+            {/* Top Showcase Guidance Carousel (Promoted to top header) */}
+            <CommunityGuidanceCarousel />
+
+            {/* Mobile / Tablet Discover Communities Bar */}
+            <div className="lg:hidden">
+                <CommunityMobileTopics activeTopic={activeTopic} />
+            </div>
+
+            {/* Three-column layout */}
+            <div className="flex gap-6 items-start">
+                <CommunityLeftRail activeTopic={activeTopic} />
+
+                <div className="flex-1 min-w-0 max-w-2xl mx-auto lg:mx-0">
                     <FeedInfiniteScroll
                         initialPosts={initialPosts}
                         initialCursor={initialCursor}
                         currentUserId={currentUserId}
                         user={userProfile}
+                        topic={activeTopic}
                     />
                 </div>
 
-                {/* Right sidebar — visible on xl+ */}
-                <FeedRightSidebar />
+                <CommunityRightSidebar />
             </div>
         </div>
     )

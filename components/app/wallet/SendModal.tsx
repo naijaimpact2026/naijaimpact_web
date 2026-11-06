@@ -47,8 +47,8 @@ const sendSchema = z.object({
 const pinSchema = z.object({
     pin: z
         .string()
-        .length(6, 'PIN must be exactly 6 digits')
-        .regex(/^\d{6}$/, 'PIN must contain only digits'),
+        .min(4, 'PIN must be 4 to 6 digits').max(6, 'PIN must be 4 to 6 digits')
+        .regex(/^\d{4,6}$/, 'PIN must contain only digits'),
 })
 
 type RecipientFormValues = z.infer<typeof recipientSchema>
@@ -215,7 +215,7 @@ export default function SendModal({
                     </DialogHeader>
                     <div className="py-6 text-center space-y-4">
                         <p className="text-sm text-muted-foreground">
-                            Set a 6-digit PIN in Settings to secure your transactions.
+                            Set a 4–6 digit PIN in Settings to secure your transactions.
                         </p>
                         <Button asChild className="w-full gradient-primary text-white">
                             <Link href="/app/settings" onClick={handleClose}>

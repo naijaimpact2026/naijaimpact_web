@@ -17,7 +17,7 @@ import
         AlertDialogTitle,
         AlertDialogTrigger,
     } from '@/components/ui/alert-dialog'
-import { toast } from 'sonner'
+import { toast } from '@/components/toast'
 import { getStreamClient } from '@/lib/stream'
 import { deleteService } from '@/lib/actions/services'
 
@@ -61,26 +61,36 @@ export default function ServiceDetailClient({
         setContactLoading(true)
         try
         {
-            // 1. Fetch Stream token
-            const res = await fetch('/api/stream-token')
-            if (!res.ok) throw new Error('Failed to get chat token')
-            const { token } = await res.json()
+            // 1. Get or create Stream client
+            const client = await getStreamClient()
 
-            // 2. Get or create Stream client
-            const client = getStreamClient()
+            // 2. Connect user with auto-refreshing tokenProvider if not already connected
+            const tokenProvider = async () =>
+            {
+                const res = await fetch('/api/stream-token')
+                if (!res.ok) throw new Error('Failed to get chat token')
+                const data = await res.json()
+                return data.token as string
+            }
 
-            // 3. Connect user if not already connected
             if (!client.userID)
             {
+                const res = await fetch('/api/stream-token')
+                if (!res.ok) throw new Error('Failed to get chat token')
+                const { userId } = await res.json()
+                const activeId = userId || currentUserId
+
                 await client.connectUser(
-                    { id: currentUserId, name: currentUserName },
-                    token
+                    { id: activeId, name: currentUserName },
+                    tokenProvider
                 )
             }
 
+            const activeId = client.userID || currentUserId
+
             // 4. Create or find DM channel between current user and provider
             const channel = client.channel('messaging', {
-                members: [currentUserId, providerId],
+                members: [activeId, providerId],
             })
 
             // 5. Watch the channel (creates it if it doesn't exist)

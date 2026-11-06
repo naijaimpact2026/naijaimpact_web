@@ -74,35 +74,27 @@ export async function fetchCreditDashboard(): Promise<CreditDashboardData> {
     { data: loanProducts },
     { data: loanApplications },
     { data: loans },
-    { data: repayments },
   ] = await Promise.all([
     supabase
       .from('fintech_credit_loan_products')
       .select('*')
       .eq('active', true)
-      .order('created_at', { ascending: true }),
+      .order('created_at', { ascending: true })
+      .limit(100),
 
     supabase
       .from('fintech_credit_loan_applications')
       .select('*')
       .eq('user_id', profile.id)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .limit(100),
 
     supabase
       .from('fintech_credit_loans')
       .select('*')
       .eq('user_id', profile.id)
-      .order('created_at', { ascending: false }),
-
-    supabase
-      .from('fintech_credit_repayments')
-      .select('*')
-      .in(
-        'loan_id',
-        // placeholder — we'll replace with actual loan IDs below if we have them
-        ['00000000-0000-0000-0000-000000000000']
-      )
-      .order('due_date', { ascending: true }),
+      .order('created_at', { ascending: false })
+      .limit(100),
   ])
 
   const typedLoans = (loans ?? []) as Loan[]

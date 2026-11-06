@@ -1,46 +1,33 @@
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import { redirect, notFound } from 'next/navigation'
-import { fetchArtisans } from '@/lib/actions/marketplace'
+import { fetchArtisanByKey } from '@/lib/actions/marketplace'
 import ArtisanProfilePage from '@/components/app/market/ArtisanProfilePage'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ArtisanProfileRoute({ params }: { params: Promise<{ artisanKey: string }> })
-{
-    const { artisanKey } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/auth/login')
+export default async function ArtisanProfileRoute({
+  params,
+}: {
+  params: Promise<{ artisanKey: string }>
+}) {
+  const { artisanKey } = await params
 
-    // Fetch all service listings — then filter to this artisan's services
-    // artisanKey is seller_id or user_id
-    const { artisans: allArtisans } = await fetchArtisans({})
+  const { authUser } = await getCurrentUser()
 
-    // Group to find this artisan
-    const services = allArtisans.filter((a: any) =>
-    {
-        const key = a.seller_id ?? a.user_id ?? a.id
-        return key === artisanKey
-    })
+  if (!authUser) {
+    redirect('/auth/login')
+  }
 
-    if (services.length === 0) notFound()
+  const artisan = await fetchArtisanByKey(artisanKey)
 
-    const first = services[0]
-    const artisan = {
-        artisanKey,
-        displayName: first.seller_business_name ?? 'Artisan',
-        avatarUrl: first.seller_logo_url ?? first.cover_image_url ?? null,
-        isVerified: first.seller_is_verified ?? false,
-        bio: first.seller_bio ?? null,
-        location: [first.city, first.state].filter(Boolean).join(', ') || null,
-        userId: first.user_id ?? null,
-        services,
-    }
+  if (!artisan) {
+    notFound()
+  }
 
-    return (
-        <ArtisanProfilePage
-            artisan={artisan}
-            currentUserId={user.id}
-        />
-    )
+  return (
+    <ArtisanProfilePage
+      artisan={artisan}
+      currentUserId={authUser.id}
+    />
+  )
 }

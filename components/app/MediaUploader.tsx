@@ -443,7 +443,7 @@ export function MediaUploader({
                     tabIndex={0}
                     onKeyDown={e => e.key === 'Enter' && inputRef.current?.click()}
                 >
-                    {dragging ? '📎 Drop to add' : '+ drag more files here'}
+                    {dragging ? <span className="inline-flex items-center gap-1"><Upload className="w-3.5 h-3.5" /> Drop to add</span> : '+ drag more files here'}
                 </div>
             )}
 

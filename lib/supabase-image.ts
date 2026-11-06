@@ -32,3 +32,46 @@ export function toPublicStorageUrl(url: string | null | undefined): string | nul
         return url
     }
 }
+
+/**
+ * Whether a `next/image` `src` should skip Next's optimizer (`unoptimized`).
+ *
+ * True for:
+ *  - anything that isn't a real http(s) URL — e.g. `palette:amber`, a sentinel
+ *    some forms store in an image-url field to mean "no upload, render a
+ *    solid-color placeholder instead" (see BusinessProfileModal.tsx). Passing
+ *    those through the optimizer throws ("hostname \"\" is not configured"),
+ *    since they don't have a real hostname to validate.
+ *  - Supabase Storage URLs, since the render/transform endpoint needs a
+ *    bucket policy that may not be enabled on this project (see
+ *    toPublicStorageUrl above) — safer to leave those unoptimized.
+ *
+ * False (safe to optimize) for ordinary http(s) URLs elsewhere — Cloudinary
+ * in practice, since that's where post/avatar uploads go.
+ */
+const OPTIMIZED_CDNS = new Set([
+  'res.cloudinary.com',
+  'images.unsplash.com',
+  'picsum.photos',
+  'lh3.googleusercontent.com',
+])
+
+export function shouldSkipImageOptimization(url: string): boolean {
+    if (!url || typeof url !== 'string') return true
+    try {
+        const parsed = new URL(url)
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return true
+        
+        // Supabase storage skips Next optimization to avoid bucket transform issues
+        if (parsed.hostname.endsWith('.supabase.co') || parsed.hostname.endsWith('.supabase.in')) {
+            return true
+        }
+
+        // Only pass through the optimizer if it's in our known trusted CDNs list.
+        // Third-party hosts (e.g. external job company logos, user website links)
+        // bypass the optimizer and render directly as unoptimized <img>, preventing crashes.
+        return !OPTIMIZED_CDNS.has(parsed.hostname)
+    } catch {
+        return true
+    }
+}

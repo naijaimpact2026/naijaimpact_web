@@ -6,12 +6,16 @@ import
     Landmark, Star, AlertCircle, CheckCircle2, Clock,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import type {
     AjoMember, AjoGroup, SafeFlexibleAccount, SafeLockedSavings,
     SafeGoalSavings, TradeCredScore, TradeCredTier, Loan, LoanRepayment, Policy,
 } from '@/lib/types'
 
+import SavingWalletComingSoon from '@/components/app/fintech/SavingWalletComingSoon'
+
 export const dynamic = 'force-dynamic'
+export const metadata = { title: 'Saving & Wallet — Hubnovo' }
 
 function fmtNGN(n: number): string
 {
@@ -35,90 +39,103 @@ const TIER_LABEL: Record<TradeCredTier, string> = {
 
 export default async function FintechPage()
 {
+    const { authUser, profile } = await getCurrentUser()
+
+    return (
+        <SavingWalletComingSoon userProfile={profile} userEmail={authUser?.email ?? ''} />
+    )
+}
+
+/**
+ * ============================================================================
+ * PRESERVED FINTECH DASHBOARD (COMMENTED OUT / PRESERVED FOR FUTURE LAUNCH)
+ * Do not delete out the already existing functionality - per instructions.
+ * ============================================================================
+ */
+// @ts-ignore - Preserved inactive component for future launch
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _PreservedFintechDashboard()
+{
+    const { profile } = await getCurrentUser()
+    const userId = profile?.id ?? ''
     const supabase = await createClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
 
-    let userId = ''
-    if (authUser)
-    {
-        const { data: profile } = await supabase.from('users').select('id').eq('auth_id', authUser.id).single()
-        userId = profile?.id ?? ''
-    }
-
-    // ── NaijaAjo ────────────────────────────────────────────────────────────
+    // ── Execute sub-domains in parallel ──────────────────────────────────────
     let ajoActiveGroups = 0, ajoNextDate: string | null = null, ajoTotalCollected = 0
-    if (userId)
-    {
-        const { data: ajoMembers } = await supabase
-            .from('fintech_ajo_members').select('group_id,status')
-            .eq('user_id', userId).eq('status', 'active') as { data: Pick<AjoMember, 'group_id' | 'status'>[] | null }
-        if (ajoMembers?.length)
-        {
-            const { data: ajoGroups } = await supabase
-                .from('fintech_ajo_groups').select('id,status,start_date,frequency,total_collected')
-                .in('id', ajoMembers.map(m => m.group_id)).eq('status', 'active') as { data: Pick<AjoGroup, 'id' | 'status' | 'start_date' | 'frequency' | 'total_collected'>[] | null }
-            ajoActiveGroups = ajoGroups?.length ?? 0
-            ajoTotalCollected = (ajoGroups ?? []).reduce((s, g) => s + (g.total_collected ?? 0), 0)
-            if (ajoGroups?.length)
-                ajoNextDate = [...ajoGroups].sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())[0].start_date
-        }
-    }
-
-    // ── NaijaSafe ───────────────────────────────────────────────────────────
     let safeTotalBalance = 0, safeAccountsCount = 0
-    if (userId)
-    {
-        const [{ data: flex }, { data: locked }, { data: goals }] = await Promise.all([
-            supabase.from('fintech_safe_flexible_accounts').select('balance').eq('user_id', userId),
-            supabase.from('fintech_safe_locked_savings').select('amount').eq('user_id', userId),
-            supabase.from('fintech_safe_goal_savings').select('current_amount').eq('user_id', userId),
-        ])
-        safeTotalBalance =
-            ((flex as Pick<SafeFlexibleAccount, 'balance'>[] ?? [])).reduce((s, r) => s + (r.balance ?? 0), 0)
-            + ((locked as Pick<SafeLockedSavings, 'amount'>[] ?? [])).reduce((s, r) => s + (r.amount ?? 0), 0)
-            + ((goals as Pick<SafeGoalSavings, 'current_amount'>[] ?? [])).reduce((s, r) => s + (r.current_amount ?? 0), 0)
-        safeAccountsCount = (flex?.length ?? 0) + (locked?.length ?? 0) + (goals?.length ?? 0)
-    }
-
-    // ── TradeCred ───────────────────────────────────────────────────────────
     let tradeCredScore = 0, tradeCredTier: TradeCredTier = 'starter'
-    if (userId)
-    {
-        const { data: scoreRow } = await supabase
-            .from('fintech_tradecred_scores').select('score,tier')
-            .eq('user_id', userId).single() as { data: Pick<TradeCredScore, 'score' | 'tier'> | null }
-        if (scoreRow) { tradeCredScore = scoreRow.score ?? 0; tradeCredTier = scoreRow.tier ?? 'starter' }
-    }
-
-    // ── NaijaCredit ─────────────────────────────────────────────────────────
     let activeLoansCount = 0, nextRepaymentDate: string | null = null, outstandingBalance = 0
-    if (userId)
-    {
-        const { data: loans } = await supabase
-            .from('fintech_credit_loans').select('id,status').eq('user_id', userId).eq('status', 'active') as { data: Pick<Loan, 'id' | 'status'>[] | null }
-        activeLoansCount = loans?.length ?? 0
-        if (loans?.length)
-        {
-            const { data: reps } = await supabase
-                .from('fintech_credit_repayments').select('due_date,status,amount,late_fee')
-                .in('loan_id', loans.map(l => l.id))
-                .in('status', ['pending', 'overdue'])
-                .order('due_date', { ascending: true }) as { data: Pick<LoanRepayment, 'due_date' | 'status' | 'amount' | 'late_fee'>[] | null }
-            nextRepaymentDate = reps?.[0]?.due_date ?? null
-            outstandingBalance = (reps ?? []).reduce((s, r) => s + (r.amount ?? 0) + (r.late_fee ?? 0), 0)
-        }
-    }
-
-    // ── NaijaInsure ─────────────────────────────────────────────────────────
     let activePoliciesCount = 0, nextPremiumDue: string | null = null
+
     if (userId)
     {
-        const { data: policies } = await supabase
-            .from('fintech_insure_policies').select('id,status,end_date')
-            .eq('user_id', userId).eq('status', 'active') as { data: Pick<Policy, 'id' | 'status' | 'end_date'>[] | null }
-        activePoliciesCount = policies?.length ?? 0
-        if (policies?.length)
-            nextPremiumDue = [...policies].sort((a, b) => new Date(a.end_date).getTime() - new Date(b.end_date).getTime())[0].end_date
+        await Promise.all([
+            // 1. NaijaAjo
+            (async () => {
+                const { data: ajoMembers } = await supabase
+                    .from('fintech_ajo_members').select('group_id,status')
+                    .eq('user_id', userId).eq('status', 'active') as { data: Pick<AjoMember, 'group_id' | 'status'>[] | null }
+                if (ajoMembers?.length)
+                {
+                    const { data: ajoGroups } = await supabase
+                        .from('fintech_ajo_groups').select('id,status,start_date,frequency,total_collected')
+                        .in('id', ajoMembers.map(m => m.group_id)).eq('status', 'active') as { data: Pick<AjoGroup, 'id' | 'status' | 'start_date' | 'frequency' | 'total_collected'>[] | null }
+                    ajoActiveGroups = ajoGroups?.length ?? 0
+                    ajoTotalCollected = (ajoGroups ?? []).reduce((s, g) => s + (g.total_collected ?? 0), 0)
+                    if (ajoGroups?.length)
+                        ajoNextDate = [...ajoGroups].sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())[0].start_date
+                }
+            })(),
+
+            // 2. NaijaSafe
+            (async () => {
+                const [{ data: flex }, { data: locked }, { data: goals }] = await Promise.all([
+                    supabase.from('fintech_safe_flexible_accounts').select('balance').eq('user_id', userId),
+                    supabase.from('fintech_safe_locked_savings').select('amount').eq('user_id', userId),
+                    supabase.from('fintech_safe_goal_savings').select('current_amount').eq('user_id', userId),
+                ])
+                safeTotalBalance =
+                    ((flex as Pick<SafeFlexibleAccount, 'balance'>[] ?? [])).reduce((s, r) => s + (r.balance ?? 0), 0)
+                    + ((locked as Pick<SafeLockedSavings, 'amount'>[] ?? [])).reduce((s, r) => s + (r.amount ?? 0), 0)
+                    + ((goals as Pick<SafeGoalSavings, 'current_amount'>[] ?? [])).reduce((s, r) => s + (r.current_amount ?? 0), 0)
+                safeAccountsCount = (flex?.length ?? 0) + (locked?.length ?? 0) + (goals?.length ?? 0)
+            })(),
+
+            // 3. TradeCred
+            (async () => {
+                const { data: scoreRow } = await supabase
+                    .from('fintech_tradecred_scores').select('score,tier')
+                    .eq('user_id', userId).single() as { data: Pick<TradeCredScore, 'score' | 'tier'> | null }
+                if (scoreRow) { tradeCredScore = scoreRow.score ?? 0; tradeCredTier = scoreRow.tier ?? 'starter' }
+            })(),
+
+            // 4. NaijaCredit
+            (async () => {
+                const { data: loans } = await supabase
+                    .from('fintech_credit_loans').select('id,status').eq('user_id', userId).eq('status', 'active') as { data: Pick<Loan, 'id' | 'status'>[] | null }
+                activeLoansCount = loans?.length ?? 0
+                if (loans?.length)
+                {
+                    const { data: reps } = await supabase
+                        .from('fintech_credit_repayments').select('due_date,status,amount,late_fee')
+                        .in('loan_id', loans.map(l => l.id))
+                        .in('status', ['pending', 'overdue'])
+                        .order('due_date', { ascending: true }) as { data: Pick<LoanRepayment, 'due_date' | 'status' | 'amount' | 'late_fee'>[] | null }
+                    nextRepaymentDate = reps?.[0]?.due_date ?? null
+                    outstandingBalance = (reps ?? []).reduce((s, r) => s + (r.amount ?? 0) + (r.late_fee ?? 0), 0)
+                }
+            })(),
+
+            // 5. NaijaInsure
+            (async () => {
+                const { data: policies } = await supabase
+                    .from('fintech_insure_policies').select('id,status,end_date')
+                    .eq('user_id', userId).eq('status', 'active') as { data: Pick<Policy, 'id' | 'status' | 'end_date'>[] | null }
+                activePoliciesCount = policies?.length ?? 0
+                if (policies?.length)
+                    nextPremiumDue = [...policies].sort((a, b) => new Date(a.end_date).getTime() - new Date(b.end_date).getTime())[0].end_date
+            })(),
+        ])
     }
 
     const scorePercent = Math.round((tradeCredScore / 1000) * 100)
@@ -143,7 +160,7 @@ export default async function FintechPage()
                     {/* Label row */}
                     <div className="flex items-center justify-between mb-5">
                         <div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-1">Hubnovo</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-1">HubNovo</p>
                             <h1 className="text-3xl font-black text-white leading-tight">Fintech Hub</h1>
                             <p className="text-sm text-green-300/60 mt-1">Your complete financial suite</p>
                         </div>
@@ -478,3 +495,4 @@ export default async function FintechPage()
         </div>
     )
 }
+

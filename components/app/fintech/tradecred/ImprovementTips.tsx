@@ -10,7 +10,7 @@ const TIPS: Record<ScoreCategory, { icon: React.ElementType; title: string; tips
     },
     transactions: {
         icon: ArrowLeftRight, title: 'Increase Activity', iconCls: 'bg-sky-100 text-sky-700', barCls: 'bg-sky-500',
-        tips: ['Use your Hubnovo wallet for everyday transactions.', 'Send and receive funds regularly to build financial history.', 'Complete 100+ transactions to reach full marks.']
+        tips: ['Use your HubNovo wallet for everyday transactions.', 'Send and receive funds regularly to build financial history.', 'Complete 100+ transactions to reach full marks.']
     },
     cooperative: {
         icon: Users, title: 'Join a Cooperative', iconCls: 'bg-violet-100 text-violet-700', barCls: 'bg-violet-500',
@@ -26,7 +26,7 @@ const TIPS: Record<ScoreCategory, { icon: React.ElementType; title: string; tips
     },
     learning: {
         icon: GraduationCap, title: 'Complete Courses', iconCls: 'bg-orange-100 text-orange-700', barCls: 'bg-orange-500',
-        tips: ['Enrol in courses from the Hubnovo LMS.', 'Complete at least one course to earn learning points.', '5+ completed courses earns full learning score.']
+        tips: ['Enrol in courses from the HubNovo LMS.', 'Complete at least one course to earn learning points.', '5+ completed courses earns full learning score.']
     },
 }
 const CATEGORY_MAX: Record<ScoreCategory, number> = { savings: 200, transactions: 200, cooperative: 150, marketplace: 150, referral: 150, learning: 150 }

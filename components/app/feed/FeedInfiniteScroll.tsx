@@ -1,23 +1,34 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import PostCard from './PostCard'
 import PostCardSkeleton from './PostCardSkeleton'
-import PostComposer from './PostComposer'
 import PostComposerBar from './PostComposerBar'
 import StoryRow from './StoryRow'
-import FeedTabs, { type FeedTab } from './FeedTabs'
-import { fetchPostsPage, fetchDiscoverPosts, fetchFollowingPosts, fetchRecentActiveUsers } from '@/lib/actions/posts'
+import FeedTabs, { type FeedTab, type FeedLayout } from './FeedTabs'
+import SuggestedAccounts, { type SuggestedUser } from './SuggestedAccounts'
+import PromotedCarousel from './PromotedCarousel'
+import CreatePostModal from './CreatePostModal'
+import CommunityGroupsView from './CommunityGroupsView'
+import CommunityOpportunitiesGrid from './CommunityOpportunitiesGrid'
+import CommunityMediaGrid from './CommunityMediaGrid'
+import { fetchPostsPage, fetchFollowingPosts, fetchSavedPostsPage, fetchSuggestedUsers } from '@/lib/actions/posts'
+import { fetchPromotedContent, type PromotedItem } from '@/lib/actions/promoted'
 import type { PostWithAuthor, User } from '@/lib/types'
-import { Plus } from 'lucide-react'
+import Link from 'next/link'
+import { Plus, X } from 'lucide-react'
 
-interface StoryUser
-{
-    id: string
-    username: string
-    display_name: string
-    avatar_url: string | null
-}
+const SUGGESTIONS_AFTER_POST = 5
+
+// Module-level cache — this component remounts on every tab revisit (feed
+// isn't kept mounted across navigation), but this secondary sidebar content
+// doesn't need a fresh fetch every single time. Cached for the lifetime of
+// the page's JS, cleared on a hard refresh. suggestedUsersCache is keyed by
+// user id so a sign-out/sign-in within the same tab can't leak the previous
+// user's suggestions; promotedItemsCache isn't user-specific.
+let suggestedUsersCache: { userId: string; data: SuggestedUser[] } | null = null
+let promotedItemsCache: PromotedItem[] | null = null
 
 interface FeedInfiniteScrollProps
 {
@@ -25,6 +36,7 @@ interface FeedInfiniteScrollProps
     initialCursor: string | null
     currentUserId: string
     user?: User | null
+    topic?: string | null
 }
 
 const SKELETON_COUNT = 3
@@ -34,37 +46,84 @@ export default function FeedInfiniteScroll({
     initialCursor,
     currentUserId,
     user,
+    topic,
 }: FeedInfiniteScrollProps)
 {
+    const router = useRouter()
     const [activeTab, setActiveTab] = useState<FeedTab>('for-you')
+    const [feedLayout, setFeedLayout] = useState<FeedLayout>('list')
     const [posts, setPosts] = useState<PostWithAuthor[]>(initialPosts)
     const [cursor, setCursor] = useState<string | null>(initialCursor)
     const [loading, setLoading] = useState(false)
     const [exhausted, setExhausted] = useState(initialCursor === null)
-    const [isComposerOpen, setIsComposerOpen] = useState(false)
-    const [storyUsers, setStoryUsers] = useState<StoryUser[]>([])
+
+    // Sync state when topic or initial posts change
+    useEffect(() =>
+    {
+        setPosts(initialPosts)
+        setCursor(initialCursor)
+        setExhausted(initialCursor === null)
+    }, [initialPosts, initialCursor, topic])
     const [tabLoading, setTabLoading] = useState(false)
+    const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>(
+        suggestedUsersCache?.userId === currentUserId ? suggestedUsersCache.data : []
+    )
+    const [suggestionsDismissed, setSuggestionsDismissed] = useState(false)
+    const [promotedItems, setPromotedItems] = useState<PromotedItem[]>(promotedItemsCache ?? [])
+    const [isComposerOpen, setIsComposerOpen] = useState(false)
+    const [startWithMedia, setStartWithMedia] = useState(false)
+    const [startWithTagging, setStartWithTagging] = useState(false)
+    const [composerTopic, setComposerTopic] = useState<string | null>(null)
+
+    function handleOpenComposer(options?: { withMedia?: boolean; withTagging?: boolean; topic?: string | null })
+    {
+        setStartWithMedia(Boolean(options?.withMedia))
+        setStartWithTagging(Boolean(options?.withTagging))
+        setComposerTopic(options?.topic ?? null)
+        setIsComposerOpen(true)
+    }
+
+    function handlePostCreated(newPost: PostWithAuthor)
+    {
+        setPosts((prev) => [newPost, ...prev])
+        if (typeof window !== 'undefined')
+        {
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+        }
+    }
 
     const sentinelRef = useRef<HTMLDivElement>(null)
     const loadingRef = useRef(false)
 
-    // Fetch story users on mount
+    // Fetch suggested accounts on mount — skip if already cached for this user this session
     useEffect(() =>
     {
-        if (!currentUserId) return
-        fetchRecentActiveUsers(currentUserId, 4).then(setStoryUsers).catch(() => { })
+        if (!currentUserId || suggestedUsersCache?.userId === currentUserId) return
+        fetchSuggestedUsers(6).then((data) => {
+            suggestedUsersCache = { userId: currentUserId, data }
+            setSuggestedUsers(data)
+        }).catch(() => { })
     }, [currentUserId])
+
+    // Fetch promoted Marketplace/Learn content on mount — skip if already cached this session
+    useEffect(() =>
+    {
+        if (promotedItemsCache) return
+        fetchPromotedContent(8).then((data) => { promotedItemsCache = data; setPromotedItems(data) }).catch(() => { })
+    }, [])
 
     // Fetch function based on active tab
     const fetchForTab = useCallback(async (tab: FeedTab, cur: string | null) =>
     {
         switch (tab)
         {
-            case 'discover': return fetchDiscoverPosts(cur)
             case 'following': return fetchFollowingPosts(cur)
-            default: return fetchPostsPage(cur)
+            case 'saved': return fetchSavedPostsPage(cur)
+            default: return fetchPostsPage(cur, 10, topic ?? null)
         }
-    }, [])
+    }, [topic])
+
+    const UNBACKED_TABS: FeedTab[] = ['events']
 
     // Switch tabs — reset posts and fetch fresh
     async function handleTabChange(tab: FeedTab)
@@ -76,8 +135,24 @@ export default function FeedInfiniteScroll({
         setCursor(null)
         setExhausted(false)
 
-        // Unsupported tabs show empty state
-        if (tab === 'groups' || tab === 'saved')
+        // Groups tab shows rich interactive community group directory
+        if (tab === 'groups')
+        {
+            setTabLoading(false)
+            setExhausted(true)
+            return
+        }
+
+        // Opportunities tab shows rich interactive curated and community gigs/grants
+        if (tab === 'opportunities')
+        {
+            setTabLoading(false)
+            setExhausted(true)
+            return
+        }
+
+        // Not backed by real data yet — show an honest "coming soon" state
+        if (UNBACKED_TABS.includes(tab))
         {
             setTabLoading(false)
             setExhausted(true)
@@ -136,93 +211,171 @@ export default function FeedInfiniteScroll({
         return () => observer.disconnect()
     }, [loadMore])
 
-    function handlePostCreated(post: PostWithAuthor)
-    {
-        if (activeTab === 'for-you')
-        {
-            setPosts((prev) =>
-            {
-                if (prev.some((p) => p.id === post.id)) return prev
-                return [post, ...prev]
-            })
-        }
-        setIsComposerOpen(false)
-    }
-
     const isLoading = loading || tabLoading
+
+    // Stable references so memo(PostCard) can actually skip re-rendering
+    // unaffected cards — passing fresh inline arrows here would defeat it.
+    const handleReactionToggle = useCallback((postId: string, reacted: boolean, delta: number) =>
+    {
+        setPosts((prev) =>
+            prev.map((p) =>
+                p.id === postId
+                    ? { ...p, user_reacted: reacted, reaction_count: Math.max(0, (p.reaction_count || 0) + delta) }
+                    : p
+            )
+        )
+    }, [])
+
+    const handleSaveToggle = useCallback((postId: string, saved: boolean) =>
+    {
+        setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, user_saved: saved } : p)))
+        if (activeTab === 'saved' && !saved)
+        {
+            setPosts((prev) => prev.filter((p) => p.id !== postId))
+        }
+    }, [activeTab])
+
+    const handleHide = useCallback((postId: string) =>
+    {
+        setPosts((prev) => prev.filter((p) => p.id !== postId))
+    }, [])
 
     return (
         <div className="space-y-3">
-            {/* Story row */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm px-3 py-3">
-                <StoryRow user={user ?? null} recentUsers={storyUsers} />
-            </div>
-
-            {/* Feed tabs */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm overflow-hidden">
-                <FeedTabs activeTab={activeTab} onTabChange={handleTabChange} />
-            </div>
-
-            {/* Post composer bar — only on For You tab */}
-            {activeTab === 'for-you' && (
-                <PostComposerBar user={user ?? null} onOpen={() => setIsComposerOpen(true)} />
+            {/* Promoted story circles */}
+            {promotedItems.length > 0 && (
+                <div className="bg-card rounded-2xl border border-border shadow-sm dark:shadow-none px-3 py-3">
+                    <StoryRow promotedItems={promotedItems.slice(0, 4)} />
+                </div>
             )}
 
-            {/* Post composer modal */}
-            {isComposerOpen && (
-                <PostComposer
-                    currentUserId={currentUserId}
-                    onSuccess={handlePostCreated}
-                    onClose={() => setIsComposerOpen(false)}
+            {/* Promoted carousel — real Marketplace listings and Learn courses */}
+            {activeTab === 'for-you' && <PromotedCarousel items={promotedItems} />}
+
+            {/* Active topic banner */}
+            {topic && (
+                <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-card border border-primary/25 shadow-sm text-sm">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse shrink-0" />
+                        <span className="text-muted-foreground text-xs font-medium">Community:</span>
+                        <span className="font-bold text-primary truncate">#{topic}</span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                        <Link
+                            href={`/app/search?q=${encodeURIComponent('#' + topic)}`}
+                            className="text-xs text-primary hover:underline font-semibold hidden sm:inline"
+                        >
+                            Search all Hubnovo →
+                        </Link>
+                        <Link
+                            href="/app/feed"
+                            className="text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors px-2.5 py-1 rounded-lg hover:bg-muted"
+                        >
+                            <X className="w-3.5 h-3.5" /> Clear filter
+                        </Link>
+                    </div>
+                </div>
+            )}
+
+            {/* Feed tabs with Grid/List layout toggle */}
+            <div className="bg-card rounded-2xl border border-border shadow-sm dark:shadow-none overflow-hidden">
+                <FeedTabs
+                    activeTab={activeTab}
+                    onTabChange={handleTabChange}
+                    feedLayout={feedLayout}
+                    onLayoutChange={setFeedLayout}
+                />
+            </div>
+
+            {/* Post composer bar — only on For You tab; opens in-feed modal */}
+            {activeTab === 'for-you' && (
+                <PostComposerBar
+                    user={user ?? null}
+                    onOpen={(options) => handleOpenComposer(options)}
                 />
             )}
 
-            {/* Empty state for unimplemented tabs */}
-            {(activeTab === 'groups' || activeTab === 'saved') && !isLoading && (
-                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm text-muted-foreground">
-                    <p className="text-lg font-semibold">
-                        {activeTab === 'groups' ? 'Groups coming soon' : 'No saved posts yet'}
-                    </p>
-                    <p className="text-sm mt-1 text-center px-4">
-                        {activeTab === 'groups'
-                            ? 'Join community groups to see their posts here.'
-                            : 'Save posts to read them later.'}
-                    </p>
+            {/* Groups Tab — interactive community group directory */}
+            {activeTab === 'groups' && (
+                <CommunityGroupsView
+                    onSelectGroupFeed={(tag) => {
+                        router.push(`/app/feed?topic=${tag}`)
+                    }}
+                    onPostToGroup={(tag) => {
+                        handleOpenComposer({ topic: tag })
+                    }}
+                />
+            )}
+
+            {/* Opportunities Tab — interactive grants, gigs, updates and partnerships */}
+            {activeTab === 'opportunities' && (
+                <CommunityOpportunitiesGrid onOpenComposer={() => handleOpenComposer()} />
+            )}
+
+            {/* Empty state for tabs with no real data source yet (e.g. Events) */}
+            {UNBACKED_TABS.includes(activeTab) && !isLoading && (
+                <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border border-border shadow-sm dark:shadow-none text-muted-foreground">
+                    <p className="text-lg font-semibold">Events coming soon</p>
+                    <p className="text-sm mt-1 text-center px-4">Community events will show up here.</p>
                 </div>
             )}
 
             {/* Feed posts */}
-            {!isLoading && posts.length === 0 && activeTab !== 'groups' && activeTab !== 'saved' ? (
-                <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-2xl border border-border shadow-sm text-muted-foreground">
-                    <p className="text-lg font-semibold">
-                        {activeTab === 'following' ? 'No posts from people you follow' : 'No posts yet'}
-                    </p>
-                    <p className="text-sm mt-1 text-center px-4">
-                        {activeTab === 'following'
-                            ? 'Follow people to see their posts here.'
-                            : activeTab === 'discover'
-                                ? 'New content will appear here soon.'
-                                : 'Be the first to share something!'}
-                    </p>
-                </div>
-            ) : (
-                posts.map((post) => (
-                    <PostCard key={post.id} post={post} currentUserId={currentUserId} />
-                ))
+            {activeTab !== 'groups' && activeTab !== 'opportunities' && !UNBACKED_TABS.includes(activeTab) && (
+                !isLoading && posts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-card rounded-2xl border border-border shadow-sm dark:shadow-none text-muted-foreground">
+                        <p className="text-lg font-semibold">
+                            {activeTab === 'following' && 'No posts from people you follow'}
+                            {activeTab === 'saved' && 'No saved posts yet'}
+                            {activeTab !== 'following' && activeTab !== 'saved' && (topic ? `No posts found in #${topic}` : 'No posts yet')}
+                        </p>
+                        <p className="text-sm mt-1 text-center px-4">
+                            {activeTab === 'following' && 'Follow people to see their posts here.'}
+                            {activeTab === 'saved' && 'Tap the Save button on any post to read it later.'}
+                            {activeTab !== 'following' && activeTab !== 'saved' && (topic ? `Be the first to share something in #${topic}!` : 'Be the first to share something!')}
+                        </p>
+                    </div>
+                ) : feedLayout === 'grid' ? (
+                    <CommunityMediaGrid posts={posts} />
+                ) : (
+                    posts.map((post, index) => (
+                        <div key={post.id} className="space-y-3">
+                            <PostCard
+                                post={post}
+                                currentUserId={currentUserId}
+                                onReactionToggle={handleReactionToggle}
+                                onSaveToggle={handleSaveToggle}
+                                onHide={handleHide}
+                            />
+
+                            {activeTab === 'for-you' &&
+                                !suggestionsDismissed &&
+                                index === SUGGESTIONS_AFTER_POST - 1 &&
+                                suggestedUsers.length > 0 && (
+                                    <SuggestedAccounts
+                                        users={suggestedUsers}
+                                        onDismiss={() => setSuggestionsDismissed(true)}
+                                    />
+                                )}
+                        </div>
+                    ))
+                )
             )}
 
             {/* Loading skeletons */}
             {isLoading && (
                 <div className="space-y-3">
                     {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-                        <PostCardSkeleton key={`skeleton-${i}`} />
+                        <PostCardSkeleton key={`skeleton-${i}`} delay={i * 80} />
                     ))}
                 </div>
             )}
 
-            {!exhausted && <div ref={sentinelRef} className="h-1" aria-hidden="true" />}
+            {!exhausted && activeTab !== 'groups' && activeTab !== 'opportunities' && (
+                <div ref={sentinelRef} className="h-1" aria-hidden="true" />
+            )}
 
-            {exhausted && posts.length > 0 && (
+            {exhausted && posts.length > 0 && activeTab !== 'groups' && activeTab !== 'opportunities' && (
                 <p className="text-center text-sm text-muted-foreground py-8">
                     You&apos;ve seen all recent posts.
                 </p>
@@ -230,12 +383,23 @@ export default function FeedInfiniteScroll({
 
             {/* FAB — mobile only */}
             <button
-                onClick={() => setIsComposerOpen(true)}
+                onClick={() => handleOpenComposer()}
                 aria-label="Create post"
                 className="xl:hidden fixed bottom-20 right-4 z-30 flex items-center justify-center w-14 h-14 rounded-full bg-primary shadow-lg hover:bg-primary/90 transition-all active:scale-95"
             >
                 <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
             </button>
+
+            {/* In-feed Post Creator Modal */}
+            <CreatePostModal
+                open={isComposerOpen}
+                onOpenChange={setIsComposerOpen}
+                user={user ?? null}
+                onPostCreated={handlePostCreated}
+                activeTopic={composerTopic ?? topic}
+                startWithMedia={startWithMedia}
+                startWithTagging={startWithTagging}
+            />
         </div>
     )
 }

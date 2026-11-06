@@ -23,7 +23,7 @@ export default function NotificationListener({
         setNotificationCount(initialUnreadCount)
     }, [initialUnreadCount, setNotificationCount])
 
-    // Subscribe to realtime inserts filtered by recipient_id
+    // Subscribe to realtime inserts filtered by user_id
     useEffect(() =>
     {
         if (!userId) return
@@ -38,7 +38,7 @@ export default function NotificationListener({
                     event: 'INSERT',
                     schema: 'public',
                     table: 'notifications',
-                    filter: `recipient_id=eq.${userId}`,
+                    filter: `user_id=eq.${userId}`,
                 },
                 () =>
                 {

@@ -27,6 +27,19 @@ interface InsureDashboardProps
     userEmail: string
 }
 
+const COVERAGE_TYPES = [
+    { icon: Heart, label: 'Health', cls: 'bg-red-50 text-red-600' },
+    { icon: Smartphone, label: 'Device', cls: 'bg-blue-50 text-blue-600' },
+    { icon: Plane, label: 'Travel', cls: 'bg-sky-50 text-sky-600' },
+    { icon: Shield, label: 'Life', cls: 'bg-teal-50 text-teal-600' },
+] as const
+
+const WHY_NAIJAINSURE = [
+    { icon: Star, title: 'Affordable', desc: 'Micro-insurance from as little as ₦500/month for real coverage.', cls: 'bg-amber-100 text-amber-700' },
+    { icon: CheckCircle2, title: 'Instant Coverage', desc: 'Policy activates immediately after payment — no waiting period.', cls: 'bg-emerald-100 text-emerald-700' },
+    { icon: Shield, title: 'Fast Claims', desc: 'File a claim in minutes, get reviewed and paid in days.', cls: 'bg-teal-100 text-teal-700' },
+] as const
+
 export default function InsureDashboard({ products, policies, claims, activePoliciesCount, pendingClaimsCount, nextPremiumDue, userEmail }: InsureDashboardProps)
 {
     const [selectedProduct, setSelectedProduct] = useState<InsureProduct | null>(null)
@@ -64,12 +77,7 @@ export default function InsureDashboard({ products, policies, claims, activePoli
                 {/* ── Coverage types quick bar ── */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="grid grid-cols-4 divide-x divide-gray-50">
-                        {[
-                            { icon: Heart, label: 'Health', cls: 'bg-red-50 text-red-600' },
-                            { icon: Smartphone, label: 'Device', cls: 'bg-blue-50 text-blue-600' },
-                            { icon: Plane, label: 'Travel', cls: 'bg-sky-50 text-sky-600' },
-                            { icon: Shield, label: 'Life', cls: 'bg-teal-50 text-teal-600' },
-                        ].map(({ icon: Icon, label, cls }) => (
+                        {COVERAGE_TYPES.map(({ icon: Icon, label, cls }) => (
                             <button key={label} className="flex flex-col items-center gap-2 py-4 hover:bg-gray-50 transition-colors">
                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${cls}`}><Icon className="w-4 h-4" /></div>
                                 <span className="text-[11px] font-bold text-gray-600">{label}</span>
@@ -135,11 +143,7 @@ export default function InsureDashboard({ products, policies, claims, activePoli
 
                 {/* ── Why NaijaInsure ── */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {[
-                        { icon: Star, title: 'Affordable', desc: 'Micro-insurance from as little as ₦500/month for real coverage.', cls: 'bg-amber-100 text-amber-700' },
-                        { icon: CheckCircle2, title: 'Instant Coverage', desc: 'Policy activates immediately after payment — no waiting period.', cls: 'bg-emerald-100 text-emerald-700' },
-                        { icon: Shield, title: 'Fast Claims', desc: 'File a claim in minutes, get reviewed and paid in days.', cls: 'bg-teal-100 text-teal-700' },
-                    ].map(({ icon: Icon, title, desc, cls }) => (
+                    {WHY_NAIJAINSURE.map(({ icon: Icon, title, desc, cls }) => (
                         <div key={title} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-2">
                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${cls}`}><Icon className="w-4 h-4" /></div>
                             <p className="font-bold text-gray-900 text-sm">{title}</p>

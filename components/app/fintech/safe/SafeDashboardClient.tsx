@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Wallet, Lock, Target, PiggyBank } from 'lucide-react'
 import FlexibleTab from './FlexibleTab'
@@ -31,12 +32,15 @@ export default function SafeDashboardClient({
     goalSavings,
 }: SafeDashboardClientProps)
 {
-    const flexibleTotal = flexibleAccounts.reduce((sum, a) => sum + a.balance, 0)
-    const lockedTotal = lockedSavings
-        .filter((s) => s.status !== 'withdrawn')
-        .reduce((sum, s) => sum + s.amount, 0)
-    const goalTotal = goalSavings.reduce((sum, g) => sum + g.current_amount, 0)
-    const grandTotal = flexibleTotal + lockedTotal + goalTotal
+    const { flexibleTotal, lockedTotal, goalTotal, grandTotal } = useMemo(() =>
+    {
+        const flexible = flexibleAccounts.reduce((sum, a) => sum + a.balance, 0)
+        const locked = lockedSavings
+            .filter((s) => s.status !== 'withdrawn')
+            .reduce((sum, s) => sum + s.amount, 0)
+        const goal = goalSavings.reduce((sum, g) => sum + g.current_amount, 0)
+        return { flexibleTotal: flexible, lockedTotal: locked, goalTotal: goal, grandTotal: flexible + locked + goal }
+    }, [flexibleAccounts, lockedSavings, goalSavings])
 
     return (
         <div className="space-y-8">

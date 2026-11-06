@@ -1,0 +1,11 @@
+import { endLiveStream } from '@/lib/actions/modushive'
+import { fromAction, withProfile } from '@/lib/modushive/api'
+
+export const dynamic = 'force-dynamic'
+
+/** POST /api/modushive/live/:id/end — host or admin; ends the broadcast and revokes the key. */
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> })
+{
+    const { id } = await params
+    return withProfile(request, async () => fromAction(await endLiveStream(id)))
+}

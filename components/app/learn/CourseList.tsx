@@ -129,8 +129,8 @@ export default function CourseList({
                 flex flex-col items-center
                 justify-center
                 rounded-2xl
-                border border-dashed border-slate-200
-                bg-slate-50/50
+                border border-dashed border-border
+                bg-muted/50
                 px-6 py-20
                 text-center
             ">
@@ -138,17 +138,18 @@ export default function CourseList({
                     flex h-16 w-16
                     items-center justify-center
                     rounded-2xl
-                    bg-emerald-50
+                    bg-primary/10
                 ">
                     <GraduationCap
-                        className="h-8 w-8 text-emerald-700"
+                        className="h-8 w-8 text-primary"
                     />
                 </div>
 
                 <h3 className="
+                    font-display
                     mt-5
                     text-lg font-bold
-                    text-slate-900
+                    text-foreground
                 ">
                     No courses found
                 </h3>
@@ -156,7 +157,7 @@ export default function CourseList({
                 <p className="
                     mt-1 max-w-sm
                     text-sm leading-relaxed
-                    text-slate-500
+                    text-muted-foreground
                 ">
                     There aren't any courses in this category yet.
                     Check another category or create the first course.
@@ -168,12 +169,12 @@ export default function CourseList({
                         mt-6
                         inline-flex items-center gap-2
                         rounded-lg
-                        bg-emerald-700
+                        bg-primary
                         px-5 py-2.5
                         text-sm font-semibold
-                        text-white
+                        text-primary-foreground
                         transition-colors
-                        hover:bg-emerald-800
+                        hover:bg-primary/90
                     "
                 >
                     <Plus className="h-4 w-4" />
@@ -186,15 +187,13 @@ export default function CourseList({
     return (
         <div>
 
-            {/* Course grid */}
+            {/* Course grid - 3 columns for rich video preview aspect ratio */}
             <div className="
                 grid
                 grid-cols-1
                 sm:grid-cols-2
                 lg:grid-cols-3
-                xl:grid-cols-4
-                gap-x-5
-                gap-y-8
+                gap-6
             ">
                 {courses.map(course => (
                     <CourseCard
@@ -228,15 +227,15 @@ export default function CourseList({
                 ">
                     <div className="
                         flex items-center gap-3
-                        text-sm text-slate-400
+                        text-sm text-muted-foreground
                     ">
-                        <div className="h-px w-12 bg-slate-200" />
+                        <div className="h-px w-12 bg-border" />
 
                         <span>
                             You&apos;ve seen all courses
                         </span>
 
-                        <div className="h-px w-12 bg-slate-200" />
+                        <div className="h-px w-12 bg-border" />
                     </div>
                 </div>
             )}

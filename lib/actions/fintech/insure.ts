@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/supabase/auth'
 import type { InsureProduct, Policy, Claim } from '@/lib/types'
 
 // ─────────────────────────────────────────────
@@ -16,6 +17,7 @@ export async function fetchInsureProducts(): Promise<InsureProduct[]> {
     .select('*')
     .eq('active', true)
     .order('created_at', { ascending: true })
+    .limit(50)
 
   if (error || !data) {
     console.error('fetchInsureProducts error:', error)
@@ -51,12 +53,9 @@ export type PolicyWithProduct = Policy & {
 export async function fetchUserPolicies(userId: string): Promise<PolicyWithProduct[]> {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const { authUser } = await getCurrentUser()
 
-  if (authError || !user) return []
+  if (!authUser) return []
 
   const { data, error } = await supabase
     .from('fintech_insure_policies')
@@ -78,6 +77,7 @@ export async function fetchUserPolicies(userId: string): Promise<PolicyWithProdu
     )
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
+    .limit(100)
 
   if (error || !data) {
     console.error('fetchUserPolicies error:', error)
@@ -110,12 +110,9 @@ export type ClaimWithPolicy = Claim & {
 export async function fetchUserClaims(userId: string): Promise<ClaimWithPolicy[]> {
   const supabase = await createClient()
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const { authUser } = await getCurrentUser()
 
-  if (authError || !user) return []
+  if (!authUser) return []
 
   const { data, error } = await supabase
     .from('fintech_insure_claims')
@@ -137,6 +134,7 @@ export async function fetchUserClaims(userId: string): Promise<ClaimWithPolicy[]
     )
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
+    .limit(100)
 
   if (error || !data) {
     console.error('fetchUserClaims error:', error)

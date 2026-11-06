@@ -6,6 +6,7 @@ import
     {
         Dialog,
         DialogContent,
+        DialogDescription,
         DialogHeader,
         DialogTitle,
         DialogTrigger,
@@ -102,6 +103,7 @@ export default function FollowersModal({
             <DialogContent className="max-w-sm p-0 overflow-hidden">
                 <DialogHeader className="px-4 pt-4 pb-3 border-b">
                     <DialogTitle>{label}</DialogTitle>
+                    <DialogDescription className="sr-only">List of {label.toLowerCase()}</DialogDescription>
                 </DialogHeader>
 
                 <div
