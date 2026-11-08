@@ -1,14 +1,16 @@
 import Header from '@/components/Header'
 import Hero from '@/components/Hero'
+import FeatureShowcase from '@/components/FeatureShowcase'
 import Features from '@/components/Features'
-import FintechSection from '@/components/FintechSection'
+import CommunityStories from '@/components/CommunityStories'
+import ComingSoon from '@/components/ComingSoon'
 import About from '@/components/About'
-import Testimonials from '@/components/Testimonials'
 import HowItWorks from '@/components/HowItWorks'
 import Security from '@/components/Security'
 import FAQ from '@/components/FAQ'
 import Contact from '@/components/Contact'
 import Footer from '@/components/Footer'
+import NovoCompanion from '@/components/app/mascot'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
@@ -41,15 +43,17 @@ export default async function Home({ searchParams }: HomePageProps) {
     <main className="bg-white text-ink [color-scheme:light]">
       <Header />
       <Hero />
-      <FintechSection />
+      <CommunityStories />
+      <FeatureShowcase />
       <Features />
+      <ComingSoon />
       <HowItWorks />
       <Security />
-      <Testimonials />
       <About />
       <FAQ />
       <Contact />
       <Footer />
+      <NovoCompanion user={null} />
     </main>
   )
 }

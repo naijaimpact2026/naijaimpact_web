@@ -4,7 +4,7 @@ import { canGoLive, getLiveLimits, getUploadLimits, normalizeRole } from '@/lib/
 import { isMuxConfigured } from '@/lib/modushive/mux'
 import { isR2Configured } from '@/lib/modushive/r2'
 import { isCloudflareStreamConfigured } from '@/lib/modushive/cloudflare'
-import { listLiveNow, listMyPendingVideos, listReadyVideos } from '@/lib/modushive/queries'
+import { listArchivedReplays, listLiveNow, listMyPendingVideos, listReadyVideos } from '@/lib/modushive/queries'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,11 +18,19 @@ export async function GET(request: Request)
         // Pending first: syncing it can flip a video to ready, which should
         // then show up in `videos` on this same response.
         const myPending = await listMyPendingVideos(profile.id, supabase)
-        const [liveNow, videos] = await Promise.all([listLiveNow(supabase), listReadyVideos(limit, supabase)])
+        const [liveNow, videos, archived] = await Promise.all([
+            listLiveNow(supabase),
+            listReadyVideos(limit, supabase),
+            listArchivedReplays(12, supabase),
+        ])
+        // listArchivedReplays falls back to ordinary videos when there are no
+        // replays yet — those are already in `videos`, so keep real replays only.
+        const replays = archived.filter((v) => v.kind === 'live_replay')
 
         return NextResponse.json({
             videos,
             liveNow,
+            replays,
             myPending,
             me: {
                 id: profile.id,

@@ -24,30 +24,30 @@ export default function LaunchpadHero({ onStartJourney }: LaunchpadHeroProps)
             <div className="absolute top-0 right-1/4 -mt-16 w-96 h-96 rounded-full bg-cyan-500/15 blur-3xl pointer-events-none" />
             <div className="absolute bottom-0 left-10 -mb-16 w-80 h-80 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
 
-            <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between p-6 sm:p-8 lg:p-10 gap-8">
+            <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between px-6 py-5 sm:px-8 sm:py-6 lg:px-9 lg:py-6 gap-6">
                 {/* Left Column: Headlines & Call to Action */}
                 <div className="flex-1 max-w-xl">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-cyan-300 text-xs font-semibold mb-4">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-cyan-300 text-xs font-semibold mb-2.5">
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>Hubnovo Business Hub</span>
                     </div>
 
-                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-[1.15]">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white leading-[1.15]">
                         Business Launchpad
                     </h1>
 
-                    <p className="mt-2 text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300">
+                    <p className="mt-1 text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300">
                         Plan. Fund. Launch. Grow.
                     </p>
 
-                    <p className="mt-3 text-sm sm:text-base text-slate-300 leading-relaxed max-w-lg">
+                    <p className="mt-2 text-xs sm:text-sm text-slate-300 leading-relaxed max-w-lg line-clamp-2 sm:line-clamp-none">
                         Everything you need to start and scale your business in one place. Turn your ideas into thriving enterprises with structured guidance and funding access.
                     </p>
 
-                    <div className="mt-6 flex flex-wrap items-center gap-4">
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
                         <button
                             onClick={onStartJourney}
-                            className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-98 text-slate-950 font-bold text-sm sm:text-base transition-all shadow-lg shadow-emerald-500/30 cursor-pointer group"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-98 text-slate-950 font-bold text-xs sm:text-sm transition-all shadow-lg shadow-emerald-500/30 cursor-pointer group"
                         >
                             <span>Start Your Business Journey</span>
                             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -58,19 +58,19 @@ export default function LaunchpadHero({ onStartJourney }: LaunchpadHeroProps)
                 {/* Right Column: Imagery with Floating "From Ideas to Impact" */}
                 <div className="relative shrink-0 w-full sm:w-auto flex justify-center lg:justify-end">
                     {/* Handwritten Script Badge */}
-                    <div className="absolute -top-3 -right-2 sm:-right-4 z-20 rotate-6 bg-white/10 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full shadow-lg">
+                    <div className="absolute -top-3 -right-2 sm:-right-4 z-20 rotate-6 bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full shadow-lg">
                         <span className="font-serif italic font-bold text-xs sm:text-sm text-amber-200 drop-shadow-sm whitespace-nowrap">
                             ✨ From Ideas to Impact
                         </span>
                     </div>
 
                     {/* Image Container with Soft Shadow & Border */}
-                    <div className="relative w-64 h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-2xl overflow-hidden border-2 border-white/15 shadow-2xl group">
+                    <div className="relative w-44 h-44 sm:w-52 sm:h-52 lg:w-56 lg:h-56 rounded-2xl overflow-hidden border-2 border-white/15 shadow-2xl group">
                         <Image
                             src="/images/launchpad/hero-entrepreneur.jpg"
                             alt="African female entrepreneur working on her business launchpad"
                             fill
-                            sizes="(max-width: 640px) 256px, (max-width: 1024px) 288px, 320px"
+                            sizes="(max-width: 640px) 176px, (max-width: 1024px) 208px, 224px"
                             className="object-cover object-top group-hover:scale-105 transition-transform duration-700"
                             priority
                         />
@@ -80,7 +80,7 @@ export default function LaunchpadHero({ onStartJourney }: LaunchpadHeroProps)
             </div>
 
             {/* Bottom Value Proposition Pills */}
-            <div className="border-t border-white/10 bg-black/20 backdrop-blur-sm px-6 py-3.5 sm:px-8">
+            <div className="border-t border-white/10 bg-black/20 backdrop-blur-sm px-6 py-2.5 sm:px-8">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs sm:text-sm text-slate-200 font-medium">
                     <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">

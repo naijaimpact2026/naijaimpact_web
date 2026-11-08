@@ -1,7 +1,8 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Clapperboard, Coins, ExternalLink, Play } from 'lucide-react'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { canGoLive, getLiveLimits, normalizeRole } from '@/lib/modushive/config'
 import { isCloudflareStreamConfigured } from '@/lib/modushive/cloudflare'
@@ -9,12 +10,13 @@ import { isMuxConfigured } from '@/lib/modushive/mux'
 import { listStudioStreams } from '@/lib/modushive/queries'
 import { BrowserStudio } from '@/components/app/modushive/BrowserStudio'
 import { EndStreamButton, GoLiveForm } from '@/components/app/modushive/StudioControls'
+import StudioStreamList from '@/components/app/modushive/StudioStreamList'
 import { ProcessingRefresher } from '@/components/app/modushive/VideoActions'
 import type { LiveStream } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata = { title: 'Studio — ModusHive' }
+export const metadata = { title: 'Studio — Livestream' }
 
 const STATUS_STYLES: Record<LiveStream['status'], string> = {
     idle: 'bg-muted text-muted-foreground',
@@ -54,7 +56,7 @@ export default async function StudioPage()
                         href="/app/modushive"
                         className="inline-flex items-center gap-1.5 font-medium hover:text-foreground transition-colors"
                     >
-                        <ArrowLeft className="h-4 w-4" /> ModusHive
+                        <ArrowLeft className="h-4 w-4" /> Livestream
                     </Link>
                     <span>/</span>
                     <span className="font-semibold text-foreground">Live Studio</span>
@@ -65,8 +67,17 @@ export default async function StudioPage()
                     )}
                 </div>
 
-                <div className="text-xs text-muted-foreground">
-                    Max broadcast duration: <span className="font-semibold text-foreground">{maxHours} {maxHours === 1 ? 'hour' : 'hours'}</span>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <Link
+                        href="/app/modushive/earnings"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card px-3 py-1 font-semibold text-foreground hover:bg-muted transition-colors shadow-sm"
+                    >
+                        <Coins className="h-3.5 w-3.5 text-amber-500" />
+                        Earnings Hub
+                    </Link>
+                    <span className="hidden sm:inline">
+                        Max broadcast: <span className="font-semibold text-foreground">{maxHours} {maxHours === 1 ? 'hour' : 'hours'}</span>
+                    </span>
                 </div>
             </div>
 
@@ -88,10 +99,17 @@ export default async function StudioPage()
                 <section className="space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="min-w-0">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                                <span className="h-2 w-2 rounded-full bg-emerald animate-pulse" />
-                                Active Broadcast Session
-                            </span>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                                    <span className="h-2 w-2 rounded-full bg-emerald animate-pulse" />
+                                    Active Broadcast Session
+                                </span>
+                                {activeStream.is_paid && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                                        🎟️ Paid Workshop (₦{Number(activeStream.ticket_price).toLocaleString('en-NG')}/ticket)
+                                    </span>
+                                )}
+                            </div>
                             <h2 className="truncate text-lg sm:text-xl font-extrabold text-foreground">
                                 {activeStream.title}
                             </h2>
@@ -109,6 +127,7 @@ export default async function StudioPage()
                         initialStatus={activeStream.status}
                         chatChannelId={activeStream.chat_channel_id}
                         hostId={activeStream.host_id}
+                        initialPinnedProduct={activeStream.pinned_product_data}
                     />
                 </section>
             ) : (
@@ -120,31 +139,7 @@ export default async function StudioPage()
                 {streams.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No streams yet.</p>
                 ) : (
-                    <ul className="space-y-3">
-                        {streams.map((s) => (
-                            <li key={s.id} className="space-y-4 rounded-2xl border border-border bg-card p-4">
-                                <div className="flex flex-wrap items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${STATUS_STYLES[s.status]}`}>
-                                                {STATUS_LABELS[s.status]}
-                                            </span>
-                                            <p className="truncate text-sm font-semibold text-foreground">{s.title}</p>
-                                        </div>
-                                        <p className="mt-1 text-xs text-muted-foreground">
-                                            Created {formatDistanceToNow(new Date(s.created_at), { addSuffix: true })}
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Link href={`/app/modushive/live/${s.id}`} className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/10">
-                                            <ExternalLink className="h-3.5 w-3.5" /> View
-                                        </Link>
-                                        {s.status !== 'ended' && <EndStreamButton liveStreamId={s.id} />}
-                                    </div>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
+                    <StudioStreamList streams={streams} />
                 )}
             </section>
         </div>

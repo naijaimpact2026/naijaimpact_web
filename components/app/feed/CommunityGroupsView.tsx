@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { COMMUNITY_TOPICS, type CommunityTopic } from './community-data'
 import { Button } from '@/components/ui/button'
-import { ArrowRight, PenSquare, Sparkles, Users } from 'lucide-react'
+import { ArrowRight, PenSquare, Sparkles, Users, Radio, Video } from 'lucide-react'
 
 interface CommunityGroupsViewProps {
     onSelectGroupFeed: (tag: string) => void
@@ -29,6 +29,45 @@ export default function CommunityGroupsView({
                         <p className="text-xs text-muted-foreground">
                             Browse focused spaces or share updates directly with people in your field.
                         </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Open Spaces & Live Broadcasts Feature Card */}
+            <div className="relative overflow-hidden rounded-2xl border border-destructive/30 bg-gradient-to-br from-card via-card to-destructive/5 p-4 sm:p-5 shadow-sm space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-destructive/10 text-destructive shrink-0">
+                            <Radio className="h-5 w-5 animate-pulse" />
+                        </span>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h3 className="font-bold text-sm text-foreground">Open Spaces & Live Broadcasts</h3>
+                                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-destructive text-white uppercase tracking-wider">
+                                    Live
+                                </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                                Host an open interactive live stream for your space or join ongoing community conversations in real time.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 pt-1 sm:pt-0">
+                        <Button
+                            size="sm"
+                            onClick={() => router.push('/app/modushive/studio')}
+                            className="rounded-full text-xs font-bold gap-1.5 bg-destructive hover:bg-destructive/90 text-white shadow-xs"
+                        >
+                            <Radio className="w-3.5 h-3.5" /> Start Live Space
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => router.push('/app/modushive')}
+                            className="rounded-full text-xs font-semibold gap-1"
+                        >
+                            <Video className="w-3.5 h-3.5" /> Watch Live
+                        </Button>
                     </div>
                 </div>
             </div>

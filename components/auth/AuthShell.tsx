@@ -73,39 +73,70 @@ export function GoogleButton({
 
 type PanelVariant = 'login' | 'signup' | 'secure'
 
+// Square face crops cut from the community photo set
+const communityFaces = ['career', 'tailor', 'creator', 'innovator', 'artisan']
+
+// Full-bleed community photo with a bottom gradient; covers the shell's decorative rings
+function PhotoBackdrop({ src, position }: { src: string; position: string }) {
+  return (
+    <>
+      <Image src={src} alt="" fill sizes="50vw" className={`object-cover ${position}`} />
+      <div className="absolute inset-0 bg-linear-to-t from-ink via-ink/75 to-ink/5" />
+    </>
+  )
+}
+
+function CommunityPill({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white backdrop-blur-sm">
+      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+      {children}
+    </span>
+  )
+}
+
+function CommunityNote({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <figure className={`max-w-md rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-md ${className}`}>
+      <blockquote className="text-[15px] leading-relaxed text-white">{children}</blockquote>
+      <figcaption className="mt-5 flex items-center gap-3">
+        <div className="flex -space-x-2" aria-hidden="true">
+          {communityFaces.map((face) => (
+            <Image
+              key={face}
+              src={`/images/community/faces/${face}.jpg`}
+              alt=""
+              width={36}
+              height={36}
+              className="h-9 w-9 rounded-full border-2 border-ink object-cover"
+            />
+          ))}
+        </div>
+        <span className="text-sm font-medium text-slate-200">The Hubnovo community</span>
+      </figcaption>
+    </figure>
+  )
+}
+
 function LoginPanel() {
   return (
     <>
-      <h2 className="text-balance font-display text-4xl font-bold leading-[1.1] tracking-[-0.025em] xl:text-[44px]">
-        Your circle is waiting for you.
-      </h2>
-      <p className="mt-5 max-w-md text-lg leading-relaxed text-slate-300">
-        Pick up where you left off: your savings goals, ajo contributions and conversations are
-        all in one place.
-      </p>
-      {/* illustrative UI card, not live data */}
-      <div className="mt-12 max-w-sm rounded-2xl bg-white p-5 text-ink shadow-2xl" aria-hidden="true">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold">Lekki Traders Circle</p>
-          <span className="rounded-full bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand">Active</span>
-        </div>
-        <p className="mt-1 text-sm text-slate-500">7 of 10 members paid this cycle</p>
-        <div className="mt-4 h-2 rounded-full bg-slate-100">
-          <div className="h-full w-[70%] rounded-full bg-brand" />
-        </div>
-        <div className="mt-5 flex -space-x-1.5">
-          {['AO', 'ZH', 'CO', 'EO', 'FA'].map((i) => (
-            <span
-              key={i}
-              className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-ink text-[10px] font-bold text-white"
-            >
-              {i}
-            </span>
-          ))}
-          <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-[10px] font-bold text-slate-600">
-            +5
-          </span>
-        </div>
+      <PhotoBackdrop src="/images/landing/feature-community.jpg" position="object-[50%_35%]" />
+
+      <div className="relative mt-auto">
+        <CommunityPill>Your community</CommunityPill>
+        <h2 className="mt-5 text-balance font-display text-4xl font-bold leading-[1.1] tracking-[-0.025em] xl:text-[44px]">
+          Welcome back. Your people are here.
+        </h2>
+        <p className="mt-4 max-w-md text-lg leading-relaxed text-slate-200">
+          Pick up where you left off: your savings circles, ajo contributions and conversations are
+          all in one place.
+        </p>
+
+        <CommunityNote className="mt-10">
+          &ldquo;We are traders, makers, creators and builders from Lagos to Kano. We save together,
+          learn from each other and back each other&rsquo;s hustle. Nobody grows alone here.&rdquo;
+        </CommunityNote>
       </div>
     </>
   )
@@ -114,25 +145,35 @@ function LoginPanel() {
 function SignupPanel() {
   const points = [
     'Free account, set up in about two minutes',
-    'Save on your own or in an ajo circle',
-    'Build your TradeCred score as you go',
-    'Learn, chat and work with your community',
+    'Connect and chat with your community',
+    'Take courses and learn new skills',
+    'Sell your work and find your next job',
   ]
   return (
     <>
-      <h2 className="text-balance font-display text-4xl font-bold leading-[1.1] tracking-[-0.025em] xl:text-[44px]">
-        Save, borrow and grow with your people.
-      </h2>
-      <ul className="mt-10 space-y-5">
-        {points.map((p) => (
-          <li key={p} className="flex items-start gap-3 text-lg text-slate-200">
-            <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand">
-              <Check className="h-3 w-3 text-white" strokeWidth={3} />
-            </span>
-            {p}
-          </li>
-        ))}
-      </ul>
+      <PhotoBackdrop src="/images/landing/hero-community-humans.jpg" position="object-[50%_40%]" />
+
+      <div className="relative mt-auto">
+        <CommunityPill>Join the community</CommunityPill>
+        <h2 className="mt-5 text-balance font-display text-4xl font-bold leading-[1.1] tracking-[-0.025em] xl:text-[44px]">
+          Connect, learn and grow with your people.
+        </h2>
+        <ul className="mt-7 grid max-w-lg grid-cols-2 gap-x-6 gap-y-3">
+          {points.map((p) => (
+            <li key={p} className="flex items-start gap-2.5 text-[15px] leading-snug text-slate-200">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand">
+                <Check className="h-3 w-3 text-white" strokeWidth={3} />
+              </span>
+              {p}
+            </li>
+          ))}
+        </ul>
+
+        <CommunityNote className="mt-9">
+          &ldquo;Whether you sell, build, teach or create, there&rsquo;s a seat at this table for you.
+          Bring your ideas and your hustle, and we&rsquo;ll grow together.&rdquo;
+        </CommunityNote>
+      </div>
     </>
   )
 }

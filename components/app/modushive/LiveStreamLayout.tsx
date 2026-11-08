@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { MessageSquare } from 'lucide-react'
 import LiveChat from '@/components/app/modushive/LiveChat'
+import FloatingReactions from '@/components/app/modushive/FloatingReactions'
 
 interface LiveStreamLayoutProps
 {
@@ -11,6 +12,10 @@ interface LiveStreamLayoutProps
     infoSlot: React.ReactNode
     chatChannelId?: string | null
     hostId?: string | null
+    creatorName?: string
+    creatorAvatar?: string
+    liveStreamId?: string
+    pinnedProductOverlay?: React.ReactNode
 }
 
 export default function LiveStreamLayout({
@@ -19,6 +24,10 @@ export default function LiveStreamLayout({
     infoSlot,
     chatChannelId,
     hostId,
+    creatorName,
+    creatorAvatar,
+    liveStreamId,
+    pinnedProductOverlay,
 }: LiveStreamLayoutProps)
 {
     const [isChatOpen, setIsChatOpen] = useState(true)
@@ -51,7 +60,11 @@ export default function LiveStreamLayout({
             >
                 {/* Video & Info Column */}
                 <div className="space-y-4 min-w-0">
-                    {videoSlot}
+                    <div className="relative overflow-hidden rounded-2xl">
+                        {videoSlot}
+                        <FloatingReactions channelId={chatChannelId} />
+                        {pinnedProductOverlay}
+                    </div>
                     {infoSlot}
                 </div>
 
@@ -61,6 +74,9 @@ export default function LiveStreamLayout({
                         <LiveChat
                             channelId={chatChannelId!}
                             hostId={hostId ?? undefined}
+                            creatorName={creatorName}
+                            creatorAvatar={creatorAvatar}
+                            liveStreamId={liveStreamId}
                             onCollapse={() => setIsChatOpen(false)}
                         />
                     </aside>

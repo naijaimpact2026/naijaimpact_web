@@ -1,10 +1,10 @@
-import { KeyRound, MailCheck, CreditCard, Lock } from 'lucide-react'
+import { ShieldBan, MailCheck, CreditCard, Lock } from 'lucide-react'
 
 const points = [
   {
-    icon: KeyRound,
-    title: 'A PIN on every payment',
-    description: 'Transfers and payments from your wallet need your personal transaction PIN.',
+    icon: ShieldBan,
+    title: 'Report and block',
+    description: 'Report posts that break the rules and block anyone you don\'t want to hear from.',
   },
   {
     icon: MailCheck,
@@ -14,7 +14,7 @@ const points = [
   {
     icon: CreditCard,
     title: 'Payments by Paystack',
-    description: 'Card and bank payments are processed by Paystack, a PCI DSS compliant provider.',
+    description: 'Marketplace payments are processed by Paystack, a PCI DSS compliant provider.',
   },
   {
     icon: Lock,
@@ -30,10 +30,10 @@ export default function Security() {
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-sky-300">Security</p>
           <h2 className="mt-4 text-balance font-display text-4xl font-bold leading-[1.08] tracking-[-0.025em] sm:text-5xl">
-            Your money and your data, protected.
+            Your account and your data, protected.
           </h2>
           <p className="mt-5 max-w-md text-lg leading-relaxed text-slate-300">
-            Trust is the whole point of saving together. We build every feature with that in mind.
+            A community only works when people feel safe in it. We build every feature with that in mind.
           </p>
         </div>
 

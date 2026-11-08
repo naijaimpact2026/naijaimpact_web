@@ -80,15 +80,33 @@ export async function getVideo(id: string, db?: SupabaseClient): Promise<VideoWi
 async function withStreamThumbnails(rows: LiveStreamRow[]): Promise<LiveStreamWithHost[]>
 {
     const canSign = isMuxConfigured()
-    const synced = await Promise.all(rows.map(syncLiveStream))
-    return Promise.all(synced.map(async (s) => ({
-        ...s,
-        thumbnail_url: s.status === 'live' && s.playback_id
-            ? s.provider === 'cloudflare'
-                ? `https://videodelivery.net/${s.playback_id}/thumbnails/thumbnail.jpg`
-                : canSign ? await getThumbnailUrl(s.playback_id, s.playback_policy) : null
-            : null,
-    })))
+    return Promise.all(rows.map(async (s) => {
+        // 1. If explicit saved snapshot exists on the row, prioritize it
+        if ((s as any).thumbnail_url) {
+            return { ...s, thumbnail_url: (s as any).thumbnail_url }
+        }
+
+        // 2. If stream is ended and has a replay video asset, construct replay thumbnail
+        if (s.replay_video_id && s.playback_id && s.provider === 'cloudflare') {
+            return {
+                ...s,
+                thumbnail_url: `https://videodelivery.net/${s.playback_id}/thumbnails/thumbnail.jpg`,
+            }
+        }
+
+        // 3. For Mux streams with signed playback policy, generate Mux thumbnail
+        if (s.provider === 'mux' && s.playback_id && canSign) {
+            const muxUrl = await getThumbnailUrl(s.playback_id, s.playback_policy, { time: 1 }).catch(() => null)
+            return { ...s, thumbnail_url: muxUrl }
+        }
+
+        // 4. For raw live inputs without a confirmed video asset, return null so
+        // StreamThumbnail renders the stylish branded fallback card instead of 204 error
+        return {
+            ...s,
+            thumbnail_url: null,
+        }
+    }))
 }
 
 export async function listLiveNow(db?: SupabaseClient): Promise<LiveStreamWithHost[]>
@@ -105,6 +123,28 @@ export async function listLiveNow(db?: SupabaseClient): Promise<LiveStreamWithHo
     return streams.filter((s) => s.status === 'live')
 }
 
+/** Lists completed live stream recordings / replays for discovery and replay */
+export async function listArchivedReplays(limit = 12, db?: SupabaseClient): Promise<VideoWithOwner[]>
+{
+    const supabase = db ?? await createClient()
+    const { data, error } = await supabase
+        .from('videos')
+        .select(`*, owner:users!videos_owner_id_fkey(${OWNER_COLUMNS})`)
+        .eq('kind', 'live_replay')
+        .eq('status', 'ready')
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+    if (!error && data && data.length > 0)
+    {
+        return withThumbnails(data as VideoRow[])
+    }
+
+    // Fallback: if no dedicated 'live_replay' videos exist yet, return recent ready videos
+    // so user can discover and replay community videos immediately
+    return listReadyVideos(limit, db)
+}
+
 export async function getLiveStream(id: string, db?: SupabaseClient): Promise<LiveStreamWithHost | null>
 {
     const supabase = db ?? await createClient()
@@ -115,7 +155,8 @@ export async function getLiveStream(id: string, db?: SupabaseClient): Promise<Li
         .maybeSingle()
 
     if (error || !data) return null
-    const [stream] = await withStreamThumbnails([data as LiveStreamRow])
+    const synced = await syncLiveStream(data as LiveStreamRow)
+    const [stream] = await withStreamThumbnails([synced])
     return stream
 }
 
@@ -130,7 +171,7 @@ export async function listStudioStreams(hostId?: string, db?: SupabaseClient): P
         .from('live_streams')
         .select(`*, host:users!live_streams_host_id_fkey(${OWNER_COLUMNS})`)
         .order('created_at', { ascending: false })
-        .limit(30)
+        .limit(50)
     if (hostId) query = query.eq('host_id', hostId)
 
     const { data, error } = await query
@@ -138,6 +179,6 @@ export async function listStudioStreams(hostId?: string, db?: SupabaseClient): P
     if (error || !data) return []
     const rows = data as LiveStreamRow[]
     const active = rows.filter((s) => s.status !== 'ended')
-    const ended = rows.filter((s) => s.status === 'ended').slice(0, 10)
+    const ended = rows.filter((s) => s.status === 'ended')
     return withStreamThumbnails([...active, ...ended])
 }

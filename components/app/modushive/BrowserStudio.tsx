@@ -20,6 +20,8 @@ import {
     Users,
     Volume2,
     Wifi,
+    ShoppingBag,
+    Pin,
 } from 'lucide-react'
 import { toast } from '@/components/toast'
 import {
@@ -33,8 +35,18 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { endLiveStream, getLiveStreamKey, markLiveStreamActive } from '@/lib/actions/modushive'
+import {
+    endLiveStream,
+    getLiveStreamKey,
+    markLiveStreamActive,
+    saveLiveStreamThumbnail,
+    createStreamRecordingUpload,
+    finalizeStreamRecordingUpload,
+} from '@/lib/actions/modushive'
 import LiveChat from '@/components/app/modushive/LiveChat'
+import StudioPinProductModal from '@/components/app/modushive/StudioPinProductModal'
+import StudioEndBroadcastModal from '@/components/app/modushive/StudioEndBroadcastModal'
+import type { PinnedProduct } from '@/lib/types'
 
 interface BrowserStudioProps {
     liveStreamId: string
@@ -43,6 +55,7 @@ interface BrowserStudioProps {
     initialStatus: 'idle' | 'live' | 'ended'
     chatChannelId?: string | null
     hostId?: string
+    initialPinnedProduct?: PinnedProduct | null
 }
 
 export function BrowserStudio({
@@ -52,12 +65,20 @@ export function BrowserStudio({
     initialStatus,
     chatChannelId,
     hostId,
+    initialPinnedProduct,
 }: BrowserStudioProps) {
     const router = useRouter()
     const [viewerCount, setViewerCount] = useState(0)
+    const [showPinModal, setShowPinModal] = useState(false)
+    const [showConcludedModal, setShowConcludedModal] = useState(false)
+    const [snapshotUrl, setSnapshotUrl] = useState<string | null>(null)
+    const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
+    const [pinnedProduct, setPinnedProduct] = useState<PinnedProduct | null>(initialPinnedProduct ?? null)
     const videoRef = useRef<HTMLVideoElement>(null)
     const pcRef = useRef<RTCPeerConnection | null>(null)
     const localStreamRef = useRef<MediaStream | null>(null)
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+    const recordedChunksRef = useRef<Blob[]>([])
     const audioContextRef = useRef<AudioContext | null>(null)
     const animFrameRef = useRef<number | null>(null)
 
@@ -282,6 +303,28 @@ export function BrowserStudio({
             const answerSdp = await response.text()
             await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp })
 
+            // Start in-browser MediaRecorder for instant HD backup and replay
+            try {
+                recordedChunksRef.current = []
+                if (typeof MediaRecorder !== 'undefined' && localStreamRef.current) {
+                    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+                        ? 'video/webm;codecs=vp9,opus'
+                        : MediaRecorder.isTypeSupported('video/webm')
+                        ? 'video/webm'
+                        : ''
+                    if (mimeType) {
+                        const recorder = new MediaRecorder(localStreamRef.current, { mimeType })
+                        recorder.ondataavailable = (e) => {
+                            if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data)
+                        }
+                        recorder.start(1000)
+                        mediaRecorderRef.current = recorder
+                    }
+                }
+            } catch (recErr) {
+                console.warn('[studio] MediaRecorder fallback notice:', recErr)
+            }
+
             // Mark stream as live in database
             await markLiveStreamActive(liveStreamId)
 
@@ -301,20 +344,82 @@ export function BrowserStudio({
     // End stream
     function handleEndBroadcast() {
         startEndingTransition(async () => {
+            // 1. Capture snapshot from video element
+            let capturedDataUrl: string | null = null
+            if (videoRef.current) {
+                try {
+                    const videoEl = videoRef.current
+                    const canvas = document.createElement('canvas')
+                    canvas.width = videoEl.videoWidth || 640
+                    canvas.height = videoEl.videoHeight || 360
+                    const ctx = canvas.getContext('2d')
+                    if (ctx) {
+                        ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height)
+                        capturedDataUrl = canvas.toDataURL('image/jpeg', 0.8)
+                        setSnapshotUrl(capturedDataUrl)
+                        await saveLiveStreamThumbnail(liveStreamId, capturedDataUrl).catch(() => {})
+                    }
+                } catch (err) {
+                    console.warn('[studio] canvas snapshot failed:', err)
+                }
+            }
+
+            // 2. Stop in-browser recorder and compile Blob
+            let finalBlob: Blob | null = null
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                try {
+                    await new Promise<void>((resolve) => {
+                        if (!mediaRecorderRef.current) return resolve()
+                        mediaRecorderRef.current.onstop = () => resolve()
+                        mediaRecorderRef.current.stop()
+                    })
+                    if (recordedChunksRef.current.length > 0) {
+                        finalBlob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
+                        setRecordedBlob(finalBlob)
+                    }
+                } catch (recErr) {
+                    console.warn('[studio] compile blob notice:', recErr)
+                }
+            }
+
+            // 3. Close WebRTC PeerConnection
             if (pcRef.current) {
                 pcRef.current.close()
                 pcRef.current = null
             }
 
+            // 4. End stream in DB
             const res = await endLiveStream(liveStreamId)
             if (!res.ok) {
                 toast.error(res.error)
                 return
             }
 
+            // 5. Automatically upload the local HD recording to Supabase Storage as the replay
+            if (finalBlob && finalBlob.size > 0) {
+                createStreamRecordingUpload(liveStreamId, {
+                    contentType: 'video/webm',
+                    sizeBytes: finalBlob.size,
+                    durationS: duration,
+                }).then(async (upRes) => {
+                    if (upRes.ok && upRes.uploadUrl) {
+                        await fetch(upRes.uploadUrl, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'video/webm' },
+                            body: finalBlob,
+                        }).catch(() => {})
+                        await finalizeStreamRecordingUpload(upRes.videoId).catch(() => {})
+                        router.refresh()
+                    }
+                }).catch((err) => {
+                    console.warn('[studio] Auto-upload recording notice:', err)
+                })
+            }
+
             setStatus('ended')
             setShowEndModal(false)
-            toast.success('Live stream ended. The recording will process into a replay.')
+            setShowConcludedModal(true)
+            toast.success('Live stream ended.')
             router.refresh()
         })
     }
@@ -341,6 +446,31 @@ export function BrowserStudio({
         <div className={hasLiveChat ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] items-start' : 'space-y-6'}>
             {/* Left Column: Broadcaster Deck & Video Monitor */}
             <div className="space-y-5 min-w-0">
+                {/* Active Live Pinned Product Banner */}
+                {pinnedProduct && (
+                    <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl border border-amber-500/30 bg-amber-500/10 backdrop-blur-md shadow-xs animate-in fade-in duration-200">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="flex h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                            <span className="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wide shrink-0">
+                                Live Pinned:
+                            </span>
+                            <span className="truncate text-xs font-bold text-foreground">
+                                {pinnedProduct.title}
+                            </span>
+                            <span className="text-xs font-extrabold text-amber-600 dark:text-amber-400 shrink-0">
+                                ₦{Number(pinnedProduct.price).toLocaleString('en-NG')}
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setShowPinModal(true)}
+                            className="text-xs font-bold text-primary hover:underline shrink-0"
+                        >
+                            Manage Pin
+                        </button>
+                    </div>
+                )}
+
                 {/* Main Video Monitor */}
                 <div
                     className={`relative aspect-video w-full overflow-hidden rounded-3xl border bg-black shadow-2xl transition-all duration-300 ${
@@ -521,6 +651,23 @@ export function BrowserStudio({
                                 title="Device & Audio Settings"
                             >
                                 <Settings2 className="h-4 w-4" />
+                            </button>
+
+                            {/* Live Shopping Pin Button */}
+                            <button
+                                type="button"
+                                onClick={() => setShowPinModal(true)}
+                                className={`flex items-center gap-1.5 h-9 sm:h-10 px-3 rounded-full text-xs font-bold transition-all ${
+                                    pinnedProduct
+                                        ? 'bg-amber-500 text-white ring-2 ring-amber-500/50 shadow-md'
+                                        : 'bg-white/15 hover:bg-white/25 text-white ring-1 ring-white/10'
+                                }`}
+                                title="Pin Storefront Product to Broadcast"
+                            >
+                                <ShoppingBag className="h-4 w-4" />
+                                <span className="hidden sm:inline">
+                                    {pinnedProduct ? 'Pinned Item' : 'Pin Product'}
+                                </span>
                             </button>
                         </div>
 
@@ -725,6 +872,27 @@ export function BrowserStudio({
                     />
                 </aside>
             )}
+
+            {/* Live Shopping Pin Product Modal */}
+            <StudioPinProductModal
+                isOpen={showPinModal}
+                onClose={() => setShowPinModal(false)}
+                liveStreamId={liveStreamId}
+                currentPinnedProduct={pinnedProduct}
+                onProductPinned={setPinnedProduct}
+            />
+
+            {/* End Broadcast Summary & Replay Publish Modal */}
+            <StudioEndBroadcastModal
+                isOpen={showConcludedModal}
+                onClose={() => setShowConcludedModal(false)}
+                liveStreamId={liveStreamId}
+                title={streamTitle}
+                durationSeconds={duration}
+                viewerCount={viewerCount}
+                snapshotUrl={snapshotUrl}
+                recordedBlob={recordedBlob}
+            />
         </div>
     )
 }

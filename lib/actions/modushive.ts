@@ -7,7 +7,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { ALLOWED_VIDEO_TYPES, MUX_RTMP_URL, canGoLive, formatBytes, getLiveLimits, getUploadLimits, normalizeRole } from '@/lib/modushive/config'
 import { defaultPlaybackPolicy, getMux, isMuxConfigured } from '@/lib/modushive/mux'
 import { deleteObject, getObjectSize, isR2Configured, presignDownload, presignUpload } from '@/lib/modushive/r2'
-import { createCloudflareLiveInput, deleteCloudflareLiveInput, isCloudflareStreamConfigured } from '@/lib/modushive/cloudflare'
+import { createCloudflareLiveInput, deleteCloudflareLiveInput, deleteCloudflareVideo, getCloudflareLiveInput, getCloudflareLiveInputVideos, isCloudflareStreamConfigured } from '@/lib/modushive/cloudflare'
 import { getActingProfile } from '@/lib/modushive/acting-profile'
 
 /*
@@ -168,7 +168,7 @@ export async function deleteVideo(videoId: string): Promise<ActionResult>
 
     const { data: video } = await supabase
         .from('videos')
-        .select('id, owner_id, provider_asset_id, source_r2_key')
+        .select('id, owner_id, provider, provider_asset_id, source_r2_key')
         .eq('id', videoId)
         .maybeSingle()
 
@@ -176,10 +176,18 @@ export async function deleteVideo(videoId: string): Promise<ActionResult>
     if (video.owner_id !== profile.id && normalizeRole(profile.role) !== 'admin') return { ok: false, error: 'You can only delete your own videos.' }
 
     // Best effort on the provider side — the row is what the app reads.
-    if (video.provider_asset_id && isMuxConfigured())
+    if (video.provider === 'mux' && video.provider_asset_id && isMuxConfigured()) {
         await getMux().video.assets.delete(video.provider_asset_id).catch((e) => console.error('[modushive] mux delete failed:', e))
-    if (video.source_r2_key && isR2Configured())
+    } else if (video.provider === 'cloudflare' && isCloudflareStreamConfigured() && video.provider_asset_id) {
+        await deleteCloudflareVideo(video.provider_asset_id).catch((e) => console.error('[modushive] cloudflare delete failed:', e))
+    }
+
+    if (video.source_r2_key && isR2Configured()) {
         await deleteObject(video.source_r2_key).catch((e) => console.error('[modushive] r2 delete failed:', e))
+    }
+
+    // Unlink any live stream replay reference
+    await supabase.from('live_streams').update({ replay_video_id: null }).eq('replay_video_id', videoId)
 
     await supabase.from('videos').delete().eq('id', videoId)
     revalidatePath('/app/modushive')
@@ -196,7 +204,7 @@ async function getOwnStream(liveStreamId: string)
     const profile = await requireProfile()
     const { data: stream } = await createServiceClient()
         .from('live_streams')
-        .select('id, host_id, provider, provider_stream_id, status')
+        .select('*')
         .eq('id', liveStreamId)
         .maybeSingle()
 
@@ -212,7 +220,14 @@ function getStreamChatServer(): StreamChat | null
     return apiKey && apiSecret ? StreamChat.getInstance(apiKey, apiSecret) : null
 }
 
-export async function createLiveStream(input: { title: string; description?: string }): Promise<ActionResult<{ id: string }>>
+export async function createLiveStream(input: {
+    title: string
+    description?: string
+    isPaid?: boolean
+    ticketPrice?: number
+    workshopTopics?: string[]
+    scheduledFor?: string | null
+}): Promise<ActionResult<{ id: string }>>
 {
     const canUseCF = isCloudflareStreamConfigured()
     const canUseMux = isMuxConfigured()
@@ -349,6 +364,11 @@ export async function createLiveStream(input: { title: string; description?: str
         chatChannelId = null
     }
 
+    const isPaid = Boolean(input.isPaid && (input.ticketPrice ?? 0) > 0)
+    const ticketPrice = isPaid ? Number(input.ticketPrice ?? 0) : 0
+    const workshopTopics = Array.isArray(input.workshopTopics) ? input.workshopTopics.filter(Boolean) : []
+    const scheduledFor = input.scheduledFor ? new Date(input.scheduledFor).toISOString() : null
+
     const { error } = await supabase.from('live_streams').insert({
         id,
         host_id: profile.id,
@@ -360,6 +380,11 @@ export async function createLiveStream(input: { title: string; description?: str
         playback_id: playbackId,
         playback_policy: provider === 'cloudflare' ? 'public' : policy,
         chat_channel_id: chatChannelId,
+        is_paid: isPaid,
+        ticket_price: ticketPrice,
+        currency: 'NGN',
+        workshop_topics: workshopTopics,
+        scheduled_for: scheduledFor,
     })
     if (!error && streamKeyData)
         await supabase.from('live_stream_keys').insert({ live_stream_id: id, stream_key: streamKeyData })
@@ -449,9 +474,40 @@ export async function endLiveStream(liveStreamId: string): Promise<ActionResult>
     const supabase = createServiceClient()
     if (stream.status === 'ended') return { ok: true }
 
+    let replayVideoId: string | null = stream.replay_video_id || null
+
     if (stream.provider === 'cloudflare' && stream.provider_stream_id && isCloudflareStreamConfigured())
     {
-        await deleteCloudflareLiveInput(stream.provider_stream_id).catch(() => {})
+        // Check if Cloudflare already produced a recorded video asset for this broadcast
+        try {
+            const recordedVideos = await getCloudflareLiveInputVideos(stream.provider_stream_id)
+            const latestVideo = recordedVideos[0]
+            if (latestVideo?.uid) {
+                const now = new Date().toISOString()
+                const { data: replay } = await supabase
+                    .from('videos')
+                    .upsert({
+                        owner_id: stream.host_id,
+                        title: stream.title,
+                        description: stream.description,
+                        kind: 'live_replay',
+                        status: 'ready',
+                        provider: 'cloudflare',
+                        provider_asset_id: latestVideo.uid,
+                        playback_id: latestVideo.uid,
+                        playback_policy: 'public',
+                        duration_s: latestVideo.duration ?? null,
+                        updated_at: now,
+                    }, { onConflict: 'provider_asset_id' })
+                    .select('id')
+                    .single()
+
+                if (replay) replayVideoId = replay.id
+            }
+        } catch (err) {
+            console.error('[modushive] checking cloudflare recorded video error:', err)
+        }
+        // Note: We do NOT delete the live input here to preserve any in-flight recordings.
     } else if (stream.provider_stream_id && isMuxConfigured())
     {
         const mux = getMux()
@@ -459,14 +515,369 @@ export async function endLiveStream(liveStreamId: string): Promise<ActionResult>
         await mux.video.liveStreams.disable(stream.provider_stream_id).catch((e) => console.error('[modushive] mux disable failed:', e))
     }
 
+    const now = new Date().toISOString()
     await supabase
         .from('live_streams')
-        .update({ status: 'ended', ended_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .update({
+            status: 'ended',
+            ended_at: now,
+            updated_at: now,
+            ...(replayVideoId ? { replay_video_id: replayVideoId } : {}),
+        })
         .eq('id', liveStreamId)
     await supabase.from('live_stream_keys').delete().eq('live_stream_id', liveStreamId)
 
     revalidatePath('/app/modushive')
     revalidatePath('/app/modushive/studio')
     revalidatePath(`/app/modushive/live/${liveStreamId}`)
+    return { ok: true }
+}
+
+/** Deletes a live stream, cleaning up any remote inputs and database records. */
+export async function deleteLiveStream(liveStreamId: string): Promise<ActionResult>
+{
+    const stream = await getOwnStream(liveStreamId)
+    if (!stream) return { ok: false, error: 'Live stream not found or unauthorized.' }
+
+    const supabase = createServiceClient()
+
+    // 1. Clean up provider live input
+    if (stream.provider === 'cloudflare' && stream.provider_stream_id && isCloudflareStreamConfigured()) {
+        await deleteCloudflareLiveInput(stream.provider_stream_id).catch(() => {})
+    } else if (stream.provider_stream_id && isMuxConfigured()) {
+        await getMux().video.liveStreams.delete(stream.provider_stream_id).catch(() => {})
+    }
+
+    // 2. Delete linked records
+    await supabase.from('live_stream_keys').delete().eq('live_stream_id', liveStreamId)
+    await supabase.from('live_shopping_pinned_products').delete().eq('live_stream_id', liveStreamId)
+    await supabase.from('live_stream_tickets').delete().eq('live_stream_id', liveStreamId)
+
+    // 3. Delete live_streams row
+    const { error } = await supabase.from('live_streams').delete().eq('id', liveStreamId)
+    if (error) {
+        console.error('[modushive] deleteLiveStream error:', error)
+        return { ok: false, error: 'Could not delete live stream. Please try again.' }
+    }
+
+    revalidatePath('/app/modushive')
+    revalidatePath('/app/modushive/studio')
+    revalidatePath(`/app/modushive/live/${liveStreamId}`)
+    return { ok: true }
+}
+
+/** Saves a canvas snapshot captured during broadcast as the stream's poster/thumbnail */
+export async function saveLiveStreamThumbnail(liveStreamId: string, thumbnailUrl: string): Promise<ActionResult>
+{
+    if (!thumbnailUrl || typeof thumbnailUrl !== 'string') {
+        return { ok: false, error: 'Invalid thumbnail URL' }
+    }
+
+    const stream = await getOwnStream(liveStreamId)
+    if (!stream) return { ok: false, error: 'Live stream not found or unauthorized' }
+
+    const supabase = createServiceClient()
+    const { error } = await supabase
+        .from('live_streams')
+        .update({
+            thumbnail_url: thumbnailUrl,
+            updated_at: new Date().toISOString(),
+        })
+        .eq('id', liveStreamId)
+
+    if (error) {
+        // If column doesn't exist yet prior to migration, ignore without crashing
+        console.warn('[modushive] thumbnail_url update notice:', error.message)
+    }
+
+    revalidatePath('/app/modushive')
+    revalidatePath('/app/modushive/studio')
+    revalidatePath(`/app/modushive/live/${liveStreamId}`)
+    return { ok: true }
+}
+
+/** Publishes an ended live stream as an on-demand video in the creator's channel */
+export async function publishStreamAsVideo(
+    liveStreamId: string,
+    input?: { title?: string; description?: string }
+): Promise<ActionResult<{ videoId: string }>>
+{
+    const stream = await getOwnStream(liveStreamId)
+    if (!stream) return { ok: false, error: 'Live stream not found.' }
+
+    const supabase = createServiceClient()
+    const now = new Date().toISOString()
+    const videoTitle = (input?.title || stream.title).trim().slice(0, 120)
+
+    // If stream already has a replay video record linked
+    if (stream.replay_video_id) {
+        await supabase
+            .from('videos')
+            .update({
+                title: videoTitle,
+                description: input?.description !== undefined ? input.description : stream.description,
+                status: 'ready',
+                updated_at: now,
+            })
+            .eq('id', stream.replay_video_id)
+
+        revalidatePath('/app/modushive')
+        revalidatePath('/app/modushive/studio')
+        return { ok: true, videoId: stream.replay_video_id }
+    }
+
+    const videoId = crypto.randomUUID()
+
+    // Check if Cloudflare produced an on-demand recorded video for this live input
+    let finalPlaybackId = stream.playback_id
+    let finalProviderAssetId = stream.provider_stream_id || videoId
+    if (stream.provider === 'cloudflare' && stream.provider_stream_id && isCloudflareStreamConfigured()) {
+        const cfVideos = await getCloudflareLiveInputVideos(stream.provider_stream_id).catch(() => [])
+        if (cfVideos && cfVideos.length > 0 && cfVideos[0]?.uid) {
+            finalPlaybackId = cfVideos[0].uid
+            finalProviderAssetId = cfVideos[0].uid
+        }
+    }
+
+    // Otherwise create the video row
+    const { data: video, error } = await supabase
+        .from('videos')
+        .insert({
+            id: videoId,
+            owner_id: stream.host_id,
+            title: videoTitle,
+            description: input?.description !== undefined ? input.description : stream.description,
+            kind: 'live_replay',
+            status: 'ready',
+            provider: stream.provider,
+            provider_asset_id: finalProviderAssetId,
+            playback_id: finalPlaybackId,
+            playback_policy: stream.playback_policy || 'public',
+            updated_at: now,
+        })
+        .select('id')
+        .single()
+
+    if (error || !video) {
+        console.error('[modushive] publishStreamAsVideo insert error:', error)
+        return { ok: false, error: 'Could not publish video. Please try again.' }
+    }
+
+    // Link replay_video_id to live stream
+    await supabase
+        .from('live_streams')
+        .update({
+            replay_video_id: video.id,
+            updated_at: now,
+        })
+        .eq('id', liveStreamId)
+
+    revalidatePath('/app/modushive')
+    revalidatePath('/app/modushive/studio')
+    revalidatePath(`/app/modushive/live/${liveStreamId}`)
+    return { ok: true, videoId: video.id }
+}
+
+/** Initiates upload of a recorded stream file (e.g. from local MediaRecorder or disk) */
+export async function createStreamRecordingUpload(
+    liveStreamId: string,
+    input: { contentType: string; sizeBytes: number; durationS: number }
+): Promise<ActionResult<{ videoId: string; uploadUrl: string; storageType: 'supabase' | 'r2'; publicUrl?: string }>>
+{
+    const stream = await getOwnStream(liveStreamId)
+    if (!stream) return { ok: false, error: 'Live stream not found or unauthorized.' }
+
+    const profile = await requireProfile()
+    const supabase = createServiceClient()
+    const videoId = crypto.randomUUID()
+    const ext = EXTENSIONS[input.contentType] || 'webm'
+    const now = new Date().toISOString()
+
+    // 1. If R2 is fully configured (with bucket name), use R2
+    if (isR2Configured()) {
+        const key = `videos/${profile.id}/${videoId}/replay.${ext}`
+        const { error } = await supabase.from('videos').insert({
+            id: videoId,
+            owner_id: profile.id,
+            title: stream.title,
+            description: stream.description,
+            kind: 'live_replay',
+            status: 'uploading',
+            provider: 'r2',
+            playback_policy: 'public',
+            source_r2_key: key,
+            source_size_bytes: input.sizeBytes,
+            duration_s: input.durationS,
+        })
+
+        if (error) {
+            return { ok: false, error: 'Could not create replay record.' }
+        }
+
+        await supabase.from('live_streams').update({ replay_video_id: videoId, updated_at: now }).eq('id', liveStreamId)
+        const uploadUrl = await presignUpload(key, input.contentType, input.sizeBytes)
+        return { ok: true, videoId, uploadUrl, storageType: 'r2' }
+    }
+
+    // 2. Otherwise use Supabase's public 'media' storage bucket (reliable, zero quota restriction)
+    const storagePath = `replays/${profile.id}/${videoId}.${ext}`
+    const { data: signedData, error: signError } = await supabase
+        .storage
+        .from('media')
+        .createSignedUploadUrl(storagePath)
+
+    if (signError || !signedData?.signedUrl) {
+        console.error('[modushive] Supabase createSignedUploadUrl error:', signError)
+        return { ok: false, error: 'Could not prepare upload URL. Please try again.' }
+    }
+
+    const { data: publicData } = supabase.storage.from('media').getPublicUrl(storagePath)
+    const publicUrl = publicData.publicUrl
+
+    const { error: insertError } = await supabase.from('videos').insert({
+        id: videoId,
+        owner_id: profile.id,
+        title: stream.title,
+        description: stream.description,
+        kind: 'live_replay',
+        status: 'uploading',
+        provider: 'supabase',
+        provider_asset_id: storagePath,
+        playback_id: publicUrl,
+        playback_policy: 'public',
+        source_size_bytes: input.sizeBytes,
+        duration_s: input.durationS,
+        updated_at: now,
+    })
+
+    if (insertError) {
+        console.error('[modushive] Insert video record error:', insertError)
+        return { ok: false, error: 'Could not create replay record in database.' }
+    }
+
+    // Immediately link replay_video_id on the stream
+    await supabase.from('live_streams').update({ replay_video_id: videoId, updated_at: now }).eq('id', liveStreamId)
+
+    return {
+        ok: true,
+        videoId,
+        uploadUrl: signedData.signedUrl,
+        storageType: 'supabase',
+        publicUrl,
+    }
+}
+
+/** Initiates upload of a recording file directly to an existing video row (e.g. to attach recording to a past replay) */
+export async function createVideoRecordingUpload(
+    videoId: string,
+    input: { contentType: string; sizeBytes: number; durationS: number }
+): Promise<ActionResult<{ videoId: string; uploadUrl: string; storageType: 'supabase' | 'r2'; publicUrl?: string }>>
+{
+    const profile = await requireProfile()
+    const supabase = createServiceClient()
+
+    const { data: video } = await supabase
+        .from('videos')
+        .select('id, owner_id')
+        .eq('id', videoId)
+        .maybeSingle()
+
+    if (!video || (video.owner_id !== profile.id && normalizeRole(profile.role) !== 'admin')) {
+        return { ok: false, error: 'Video not found or unauthorized.' }
+    }
+
+    const ext = EXTENSIONS[input.contentType] || 'webm'
+    const now = new Date().toISOString()
+
+    // 1. If R2 is configured
+    if (isR2Configured()) {
+        const key = `videos/${profile.id}/${videoId}/replay.${ext}`
+        const { error } = await supabase
+            .from('videos')
+            .update({
+                status: 'uploading',
+                provider: 'r2',
+                source_r2_key: key,
+                source_size_bytes: input.sizeBytes,
+                duration_s: input.durationS,
+                updated_at: now,
+            })
+            .eq('id', videoId)
+
+        if (error) {
+            return { ok: false, error: 'Could not update video record.' }
+        }
+
+        const uploadUrl = await presignUpload(key, input.contentType, input.sizeBytes)
+        return { ok: true, videoId, uploadUrl, storageType: 'r2' }
+    }
+
+    // 2. Supabase Storage fallback
+    const storagePath = `replays/${profile.id}/${videoId}.${ext}`
+    const { data: signedData, error: signError } = await supabase
+        .storage
+        .from('media')
+        .createSignedUploadUrl(storagePath)
+
+    if (signError || !signedData?.signedUrl) {
+        console.error('[modushive] Supabase createSignedUploadUrl error:', signError)
+        return { ok: false, error: 'Could not prepare upload URL. Please try again.' }
+    }
+
+    const { data: publicData } = supabase.storage.from('media').getPublicUrl(storagePath)
+    const publicUrl = publicData.publicUrl
+
+    const { error: updateError } = await supabase
+        .from('videos')
+        .update({
+            status: 'uploading',
+            provider: 'supabase',
+            provider_asset_id: storagePath,
+            playback_id: publicUrl,
+            source_size_bytes: input.sizeBytes,
+            duration_s: input.durationS,
+            updated_at: now,
+        })
+        .eq('id', videoId)
+
+    if (updateError) {
+        return { ok: false, error: 'Could not update video record.' }
+    }
+
+    return {
+        ok: true,
+        videoId,
+        uploadUrl: signedData.signedUrl,
+        storageType: 'supabase',
+        publicUrl,
+    }
+}
+
+/** Finalizes the upload once the browser finishes sending the bytes to storage */
+export async function finalizeStreamRecordingUpload(videoId: string): Promise<ActionResult>
+{
+    const profile = await requireProfile()
+    const supabase = createServiceClient()
+
+    const { data: video } = await supabase
+        .from('videos')
+        .select('id, owner_id, status, provider, playback_id')
+        .eq('id', videoId)
+        .maybeSingle()
+
+    if (!video || (video.owner_id !== profile.id && normalizeRole(profile.role) !== 'admin')) {
+        return { ok: false, error: 'Video not found or unauthorized.' }
+    }
+
+    await supabase
+        .from('videos')
+        .update({
+            status: 'ready',
+            updated_at: new Date().toISOString(),
+        })
+        .eq('id', videoId)
+
+    revalidatePath('/app/modushive')
+    revalidatePath('/app/modushive/studio')
     return { ok: true }
 }

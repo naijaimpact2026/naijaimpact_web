@@ -8,7 +8,7 @@ import UploadForm from '@/components/app/modushive/UploadForm'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata = { title: 'Upload — ModusHive' }
+export const metadata = { title: 'Upload — Livestream' }
 
 export default async function UploadVideoPage()
 {
@@ -19,7 +19,7 @@ export default async function UploadVideoPage()
     return (
         <div className="w-full max-w-2xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-5">
             <Link href="/app/modushive" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="h-4 w-4" /> ModusHive
+                <ArrowLeft className="h-4 w-4" /> Livestream
             </Link>
 
             <div>

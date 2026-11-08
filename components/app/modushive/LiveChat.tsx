@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Channel, LocalMessage } from 'stream-chat'
 import {
     ChevronDown,
+    Coins,
     Crown,
     Loader2,
     MessageCircle,
@@ -13,10 +14,14 @@ import {
     Users,
 } from 'lucide-react'
 import { useChatClient } from '@/components/app/ChatProvider'
+import LiveTipModal from './LiveTipModal'
 
 interface LiveChatProps {
     channelId: string
     hostId?: string
+    creatorName?: string
+    creatorAvatar?: string
+    liveStreamId?: string
     onCollapse?: () => void
     onWatcherCountChange?: (count: number) => void
 }
@@ -66,6 +71,9 @@ function formatMessageTime(createdAt?: string | Date) {
 export default function LiveChat({
     channelId,
     hostId,
+    creatorName,
+    creatorAvatar,
+    liveStreamId,
     onCollapse,
     onWatcherCountChange,
 }: LiveChatProps) {
@@ -77,12 +85,38 @@ export default function LiveChat({
     const [failed, setFailed] = useState(false)
     const [isSending, setIsSending] = useState(false)
     const [hasUnreadBelow, setHasUnreadBelow] = useState(false)
+    const [isTipModalOpen, setIsTipModalOpen] = useState(false)
 
     const listRef = useRef<HTMLDivElement>(null)
     const isAtBottomRef = useRef(true)
 
     const currentUserId = client?.userID
     const isCurrentUserHost = Boolean(hostId && currentUserId === hostId)
+
+    const handleTipSuccess = async (tip: {
+        amount: number
+        giftBadge: string
+        senderName: string
+        message?: string
+    }) => {
+        if (!channel) return
+        try {
+            await channel.sendMessage({
+                text: tip.message ? `"${tip.message}"` : `Sent a ${tip.giftBadge} to support the host!`,
+                is_tip: true,
+                tip_amount: tip.amount,
+                gift_badge: tip.giftBadge,
+                tip_message: tip.message,
+            } as any)
+
+            await channel.sendEvent({
+                type: 'live_reaction',
+                emoji: '🪙',
+            } as any)
+        } catch (err) {
+            console.error('Failed to broadcast tip message to chat:', err)
+        }
+    }
 
     useEffect(() => {
         if (!client || !isReady) return
@@ -279,6 +313,41 @@ export default function LiveChat({
                         const avatarUrl = m.user?.image as string | undefined
                         const initials = getInitials(userName)
                         const gradient = getAvatarGradient(m.user?.id)
+                        const isTip = Boolean((m as any).is_tip)
+
+                        if (isTip) {
+                            return (
+                                <div
+                                    key={m.id}
+                                    className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/5 p-3 shadow-sm shadow-amber-500/10 space-y-1.5 animate-in zoom-in-95"
+                                >
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white shadow-xs">
+                                                <Sparkles className="h-3 w-3" />
+                                            </span>
+                                            <span className="text-xs font-bold text-amber-500 truncate max-w-[120px]">
+                                                {userName}
+                                            </span>
+                                            <span className="text-xs font-extrabold text-foreground">
+                                                tipped ₦{Number((m as any).tip_amount || 0).toLocaleString('en-NG')}
+                                            </span>
+                                            <span className="rounded-full bg-amber-500/20 px-1.5 py-0.2 text-[9px] font-extrabold text-amber-600 dark:text-amber-400 uppercase">
+                                                {(m as any).gift_badge || 'Fan Gift'}
+                                            </span>
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground/60 tabular-nums shrink-0">
+                                            {formatMessageTime(m.created_at)}
+                                        </span>
+                                    </div>
+                                    {m.text && (
+                                        <p className="text-xs text-foreground/90 pl-6 italic font-medium break-words">
+                                            {m.text}
+                                        </p>
+                                    )}
+                                </div>
+                            )
+                        }
 
                         return (
                             <div
@@ -371,6 +440,19 @@ export default function LiveChat({
                 onSubmit={send}
                 className="flex items-center gap-2 border-t border-border/70 p-3 shrink-0 bg-card"
             >
+                {/* Tip Button for Viewers */}
+                {!isCurrentUserHost && hostId && (
+                    <button
+                        type="button"
+                        onClick={() => setIsTipModalOpen(true)}
+                        className="flex h-10 items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-500 px-3 text-xs font-extrabold text-white shadow-md shadow-amber-500/25 hover:brightness-110 active:scale-95 transition-all shrink-0"
+                        title="Send live tip or fan gift"
+                    >
+                        <Coins className="h-4 w-4" />
+                        <span className="hidden sm:inline">Tip</span>
+                    </button>
+                )}
+
                 <div className="relative flex-1">
                     <input
                         value={text}
@@ -401,6 +483,19 @@ export default function LiveChat({
                     )}
                 </button>
             </form>
+
+            {/* Live Tipping Modal */}
+            {hostId && (
+                <LiveTipModal
+                    isOpen={isTipModalOpen}
+                    onClose={() => setIsTipModalOpen(false)}
+                    liveStreamId={liveStreamId || channelId}
+                    creatorId={hostId}
+                    creatorName={creatorName || 'Host'}
+                    creatorAvatar={creatorAvatar}
+                    onTipSuccess={handleTipSuccess}
+                />
+            )}
         </div>
     )
 }

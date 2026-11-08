@@ -1,55 +1,55 @@
-import { Users, MessageCircle, BookOpen, Briefcase, HandCoins, Search } from 'lucide-react'
+import { Radio, MessageCircle, Wrench, Rocket, Search, BookOpenCheck } from 'lucide-react'
 
+// Live features beyond the four headline ones in FeatureShowcase.
 const features = [
   {
-    icon: Users,
-    title: 'Social feed',
+    icon: Radio,
+    title: 'Livestream',
     description:
-      'Share posts, photos and videos, follow people you admire, and keep up with your communities.',
+      'Watch creators live, react and chat in real time, and catch replays of the broadcasts you missed.',
   },
   {
     icon: MessageCircle,
     title: 'Chat and groups',
     description:
-      'Direct messages and group channels for your ajo circle, your team or your business.',
+      'Direct messages and group chats for your team, your customers or your study group.',
   },
   {
-    icon: HandCoins,
-    title: 'Crowdfunding',
+    icon: Wrench,
+    title: 'Artisans & Pros',
     description:
-      'Raise money for community projects and causes, with progress anyone can follow.',
+      'Find tailors, electricians, designers and other skilled pros, or list your own services.',
   },
   {
-    icon: BookOpen,
-    title: 'Learn and earn',
+    icon: Rocket,
+    title: 'Business LaunchPad',
     description:
-      'Take free and paid courses, earn completion badges, or publish lessons and get paid.',
+      'Set up your business profile and get help registering it with the CAC, step by step.',
   },
   {
-    icon: Briefcase,
-    title: 'Services marketplace',
+    icon: BookOpenCheck,
+    title: 'Teach a course',
     description:
-      'List your skills with clear pricing and get hired by people in the community.',
+      'Share what you know. Create a course with video lessons and publish it to the community.',
   },
   {
     icon: Search,
     title: 'One search for everything',
-    description: 'Find people, posts and courses from a single search bar.',
+    description: 'Find people, posts, courses and jobs from a single search bar.',
   },
 ]
 
 export default function Features() {
   return (
-    <section id="community" className="scroll-mt-20 bg-mist py-24 lg:py-32">
+    <section id="more" className="scroll-mt-20 bg-mist py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand">Community</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand">More on Hubnovo</p>
           <h2 className="mt-4 text-balance font-display text-4xl font-bold leading-[1.08] tracking-[-0.025em] text-ink sm:text-5xl">
-            More than a wallet. A place to build together.
+            And plenty more to explore.
           </h2>
           <p className="mt-5 text-lg leading-relaxed text-ink-soft">
-            The people you save with are the people you learn, work and grow with. Hubnovo keeps
-            them all in one place.
+            Everything below is live in the app today, free with your account.
           </p>
         </div>
 

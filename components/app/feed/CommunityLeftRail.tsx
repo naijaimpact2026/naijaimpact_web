@@ -33,7 +33,7 @@ export default function CommunityLeftRail({ activeTopic }: CommunityLeftRailProp
     }
 
     return (
-        <aside className="hidden lg:flex flex-col gap-4 w-64 shrink-0">
+        <aside className="hidden lg:flex flex-col gap-4 w-64 shrink-0 sticky top-20 self-start max-h-[calc(100vh-5.5rem)] overflow-y-auto scrollbar-none">
             <div className="rounded-2xl bg-card border border-border p-4 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                     <h3 className="font-bold text-sm text-foreground">Discover Communities</h3>

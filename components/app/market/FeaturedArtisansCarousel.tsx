@@ -95,6 +95,7 @@ export default function FeaturedArtisansCarousel({ artisans, currentUserId = '' 
                     opts={{
                         align: 'start',
                         loop: featuredList.length > 3,
+                        skipSnaps: false,
                     }}
                     className="w-full"
                 >
