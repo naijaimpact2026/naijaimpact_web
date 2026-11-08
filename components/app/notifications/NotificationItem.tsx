@@ -169,6 +169,15 @@ const TYPE_CONFIG: Partial<Record<NotificationType, TypeConfig>> = {
         getText: (name) => `${name ?? 'A learner'} completed your course.`,
     },
 
+    // Artisan hiring (escrow jobs)
+    artisan_job: {
+        Icon: BriefcaseBusiness,
+        colour: 'text-primary',
+        iconBackground: 'bg-primary/10',
+        label: 'Job Update',
+        getText: (name) => `${name ?? 'Someone'} updated a job with you.`,
+    },
+
     // Services
     service_request: {
         Icon: BriefcaseBusiness,
@@ -503,6 +512,12 @@ export default function NotificationItem({
                 }
 
             // ─── Services ─────────────────────────────────────────────
+            case 'artisan_job':
+                return {
+                    href: referenceId ? `/app/artisans/jobs/${referenceId}` : '/app/artisans/jobs',
+                    label: 'View Job',
+                }
+
             case 'service_request':
             case 'service_completed':
             case 'service_review':

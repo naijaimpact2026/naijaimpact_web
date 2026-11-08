@@ -302,6 +302,7 @@ export type NotificationType =
 
   // Services
   | 'service_request'
+  | 'artisan_job'
   | 'service_completed'
   | 'service_review'
 

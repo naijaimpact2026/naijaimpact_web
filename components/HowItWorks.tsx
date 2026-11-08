@@ -4,15 +4,15 @@ import { ArrowRight } from 'lucide-react'
 const steps = [
   {
     title: 'Create your account',
-    description: 'Sign up with your email or Google. It takes about two minutes and costs nothing.',
+    description: 'Sign up with your email or Google.',
   },
   {
     title: 'Set up your profile',
-    description: 'Confirm your email with a one-time code, then tell people what you do and what you care about.',
+    description: 'Tell people what you do.',
   },
   {
     title: 'Find your people',
-    description: 'Follow people and topics, join a course, open a storefront or apply for your next job.',
+    description: 'Follow, learn, sell or apply.',
   },
 ]
 

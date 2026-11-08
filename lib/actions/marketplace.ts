@@ -1227,7 +1227,7 @@ export async function createOrder(data: {
   quantity: number
   delivery_method: string
   delivery_address?: string
-}): Promise<{ id: string; paystack_ref: string }> {
+}): Promise<{ id: string }> {
   const deliveryMap: Record<string, NmDeliveryOption> = {
     delivery: 'local_delivery',
     pickup: 'pickup',
@@ -1240,7 +1240,7 @@ export async function createOrder(data: {
     delivery_option: opt,
     delivery_address: data.delivery_address,
   })
-  return { id: order_id, paystack_ref: `mkt_${order_id.slice(0, 8)}_${Date.now()}` }
+  return { id: order_id }
 }
 
 /** Alias: createProduct → createListing with listing_type=product */

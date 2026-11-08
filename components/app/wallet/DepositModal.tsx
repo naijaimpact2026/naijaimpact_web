@@ -25,6 +25,7 @@ import
         FormMessage,
     } from '@/components/ui/form'
 import { depositCallback, verifyAndProcessDeposit } from '@/lib/actions/wallet'
+import { startDeposit } from '@/lib/actions/payments'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 
@@ -73,16 +74,19 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
             if (!paystackKey) throw new Error('Payment configuration error')
             if (!window.PaystackPop) throw new Error('Paystack not loaded. Please refresh and try again.')
 
-            // Generate a unique reference
-            const ref = `DEP-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
+            // The server records the payment first, so it can be recovered
+            // even if this tab closes before the callback runs.
+            const intent = await startDeposit(values.amount)
+            if (!intent.success) throw new Error(intent.error)
 
             const handler = window.PaystackPop.setup({
                 key: paystackKey,
-                email: userEmail,
-                amount: Math.round(values.amount * 100), // kobo
-                ref,
+                email: intent.email,
+                amount: intent.amountKobo,
+                ref: intent.reference,
                 metadata: {
                     type: 'deposit',
+                    userId: intent.userId,
                 },
                 onSuccess: async (transaction) =>
                 {

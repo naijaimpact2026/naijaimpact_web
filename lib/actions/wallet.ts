@@ -6,6 +6,8 @@ import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/service'
 import { checkWalletPin, setWalletPin } from '@/lib/wallet-pin'
 import { rateLimit, RATE_LIMITED } from '@/lib/rate-limit'
+import { paystackVerify } from '@/lib/payments/paystack'
+import { settleSuccessfulCharge } from '@/lib/payments/settle'
 import type { Transaction, Wallet } from '@/lib/types'
 
 export type ActionResult<T = void> =
@@ -100,9 +102,9 @@ export async function fetchWallet(limit = 10): Promise<{
 // ─────────────────────────────────────────────
 
 /**
- * Verifies a deposit with Paystack and credits it exactly once
- * (web_wallet_credit is idempotent per reference, so replays and concurrent
- * calls can't double-credit). The payment must be a wallet deposit made with
+ * Verifies a deposit with Paystack and credits it exactly once, through the
+ * same settlement code as the webhook and the reconcile cron. Also used for
+ * "recover my deposit" with a reference. The payment must have been made with
  * this user's email.
  */
 export async function verifyAndProcessDeposit(
@@ -120,53 +122,32 @@ export async function verifyAndProcessDeposit(
     }
 
     const cleanRef = reference.trim()
-
-    const paystackSecret = process.env.PAYSTACK_SECRET_KEY
-    if (!paystackSecret) {
-      return { success: false, error: 'Paystack secret key is missing on the server' }
+    const verified = await paystackVerify(cleanRef)
+    if (!verified.ok) {
+      return { success: false, error: verified.notFound ? 'Transaction not found on Paystack' : verified.message }
     }
 
-    const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(cleanRef)}`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${paystackSecret}`,
-        'Content-Type': 'application/json',
-      },
-      cache: 'no-store',
-    })
-
-    const payload = await res.json()
-    if (!payload.status || !payload.data) {
-      return { success: false, error: payload.message || 'Transaction not found on Paystack' }
+    const { tx } = verified
+    if (tx.status !== 'success') {
+      return { success: false, error: tx.gateway_response || `Payment status is ${tx.status}` }
     }
 
-    const data = payload.data
-    if (data.status !== 'success') {
-      return { success: false, error: data.gateway_response || `Payment status is ${data.status}` }
-    }
-
-    // The payment must be a wallet deposit, in naira, paid by this user.
-    const payerEmail = String(data.customer?.email ?? '').trim().toLowerCase()
+    const payerEmail = String(tx.customer?.email ?? '').trim().toLowerCase()
     const myEmail = String(authUser.email ?? profile.email ?? '').trim().toLowerCase()
-    if (data.metadata?.type !== 'deposit' || data.currency !== 'NGN' || !payerEmail || payerEmail !== myEmail) {
+    if (!payerEmail || payerEmail !== myEmail) {
+      return { success: false, error: 'This payment was not made from your account.' }
+    }
+
+    const result = await settleSuccessfulCharge(supabase, tx, { legacyDepositUserId: profile.id })
+
+    if (result.outcome === 'error') {
+      return { success: false, error: 'Failed to credit wallet balance. Please try again shortly.' }
+    }
+    if (result.outcome === 'needs_review') {
+      return { success: false, error: 'We received this payment but need to check it. Our team will follow up.' }
+    }
+    if (result.purpose !== 'deposit' || result.userId !== profile.id) {
       return { success: false, error: 'This payment is not a wallet deposit from your account.' }
-    }
-
-    const amountKobo = Number(data.amount) || 0
-    const amountNGN = Math.round(amountKobo) / 100
-    if (amountNGN < 100) {
-      return { success: false, error: 'Deposit amount is below minimum (₦100)' }
-    }
-
-    const { data: result, error: creditError } = await supabase.rpc('web_wallet_credit', {
-      p_user_id: profile.id,
-      p_amount: amountNGN,
-      p_type: 'deposit',
-      p_ref: cleanRef,
-    })
-    if (creditError) {
-      console.error('Wallet credit error:', creditError)
-      return { success: false, error: 'Failed to credit wallet balance' }
     }
 
     const wallet = await getOrCreateWallet(supabase, profile.id)
@@ -176,9 +157,9 @@ export async function verifyAndProcessDeposit(
       success: true,
       data: {
         reference: cleanRef,
-        amount: amountNGN,
+        amount: result.amountNGN ?? Number(tx.amount) / 100,
         newBalance: wallet.balance,
-        alreadyProcessed: result === 'already_credited',
+        alreadyProcessed: result.outcome === 'already_settled',
       },
     }
   } catch (err: any) {

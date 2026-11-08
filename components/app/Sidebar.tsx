@@ -58,7 +58,7 @@ const navItems = [
     { icon: MessageCircle, label: 'Chat', href: '/app/chat', badgeProp: 'messageCount' as const },
     { icon: Bell, label: 'Notifications', href: '/app/notifications', badgeProp: 'notificationCount' as const },
     { icon: HandCoins, label: 'Crowdfunding', href: '/app/funding', badgeText: 'Soon' },
-    { icon: Wallet, label: 'Saving / Wallet', href: '/app/fintech', badgeText: 'Soon' },
+    { icon: Wallet, label: 'Wallet', href: '/app/wallet' },
 ]
 
 function getInitials(name: string | null | undefined): string

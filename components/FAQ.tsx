@@ -3,27 +3,27 @@ import { Plus } from 'lucide-react'
 const faqs = [
   {
     q: 'What is Hubnovo?',
-    a: 'Hubnovo is one app for your community, learning, marketplace and job search. Post and chat with people, take or teach courses, open a storefront, hire artisans and pros, and find work, all from one free account.',
+    a: 'One app for community, learning, marketplace and jobs, with one free account.',
   },
   {
     q: 'Does it cost anything to join?',
-    a: 'No. Creating a Hubnovo account is free, and you can use the community, Learn, Marketplace and Jobs from your free account.',
+    a: 'No. Creating an account is free.',
   },
   {
-    q: 'Can I sell my products or services on Hubnovo?',
-    a: 'Yes. Open a storefront in the Marketplace to list products, or list your skills in Artisans & Pros so people near you can hire you. Marketplace payments are processed securely by Paystack.',
+    q: 'Can I sell my products or services?',
+    a: 'Yes. Open a storefront in the Marketplace or list your skills in Artisans & Pros.',
   },
   {
-    q: 'How do I post a job or apply for one?',
-    a: 'Go to Jobs & Careers. Job seekers can browse roles and apply in a few taps, then track every application. Employers can post a job for free and review applicants in the app.',
+    q: 'How do I post or apply for a job?',
+    a: 'Go to Jobs & Careers. Job seekers apply in a few taps. Employers post for free.',
   },
   {
-    q: 'When are savings, ajo and loans coming?',
-    a: "We're building savings, ajo circles, credit and crowdfunding now. They aren't available yet. Create your account and we'll let you know as each one opens.",
+    q: 'When will savings, ajo and loans be available?',
+    a: 'They are in development. Create an account and you will be notified.',
   },
   {
-    q: 'I need help with my account. Who do I contact?',
-    a: 'Email us at hello@hubnovo.com and the team will get back to you.',
+    q: 'Who do I contact for help?',
+    a: 'Email hello@hubnovo.com.',
   },
 ]
 

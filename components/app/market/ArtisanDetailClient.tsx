@@ -13,7 +13,7 @@ import
 import { toggleSavedListing } from '@/lib/actions/marketplace'
 import type { NmListingDetail, NmReview, ServiceCategory } from '@/lib/types'
 import { Heart, Edit3 } from 'lucide-react'
-import EscrowOrderModal from './EscrowOrderModal'
+import HireArtisanDialog from '@/components/app/artisans/jobs/HireArtisanDialog'
 import ArtisanProfileModal from './ArtisanProfileModal'
 
 interface Props
@@ -345,24 +345,22 @@ export default function ArtisanDetailClient({ listing, reviews, categories = [],
                             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold border-2 border-primary text-primary hover:bg-primary/5 transition-colors">
                             <MessageCircle className="w-4 h-4" /> Chat Artisan
                         </button>
-                        {listing.price > 0 && (
-                            <button
-                                onClick={() => setOrderModalOpen(true)}
-                                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-black text-primary-foreground bg-primary transition-colors hover:bg-primary/90 active:scale-95">
-                                <Calendar className="w-4 h-4" /> Book Service
-                            </button>
-                        )}
+                        <button
+                            onClick={() => setOrderModalOpen(true)}
+                            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-black text-primary-foreground bg-primary transition-colors hover:bg-primary/90 active:scale-95">
+                            <Calendar className="w-4 h-4" /> Hire
+                        </button>
                     </>
                 )}
             </div>
 
-            {/* Direct Booking Modal */}
-            <EscrowOrderModal
+            {/* Hire request → quote → escrow (see /app/artisans/jobs) */}
+            <HireArtisanDialog
                 open={orderModalOpen}
                 onOpenChange={setOrderModalOpen}
-                listing={listing}
-                userEmail={userEmail}
-                userId={currentUserId}
+                listingId={listing.id}
+                serviceTitle={listing.title}
+                artisanName={listing.seller_business_name ?? listing.seller_fullname ?? 'this artisan'}
             />
 
             {/* In-place Service Edit Modal */}
