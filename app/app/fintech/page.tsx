@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import
 {
     Users2, PiggyBank, BarChart2, CreditCard, Shield,
@@ -11,8 +12,6 @@ import type {
     AjoMember, AjoGroup, SafeFlexibleAccount, SafeLockedSavings,
     SafeGoalSavings, TradeCredScore, TradeCredTier, Loan, LoanRepayment, Policy,
 } from '@/lib/types'
-
-import SavingWalletComingSoon from '@/components/app/fintech/SavingWalletComingSoon'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Saving & Wallet — Hubnovo' }
@@ -39,11 +38,9 @@ const TIER_LABEL: Record<TradeCredTier, string> = {
 
 export default async function FintechPage()
 {
-    const { authUser, profile } = await getCurrentUser()
-
-    return (
-        <SavingWalletComingSoon userProfile={profile} userEmail={authUser?.email ?? ''} />
-    )
+    // The wallet is live; savings, ajo and credit are still coming and are
+    // shown as "Coming soon" inside the wallet. Old links land there.
+    redirect('/app/wallet')
 }
 
 /**

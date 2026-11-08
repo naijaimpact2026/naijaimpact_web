@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { createServiceClient } from '@/lib/supabase/service'
+import { settleSuccessfulCharge } from '@/lib/payments/settle'
+import type { PaystackTransaction } from '@/lib/payments/paystack'
 
 // Webhook writes bypass RLS; fails closed if the service role key is missing.
 const getAdminClient = createServiceClient
@@ -23,8 +25,6 @@ async function verifiedPayer(supabase: Admin, userId: unknown, payerEmail: strin
   const { data } = await supabase.from('users').select('id, email').eq('id', userId).maybeSingle()
   return data && String(data.email ?? '').trim().toLowerCase() === payerEmail ? data.id : null
 }
-
-const sameAmount = (a: number, b: number) => Math.abs(a - b) < 0.01
 
 export async function POST(request: NextRequest) {
   const paystackSecret = process.env.PAYSTACK_SECRET_KEY
@@ -52,13 +52,47 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  // Only process charge.success
-  if (event.event !== 'charge.success') {
+  const supabase = getAdminClient()
+  const data = (event.data ?? {}) as Record<string, unknown>
+  const eventName = String(event.event ?? '')
+  const paystackRef = typeof data.reference === 'string' ? data.reference : null
+
+  // Log every verified event before acting on it (audit trail + replay).
+  // A repeat delivery hits the unique (event, reference) index; processing
+  // below is idempotent, so it still runs safely.
+  await supabase.from('paystack_events').insert({ event: eventName, reference: paystackRef, payload: event })
+  const markEvent = async (error?: string) => {
+    if (!paystackRef) return
+    await supabase
+      .from('paystack_events')
+      .update({ processed_at: new Date().toISOString(), error: error ?? null })
+      .eq('event', eventName)
+      .eq('reference', paystackRef)
+  }
+
+  // transfer.* / refund.* are logged only for now; payouts are reconciled separately.
+  if (eventName !== 'charge.success') {
     return NextResponse.json({ received: true }, { status: 200 })
   }
 
-  const data = event.data as Record<string, unknown>
-  const paystackRef = data.reference as string
+  if (!paystackRef) {
+    await markEvent('missing reference')
+    return NextResponse.json({ received: true }, { status: 200 })
+  }
+
+  // Deposits and marketplace orders (server-created intents, or legacy metadata).
+  const settled = await settleSuccessfulCharge(supabase, data as unknown as PaystackTransaction)
+  if (settled.outcome === 'error') {
+    await markEvent(settled.detail ?? 'settle error')
+    // 500 makes Paystack retry; the reconcile cron is the second safety net.
+    return NextResponse.json({ error: 'Processing error' }, { status: 500 })
+  }
+  if (settled.outcome !== 'ignored') {
+    await markEvent(settled.outcome === 'needs_review' ? `needs_review: ${settled.detail ?? ''}` : undefined)
+    return NextResponse.json({ received: true }, { status: 200 })
+  }
+
+  // ── Other payment types (metadata-driven) ────────────────────────────────
   const amountNGN = (Number(data.amount) || 0) / 100
   const currency = data.currency as string | undefined
   const payerEmail = String((data.customer as { email?: string } | undefined)?.email ?? '').trim().toLowerCase()
@@ -67,12 +101,11 @@ export async function POST(request: NextRequest) {
   const type = metadata.type as string
   const referenceId = typeof metadata.referenceId === 'string' ? metadata.referenceId : undefined
 
-  if (!paystackRef || !type || amountNGN <= 0 || (currency && currency !== 'NGN')) {
+  if (!type || amountNGN <= 0 || (currency && currency !== 'NGN')) {
     console.error('Paystack webhook: missing or invalid fields', { paystackRef, type, currency })
+    await markEvent('unhandled payment')
     return NextResponse.json({ received: true }, { status: 200 })
   }
-
-  const supabase = getAdminClient()
 
   try {
     if (type === 'campaign_donation' && referenceId) {
@@ -120,76 +153,6 @@ export async function POST(request: NextRequest) {
           read: false,
         })
       }
-    } else if (type === 'deposit') {
-      const userId = await verifiedPayer(supabase, metadata.userId, payerEmail)
-      if (!userId || amountNGN < 100) return NextResponse.json({ received: true }, { status: 200 })
-
-      // Idempotent per reference (shared with verifyAndProcessDeposit).
-      const { error } = await supabase.rpc('web_wallet_credit', {
-        p_user_id: userId,
-        p_amount: amountNGN,
-        p_type: 'deposit',
-        p_ref: paystackRef,
-      })
-      if (error) {
-        console.error('Paystack webhook: deposit credit error', error)
-        return NextResponse.json({ error: 'DB error' }, { status: 500 })
-      }
-    } else if (type === 'marketplace_purchase') {
-      const buyerId = await verifiedPayer(supabase, metadata.userId, payerEmail)
-      const orderIds: string[] = Array.isArray(metadata.orderIds)
-        ? (metadata.orderIds as unknown[]).filter((id): id is string => typeof id === 'string')
-        : referenceId ? [referenceId] : []
-      if (!buyerId || orderIds.length === 0) return NextResponse.json({ received: true }, { status: 200 })
-
-      const { data: orders } = await supabase
-        .from('nm_orders')
-        .select('id, buyer_id, total_amount, status, seller_profile:nm_seller_profiles(user_id)')
-        .in('id', orderIds)
-
-      const payable = (orders ?? []).filter((o) => o.buyer_id === buyerId && o.status === 'pending')
-      const due = payable.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0)
-
-      // The amount paid must cover exactly these orders — metadata is client-supplied.
-      if (payable.length !== orderIds.length || !sameAmount(due, amountNGN)) {
-        console.error('Paystack webhook: marketplace amount/order mismatch', { paystackRef, due, amountNGN })
-        return NextResponse.json({ received: true }, { status: 200 })
-      }
-
-      for (const order of payable) {
-        // One ledger row per order; the unique (ref, type) index makes replays no-ops.
-        const { error: txError } = await supabase.from('transactions').insert({
-          user_id: order.buyer_id,
-          type: 'marketplace_purchase',
-          amount: order.total_amount,
-          status: 'success',
-          ref: `${paystackRef}:${order.id}`,
-        })
-        if (txError) continue
-
-        // Confirm the order (paid — escrow held, not yet released to seller)
-        await supabase
-          .from('nm_orders')
-          .update({ status: 'confirmed', updated_at: new Date().toISOString() })
-          .eq('id', order.id)
-          .eq('status', 'pending')
-
-        await supabase
-          .from('nm_escrow')
-          .update({ status: 'funded', funded_at: new Date().toISOString() })
-          .eq('order_id', order.id)
-
-        const sellerUserId = (order as { seller_profile?: { user_id?: string } | null }).seller_profile?.user_id
-        if (sellerUserId) {
-          await supabase.from('notifications').insert({
-            user_id: sellerUserId,
-            actor_id: order.buyer_id,
-            type: 'marketplace_order',
-            reference_id: order.id,
-            read: false,
-          })
-        }
-      }
     } else if (type === 'insurance_premium' && referenceId) {
       const userId = await verifiedPayer(supabase, metadata.userId, payerEmail)
       if (!userId) return NextResponse.json({ received: true }, { status: 200 })
@@ -230,8 +193,10 @@ export async function POST(request: NextRequest) {
     // need its price checked server-side first.
   } catch (err) {
     console.error('Paystack webhook processing error:', err)
+    await markEvent(err instanceof Error ? err.message : 'processing error')
     return NextResponse.json({ error: 'Processing error' }, { status: 500 })
   }
 
+  await markEvent()
   return NextResponse.json({ received: true }, { status: 200 })
 }

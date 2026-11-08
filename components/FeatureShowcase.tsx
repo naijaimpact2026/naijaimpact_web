@@ -1,126 +1,106 @@
-import Link from 'next/link'
-import { ArrowRight, Check } from 'lucide-react'
+import Image from 'next/image'
 import PhoneFrame from '@/components/illustrations/PhoneFrame'
 
-// The four core experiences, each shown with a real screenshot of the app
-// in mobile view (public/landing/).
+// The five core experiences: picture first, a few words each.
+// Screenshots are real captures of the app in mobile view (public/landing/).
 
-const features = [
+interface Feature {
+  id: string
+  title: string
+  tagline: string
+  caption: string
+  image: string
+  alt: string
+  /** true = app screenshot in a phone frame; false = full-bleed photo */
+  screenshot: boolean
+}
+
+const features: Feature[] = [
   {
     id: 'community',
-    eyebrow: 'Community',
-    title: 'Your people, all in one feed.',
-    description:
-      'Post updates, photos and videos, follow people whose work you admire and join the conversations that matter to you.',
-    points: [
-      'Topic feeds for the things you care about',
-      'Direct messages and group chats',
-      'Go live and stream to your followers',
-    ],
+    title: 'Community',
+    tagline: 'Your people, in one feed.',
+    caption: 'Your community feed',
     image: '/landing/community.png',
     alt: 'The Hubnovo community feed on a phone',
+    screenshot: true,
   },
   {
     id: 'learn',
-    eyebrow: 'Learn',
-    title: 'Pick up skills that pay.',
-    description:
-      'Take courses at your own pace, from business basics to digital skills, and track your progress lesson by lesson.',
-    points: [
-      'Video lessons you can take anywhere',
-      'Progress saved as you go',
-      'Courses from people in the community',
-    ],
+    title: 'Learn',
+    tagline: 'Pick up skills that pay.',
+    caption: 'Courses at your pace',
     image: '/landing/learn.png',
     alt: 'Courses in the Hubnovo Learn hub on a phone',
+    screenshot: true,
   },
   {
     id: 'marketplace',
-    eyebrow: 'Marketplace',
-    title: 'Sell what you make. Find what you need.',
-    description:
-      'Open a storefront, list your products and services, and reach buyers in the community. Hire trusted artisans and pros near you.',
-    points: [
-      'Your own storefront in minutes',
-      'Products, services and artisans in one place',
-      'Orders and messages with buyers in the app',
-    ],
+    title: 'Marketplace',
+    tagline: 'Sell what you make.',
+    caption: 'Your own storefront',
     image: '/landing/marketplace.png',
     alt: 'The Hubnovo marketplace on a phone',
+    screenshot: true,
+  },
+  {
+    id: 'artisans',
+    title: 'Artisans & Pros',
+    tagline: 'Hire trusted pros near you.',
+    caption: 'Verified artisans and pros',
+    // TODO: swap for /landing/artisans.png once a screenshot of the
+    // Artisans & Services hub is captured (390×844, mobile view).
+    image: '/images/community/skilled-artisan-workshop.jpg',
+    alt: 'A skilled artisan at work in a workshop',
+    screenshot: false,
   },
   {
     id: 'jobs',
-    eyebrow: 'Jobs & Careers',
-    title: 'Your next opportunity is here.',
-    description:
-      'Browse jobs from employers in the community, apply in a few taps and keep track of every application. Hiring? Post a job for free.',
-    points: [
-      'Remote, hybrid and on-site roles',
-      'Apply and track applications in one place',
-      'Post jobs and review applicants',
-    ],
+    title: 'Jobs & Careers',
+    tagline: 'Find your next opportunity.',
+    caption: 'Jobs in a few taps',
     image: '/landing/jobs.png',
     alt: 'Job listings on Hubnovo on a phone',
+    screenshot: true,
   },
 ]
 
 export default function FeatureShowcase() {
   return (
-    <section id="features" className="scroll-mt-20 overflow-x-clip bg-white py-24 lg:py-32">
+    <section id="features" className="scroll-mt-20 bg-white py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand">What you can do</p>
-          <h2 className="mt-4 text-balance font-display text-4xl font-bold leading-[1.08] tracking-[-0.025em] text-ink sm:text-5xl">
-            Everything your community needs, in one app.
-          </h2>
-          <p className="mt-5 text-lg leading-relaxed text-ink-soft">
-            Connect with people, learn new skills, buy and sell, and find work, without switching
-            between five different apps.
-          </p>
-        </div>
+        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand">What you can do</p>
+        <h2 className="mt-4 max-w-2xl text-balance font-display text-4xl font-bold leading-[1.08] tracking-[-0.025em] text-ink sm:text-5xl">
+          One app. Five ways to grow.
+        </h2>
 
-        <div className="mt-20 space-y-24 lg:space-y-32">
-          {features.map((f, i) => (
-            <article
-              key={f.id}
-              id={f.id}
-              className="grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-20"
-            >
-              <div className={i % 2 === 1 ? 'lg:order-2' : ''}>
-                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-brand">{f.eyebrow}</p>
-                <h3 className="mt-4 text-balance font-display text-3xl font-bold leading-[1.1] tracking-[-0.02em] text-ink sm:text-4xl">
-                  {f.title}
-                </h3>
-                <p className="mt-5 max-w-lg text-lg leading-relaxed text-ink-soft">{f.description}</p>
-                <ul className="mt-7 space-y-3">
-                  {f.points.map((p) => (
-                    <li key={p} className="flex items-start gap-3 text-[15px] text-ink">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand/10">
-                        <Check className="h-3 w-3 text-brand" strokeWidth={3} />
-                      </span>
-                      {p}
-                    </li>
-                  ))}
-                </ul>
+        {/* Swipe row on phones and tablets, five columns on desktop */}
+        <div className="-mx-4 mt-14 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-5 lg:overflow-visible lg:px-0 lg:pb-0">
+          {features.map((f) => (
+            <article key={f.id} id={f.id} className="w-[250px] shrink-0 snap-start scroll-mt-24 lg:w-auto">
+              <div className="relative h-[340px] overflow-hidden rounded-2xl bg-mist">
+                {f.screenshot ? (
+                  <div className="absolute inset-x-0 top-16 flex justify-center">
+                    <PhoneFrame src={f.image} alt={f.alt} size="sm" />
+                  </div>
+                ) : (
+                  <>
+                    <Image src={f.image} alt={f.alt} fill sizes="250px" className="object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent" />
+                  </>
+                )}
+                <p
+                  className={`absolute left-5 right-5 top-5 font-display text-[15px] font-semibold ${
+                    f.screenshot ? 'text-ink' : 'text-white'
+                  }`}
+                >
+                  {f.caption}
+                </p>
               </div>
-
-              <div className={`relative flex justify-center ${i % 2 === 1 ? 'lg:order-1' : ''}`}>
-                {/* same quiet ring backdrop as the hero */}
-                <div className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-mist" />
-                <PhoneFrame src={f.image} alt={f.alt} className="relative" />
-              </div>
+              <h3 className="mt-5 font-display text-lg font-semibold text-ink">{f.title}</h3>
+              <p className="mt-1 text-[15px] text-ink-soft">{f.tagline}</p>
             </article>
           ))}
-        </div>
-
-        <div className="mt-20 flex justify-center">
-          <Link
-            href="/auth/signup"
-            className="group inline-flex items-center gap-2 text-[15px] font-semibold text-brand hover:text-brand-deep"
-          >
-            Join Hubnovo for free
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </Link>
         </div>
       </div>
     </section>

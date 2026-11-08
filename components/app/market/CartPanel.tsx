@@ -8,6 +8,7 @@ import { toast } from '@/components/toast'
 import { ShoppingCart, Minus, Plus, Trash2, Package, Lock } from 'lucide-react'
 import { useMarketCart } from './MarketCartProvider'
 import { createEscrowOrder } from '@/lib/actions/marketplace'
+import { startOrderCheckout } from '@/lib/actions/payments'
 
 // window.PaystackPop is declared ambiently in components/app/wallet/DepositModal.tsx
 // (declare global — applies program-wide since that file is part of the build).
@@ -62,7 +63,6 @@ export default function CartPanel({ userId, userEmail }: Props)
         }
 
         const orderIds = succeeded.map((s) => s.order_id)
-        const total = succeeded.reduce((sum, s) => sum + s.item.price * s.item.quantity, 0)
         const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ?? ''
         if (!window.PaystackPop) {
             toast.error('Payment service is still loading. Please try again in a moment.')
@@ -70,14 +70,24 @@ export default function CartPanel({ userId, userEmail }: Props)
             return
         }
 
+        // Server records the payment; the amount is the stored order totals
+        // (incl. delivery), not the cart's client-side figure.
+        const intent = await startOrderCheckout(orderIds)
+        if (!intent.success) {
+            toast.error(intent.error)
+            setCheckingOut(false)
+            router.push('/app/market/orders')
+            return
+        }
+
         const handler = window.PaystackPop.setup({
             key: paystackKey,
-            email: userEmail,
-            amount: Math.round(total * 100),
-            ref: `mkt_cart_${Date.now()}`,
+            email: intent.email,
+            amount: intent.amountKobo,
+            ref: intent.reference,
             metadata: {
                 type: 'marketplace_purchase',
-                userId,
+                userId: intent.userId,
                 orderIds,
             },
             onSuccess: () =>

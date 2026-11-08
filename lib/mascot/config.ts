@@ -104,7 +104,7 @@ export const ALL_MASCOT_LOOKS: MascotLook[] = [
     tagline: 'Mastering margins, fees and financial health',
     image: '/mascot/calculator.png',
     category: 'finance',
-    matchedRoutes: ['/app/fintech'],
+    matchedRoutes: ['/app/fintech', '/app/wallet'],
     themeColor: '#00B8D9',
     glowColor: 'rgba(0, 184, 217, 0.5)',
     badgeText: 'Fintech Advisor',
