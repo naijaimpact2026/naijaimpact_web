@@ -12,6 +12,7 @@ import FormActivity, { clearFormDraft } from './FormActivity'
 import QuizActivity from './QuizActivity'
 import ScenarioActivity from './ScenarioActivity'
 import SortActivity from './SortActivity'
+import ReviewingCard from './ReviewingCard'
 
 /** Runs a mission: shows its state, renders the activity, submits, shows the result. */
 export default function MissionPlayer({ slug, mission, attempts, color, homeHref }: { slug: string; mission: MissionView; attempts: AttemptView[]; color: string; homeHref: string })
@@ -74,11 +75,15 @@ export default function MissionPlayer({ slug, mission, attempts, color, homeHref
 
     const props = { color, submitting: pending, onSubmit: submit }
     return (
-        <section key={round} className="hw-rise rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-sm" style={{ animationDelay: '120ms' }}>
+        <>
+        {/* Keep the activity mounted (hidden) while marking, so nothing is lost if the submit fails. */}
+        {pending && <ReviewingCard color={color} ai={mission.reviewMode !== 'auto'} />}
+        <section key={round} hidden={pending} className="hw-rise rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-sm" style={{ animationDelay: '120ms' }}>
             {mission.kind === 'quiz' && <QuizActivity config={mission.config as QuizConfig} {...props} />}
             {mission.kind === 'sort' && <SortActivity config={mission.config as SortConfig} {...props} />}
             {mission.kind === 'scenario' && <ScenarioActivity config={mission.config as ScenarioConfig} {...props} />}
             {!['quiz', 'sort', 'scenario'].includes(mission.kind) && <FormActivity slug={slug} missionId={mission.id} config={mission.config as FormConfig} {...props} />}
         </section>
+        </>
     )
 }
