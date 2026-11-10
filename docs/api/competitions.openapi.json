@@ -1,0 +1,3141 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Hubnovo World — Competitions API",
+    "version": "1.0.0",
+    "description": "REST API for the **Campus Competition** (Career & Employability + Enterprise Development pathways) — used by the mobile app and the web.\n\n**Auth:** `Authorization: Bearer <Supabase access token>` (same token as the ModusHive/Livestream API).\n\n**Responses:** success → `200 { \"ok\": true, ...fields }`. Error → `{ \"error\": \"message\" }` with 400 (show the message), 401, 403 (admin only), 404 (also for a competition you can’t play yet), 429 (120 req/min), 500.\n\n**Points:** XP = progress & level. HubTokens = closed-loop, non-cash credits (no cash-out, no transfers).\n\n**Time:** ISO-8601 UTC. Semesters run on Lagos time (UTC+1); day 1 = Monday, day 7 = Sunday (boss day).\n\n**Access:** the Campus Competition is `live` — any signed-in user can join. (A competition in `preview` is limited to admins and testers.)\n\n**App flow:** `GET /competitions` → `GET /competitions/campus` (me = null → onboarding) → `GET /institutions` → `POST …/join` → home `GET …/quests/today` → mission `GET …/missions/{id}` → uploads → `POST …/attempts` → `GET …/progress`, `…/leaderboard`, `…/league`.\n\nShared TypeScript types: `lib/world/types.ts` in the web repo."
+  },
+  "servers": [
+    {
+      "url": "https://{host}/api",
+      "description": "Hubnovo (set host to staging while testing)",
+      "variables": {
+        "host": {
+          "default": "hubnovo.com"
+        }
+      }
+    },
+    {
+      "url": "http://localhost:3000/api",
+      "description": "Local development"
+    }
+  ],
+  "security": [
+    {
+      "bearer": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Competitions"
+    },
+    {
+      "name": "Onboarding"
+    },
+    {
+      "name": "Quests"
+    },
+    {
+      "name": "Submissions"
+    },
+    {
+      "name": "Progress"
+    },
+    {
+      "name": "Admin",
+      "description": "role = admin"
+    }
+  ],
+  "paths": {
+    "/competitions": {
+      "get": {
+        "tags": [
+          "Competitions"
+        ],
+        "summary": "List competitions",
+        "description": "Every competition (classic and world) with the caller’s join/play status.",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "competitions"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "competitions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompetitionSummary"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}": {
+      "get": {
+        "tags": [
+          "Competitions"
+        ],
+        "summary": "Competition detail",
+        "description": "Semester clock, pathways and the caller’s participation (`me` is null until they join → show onboarding).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "competition"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "competition": {
+                      "$ref": "#/components/schemas/CompetitionDetail"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/institutions": {
+      "get": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Search institutions",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "unilag"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "institutions"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "institutions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/InstitutionView"
+                      },
+                      "maxItems": 30
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/join": {
+      "post": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Join (pick pathway, campus, avatar)",
+        "description": "Send `institutionId` from the search, **or** `institutionName` (free text → saved for admin approval), or neither. `state` = one of the 36 states or `FCT`. `character` 0–11 (3D avatar; previews at `/competitions/city/characters/previews/character-<male|female>-<a..f>.png`). Joining twice returns 400.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "pathway"
+                ],
+                "properties": {
+                  "pathway": {
+                    "$ref": "#/components/schemas/Pathway"
+                  },
+                  "institutionId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "institutionName": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "string",
+                    "example": "Lagos"
+                  },
+                  "character": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 11
+                  },
+                  "accessibility": {
+                    "$ref": "#/components/schemas/Accessibility"
+                  }
+                }
+              },
+              "example": {
+                "pathway": "career",
+                "institutionId": "0f3c…",
+                "state": "Lagos",
+                "character": 3,
+                "accessibility": {
+                  "lite": false,
+                  "captions": true,
+                  "reducedMotion": false
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkEmpty"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/me": {
+      "patch": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Update my participation",
+        "description": "Any subset of fields. `pathway` can only change before the first attempt.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pathway": {
+                    "$ref": "#/components/schemas/Pathway"
+                  },
+                  "institutionId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "institutionName": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "string"
+                  },
+                  "character": {
+                    "type": "integer"
+                  },
+                  "accessibility": {
+                    "$ref": "#/components/schemas/Accessibility"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkEmpty"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/quests/today": {
+      "get": {
+        "tags": [
+          "Quests"
+        ],
+        "summary": "Today’s quest + catch-up",
+        "description": "`catchUp` = earlier missions still `available` or `needs_revision` (no streak penalties).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "today",
+                    "catchUp",
+                    "clock"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "today": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/MissionView"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "catchUp": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MissionView"
+                      }
+                    },
+                    "clock": {
+                      "$ref": "#/components/schemas/SemesterClock"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/quests": {
+      "get": {
+        "tags": [
+          "Quests"
+        ],
+        "summary": "A week of missions",
+        "description": "7 missions (Mon–Sun) for the caller’s pathway. Defaults to the current week.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "week",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "week",
+                    "missions"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "week": {
+                      "type": "integer"
+                    },
+                    "missions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MissionView"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/missions/{missionId}": {
+      "get": {
+        "tags": [
+          "Quests"
+        ],
+        "summary": "Mission + my attempts",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "missionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "mission",
+                    "attempts"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "mission": {
+                      "$ref": "#/components/schemas/MissionView"
+                    },
+                    "attempts": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AttemptView"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "ok": true,
+                  "mission": {
+                    "id": "6b1f…",
+                    "key": "c-w1-d6",
+                    "pathway": "career",
+                    "stage": 1,
+                    "week": 1,
+                    "day": 6,
+                    "title": "Reality mission: talk to a professional",
+                    "story": "Ask a trusted professional about their work…",
+                    "kind": "evidence",
+                    "config": {
+                      "fields": [
+                        {
+                          "id": "role",
+                          "label": "Their job title / industry (no name)",
+                          "type": "text",
+                          "required": true
+                        },
+                        {
+                          "id": "insight1",
+                          "label": "Insight 1",
+                          "type": "textarea",
+                          "required": true,
+                          "minWords": 10,
+                          "maxWords": 600
+                        }
+                      ],
+                      "checklist": [
+                        {
+                          "id": "consent",
+                          "label": "Everyone I spoke to agreed to take part…"
+                        },
+                        {
+                          "id": "no_pii",
+                          "label": "I removed names, phone numbers…"
+                        }
+                      ]
+                    },
+                    "estMinutes": 30,
+                    "xp": 100,
+                    "tokens": 10,
+                    "bucket": "evidence",
+                    "reviewMode": "ai",
+                    "rubric": {
+                      "key": "evidence",
+                      "title": "Real-world evidence",
+                      "passMark": 60,
+                      "criteria": [
+                        {
+                          "id": "evidence",
+                          "label": "Real evidence provided",
+                          "weight": 40
+                        }
+                      ]
+                    },
+                    "status": "available",
+                    "unlocksAt": "2026-11-13T23:00:00.000Z",
+                    "attemptsUsed": 0,
+                    "maxAttempts": 3,
+                    "lastAttempt": null,
+                    "badge": null
+                  },
+                  "attempts": []
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/missions/{missionId}/upload-url": {
+      "post": {
+        "tags": [
+          "Submissions"
+        ],
+        "summary": "Get a presigned upload URL",
+        "description": "For `file` and `video` fields. Then **PUT** the raw file to `uploadUrl` with the same `Content-Type`, and use `{ \"key\": \"<key>\" }` as that field’s value.\n\nAllowed: jpeg/png/webp & pdf ≤ 10 MB; mp4/mov/webm ≤ 150 MB — only the groups in the field’s `accept`.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "missionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "fieldId",
+                  "contentType",
+                  "sizeBytes"
+                ],
+                "properties": {
+                  "fieldId": {
+                    "type": "string"
+                  },
+                  "contentType": {
+                    "type": "string",
+                    "enum": [
+                      "image/jpeg",
+                      "image/png",
+                      "image/webp",
+                      "application/pdf",
+                      "video/mp4",
+                      "video/quicktime",
+                      "video/webm"
+                    ]
+                  },
+                  "sizeBytes": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "example": {
+                "fieldId": "cv",
+                "contentType": "application/pdf",
+                "sizeBytes": 183422
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "uploadUrl",
+                    "key",
+                    "expiresInS"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "uploadUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "key": {
+                      "type": "string"
+                    },
+                    "expiresInS": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/missions/{missionId}/attempts": {
+      "post": {
+        "tags": [
+          "Submissions"
+        ],
+        "summary": "Submit an attempt",
+        "description": "Body shape depends on the mission `kind` (quiz / sort / scenario / form).\n\n**Result `attempt.status`:** `passed` (XP + HubTokens awarded once) · `needs_revision` (show feedback, retry up to `maxAttempts`) · `in_review` (judge/moderator — poll the mission later) · `rejected` (final; can appeal).\n\nQuiz/sort/scenario are graded instantly and the **first attempt** counts toward the stage score. Written missions are scored by the AI reviewer against the rubric. Personal data about other people → `needs_revision`.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "missionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Attempt payload",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptPayload"
+              },
+              "examples": {
+                "quiz": {
+                  "value": {
+                    "kind": "quiz",
+                    "answers": {
+                      "q1": "b",
+                      "q2": "b",
+                      "q3": "b",
+                      "q4": "b",
+                      "q5": "b"
+                    }
+                  }
+                },
+                "sort": {
+                  "value": {
+                    "kind": "sort",
+                    "placement": {
+                      "i1": "changing",
+                      "i2": "durable"
+                    }
+                  }
+                },
+                "scenario": {
+                  "value": {
+                    "kind": "scenario",
+                    "path": [
+                      {
+                        "node": "n1",
+                        "choice": "n1a"
+                      },
+                      {
+                        "node": "n2",
+                        "choice": "n2a"
+                      },
+                      {
+                        "node": "n3",
+                        "choice": "n3a"
+                      }
+                    ]
+                  }
+                },
+                "form": {
+                  "value": {
+                    "kind": "form",
+                    "fields": {
+                      "role": "Bank teller",
+                      "insight1": "…",
+                      "insight2": "…",
+                      "insight3": "…",
+                      "insight4": "…",
+                      "insight5": "…",
+                      "cv": {
+                        "key": "world/…/cv.pdf"
+                      },
+                      "portfolio": {
+                        "url": "https://…"
+                      }
+                    },
+                    "checklist": [
+                      "consent",
+                      "no_pii"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "attempt",
+                    "awarded",
+                    "badge"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "attempt": {
+                      "$ref": "#/components/schemas/AttemptView"
+                    },
+                    "awarded": {
+                      "type": "object",
+                      "properties": {
+                        "xp": {
+                          "type": "integer"
+                        },
+                        "tokens": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "badge": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "key": {
+                              "type": "string"
+                            },
+                            "label": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "example": {
+                  "ok": true,
+                  "attempt": {
+                    "id": "…",
+                    "attemptNo": 1,
+                    "status": "passed",
+                    "score": 82,
+                    "feedback": "Great specific insights… next time add one number.",
+                    "rubricScores": {
+                      "evidence": 85,
+                      "insight": 80,
+                      "ethics": 80
+                    },
+                    "createdAt": "…",
+                    "reviewedAt": "…"
+                  },
+                  "awarded": {
+                    "xp": 100,
+                    "tokens": 10
+                  },
+                  "badge": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/attempts/{attemptId}/appeal": {
+      "post": {
+        "tags": [
+          "Submissions"
+        ],
+        "summary": "Appeal a result",
+        "description": "One appeal per attempt (reason ≥ 10 characters).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkEmpty"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/progress": {
+      "get": {
+        "tags": [
+          "Progress"
+        ],
+        "summary": "My passport",
+        "description": "Level, XP, HubTokens balance, rank in my pathway, stage scores and badges.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "progress"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "progress": {
+                      "$ref": "#/components/schemas/ProgressView"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/leaderboard": {
+      "get": {
+        "tags": [
+          "Progress"
+        ],
+        "summary": "Leaderboard",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "pathway",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/Pathway"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "overall",
+                "institution",
+                "state"
+              ]
+            }
+          },
+          {
+            "name": "value",
+            "in": "query",
+            "description": "institution id (scope=institution) or state name (scope=state)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "entries"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LeaderboardEntry"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/league": {
+      "get": {
+        "tags": [
+          "Progress"
+        ],
+        "summary": "Campus league",
+        "description": "Institutions ranked by average XP per participant (3+ participants).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "pathway",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/Pathway"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "entries"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LeagueEntry"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/sync": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Load authored missions (admin)",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "overwrite": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "inserted",
+                    "updated"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "inserted": {
+                      "type": "integer"
+                    },
+                    "updated": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/testers": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Add a preview tester (admin)",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkEmpty"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          }
+        }
+      }
+    },
+    "/competitions/review": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Review queue (admin / judge)",
+        "parameters": [
+          {
+            "name": "appeals",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            },
+            "description": "1 = open appeals instead of in_review"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "items"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReviewQueueItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          }
+        }
+      }
+    },
+    "/competitions/review/{attemptId}": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Score a submission (admin / judge)",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "decision",
+                  "feedback"
+                ],
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "pass",
+                      "revise",
+                      "reject"
+                    ]
+                  },
+                  "rubricScores": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100
+                    }
+                  },
+                  "feedback": {
+                    "type": "string"
+                  },
+                  "appeal": {
+                    "type": "string",
+                    "enum": [
+                      "upheld",
+                      "dismissed"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "score",
+                    "awarded"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "score": {
+                      "anyOf": [
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "awarded": {
+                      "type": "object",
+                      "properties": {
+                        "xp": {
+                          "type": "integer"
+                        },
+                        "tokens": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Supabase JWT"
+      }
+    },
+    "schemas": {
+      "Pathway": {
+        "type": "string",
+        "enum": [
+          "career",
+          "enterprise"
+        ]
+      },
+      "MissionKind": {
+        "type": "string",
+        "enum": [
+          "quiz",
+          "sort",
+          "scenario",
+          "board",
+          "canvas",
+          "evidence",
+          "video",
+          "reflection",
+          "team",
+          "live_event",
+          "boss"
+        ],
+        "description": "`quiz`, `sort`, `scenario` have their own config. Every other kind uses `FormConfig`."
+      },
+      "ScoreBucket": {
+        "type": "string",
+        "enum": [
+          "evidence",
+          "quality",
+          "reflection",
+          "teamwork",
+          "showcase"
+        ],
+        "description": "Stage score weights: evidence 40%, quality 25%, reflection 15%, teamwork 10%, showcase 10%."
+      },
+      "ReviewMode": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "ai",
+          "human"
+        ],
+        "description": "`auto` graded instantly (or completion), `ai` scored by the AI reviewer against the rubric, `human` judged (Sunday boss / stage finale)."
+      },
+      "AttemptStatus": {
+        "type": "string",
+        "enum": [
+          "in_review",
+          "passed",
+          "needs_revision",
+          "rejected"
+        ]
+      },
+      "MissionStatus": {
+        "type": "string",
+        "enum": [
+          "locked",
+          "available",
+          "in_review",
+          "passed",
+          "needs_revision",
+          "rejected"
+        ]
+      },
+      "PathwayView": {
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "color"
+        ],
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/Pathway"
+          },
+          "name": {
+            "type": "string",
+            "example": "Career & Employability"
+          },
+          "tagline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "color": {
+            "type": "string",
+            "example": "#2563EB"
+          }
+        }
+      },
+      "InstitutionView": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "University of Lagos"
+          },
+          "shortName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "example": "UNILAG"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string",
+                "example": "Lagos"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "university",
+              "polytechnic",
+              "college",
+              "other"
+            ]
+          }
+        }
+      },
+      "SemesterClock": {
+        "type": "object",
+        "required": [
+          "phase"
+        ],
+        "properties": {
+          "week": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "example": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "day": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 7,
+                "example": 3,
+                "description": "1 = Monday … 7 = Sunday (boss day)"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "example": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startsAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "endsAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "upcoming",
+              "running",
+              "ended"
+            ]
+          }
+        }
+      },
+      "Accessibility": {
+        "type": "object",
+        "properties": {
+          "lite": {
+            "type": "boolean",
+            "description": "Low-data 2D mode"
+          },
+          "captions": {
+            "type": "boolean"
+          },
+          "reducedMotion": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CompetitionSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "format",
+          "status",
+          "pathways",
+          "participants",
+          "joined",
+          "canPlay"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string",
+            "example": "campus"
+          },
+          "name": {
+            "type": "string",
+            "example": "Campus Competition"
+          },
+          "tagline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "classic",
+              "world"
+            ],
+            "description": "`world` = pathways + weekly quests (Campus). `classic` = Marketplace-style missions."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "coming_soon",
+              "preview",
+              "live",
+              "ended"
+            ],
+            "description": "`preview` is only shown to admins/testers; everyone else sees `coming_soon`."
+          },
+          "themeColor": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "seasonName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "startsAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "endsAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pathways": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PathwayView"
+            }
+          },
+          "participants": {
+            "type": "integer"
+          },
+          "joined": {
+            "type": "boolean"
+          },
+          "canPlay": {
+            "type": "boolean",
+            "description": "Show \"Enter\" only when true."
+          }
+        }
+      },
+      "ParticipantView": {
+        "type": "object",
+        "required": [
+          "pathway",
+          "bracket",
+          "avatar",
+          "accessibility",
+          "joinedAt"
+        ],
+        "properties": {
+          "pathway": {
+            "$ref": "#/components/schemas/Pathway"
+          },
+          "institution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InstitutionView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bracket": {
+            "type": "string",
+            "enum": [
+              "newcomer",
+              "advanced"
+            ]
+          },
+          "avatar": {
+            "type": "object",
+            "properties": {
+              "character": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 11
+              }
+            }
+          },
+          "accessibility": {
+            "$ref": "#/components/schemas/Accessibility"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CompetitionDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CompetitionSummary"
+          },
+          {
+            "type": "object",
+            "required": [
+              "weeks",
+              "clock"
+            ],
+            "properties": {
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "weeks": {
+                "type": "integer",
+                "example": 16
+              },
+              "clock": {
+                "$ref": "#/components/schemas/SemesterClock"
+              },
+              "me": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ParticipantView"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "RubricView": {
+        "type": "object",
+        "required": [
+          "key",
+          "title",
+          "passMark",
+          "criteria"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "evidence"
+          },
+          "title": {
+            "type": "string"
+          },
+          "passMark": {
+            "type": "integer",
+            "example": 60
+          },
+          "criteria": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "label",
+                "weight"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "weight": {
+                  "type": "number"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "AttemptView": {
+        "type": "object",
+        "required": [
+          "id",
+          "attemptNo",
+          "status",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attemptNo": {
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AttemptStatus"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "null while in review"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rubricScores": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "number"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "QuizConfig": {
+        "type": "object",
+        "required": [
+          "graded",
+          "questions"
+        ],
+        "properties": {
+          "graded": {
+            "type": "boolean",
+            "description": "false = self-assessment (no right answers; completing it passes)"
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "prompt",
+                "options"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "multi": {
+                  "type": "boolean"
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "SortConfig": {
+        "type": "object",
+        "required": [
+          "prompt",
+          "items",
+          "bins"
+        ],
+        "properties": {
+          "prompt": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "bins": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ScenarioConfig": {
+        "type": "object",
+        "required": [
+          "intro",
+          "start",
+          "nodes"
+        ],
+        "properties": {
+          "intro": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string",
+            "description": "id of the first node"
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "choices": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "next": {
+                        "type": "string",
+                        "description": "next node id; absent = scenario ends"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "FieldDef": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "textarea",
+              "number",
+              "select",
+              "checkbox",
+              "file",
+              "link",
+              "video"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "hint": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "minWords": {
+            "type": "integer"
+          },
+          "maxWords": {
+            "type": "integer"
+          },
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          },
+          "accept": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "image",
+                "pdf",
+                "video"
+              ]
+            }
+          },
+          "maxSeconds": {
+            "type": "integer"
+          },
+          "repeat": {
+            "type": "integer",
+            "description": "Send an array of this many values (e.g. \"Why? ×5\")."
+          }
+        }
+      },
+      "FormConfig": {
+        "type": "object",
+        "required": [
+          "fields"
+        ],
+        "properties": {
+          "variant": {
+            "type": "string",
+            "description": "UI hint: five_whys, scorecard, goal_forge, lean_canvas, value_proposition, star, unit_economics, mock_interview, business_canvas, competitor_map, interview_script, problem_map, route_planner, comparison"
+          },
+          "intro": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldDef"
+            }
+          },
+          "checklist": {
+            "type": "array",
+            "description": "Every item must be ticked — send their ids in `checklist`.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "MissionView": {
+        "type": "object",
+        "required": [
+          "id",
+          "key",
+          "pathway",
+          "stage",
+          "week",
+          "day",
+          "title",
+          "kind",
+          "config",
+          "estMinutes",
+          "xp",
+          "tokens",
+          "bucket",
+          "reviewMode",
+          "status",
+          "unlocksAt",
+          "attemptsUsed",
+          "maxAttempts"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "example": "c-w1-d1"
+          },
+          "pathway": {
+            "$ref": "#/components/schemas/Pathway"
+          },
+          "stage": {
+            "type": "integer"
+          },
+          "week": {
+            "type": "integer"
+          },
+          "day": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7
+          },
+          "title": {
+            "type": "string"
+          },
+          "story": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/MissionKind"
+          },
+          "config": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/QuizConfig"
+              },
+              {
+                "$ref": "#/components/schemas/SortConfig"
+              },
+              {
+                "$ref": "#/components/schemas/ScenarioConfig"
+              },
+              {
+                "$ref": "#/components/schemas/FormConfig"
+              }
+            ],
+            "description": "Shape depends on `kind`."
+          },
+          "estMinutes": {
+            "type": "integer"
+          },
+          "xp": {
+            "type": "integer"
+          },
+          "tokens": {
+            "type": "integer",
+            "description": "HubTokens awarded on pass"
+          },
+          "bucket": {
+            "$ref": "#/components/schemas/ScoreBucket"
+          },
+          "reviewMode": {
+            "$ref": "#/components/schemas/ReviewMode"
+          },
+          "rubric": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RubricView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/MissionStatus"
+          },
+          "unlocksAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attemptsUsed": {
+            "type": "integer"
+          },
+          "maxAttempts": {
+            "type": "integer",
+            "example": 3
+          },
+          "lastAttempt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "badge": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "FieldValue": {
+        "description": "text/textarea → string · number → number · select → option id · checkbox → boolean · link → {url} · file/video → {key from upload-url}",
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "url"
+            ],
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "key"
+            ],
+            "properties": {
+              "key": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "QuizPayload": {
+        "type": "object",
+        "required": [
+          "kind",
+          "answers"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "quiz"
+          },
+          "answers": {
+            "type": "object",
+            "description": "questionId → optionId (or optionId[] when multi)",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "SortPayload": {
+        "type": "object",
+        "required": [
+          "kind",
+          "placement"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "sort"
+          },
+          "placement": {
+            "type": "object",
+            "description": "itemId → binId",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ScenarioPayload": {
+        "type": "object",
+        "required": [
+          "kind",
+          "path"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "scenario"
+          },
+          "path": {
+            "type": "array",
+            "description": "Start at `start`, follow each choice’s `next` until a choice has none.",
+            "items": {
+              "type": "object",
+              "required": [
+                "node",
+                "choice"
+              ],
+              "properties": {
+                "node": {
+                  "type": "string"
+                },
+                "choice": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "FormPayload": {
+        "type": "object",
+        "required": [
+          "kind",
+          "fields"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "form"
+          },
+          "fields": {
+            "type": "object",
+            "description": "fieldId → FieldValue (or FieldValue[] for `repeat` fields)",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/FieldValue"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldValue"
+                  }
+                }
+              ]
+            }
+          },
+          "checklist": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "ids of the ticked checklist items (all are required)"
+          }
+        }
+      },
+      "AttemptPayload": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/QuizPayload"
+          },
+          {
+            "$ref": "#/components/schemas/SortPayload"
+          },
+          {
+            "$ref": "#/components/schemas/ScenarioPayload"
+          },
+          {
+            "$ref": "#/components/schemas/FormPayload"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
+      "StageScore": {
+        "type": "object",
+        "properties": {
+          "stage": {
+            "type": "integer"
+          },
+          "buckets": {
+            "type": "object",
+            "properties": {
+              "evidence": {
+                "type": "number"
+              },
+              "quality": {
+                "type": "number"
+              },
+              "reflection": {
+                "type": "number"
+              },
+              "teamwork": {
+                "type": "number"
+              },
+              "showcase": {
+                "type": "number"
+              }
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "passMark": {
+            "type": "integer"
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "missionsDone": {
+            "type": "integer"
+          },
+          "missionsTotal": {
+            "type": "integer"
+          }
+        }
+      },
+      "ProgressView": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "object",
+            "properties": {
+              "level": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string",
+                "example": "Builder"
+              },
+              "xpToNext": {
+                "type": "integer"
+              },
+              "progress": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          },
+          "xp": {
+            "type": "integer"
+          },
+          "tokens": {
+            "type": "integer",
+            "description": "HubTokens balance"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StageScore"
+            }
+          },
+          "badges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "icon": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "awardedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          }
+        }
+      },
+      "LeaderboardEntry": {
+        "type": "object",
+        "properties": {
+          "rank": {
+            "type": "integer"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "displayName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avatarUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "xp": {
+            "type": "integer"
+          },
+          "missionsCompleted": {
+            "type": "integer"
+          },
+          "institution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "LeagueEntry": {
+        "type": "object",
+        "properties": {
+          "rank": {
+            "type": "integer"
+          },
+          "institutionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "shortName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "participants": {
+            "type": "integer"
+          },
+          "totalXp": {
+            "type": "integer"
+          },
+          "averageXp": {
+            "type": "integer"
+          }
+        }
+      },
+      "ReviewQueueItem": {
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "competition": {
+            "type": "string"
+          },
+          "mission": {
+            "type": "object"
+          },
+          "rubric": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RubricView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "username": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "displayName": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "payload": {
+            "type": "object"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "fieldId": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "signed, 30 min"
+                }
+              }
+            }
+          },
+          "aiSuggestion": {
+            "type": "object",
+            "properties": {
+              "score": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "feedback": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "criteria": {
+                "anyOf": [
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "appeal": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Human-readable — show it to the user",
+            "example": "Join the competition first."
+          }
+        }
+      },
+      "OkEmpty": {
+        "type": "object",
+        "required": [
+          "ok"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          }
+        }
+      }
+    },
+    "responses": {
+      "E400": {
+        "description": "Invalid input or rule broken — show `error` to the user",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "E401": {
+        "description": "Not signed in",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Unauthorized"
+            }
+          }
+        }
+      },
+      "E403": {
+        "description": "Not allowed (admin only)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Unauthorized"
+            }
+          }
+        }
+      },
+      "E404": {
+        "description": "Not found, or a competition you can’t play yet",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Competition not found."
+            }
+          }
+        }
+      },
+      "E429": {
+        "description": "Rate limited",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    }
+  }
+}

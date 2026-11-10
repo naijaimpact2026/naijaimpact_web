@@ -3,7 +3,7 @@
  * Safe to import from client and server code (no secrets, no DB access).
  */
 
-export type CompetitionStatus = 'coming_soon' | 'live' | 'ended'
+export type CompetitionStatus = 'coming_soon' | 'preview' | 'live' | 'ended'
 export type MissionVerification = 'auto' | 'proof' | 'checkin'
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected'
 export type LeaderboardGroup = 'overall' | 'state' | 'category' | 'campus'
@@ -18,6 +18,8 @@ export interface Competition
     icon: string
     theme_color: string
     status: CompetitionStatus
+    /** 'world' = Hubnovo World (pathways + weekly quests); rendered by its own page. */
+    format?: 'classic' | 'world'
     season_name: string | null
     season_start: string | null
     season_end: string | null
