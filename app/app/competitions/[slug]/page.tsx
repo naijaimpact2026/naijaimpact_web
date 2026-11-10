@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, Lock, Trophy, Users } from 'lucide-react'
 import { getCurrentUser } from '@/lib/supabase/auth'
-import { getCompetitionDetail, getLeaderboard } from '@/lib/competitions/queries'
+import { getCompetition, getCompetitionDetail, getLeaderboard } from '@/lib/competitions/queries'
 import { competitionIcon } from '@/lib/competitions/icons'
 import { POINTS_LABEL, getLevel, isSeasonOpen } from '@/lib/competitions/config'
 import SeasonCountdown from '@/components/app/competitions/SeasonCountdown'
@@ -20,13 +20,16 @@ export default async function CompetitionPage({
     searchParams,
 }: {
     params: Promise<{ slug: string }>
-    searchParams: Promise<{ state?: string }>
+    searchParams: Promise<{ state?: string; week?: string }>
 })
 {
-    const [{ slug }, { state: stateParam }, { profile }] = await Promise.all([params, searchParams, getCurrentUser()])
+    const [{ slug }, { state: stateParam, week: weekParam }, { profile }] = await Promise.all([params, searchParams, getCurrentUser()])
+    // World competitions (e.g. Campus) have their own player experience.
+    const base = await getCompetition(slug)
+    if (!base) notFound()
+    if (base.format === 'world') return <WorldCompetitionPage slug={slug} profile={profile} week={Number(weekParam) || undefined} />
     const detail = await getCompetitionDetail(slug, profile)
     if (!detail) notFound()
-    if (detail.competition.format === 'world') return <WorldCompetitionPage slug={slug} profile={profile} />
 
     const { competition: c, zones, missions, participant, myXp, myRank, participantCount, states } = detail
     const Icon = competitionIcon(c.icon)

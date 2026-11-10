@@ -24,6 +24,12 @@ async function me()
 const unauthorized = { ok: false as const, error: 'Please sign in again.' }
 const refresh = (slug: string) => revalidatePath(`/app/competitions/${slug}`)
 
+export async function searchInstitutionsAction(q: string)
+{
+    const p = await me(); if (!p) return unauthorized
+    return { ok: true as const, institutions: await world.searchInstitutions(String(q ?? '')) }
+}
+
 export async function joinWorldAction(slug: string, input: world.JoinInput)
 {
     const p = await me(); if (!p) return unauthorized
@@ -62,24 +68,10 @@ export async function appealWorldAttemptAction(slug: string, attemptId: string, 
 
 // ─── Admin ───────────────────────────────────────────────────────────────────
 
-export async function syncWorldContentAction(slug: string, overwrite = false)
-{
-    const p = await me(); if (!p) return unauthorized
-    const r = await world.syncContent(slug, p, overwrite)
-    if (r.ok) refresh(slug)
-    return r
-}
-
 export async function reviewWorldAttemptAction(input: world.ReviewInput)
 {
     const p = await me(); if (!p) return unauthorized
     const r = await world.reviewAttempt(p, input)
     if (r.ok) revalidatePath('/app/competitions/world-review')
     return r
-}
-
-export async function addWorldTesterAction(slug: string, username: string)
-{
-    const p = await me(); if (!p) return unauthorized
-    return world.addTester(slug, p, username)
 }
