@@ -9,16 +9,24 @@ export default function SortActivity({ config, color, submitting, onSubmit }: { 
 {
     const [placement, setPlacement] = useState<Record<string, string>>({})
     const [selected, setSelected] = useState<string | null>(null)
+    const [over, setOver] = useState<string | null>(null)
     const unplaced = config.items.filter((i) => !placement[i.id])
     const done = unplaced.length === 0
 
-    function place(binId: string)
+    function place(binId: string, itemId = selected)
     {
-        if (!selected) return
-        setPlacement((p) => ({ ...p, [selected]: binId }))
-        const nextUnplaced = config.items.find((i) => i.id !== selected && !placement[i.id])
+        if (!itemId) return
+        setPlacement((p) => ({ ...p, [itemId]: binId }))
+        const nextUnplaced = config.items.find((i) => i.id !== itemId && !placement[i.id])
         setSelected(nextUnplaced?.id ?? null)
     }
+
+    // Desktop drag & drop (tap-to-place still works everywhere).
+    const dragProps = (itemId: string) => ({
+        draggable: true,
+        onDragStart: (e: React.DragEvent) => { e.dataTransfer.setData('text/plain', itemId); e.dataTransfer.effectAllowed = 'move'; setSelected(itemId) },
+        onDragEnd: () => setOver(null),
+    })
 
     function unplace(itemId: string)
     {
@@ -32,12 +40,13 @@ export default function SortActivity({ config, color, submitting, onSubmit }: { 
 
             {unplaced.length > 0 && (
                 <div className="space-y-2">
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{selected ? 'Now tap a group below' : 'Tap an item'} · {unplaced.length} left</p>
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{selected ? 'Now tap a group below' : 'Tap or drag an item'} · {unplaced.length} left</p>
                     <div className="flex flex-wrap gap-2">
                         {unplaced.map((item) => (
                             <button
                                 key={item.id}
                                 type="button"
+                                {...dragProps(item.id)}
                                 onClick={() => setSelected(item.id)}
                                 aria-pressed={selected === item.id}
                                 className={`hw-press rounded-xl border-2 px-3 py-2 text-sm font-medium transition-all ${selected === item.id ? 'hw-pop scale-[1.04] text-foreground shadow-md' : 'border-border text-foreground hover:-translate-y-0.5 hover:bg-muted/50'}`}
@@ -59,15 +68,19 @@ export default function SortActivity({ config, color, submitting, onSubmit }: { 
                             key={bin.id}
                             type="button"
                             onClick={() => place(bin.id)}
-                            disabled={!selected}
-                            className={`hw-press flex min-h-[140px] flex-col gap-2 rounded-2xl border-2 border-dashed p-3 text-left transition-colors ${selected ? 'hw-glow hover:bg-muted/40' : ''}`}
-                            style={{ borderColor: selected ? color : undefined, ['--hw-glow' as string]: `${color}55` }}
+                            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setOver(bin.id) }}
+                            onDragLeave={() => setOver((o) => (o === bin.id ? null : o))}
+                            onDrop={(e) => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); setOver(null); if (id) place(bin.id, id) }}
+                            aria-disabled={!selected}
+                            className={`hw-press flex min-h-[140px] flex-col gap-2 rounded-2xl border-2 border-dashed p-3 text-left transition-all ${selected ? 'hw-glow hover:bg-muted/40' : ''} ${over === bin.id ? 'scale-[1.02] bg-muted/50' : ''}`}
+                            style={{ borderColor: selected || over === bin.id ? color : undefined, ['--hw-glow' as string]: `${color}55` }}
                         >
                             <span className="text-sm font-bold text-foreground">{bin.label} <span className="font-semibold text-muted-foreground">({items.length})</span></span>
                             <span className="flex flex-wrap gap-1.5">
                                 {items.map((i) => (
                                     <span
                                         key={i.id}
+                                        {...dragProps(i.id)}
                                         role="button"
                                         tabIndex={0}
                                         onClick={(e) => { e.stopPropagation(); unplace(i.id) }}

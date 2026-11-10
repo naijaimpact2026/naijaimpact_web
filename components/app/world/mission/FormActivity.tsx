@@ -35,6 +35,42 @@ function isFilled(f: FieldDef, v: Value | undefined): boolean
 
 const draftKey = (missionId: string) => `hubnovo:draft:${missionId}`
 
+const CANVAS_VARIANTS = ['value_proposition', 'lean_canvas', 'business_canvas']
+const STAR_BADGE: Record<string, { letter: string; word: string; color: string }> = {
+    situation: { letter: 'S', word: 'Situation', color: '#2563EB' },
+    task: { letter: 'T', word: 'Task', color: '#7C3AED' },
+    action: { letter: 'A', word: 'Action', color: '#DB2777' },
+    result: { letter: 'R', word: 'Result', color: '#16A34A' },
+}
+
+/** Live margin / revenue / profit from the unit-economics fields. */
+function UnitEconomics({ values, color }: { values: Record<string, Value>; color: string })
+{
+    const n = (k: string) => (typeof values[k] === 'number' ? (values[k] as number) : null)
+    const price = n('price'), cost = n('cost'), units = n('units')
+    if (price === null || cost === null) return <p className="rounded-2xl bg-muted/50 px-4 py-3 text-xs text-muted-foreground">Enter your price and cost to see your margin.</p>
+    const margin = price - cost
+    const pct = price > 0 ? Math.round((margin / price) * 100) : 0
+    const naira = (v: number) => `₦${Math.round(v).toLocaleString('en-NG')}`
+    const rows = [
+        { label: 'Margin per unit', value: naira(margin), good: margin > 0 },
+        { label: 'Margin %', value: `${pct}%`, good: pct >= 20 },
+        { label: 'Monthly revenue', value: units === null ? '—' : naira(price * units), good: true },
+        { label: 'Monthly gross profit', value: units === null ? '—' : naira(margin * units), good: margin > 0 },
+    ]
+    return (
+        <div className="hw-pop grid grid-cols-2 gap-2 rounded-2xl border-2 p-3" style={{ borderColor: `${color}44` }}>
+            {rows.map((r) => (
+                <div key={r.label} className="rounded-xl bg-muted/40 p-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground">{r.label}</p>
+                    <p className={`mt-0.5 text-lg font-extrabold tabular-nums ${r.good ? 'text-foreground' : 'text-red-600'}`}>{r.value}</p>
+                </div>
+            ))}
+            {margin <= 0 && <p className="col-span-2 text-xs font-semibold text-red-600">You’re losing money on each unit. Check your price or costs.</p>}
+        </div>
+    )
+}
+
 /** Removes a saved draft (called after a successful submit). */
 export function clearFormDraft(missionId: string)
 {
@@ -54,6 +90,7 @@ export default function FormActivity({ slug, missionId, config, color, submittin
     const loaded = useRef(false)
     const uploading = Object.values(uploads).some((u) => !u.key)
 
+    const isCanvas = CANVAS_VARIANTS.includes(config.variant ?? '')
     const required = config.fields.filter((f) => f.required)
     const missing = useMemo(() => required.filter((f) => !isFilled(f, values[f.id])), [required, values])
     const checklistDone = (config.checklist ?? []).every((c) => checked.includes(c.id))
@@ -129,19 +166,22 @@ export default function FormActivity({ slug, missionId, config, color, submittin
 
             {config.intro && <p className="rounded-2xl bg-muted/60 px-4 py-3 text-sm text-foreground">{config.intro}</p>}
 
+            <div className={isCanvas ? 'grid gap-3 sm:grid-cols-2' : 'space-y-5'}>
             {config.fields.map((f, idx) =>
             {
                 const filled = isFilled(f, values[f.id])
                 const flagged = showErrors && f.required && !filled
+                const star = config.variant === 'star' ? STAR_BADGE[f.id] : undefined
                 return (
                     <div
                         key={f.id}
                         id={`field-${f.id}`}
-                        className={`hw-rise space-y-1.5 rounded-2xl transition-colors ${flagged ? 'hw-shake -mx-2 bg-red-500/5 px-2 py-2 ring-1 ring-red-500/40' : ''}`}
+                        className={`hw-rise space-y-1.5 rounded-2xl transition-colors ${isCanvas ? `hw-lift border bg-muted/20 p-3 ${filled ? 'border-emerald-500/40' : 'border-border'}` : ''} ${flagged ? `hw-shake bg-red-500/5 ring-1 ring-red-500/40 ${isCanvas ? '' : '-mx-2 px-2 py-2'}` : ''}`}
                         style={{ animationDelay: `${Math.min(idx, 8) * 40}ms` }}
                     >
                         <label htmlFor={`f-${f.id}`} className="flex items-baseline justify-between gap-2">
                             <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                                {star && <span className="flex h-6 w-6 items-center justify-center rounded-lg text-xs font-extrabold text-white" style={{ backgroundColor: star.color }} title={star.word}>{star.letter}</span>}
                                 {filled && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white"><CheckMark className="h-3 w-3" /></span>}
                                 {f.label}{f.required ? '' : <span className="font-normal text-muted-foreground"> (optional)</span>}
                             </span>
@@ -151,13 +191,17 @@ export default function FormActivity({ slug, missionId, config, color, submittin
                         </label>
                         {f.hint && <p className="text-xs text-muted-foreground">{f.hint}</p>}
                         {f.repeat ? (
-                            <div className="space-y-2">
+                            <div className={config.variant === 'five_whys' ? 'relative space-y-2 pl-1' : 'space-y-2'}>
+                                {config.variant === 'five_whys' && <span aria-hidden className="absolute bottom-5 left-[19px] top-5 w-0.5 rounded-full" style={{ backgroundColor: `${color}55` }} />}
                                 {Array.from({ length: f.repeat }, (_, n) =>
                                 {
                                     const arr = (Array.isArray(values[f.id]) ? values[f.id] : Array(f.repeat).fill('')) as FieldValue[]
+                                    const why = config.variant === 'five_whys'
                                     return (
-                                        <div key={n} className="flex items-center gap-2">
-                                            <span className="w-6 shrink-0 text-right text-xs font-bold tabular-nums text-muted-foreground">{n + 1}.</span>
+                                        <div key={n} className="relative flex items-center gap-2">
+                                            {why
+                                                ? <span className={`relative z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold ${arr[n] ? 'text-white' : 'bg-muted text-muted-foreground'}`} style={arr[n] ? { backgroundColor: color } : undefined} title={`Why #${n + 1}`}>W{n + 1}</span>
+                                                : <span className="w-6 shrink-0 text-right text-xs font-bold tabular-nums text-muted-foreground">{n + 1}.</span>}
                                             <FieldInput
                                                 id={n === 0 ? `f-${f.id}` : `f-${f.id}-${n}`}
                                                 field={{ ...f, repeat: undefined }}
@@ -186,6 +230,10 @@ export default function FormActivity({ slug, missionId, config, color, submittin
                     </div>
                 )
             })}
+
+            </div>
+
+            {config.variant === 'unit_economics' && <UnitEconomics values={values} color={color} />}
 
             {(config.checklist?.length ?? 0) > 0 && (
                 <fieldset id="form-checklist" className={`space-y-2 rounded-2xl border p-4 transition-colors ${showErrors && !checklistDone ? 'hw-shake border-red-500/50 bg-red-500/5' : 'border-border bg-muted/30'}`}>
