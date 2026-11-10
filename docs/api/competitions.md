@@ -15,7 +15,7 @@ Shared TypeScript types live in [`lib/world/types.ts`](../../lib/world/types.ts)
 - **Time:** all times are ISO-8601 UTC. Semesters run on Lagos time (UTC+1); day 1 = Monday, day 7 = Sunday (boss day).
 
 ## Status of the Campus Competition
-`status: "preview"` — only **admins and testers** can play. Everyone else sees it as `coming_soon` and gets `404` on play endpoints. Ask an admin to add your username as a tester (see Admin below).
+`status: "live"` — any signed-in user can join and play. (When a competition is `preview`, only admins and testers can play; everyone else sees `coming_soon` and gets `404`.)
 
 ---
 

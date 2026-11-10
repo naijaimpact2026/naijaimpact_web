@@ -28,7 +28,7 @@ const HTML = `<!doctype html>
 <body>
 <header class="band">
   <h1>Hubnovo World API</h1>
-  <p>Campus Competition endpoints for the mobile app and web. Click <b>Authorize</b> and paste a Supabase access token (just the token, no <code>Bearer</code>) to try requests against this deployment. Campus is in preview: your account must be added as a tester.</p>
+  <p>Campus Competition endpoints for the mobile app and web. Click <b>Authorize</b> and paste a Supabase access token (just the token, no <code>Bearer</code>) to try requests against this deployment. Any signed-in Hubnovo account can join the Campus Competition.</p>
 </header>
 <div id="swagger"></div>
 <script src="${SWAGGER}/swagger-ui-bundle.js"></script>

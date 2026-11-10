@@ -107,7 +107,7 @@ const spec = {
       '',
       '**Time:** ISO-8601 UTC. Semesters run on Lagos time (UTC+1); day 1 = Monday, day 7 = Sunday (boss day).',
       '',
-      '**Preview:** the Campus Competition is `preview` — only admins and added testers can play; ask an admin to add your username.',
+      '**Access:** the Campus Competition is `live` — any signed-in user can join. (A competition in `preview` is limited to admins and testers.)',
       '',
       '**App flow:** `GET /competitions` → `GET /competitions/campus` (me = null → onboarding) → `GET /institutions` → `POST …/join` → home `GET …/quests/today` → mission `GET …/missions/{id}` → uploads → `POST …/attempts` → `GET …/progress`, `…/leaderboard`, `…/league`.',
       '',
