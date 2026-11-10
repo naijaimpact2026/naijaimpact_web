@@ -146,7 +146,8 @@ Campus vs campus — average XP per participant, institutions with 3+ participan
   bucket: 'evidence'|'quality'|'reflection'|'teamwork'|'showcase',
   reviewMode: 'auto'|'ai'|'human', rubric: { key, title, passMark, criteria: [{ id, label, weight }] } | null,
   status: 'locked'|'available'|'in_review'|'passed'|'needs_revision'|'rejected',
-  unlocksAt, attemptsUsed, maxAttempts, lastAttempt: AttemptView | null, badge: { key, label } | null }
+  unlocksAt, attemptsUsed, maxAttempts, lastAttempt: AttemptView | null, badge: { key, label } | null,
+  tips: string[] /* "How to do this" steps to show above the activity */ }
 ```
 
 ## Mission kinds, configs and payloads
@@ -159,6 +160,7 @@ Campus vs campus — average XP per participant, institutions with 3+ participan
 | `board`, `canvas`, `evidence`, `video`, `reflection`, `team`, `live_event`, `boss` | `FormConfig` (below) | `{ kind: "form", fields: { [fieldId]: value }, checklist: [checklistId] }` |
 
 `graded: false` quizzes are self-assessments (no right answers). Answer keys are never sent to clients.
+Self-assessments may include `config.profile`; their attempts then return `insights` (a ranked result such as the **Skill Compass**: `{ title, intro, ranking: [{ id, label, description, careers, share }] }`). Show it instead of a score.
 
 ### `FormConfig`
 ```ts

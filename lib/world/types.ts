@@ -34,6 +34,23 @@ export interface QuizConfig
     questions: { id: string; prompt: string; options: { id: string; label: string }[]; multi?: boolean }[]
     /** false = self-assessment (no right answers; completing it passes). */
     graded: boolean
+    /** Self-assessments: what each answer option id means (results are returned as AttemptView.insights). */
+    profile?: QuizProfile
+}
+
+export interface QuizProfile
+{
+    title: string
+    intro: string
+    outcomes: Record<string, { label: string; description: string; careers: string[] }>
+}
+
+/** Ranked self-assessment result (e.g. the Skill Compass). share = % of answers. */
+export interface QuizInsights
+{
+    title: string
+    intro: string
+    ranking: { id: string; label: string; description: string; careers: string[]; share: number }[]
 }
 
 export interface SortConfig
@@ -119,6 +136,8 @@ export interface AttemptView
     rubricScores: Record<string, number> | null
     createdAt: string
     reviewedAt: string | null
+    /** Self-assessment results (e.g. Skill Compass); null for other missions. */
+    insights: QuizInsights | null
 }
 
 export interface MissionView
@@ -148,6 +167,8 @@ export interface MissionView
     lastAttempt: AttemptView | null
     /** Badge awarded when this mission passes (weekly boss / stage finale). */
     badge: { key: string; label: string } | null
+    /** "How to do this" — 1–3 practical steps to show before the activity. */
+    tips: string[]
 }
 
 export interface PathwayView

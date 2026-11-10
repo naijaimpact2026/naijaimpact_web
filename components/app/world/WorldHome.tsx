@@ -5,6 +5,8 @@ import { characterPreviewUrl } from '@/lib/competitions/config'
 import { getProgress, listQuests, todayQuests } from '@/lib/world/service'
 import { BUCKET_WEIGHTS, TOKENS_LABEL, XP_LABEL, type CompetitionDetail, type MissionView, type ScoreBucket } from '@/lib/world/types'
 import { DAY_LONG, DAY_NAMES, KIND_META, REVIEW_META, STATUS_META, formatUnlock } from '@/lib/world/ui'
+import HowItWorks from './HowItWorks'
+import { AnimatedBar, CountUp } from './fx'
 
 /*
  * Player home for a Hubnovo World competition: who you are, today's quest,
@@ -33,37 +35,49 @@ export default async function WorldHome({ competition: c, profile, week }: { com
     const base = `/app/competitions/${c.slug}`
 
     return (
-        <div className="space-y-5">
+        <div className={`space-y-5 ${me.accessibility.reducedMotion ? 'hw-reduce' : ''}`}>
             {/* You */}
-            <section className="relative overflow-hidden rounded-3xl p-5 sm:p-6 text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${color} 0%, #102A43 90%)` }}>
-                <div className="flex items-center gap-4">
-                    <div className="h-20 w-20 shrink-0 rounded-3xl bg-white/15 p-2 sm:h-24 sm:w-24">
+            <section className="hw-rise relative overflow-hidden rounded-3xl p-5 sm:p-6 text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${color} 0%, #102A43 90%)` }}>
+                <div className="absolute right-4 top-4 z-10">
+                    <HowItWorks
+                        color={color}
+                        summary={{
+                            pathwayName: pathway.name,
+                            week: c.clock.week, day: c.clock.day, dayName: c.clock.day ? DAY_LONG[c.clock.day - 1] : null,
+                            today: today ? { title: today.title, href: `${base}/missions/${today.id}`, status: today.status, xp: today.xp } : null,
+                            catchUp: catchUp.length,
+                            stage: stage ? { number: stage.stage, total: stage.total, passMark: stage.passMark, done: stage.missionsDone, count: stage.missionsTotal } : null,
+                            level: progress ? { level: progress.level.level, name: progress.level.name } : null,
+                            xp: progress?.xp ?? 0, tokens: progress?.tokens ?? 0,
+                        }}
+                    />
+                </div>
+                <div className="flex items-center gap-4 pr-0 sm:pr-36">
+                    <div className="hw-float h-20 w-20 shrink-0 rounded-3xl bg-white/15 p-2 sm:h-24 sm:w-24">
                         {/* eslint-disable-next-line @next/next/no-img-element -- tiny static PNG */}
                         <img src={characterPreviewUrl(me.avatar.character)} alt="" className="h-full w-full object-contain" />
                     </div>
                     <div className="min-w-0 flex-1 space-y-1.5">
                         <p className="text-[11px] font-bold uppercase tracking-wider text-white/75">{pathway.name}{me.institution ? ` · ${me.institution.shortName ?? me.institution.name}` : ''}</p>
-                        <h1 className="truncate text-xl font-extrabold sm:text-2xl">{profile.display_name ?? profile.username}</h1>
+                        <h1 className="truncate pr-28 text-xl font-extrabold sm:pr-0 sm:text-2xl">{profile.display_name ?? profile.username}</h1>
                         {progress && (
                             <>
                                 <p className="text-xs font-semibold text-white/85">Level {progress.level.level} · {progress.level.name}</p>
-                                <div className="h-2 max-w-sm overflow-hidden rounded-full bg-white/20">
-                                    <div className="h-full rounded-full bg-white" style={{ width: `${Math.round(progress.level.progress * 100)}%` }} />
-                                </div>
+                                <AnimatedBar pct={progress.level.progress * 100} color="#ffffff" track="bg-white/20" className="h-2 max-w-sm" />
                                 <p className="text-[11px] text-white/70">{progress.level.xpToNext > 0 ? `${progress.level.xpToNext.toLocaleString('en-NG')} ${XP_LABEL} to the next level` : 'Top level reached'}</p>
                             </>
                         )}
                     </div>
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                    <Stat icon={Zap} value={(progress?.xp ?? 0).toLocaleString('en-NG')} label={XP_LABEL} />
-                    <Stat icon={Coins} value={(progress?.tokens ?? 0).toLocaleString('en-NG')} label={TOKENS_LABEL} />
+                    <Stat icon={Zap} value={<CountUp value={progress?.xp ?? 0} />} label={XP_LABEL} />
+                    <Stat icon={Coins} value={<CountUp value={progress?.tokens ?? 0} />} label={TOKENS_LABEL} />
                     <Stat icon={Medal} value={progress?.rank ? `#${progress.rank}` : '—'} label="Rank" />
                 </div>
             </section>
 
             {/* Today */}
-            <section className="space-y-2">
+            <section className="hw-rise space-y-2" style={{ animationDelay: '80ms' }}>
                 <div className="flex items-baseline justify-between gap-2">
                     <h2 className="text-base font-bold text-foreground">Today’s quest</h2>
                     {c.clock.phase === 'running' && <span className="text-xs font-semibold text-muted-foreground">Week {c.clock.week} · {DAY_LONG[(c.clock.day ?? 1) - 1]}</span>}
@@ -81,7 +95,7 @@ export default async function WorldHome({ competition: c, profile, week }: { com
 
             {/* Catch-up */}
             {catchUp.length > 0 && (
-                <section className="space-y-2">
+                <section className="hw-rise space-y-2" style={{ animationDelay: '140ms' }}>
                     <h2 className="text-base font-bold text-foreground">Catch up <span className="text-sm font-semibold text-muted-foreground">({catchUp.length})</span></h2>
                     <div className="grid gap-2 sm:grid-cols-2">
                         {catchUp.slice(0, 6).map((m) => <MissionRow key={m.id} mission={m} href={`${base}/missions/${m.id}`} />)}
@@ -90,7 +104,7 @@ export default async function WorldHome({ competition: c, profile, week }: { com
             )}
 
             {/* Week */}
-            <section className="space-y-3">
+            <section className="hw-rise space-y-3" style={{ animationDelay: '200ms' }}>
                 <div className="flex items-center justify-between gap-2">
                     <h2 className="text-base font-bold text-foreground">Week {shownWeek}</h2>
                     <div className="flex items-center gap-1">
@@ -101,22 +115,22 @@ export default async function WorldHome({ competition: c, profile, week }: { com
                 {weekMissions.length === 0 ? (
                     <p className="rounded-2xl border border-dashed border-border p-5 text-center text-sm text-muted-foreground">Missions for this week will be published soon.</p>
                 ) : (
-                    <ol className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-7">
-                        {weekMissions.map((m) => <DayTile key={m.id} mission={m} href={`${base}/missions/${m.id}`} today={c.clock.week === m.week && c.clock.day === m.day} color={color} />)}
+                    <ol key={shownWeek} className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-7">
+                        {weekMissions.map((m, n) => <DayTile key={m.id} index={n} mission={m} href={`${base}/missions/${m.id}`} today={c.clock.week === m.week && c.clock.day === m.day} color={color} />)}
                     </ol>
                 )}
             </section>
 
             {/* Stage score */}
             {stage && (
-                <section className="rounded-3xl border border-border bg-card p-4 sm:p-5 space-y-4">
+                <section className="hw-rise rounded-3xl border border-border bg-card p-4 sm:p-5 space-y-4" style={{ animationDelay: '260ms' }}>
                     <div className="flex items-start justify-between gap-3">
                         <div>
                             <h2 className="text-base font-bold text-foreground">Stage {stage.stage} score</h2>
                             <p className="text-xs text-muted-foreground">{stage.missionsDone}/{stage.missionsTotal} missions complete · pass mark {stage.passMark}</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-3xl font-extrabold tabular-nums text-foreground">{stage.total}</p>
+                            <p className="text-3xl font-extrabold tabular-nums text-foreground"><CountUp value={stage.total} /></p>
                             <p className="text-[11px] font-semibold text-muted-foreground">out of 100</p>
                         </div>
                     </div>
@@ -124,7 +138,7 @@ export default async function WorldHome({ competition: c, profile, week }: { com
                         {(Object.keys(BUCKET_WEIGHTS) as ScoreBucket[]).map((b) => (
                             <li key={b} className="grid grid-cols-[92px_1fr_36px] items-center gap-3 text-xs">
                                 <span className="font-semibold text-foreground">{BUCKET_LABEL[b]} <span className="text-muted-foreground">{BUCKET_WEIGHTS[b]}%</span></span>
-                                <span className="h-2 overflow-hidden rounded-full bg-muted"><span className="block h-full rounded-full" style={{ width: `${stage.buckets[b]}%`, backgroundColor: color }} /></span>
+                                <AnimatedBar pct={stage.buckets[b]} color={color} />
                                 <span className="text-right font-bold tabular-nums text-foreground">{stage.buckets[b]}</span>
                             </li>
                         ))}
@@ -136,10 +150,10 @@ export default async function WorldHome({ competition: c, profile, week }: { com
     )
 }
 
-function Stat({ icon: Icon, value, label }: { icon: typeof Zap; value: string; label: string })
+function Stat({ icon: Icon, value, label }: { icon: typeof Zap; value: React.ReactNode; label: string })
 {
     return (
-        <div className="rounded-2xl bg-black/20 px-2 py-2.5">
+        <div className="hw-lift rounded-2xl bg-black/20 px-2 py-2.5 hover:bg-black/30">
             <p className="flex items-center justify-center gap-1 text-lg font-extrabold tabular-nums"><Icon className="h-4 w-4 opacity-80" />{value}</p>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-white/70">{label}</p>
         </div>
@@ -149,7 +163,7 @@ function Stat({ icon: Icon, value, label }: { icon: typeof Zap; value: string; l
 function WeekLink({ href, disabled, label, children }: { href: string; disabled: boolean; label: string; children: React.ReactNode })
 {
     if (disabled) return <span aria-hidden className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground/40">{children}</span>
-    return <Link href={href} scroll={false} aria-label={label} className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-muted">{children}</Link>
+    return <Link href={href} scroll={false} aria-label={label} className="hw-press flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground hover:bg-muted">{children}</Link>
 }
 
 function TodayCard({ mission: m, href, color }: { mission: MissionView; href: string; color: string })
@@ -160,7 +174,7 @@ function TodayCard({ mission: m, href, color }: { mission: MissionView; href: st
     const boss = m.kind === 'boss'
     const done = m.status === 'passed'
     return (
-        <Link href={href} className="group block rounded-3xl border-2 bg-card p-4 sm:p-5 shadow-sm transition-shadow hover:shadow-md" style={{ borderColor: boss ? '#F59E0B' : `${color}55` }}>
+        <Link href={href} className={`hw-lift hw-press group block rounded-3xl border-2 bg-card p-4 sm:p-5 shadow-sm ${boss && !done ? 'hw-shine-host' : ''}`} style={{ borderColor: boss ? '#F59E0B' : `${color}55` }}>
             <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold text-white" style={{ backgroundColor: boss ? '#D97706' : color }}>
                     {boss ? <Swords className="h-3.5 w-3.5" /> : <kind.icon className="h-3.5 w-3.5" />}{kind.label}
@@ -176,7 +190,7 @@ function TodayCard({ mission: m, href, color }: { mission: MissionView; href: st
                 <span className="inline-flex items-center gap-1"><review.icon className="h-3.5 w-3.5" />{review.label}</span>
                 {m.badge && <span className="inline-flex items-center gap-1"><Trophy className="h-3.5 w-3.5 text-amber-500" />{m.badge.label} badge</span>}
             </div>
-            <span className="mt-4 inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold text-white transition-all group-hover:gap-2.5" style={{ backgroundColor: boss ? '#D97706' : color }}>
+            <span className="mt-4 inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all group-hover:gap-2.5 group-hover:shadow-lg" style={{ backgroundColor: boss ? '#D97706' : color }}>
                 {done ? 'View result' : m.status === 'in_review' ? 'View submission' : m.status === 'needs_revision' ? 'Try again' : 'Start mission'} <ArrowRight className="h-4 w-4" />
             </span>
         </Link>
@@ -188,7 +202,7 @@ function MissionRow({ mission: m, href }: { mission: MissionView; href: string }
     const kind = KIND_META[m.kind]
     const status = STATUS_META[m.status]
     return (
-        <Link href={href} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 hover:bg-muted/50">
+        <Link href={href} className="hw-lift hw-press flex items-center gap-3 rounded-2xl border border-border bg-card p-3 hover:bg-muted/50">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground"><kind.icon className="h-4 w-4" /></span>
             <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-foreground">{m.title}</span>
@@ -199,7 +213,7 @@ function MissionRow({ mission: m, href }: { mission: MissionView; href: string }
     )
 }
 
-function DayTile({ mission: m, href, today, color }: { mission: MissionView; href: string; today: boolean; color: string })
+function DayTile({ mission: m, href, today, color, index }: { mission: MissionView; href: string; today: boolean; color: string; index: number })
 {
     const kind = KIND_META[m.kind]
     const status = STATUS_META[m.status]
@@ -215,12 +229,13 @@ function DayTile({ mission: m, href, today, color }: { mission: MissionView; hre
             <span className="mt-auto text-[11px] font-semibold text-muted-foreground">{locked ? `Opens ${formatUnlock(m.unlocksAt)}` : `${m.xp} ${XP_LABEL}`}</span>
         </>
     )
-    const cls = `flex h-full min-h-[132px] flex-col gap-1.5 rounded-2xl border p-3 transition-colors ${today ? 'border-2' : 'border-border'} ${m.kind === 'boss' ? 'bg-amber-500/5' : 'bg-card'}`
+    const cls = `flex h-full min-h-[132px] flex-col gap-1.5 rounded-2xl border p-3 ${today ? 'border-2 hw-glow' : 'border-border'} ${m.kind === 'boss' ? 'bg-amber-500/5' : 'bg-card'}`
+    const glow = today ? { borderColor: color, ['--hw-glow' as string]: `${color}66` } : undefined
     return (
-        <li>
+        <li className="hw-rise" style={{ animationDelay: `${index * 45}ms` }}>
             {locked
-                ? <div className={`${cls} opacity-70`} style={today ? { borderColor: color } : undefined}>{inner}</div>
-                : <Link href={href} className={`${cls} hover:bg-muted/50`} style={today ? { borderColor: color } : undefined}>{inner}</Link>}
+                ? <div className={`${cls} opacity-70`} style={glow}>{inner}</div>
+                : <Link href={href} className={`${cls} hw-lift hw-press hover:bg-muted/50`} style={glow}>{inner}</Link>}
         </li>
     )
 }

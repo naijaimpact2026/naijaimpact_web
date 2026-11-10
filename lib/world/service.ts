@@ -1,19 +1,23 @@
 import { randomUUID } from 'node:crypto'
+import { cache } from 'react'
 import { createServiceClient } from '@/lib/supabase/service'
 import { normalizeRole } from '@/lib/modushive/config'
 import { getObjectSize, isR2Configured, presignDownload, presignUpload } from '@/lib/modushive/r2'
 import { NIGERIAN_STATES } from '@/lib/competitions/config'
 import type { User } from '@/lib/types'
 import { aiReview } from './ai-review'
-import { autoGrade, formToText, isFormKind, validateForm } from './grading'
+import { autoGrade, formToText, isFormKind, quizInsights, validateForm } from './grading'
 import { stageScores } from './progress'
 import { semesterClock, stageOfWeek, unlockAt } from './schedule'
 import { WORLD_CONTENT } from './content'
+import { MISSION_TIPS } from './content/tips'
+import { QUIZ_PROFILES } from './content/profiles'
+import { CONTENT_TTL_MS, invalidateWorldCache, ttl } from './cache'
 import {
     DEFAULT_PASS_MARK, MAX_ATTEMPTS, worldLevel,
     type AttemptPayload, type AttemptStatus, type AttemptView, type CompetitionDetail, type CompetitionSummary,
     type FormConfig, type InstitutionLeagueEntry, type InstitutionView, type MissionConfig, type MissionKind, type MissionStatus,
-    type MissionView, type Pathway, type PathwayView, type ProgressView, type ReviewMode, type RubricView, type ScoreBucket,
+    type MissionView, type Pathway, type QuizConfig, type PathwayView, type ProgressView, type ReviewMode, type RubricView, type ScoreBucket,
     type WorldLeaderboardEntry, type WorldParticipantView,
 } from './types'
 
@@ -57,21 +61,32 @@ const MISSION_COLUMNS = 'id, key, pathway, stage, week, day, title, story, kind,
 
 export const isAdmin = (p: User | null) => normalizeRole(p?.role) === 'admin'
 
-async function loadCompetition(slug: string): Promise<CompetitionRow | null>
+function loadCompetition(slug: string): Promise<CompetitionRow | null>
 {
-    const { data } = await createServiceClient()
-        .from('competitions')
-        .select('id, slug, name, tagline, description, icon, theme_color, status, format, weeks, season_name, season_start, season_end')
-        .eq('slug', slug)
-        .maybeSingle()
-    return (data as CompetitionRow | null) ?? null
+    return ttl(`comp:${slug}`, CONTENT_TTL_MS, async () =>
+    {
+        const { data, error } = await createServiceClient()
+            .from('competitions')
+            .select('id, slug, name, tagline, description, icon, theme_color, status, format, weeks, season_name, season_start, season_end')
+            .eq('slug', slug)
+            .maybeSingle()
+        if (error) throw error
+        return (data as CompetitionRow | null) ?? null
+    })
 }
 
-async function isTester(competitionId: string, userId: string)
+/** Cheap format check for routing (cached). */
+export async function competitionFormat(slug: string): Promise<'classic' | 'world' | null>
+{
+    const c = await loadCompetition(slug)
+    return c ? (c.format ?? 'classic') : null
+}
+
+const isTester = cache(async (competitionId: string, userId: string) =>
 {
     const { data } = await createServiceClient().from('competition_testers').select('user_id').eq('competition_id', competitionId).eq('user_id', userId).maybeSingle()
     return Boolean(data)
-}
+})
 
 /** Live → everyone; preview → admins + testers only. */
 async function canPlay(c: CompetitionRow, profile: User | null)
@@ -92,26 +107,66 @@ async function playableWorld(slug: string, profile: User): Promise<CompetitionRo
 
 // ─── Mapping ─────────────────────────────────────────────────────────────────
 
-async function loadPathways(competitionId: string): Promise<PathwayView[]>
+function loadPathways(competitionId: string): Promise<PathwayView[]>
 {
-    const { data } = await createServiceClient().from('competition_pathways').select('key, name, tagline, color').eq('competition_id', competitionId).order('sort_order')
-    return (data ?? []) as PathwayView[]
+    return ttl(`pathways:${competitionId}`, CONTENT_TTL_MS, async () =>
+    {
+        const { data, error } = await createServiceClient().from('competition_pathways').select('key, name, tagline, color').eq('competition_id', competitionId).order('sort_order')
+        if (error) throw error
+        return (data ?? []) as PathwayView[]
+    })
 }
 
+/** All rubrics (small table), cached. */
 async function loadRubrics(keys: string[]): Promise<Map<string, RubricView>>
 {
     if (keys.length === 0) return new Map()
-    const { data } = await createServiceClient().from('competition_rubrics').select('key, title, criteria, pass_mark').in('key', [...new Set(keys)])
-    return new Map((data ?? []).map((r: { key: string; title: string; criteria: RubricView['criteria']; pass_mark: number }) =>
-        [r.key, { key: r.key, title: r.title, criteria: r.criteria, passMark: r.pass_mark }]))
+    const all = await ttl('rubrics', CONTENT_TTL_MS, async () =>
+    {
+        const { data, error } = await createServiceClient().from('competition_rubrics').select('key, title, criteria, pass_mark')
+        if (error) throw error
+        return new Map((data ?? []).map((r: { key: string; title: string; criteria: RubricView['criteria']; pass_mark: number }) =>
+            [r.key, { key: r.key, title: r.title, criteria: r.criteria, passMark: r.pass_mark }]))
+    })
+    return new Map(keys.filter((k) => all.has(k)).map((k) => [k, all.get(k)!]))
 }
 
-function toAttemptView(a: AttemptRow): AttemptView
+/** All active world missions of a competition (every pathway), cached. */
+function loadMissionRows(competitionId: string): Promise<MissionRow[]>
+{
+    return ttl(`missions:${competitionId}`, CONTENT_TTL_MS, async () =>
+    {
+        const { data, error } = await createServiceClient().from('competition_missions').select(MISSION_COLUMNS)
+            .eq('competition_id', competitionId).eq('verification', 'activity').eq('is_active', true)
+            .order('week').order('day')
+        if (error) throw error
+        return (data ?? []) as MissionRow[]
+    })
+}
+
+/** The caller's attempts, once per request. */
+const loadAttempts = cache(async (competitionId: string, userId: string): Promise<AttemptRow[]> =>
+{
+    const { data } = await createServiceClient().from('competition_attempts')
+        .select('id, mission_id, user_id, attempt_no, status, score, feedback, rubric_scores, created_at, reviewed_at, ai_score, ai_feedback, payload, flags, appeal_status')
+        .eq('competition_id', competitionId).eq('user_id', userId)
+    return (data ?? []) as AttemptRow[]
+})
+
+function toAttemptView(a: AttemptRow, config?: MissionConfig): AttemptView
 {
     return {
         id: a.id, attemptNo: a.attempt_no, status: a.status, score: a.score === null ? null : Number(a.score),
         feedback: a.feedback, rubricScores: a.rubric_scores, createdAt: a.created_at, reviewedAt: a.reviewed_at,
+        insights: config ? quizInsights(config, a.payload) : null,
     }
+}
+
+/** Mission config as sent to clients: stored config + any authored result profile. */
+function clientConfig(m: { key: string; kind: MissionKind; config: MissionConfig }): MissionConfig
+{
+    const profile = m.kind === 'quiz' ? QUIZ_PROFILES[m.key] : undefined
+    return profile ? { ...(m.config as QuizConfig), profile } : m.config
 }
 
 function institutionView(r: { id: string; name: string; short_name: string | null; state: string | null; kind: string } | null): InstitutionView | null
@@ -150,7 +205,7 @@ export async function listCompetitionSummaries(profile: User): Promise<Competiti
     }))
 }
 
-async function loadParticipant(competitionId: string, userId: string): Promise<(WorldParticipantView & { institutionId: string | null }) | null>
+const loadParticipant = cache(async (competitionId: string, userId: string): Promise<(WorldParticipantView & { institutionId: string | null }) | null> =>
 {
     const { data } = await createServiceClient()
         .from('competition_participants')
@@ -165,7 +220,7 @@ async function loadParticipant(competitionId: string, userId: string): Promise<(
         pathway: row.pathway, state: row.state, bracket: row.bracket, avatar: { character: Number(row.avatar?.character ?? 0) },
         accessibility: row.accessibility ?? {}, joinedAt: row.joined_at, institution: institutionView(row.institution), institutionId: row.institution_id,
     }
-}
+})
 
 export async function getCompetitionDetail(slug: string, profile: User): Promise<Result<{ competition: CompetitionDetail }>>
 {
@@ -300,21 +355,11 @@ function statusOf(missionAttempts: AttemptRow[]): AttemptStatus | null
     return last ? last.status : null
 }
 
-async function buildMissionViews(c: CompetitionRow, pathway: Pathway, userId: string, filter: { week?: number; ids?: string[] } = {}): Promise<{ views: MissionView[]; missions: MissionRow[]; attempts: AttemptRow[] }>
+/** Mission views for one player on one pathway — computed once per request. */
+const buildMissionViews = cache(async (competitionId: string, seasonStart: string | null, pathway: Pathway, userId: string): Promise<{ views: MissionView[]; missions: MissionRow[]; attempts: AttemptRow[] }> =>
 {
-    const db = createServiceClient()
-    let mq = db.from('competition_missions').select(MISSION_COLUMNS)
-        .eq('competition_id', c.id).eq('pathway', pathway).eq('verification', 'activity').eq('is_active', true)
-        .order('week').order('day')
-    if (filter.ids) mq = mq.in('id', filter.ids)
-    const [{ data: mrows }, { data: arows }] = await Promise.all([
-        mq,
-        db.from('competition_attempts')
-            .select('id, mission_id, user_id, attempt_no, status, score, feedback, rubric_scores, created_at, reviewed_at, ai_score, ai_feedback, payload, flags, appeal_status')
-            .eq('competition_id', c.id).eq('user_id', userId),
-    ])
-    const allMissions = (mrows ?? []) as MissionRow[]
-    const attempts = (arows ?? []) as AttemptRow[]
+    const [rows, attempts] = await Promise.all([loadMissionRows(competitionId), loadAttempts(competitionId, userId)])
+    const allMissions = rows.filter((m) => m.pathway === pathway)
     const rubrics = await loadRubrics(allMissions.map((m) => m.rubric_key).filter(Boolean) as string[])
 
     // Stage gate: stage N (> 1) opens once stage N-1 is passed.
@@ -322,26 +367,27 @@ async function buildMissionViews(c: CompetitionRow, pathway: Pathway, userId: st
     const passedStages = new Set(scores.filter((s) => s.passed).map((s) => s.stage))
     const now = Date.now()
 
-    const shown = filter.week ? allMissions.filter((m) => m.week === filter.week) : allMissions
-    const views = shown.map((m): MissionView =>
+    const views = allMissions.map((m): MissionView =>
     {
         const mine = attempts.filter((a) => a.mission_id === m.id)
-        const opensAt = c.season_start ? unlockAt(c.season_start, m.week, m.day) : null
+        const opensAt = seasonStart ? unlockAt(seasonStart, m.week, m.day) : null
         const timeLocked = !opensAt || now < opensAt.getTime()
         const stageLocked = m.stage > 1 && !passedStages.has(m.stage - 1)
         const st = statusOf([...mine])
         const status: MissionStatus = st ?? (timeLocked || stageLocked ? 'locked' : 'available')
         const last = [...mine].sort((a, b) => b.attempt_no - a.attempt_no)[0]
+        const config = clientConfig(m)
         return {
             id: m.id, key: m.key, pathway: m.pathway, stage: m.stage, week: m.week, day: m.day, title: m.title, story: m.story,
-            kind: m.kind, config: m.config, estMinutes: m.est_minutes, xp: m.xp, tokens: m.tokens, bucket: m.bucket,
+            kind: m.kind, config, estMinutes: m.est_minutes, xp: m.xp, tokens: m.tokens, bucket: m.bucket,
             reviewMode: m.review_mode, rubric: m.rubric_key ? rubrics.get(m.rubric_key) ?? null : null, status,
             unlocksAt: (opensAt ?? new Date(0)).toISOString(), attemptsUsed: mine.length, maxAttempts: m.max_attempts || MAX_ATTEMPTS,
-            lastAttempt: last ? toAttemptView(last) : null, badge: m.badge ?? null,
+            lastAttempt: last ? toAttemptView(last, config) : null, badge: m.badge ?? null,
+            tips: MISSION_TIPS[m.key] ?? [],
         }
     })
     return { views, missions: allMissions, attempts }
-}
+})
 
 export async function listQuests(slug: string, profile: User, week?: number): Promise<Result<{ week: number | null; missions: MissionView[] }>>
 {
@@ -351,8 +397,8 @@ export async function listQuests(slug: string, profile: User, week?: number): Pr
     if (!me) return fail('Join the competition first.')
     const clock = semesterClock(c.season_start, c.season_end, c.weeks)
     const w = week && week >= 1 && week <= c.weeks ? week : clock.week ?? 1
-    const { views } = await buildMissionViews(c, me.pathway, profile.id, { week: w })
-    return { ok: true, week: w, missions: views }
+    const { views } = await buildMissionViews(c.id, c.season_start, me.pathway, profile.id)
+    return { ok: true, week: w, missions: views.filter((m) => m.week === w) }
 }
 
 /** Today's quest plus anything still open from earlier days (catch-up, no streak pressure). */
@@ -363,7 +409,7 @@ export async function todayQuests(slug: string, profile: User): Promise<Result<{
     const me = await loadParticipant(c.id, profile.id)
     if (!me) return fail('Join the competition first.')
     const clock = semesterClock(c.season_start, c.season_end, c.weeks)
-    const { views } = await buildMissionViews(c, me.pathway, profile.id)
+    const { views } = await buildMissionViews(c.id, c.season_start, me.pathway, profile.id)
     const today = clock.week ? views.find((m) => m.week === clock.week && m.day === clock.day) ?? null : null
     const catchUp = views.filter((m) => m !== today && ['available', 'needs_revision'].includes(m.status))
     return { ok: true, today, catchUp, clock }
@@ -375,12 +421,12 @@ export async function getMission(slug: string, missionId: string, profile: User)
     if (!c) return fail(NOT_FOUND)
     const me = await loadParticipant(c.id, profile.id)
     if (!me) return fail('Join the competition first.')
-    const { views, attempts } = await buildMissionViews(c, me.pathway, profile.id)
+    const { views, attempts } = await buildMissionViews(c.id, c.season_start, me.pathway, profile.id)
     const mission = views.find((m) => m.id === missionId)
     if (!mission) return fail('Mission not found.')
     return {
         ok: true, mission,
-        attempts: attempts.filter((a) => a.mission_id === missionId).sort((a, b) => a.attempt_no - b.attempt_no).map(toAttemptView),
+        attempts: attempts.filter((a) => a.mission_id === missionId).sort((a, b) => a.attempt_no - b.attempt_no).map((a) => toAttemptView(a, mission.config)),
     }
 }
 
@@ -545,7 +591,7 @@ export async function submitAttempt(slug: string, missionId: string, profile: Us
         awarded = await awardMission(profile.id, m.id).catch(() => ({ xp: 0, tokens: 0 }))
         if (m.badge) { await grantBadge(profile.id, c.slug, m.badge); badge = m.badge }
     }
-    return { ok: true, attempt: toAttemptView(row as AttemptRow), awarded, badge }
+    return { ok: true, attempt: toAttemptView(row as AttemptRow, m.config), awarded, badge }
 }
 
 export async function appealAttempt(slug: string, attemptId: string, profile: User, reason: string): Promise<Result>
@@ -573,7 +619,7 @@ export async function getProgress(slug: string, profile: User): Promise<Result<{
     if (!me) return fail('Join the competition first.')
     const db = createServiceClient()
     const [{ missions, attempts }, { data: xpRows }, { data: tokRows }, { data: badges }] = await Promise.all([
-        buildMissionViews(c, me.pathway, profile.id),
+        buildMissionViews(c.id, c.season_start, me.pathway, profile.id),
         db.from('competition_xp_events').select('amount').eq('competition_id', c.id).eq('user_id', profile.id),
         db.from('hub_token_events').select('amount').eq('user_id', profile.id),
         db.from('user_badges').select('badge_key, label, icon, awarded_at').eq('user_id', profile.id).like('badge_key', `world:${c.slug}:%`).order('awarded_at'),
@@ -695,6 +741,7 @@ export async function syncContent(slug: string, profile: User, overwrite = false
             if (error) return fail(`Could not save the answer key for ${s.key}.`)
         }
     }
+    invalidateWorldCache()
     return { ok: true, inserted, updated }
 }
 

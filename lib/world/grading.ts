@@ -1,4 +1,4 @@
-import type { AttemptPayload, FieldDef, FieldValue, FormConfig, MissionConfig, MissionKind, QuizConfig, ScenarioConfig, SortConfig } from './types'
+import type { AttemptPayload, FieldDef, FieldValue, FormConfig, MissionConfig, MissionKind, QuizConfig, QuizInsights, ScenarioConfig, SortConfig } from './types'
 
 /*
  * Validation + automatic grading. Server-only (answer keys come from
@@ -159,4 +159,20 @@ export function formToText(config: FormConfig, fields: Record<string, FieldValue
         const shown = vals.map((v) => typeof v === 'object' && v ? ('key' in v ? `[uploaded ${f.type}]` : 'url' in v ? v.url : '') : String(v))
         return `## ${f.label}\n${shown.length ? shown.join('\n') : '(empty)'}`
     }).join('\n\n')
+}
+
+/** Tallies a self-assessment quiz into a ranked profile (e.g. the Skill Compass). */
+export function quizInsights(config: MissionConfig, payload: unknown): QuizInsights | null
+{
+    const quiz = config as QuizConfig
+    const p = payload as { kind?: string; answers?: Record<string, string | string[]> } | null
+    if (!quiz?.profile || quiz.graded || p?.kind !== 'quiz' || !p.answers) return null
+    const counts: Record<string, number> = {}
+    let total = 0
+    for (const v of Object.values(p.answers)) for (const id of [v].flat()) if (quiz.profile.outcomes[id]) { counts[id] = (counts[id] ?? 0) + 1; total++ }
+    if (total === 0) return null
+    const ranking = Object.entries(quiz.profile.outcomes)
+        .map(([id, o]) => ({ id, ...o, share: Math.round(((counts[id] ?? 0) / total) * 100) }))
+        .sort((a, b) => b.share - a.share)
+    return { title: quiz.profile.title, intro: quiz.profile.intro, ranking }
 }
