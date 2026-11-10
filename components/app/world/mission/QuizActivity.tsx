@@ -39,30 +39,30 @@ export default function QuizActivity({ config, color, submitting, onSubmit }: { 
                         type="button"
                         onClick={() => setI(n)}
                         aria-label={`Question ${n + 1}`}
-                        className={`h-1.5 flex-1 rounded-full transition-colors ${n === i ? '' : (answers[x.id] ?? []).length ? 'opacity-50' : 'bg-muted'}`}
+                        className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${n === i ? 'scale-y-150' : (answers[x.id] ?? []).length ? 'opacity-50' : 'bg-muted'}`}
                         style={n === i || (answers[x.id] ?? []).length ? { backgroundColor: color } : undefined}
                     />
                 ))}
             </div>
-            <div>
+            <div key={`q-${i}`} className="hw-slide-in">
                 <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Question {i + 1} of {config.questions.length}{q.multi ? ' · choose all that apply' : ''}</p>
                 <h3 className="mt-1.5 text-lg font-bold leading-snug text-foreground">{q.prompt}</h3>
             </div>
-            <ul className="space-y-2">
-                {q.options.map((o) =>
+            <ul key={`o-${i}`} className="space-y-2">
+                {q.options.map((o, n) =>
                 {
                     const on = picked.includes(o.id)
                     return (
-                        <li key={o.id}>
+                        <li key={o.id} className="hw-rise" style={{ animationDelay: `${n * 40}ms` }}>
                             <button
                                 type="button"
                                 onClick={() => toggle(o.id)}
                                 aria-pressed={on}
-                                className={`flex w-full items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left text-sm font-medium transition-colors ${on ? 'text-foreground' : 'border-border text-foreground hover:bg-muted/50'}`}
+                                className={`hw-press flex w-full items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left text-sm font-medium transition-colors ${on ? 'text-foreground shadow-sm' : 'border-border text-foreground hover:border-foreground/25 hover:bg-muted/50'}`}
                                 style={on ? { borderColor: color, backgroundColor: `${color}12` } : undefined}
                             >
                                 <span className={`flex h-5 w-5 shrink-0 items-center justify-center ${q.multi ? 'rounded-md' : 'rounded-full'} border-2`} style={on ? { borderColor: color, backgroundColor: color } : undefined}>
-                                    {on && <Check className="h-3 w-3 text-white" />}
+                                    {on && <Check className="hw-pop h-3 w-3 text-white" />}
                                 </span>
                                 {o.label}
                             </button>
@@ -71,15 +71,15 @@ export default function QuizActivity({ config, color, submitting, onSubmit }: { 
                 })}
             </ul>
             <div className="flex items-center justify-between gap-2">
-                <button type="button" onClick={() => setI((n) => Math.max(0, n - 1))} disabled={i === 0} className="inline-flex h-11 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-muted-foreground hover:text-foreground disabled:invisible">
+                <button type="button" onClick={() => setI((n) => Math.max(0, n - 1))} disabled={i === 0} className="hw-press inline-flex h-11 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-muted-foreground hover:text-foreground disabled:invisible">
                     <ArrowLeft className="h-4 w-4" /> Back
                 </button>
                 {last || allAnswered ? (
-                    <button type="button" onClick={submit} disabled={!allAnswered || submitting} className="inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold text-white shadow-md hover:opacity-90 disabled:opacity-40" style={{ backgroundColor: color }}>
+                    <button type="button" onClick={submit} disabled={!allAnswered || submitting} className="hw-press inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold text-white shadow-md hover:opacity-90 hover:shadow-lg disabled:opacity-40" style={{ backgroundColor: color }}>
                         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Submit answers
                     </button>
                 ) : (
-                    <button type="button" onClick={() => setI((n) => n + 1)} disabled={picked.length === 0} className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-border px-4 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-40">
+                    <button type="button" onClick={() => setI((n) => n + 1)} disabled={picked.length === 0} className="hw-press inline-flex h-11 items-center gap-1.5 rounded-xl border border-border px-4 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-40">
                         Next <ArrowRight className="h-4 w-4" />
                     </button>
                 )}

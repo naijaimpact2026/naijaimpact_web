@@ -40,7 +40,7 @@ export default function SortActivity({ config, color, submitting, onSubmit }: { 
                                 type="button"
                                 onClick={() => setSelected(item.id)}
                                 aria-pressed={selected === item.id}
-                                className={`rounded-xl border-2 px-3 py-2 text-sm font-medium transition-all ${selected === item.id ? 'scale-[1.03] text-foreground shadow-sm' : 'border-border text-foreground hover:bg-muted/50'}`}
+                                className={`hw-press rounded-xl border-2 px-3 py-2 text-sm font-medium transition-all ${selected === item.id ? 'hw-pop scale-[1.04] text-foreground shadow-md' : 'border-border text-foreground hover:-translate-y-0.5 hover:bg-muted/50'}`}
                                 style={selected === item.id ? { borderColor: color, backgroundColor: `${color}14` } : undefined}
                             >
                                 {item.label}
@@ -60,8 +60,8 @@ export default function SortActivity({ config, color, submitting, onSubmit }: { 
                             type="button"
                             onClick={() => place(bin.id)}
                             disabled={!selected}
-                            className={`flex min-h-[140px] flex-col gap-2 rounded-2xl border-2 border-dashed p-3 text-left transition-colors ${selected ? 'hover:bg-muted/40' : ''}`}
-                            style={{ borderColor: selected ? color : undefined }}
+                            className={`hw-press flex min-h-[140px] flex-col gap-2 rounded-2xl border-2 border-dashed p-3 text-left transition-colors ${selected ? 'hw-glow hover:bg-muted/40' : ''}`}
+                            style={{ borderColor: selected ? color : undefined, ['--hw-glow' as string]: `${color}55` }}
                         >
                             <span className="text-sm font-bold text-foreground">{bin.label} <span className="font-semibold text-muted-foreground">({items.length})</span></span>
                             <span className="flex flex-wrap gap-1.5">
@@ -72,7 +72,7 @@ export default function SortActivity({ config, color, submitting, onSubmit }: { 
                                         tabIndex={0}
                                         onClick={(e) => { e.stopPropagation(); unplace(i.id) }}
                                         onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); unplace(i.id) } }}
-                                        className="inline-flex items-center gap-1 rounded-lg bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/70"
+                                        className="hw-pop inline-flex items-center gap-1 rounded-lg bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/70"
                                         title="Tap to move"
                                     >
                                         {i.label} <X className="h-3 w-3 opacity-60" />
@@ -85,10 +85,10 @@ export default function SortActivity({ config, color, submitting, onSubmit }: { 
             </div>
 
             <div className="flex items-center justify-between gap-2">
-                <button type="button" onClick={() => { setPlacement({}); setSelected(null) }} className="inline-flex h-11 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-muted-foreground hover:text-foreground">
+                <button type="button" onClick={() => { setPlacement({}); setSelected(null) }} className="hw-press inline-flex h-11 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-muted-foreground hover:text-foreground">
                     <RotateCcw className="h-4 w-4" /> Reset
                 </button>
-                <button type="button" onClick={() => onSubmit({ kind: 'sort', placement })} disabled={!done || submitting} className="inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold text-white shadow-md hover:opacity-90 disabled:opacity-40" style={{ backgroundColor: color }}>
+                <button type="button" onClick={() => onSubmit({ kind: 'sort', placement })} disabled={!done || submitting} className="hw-press inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold text-white shadow-md hover:opacity-90 hover:shadow-lg disabled:opacity-40" style={{ backgroundColor: color }}>
                     {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Submit
                 </button>
             </div>
