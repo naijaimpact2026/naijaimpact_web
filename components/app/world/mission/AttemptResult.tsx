@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { ArrowRight, Award, Coins, Flag, Hourglass, Loader2, RotateCcw, Zap } from 'lucide-react'
 import { toast } from '@/components/toast'
 import { appealWorldAttemptAction } from '@/lib/actions/world'
 import { TOKENS_LABEL, XP_LABEL, type AttemptView, type MissionView } from '@/lib/world/types'
 import { STATUS_META } from '@/lib/world/ui'
+import { Confetti, CountUp } from '../fx'
 
 interface Props
 {
@@ -31,14 +32,17 @@ const HEADLINE = {
 export default function AttemptResult({ slug, mission, attempt, awarded, badge, color, canRetry, onRetry, homeHref }: Props)
 {
     const status = STATUS_META[attempt.status]
+    // Celebrate only a fresh pass (awarded is set right after submitting).
+    const celebrate = Boolean(awarded) && attempt.status === 'passed'
     const passMark = mission.rubric?.passMark ?? 60
     const attemptsLeft = mission.maxAttempts - mission.attemptsUsed
 
     return (
-        <section className="space-y-4 rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-sm" aria-live="polite">
+        <section className={`relative space-y-4 rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-sm ${awarded ? 'hw-pop' : 'hw-rise'} ${awarded && attempt.status === 'needs_revision' ? 'hw-shake' : ''}`} aria-live="polite">
+            {celebrate && <Confetti count={badge ? 60 : 36} />}
             {badge && (
-                <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-amber-500/20 to-amber-500/5 p-4 motion-safe:animate-in motion-safe:zoom-in-95">
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white shadow-md"><Award className="h-6 w-6" /></span>
+                <div className="hw-pop hw-shine-host flex items-center gap-3 rounded-2xl bg-gradient-to-r from-amber-500/20 to-amber-500/5 p-4" style={{ animationDelay: '250ms' }}>
+                    <span className="hw-float flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white shadow-md"><Award className="h-6 w-6" /></span>
                     <div>
                         <p className="text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Badge unlocked</p>
                         <p className="text-base font-extrabold text-foreground">{badge.label}</p>
@@ -59,12 +63,12 @@ export default function AttemptResult({ slug, mission, attempt, awarded, badge, 
 
             {awarded && (awarded.xp > 0 || awarded.tokens > 0) && (
                 <div className="flex flex-wrap gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1.5 text-sm font-extrabold text-amber-700 dark:text-amber-300"><Zap className="h-4 w-4" />+{awarded.xp} {XP_LABEL}</span>
-                    {awarded.tokens > 0 && <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1.5 text-sm font-extrabold text-amber-700 dark:text-amber-300"><Coins className="h-4 w-4" />+{awarded.tokens} {TOKENS_LABEL}</span>}
+                    <span className="hw-pop inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1.5 text-sm font-extrabold text-amber-700 dark:text-amber-300" style={{ animationDelay: '350ms' }}><Zap className="h-4 w-4" />+<CountUp value={awarded.xp} /> {XP_LABEL}</span>
+                    {awarded.tokens > 0 && <span className="hw-pop inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1.5 text-sm font-extrabold text-amber-700 dark:text-amber-300" style={{ animationDelay: '450ms' }}><Coins className="h-4 w-4" />+<CountUp value={awarded.tokens} /> {TOKENS_LABEL}</span>}
                 </div>
             )}
 
-            {attempt.feedback && <p className="whitespace-pre-wrap rounded-2xl bg-muted/60 px-4 py-3 text-sm leading-relaxed text-foreground">{attempt.feedback}</p>}
+            {attempt.feedback && <p className="hw-rise whitespace-pre-wrap rounded-2xl bg-muted/60 px-4 py-3 text-sm leading-relaxed text-foreground">{attempt.feedback}</p>}
 
             {attempt.rubricScores && mission.rubric && (
                 <ul className="space-y-2">
@@ -93,11 +97,11 @@ export default function AttemptResult({ slug, mission, attempt, awarded, badge, 
 
             <div className="flex flex-wrap gap-2 pt-1">
                 {canRetry && attempt.status === 'needs_revision' && (
-                    <button type="button" onClick={onRetry} className="inline-flex h-11 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-white shadow-md hover:opacity-90" style={{ backgroundColor: color }}>
+                    <button type="button" onClick={onRetry} className="hw-press inline-flex h-11 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-white shadow-md hover:opacity-90" style={{ backgroundColor: color }}>
                         <RotateCcw className="h-4 w-4" /> Try again ({attemptsLeft} left)
                     </button>
                 )}
-                <Link href={homeHref} className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-border px-4 text-sm font-semibold text-foreground hover:bg-muted">
+                <Link href={homeHref} className="hw-press inline-flex h-11 items-center gap-1.5 rounded-xl border border-border px-4 text-sm font-semibold text-foreground hover:bg-muted">
                     Back to today <ArrowRight className="h-4 w-4" />
                 </Link>
             </div>
@@ -110,14 +114,16 @@ export default function AttemptResult({ slug, mission, attempt, awarded, badge, 
 function ScoreRing({ score, passMark, color }: { score: number; passMark: number; color: string })
 {
     const r = 34, c = 2 * Math.PI * r
+    const [shown, setShown] = useState(0)
+    useEffect(() => { const t = requestAnimationFrame(() => setShown(score)); return () => cancelAnimationFrame(t) }, [score])
     return (
         <div className="relative h-20 w-20 shrink-0">
             <svg viewBox="0 0 80 80" className="h-20 w-20 -rotate-90" aria-hidden>
                 <circle cx="40" cy="40" r={r} fill="none" stroke="currentColor" strokeWidth="7" className="text-muted" />
-                <circle cx="40" cy="40" r={r} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - score / 100)} />
+                <circle cx="40" cy="40" r={r} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - shown / 100)} style={{ transition: 'stroke-dashoffset 1s cubic-bezier(.2,.7,.2,1)' }} />
                 <circle cx={40 + r * Math.cos((passMark / 100) * 2 * Math.PI)} cy={40 + r * Math.sin((passMark / 100) * 2 * Math.PI)} r="2.5" fill="currentColor" className="text-foreground" />
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-xl font-extrabold tabular-nums text-foreground" aria-label={`Score ${score} out of 100`}>{Math.round(score)}</span>
+            <span className="absolute inset-0 flex items-center justify-center text-xl font-extrabold tabular-nums text-foreground" aria-label={`Score ${score} out of 100`}><CountUp value={Math.round(score)} /></span>
         </div>
     )
 }

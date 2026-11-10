@@ -8,7 +8,7 @@ import { submitWorldAttemptAction } from '@/lib/actions/world'
 import type { AttemptPayload, AttemptView, FormConfig, MissionView, QuizConfig, ScenarioConfig, SortConfig } from '@/lib/world/types'
 import { formatUnlock } from '@/lib/world/ui'
 import AttemptResult from './AttemptResult'
-import FormActivity from './FormActivity'
+import FormActivity, { clearFormDraft } from './FormActivity'
 import QuizActivity from './QuizActivity'
 import ScenarioActivity from './ScenarioActivity'
 import SortActivity from './SortActivity'
@@ -31,6 +31,7 @@ export default function MissionPlayer({ slug, mission, attempts, color, homeHref
         {
             const r = await submitWorldAttemptAction(slug, mission.id, payload)
             if (!r.ok) { toast.error(r.error); return }
+            clearFormDraft(mission.id)
             setResult({ attempt: r.attempt, awarded: r.awarded, badge: r.badge })
             setRetrying(false)
             if (r.awarded.xp > 0) toast.success(`+${r.awarded.xp} XP earned!`)
@@ -73,7 +74,7 @@ export default function MissionPlayer({ slug, mission, attempts, color, homeHref
 
     const props = { color, submitting: pending, onSubmit: submit }
     return (
-        <section key={round} className="rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-sm">
+        <section key={round} className="hw-rise rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-sm" style={{ animationDelay: '120ms' }}>
             {mission.kind === 'quiz' && <QuizActivity config={mission.config as QuizConfig} {...props} />}
             {mission.kind === 'sort' && <SortActivity config={mission.config as SortConfig} {...props} />}
             {mission.kind === 'scenario' && <ScenarioActivity config={mission.config as ScenarioConfig} {...props} />}

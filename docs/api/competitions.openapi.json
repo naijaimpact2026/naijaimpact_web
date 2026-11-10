@@ -618,7 +618,11 @@
                     "attemptsUsed": 0,
                     "maxAttempts": 3,
                     "lastAttempt": null,
-                    "badge": null
+                    "badge": null,
+                    "tips": [
+                      "Ask a working professional about their job…",
+                      "Write 5 insights in your own words. No names or phone numbers."
+                    ]
                   },
                   "attempts": []
                 }
@@ -2376,7 +2380,8 @@
           "status",
           "unlocksAt",
           "attemptsUsed",
-          "maxAttempts"
+          "maxAttempts",
+          "tips"
         ],
         "properties": {
           "id": {
@@ -2501,6 +2506,13 @@
                 "type": "null"
               }
             ]
+          },
+          "tips": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "\"How to do this\": 1–3 practical steps to show above the activity."
           }
         }
       },

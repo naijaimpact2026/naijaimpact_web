@@ -146,7 +146,8 @@ Campus vs campus — average XP per participant, institutions with 3+ participan
   bucket: 'evidence'|'quality'|'reflection'|'teamwork'|'showcase',
   reviewMode: 'auto'|'ai'|'human', rubric: { key, title, passMark, criteria: [{ id, label, weight }] } | null,
   status: 'locked'|'available'|'in_review'|'passed'|'needs_revision'|'rejected',
-  unlocksAt, attemptsUsed, maxAttempts, lastAttempt: AttemptView | null, badge: { key, label } | null }
+  unlocksAt, attemptsUsed, maxAttempts, lastAttempt: AttemptView | null, badge: { key, label } | null,
+  tips: string[] /* "How to do this" steps to show above the activity */ }
 ```
 
 ## Mission kinds, configs and payloads

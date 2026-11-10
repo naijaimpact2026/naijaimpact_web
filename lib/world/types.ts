@@ -148,6 +148,8 @@ export interface MissionView
     lastAttempt: AttemptView | null
     /** Badge awarded when this mission passes (weekly boss / stage finale). */
     badge: { key: string; label: string } | null
+    /** "How to do this" — 1–3 practical steps to show before the activity. */
+    tips: string[]
 }
 
 export interface PathwayView

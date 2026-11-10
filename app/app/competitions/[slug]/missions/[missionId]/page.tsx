@@ -6,6 +6,7 @@ import { getCompetitionDetail, getMission } from '@/lib/world/service'
 import { TOKENS_LABEL, XP_LABEL } from '@/lib/world/types'
 import { DAY_LONG, KIND_META, REVIEW_META, STATUS_META } from '@/lib/world/ui'
 import MissionPlayer from '@/components/app/world/mission/MissionPlayer'
+import MissionGuide from '@/components/app/world/mission/MissionGuide'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,12 +32,12 @@ export default async function WorldMissionPage({ params }: { params: Promise<{ s
     const history = attempts.slice(0, -1).reverse()
 
     return (
-        <div className="w-full max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
+        <div className={`w-full max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 ${detail.competition.me.accessibility.reducedMotion ? 'hw-reduce' : ''}`}>
             <Link href={home} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="h-4 w-4" /> Week {m.week}
             </Link>
 
-            <header className="space-y-3">
+            <header className="hw-rise space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Week {m.week} · {DAY_LONG[m.day - 1]}</span>
                     <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold text-white" style={{ backgroundColor: boss ? '#D97706' : color }}>
@@ -55,10 +56,12 @@ export default async function WorldMissionPage({ params }: { params: Promise<{ s
             </header>
 
             {m.story && (
-                <p className="rounded-3xl px-4 py-4 text-sm leading-relaxed text-foreground sm:px-5" style={{ backgroundColor: `${color}12`, borderLeft: `4px solid ${boss ? '#D97706' : color}` }}>
+                <p className="hw-rise rounded-3xl px-4 py-4 text-sm leading-relaxed text-foreground sm:px-5" style={{ backgroundColor: `${color}12`, borderLeft: `4px solid ${boss ? '#D97706' : color}`, animationDelay: '40ms' }}>
                     {m.story}
                 </p>
             )}
+
+            {m.status !== 'locked' && m.status !== 'passed' && <MissionGuide mission={m} color={boss ? '#D97706' : color} />}
 
             <MissionPlayer slug={slug} mission={m} attempts={attempts} color={color} homeHref={home} />
 
