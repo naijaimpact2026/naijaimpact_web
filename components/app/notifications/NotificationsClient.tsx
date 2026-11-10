@@ -137,10 +137,10 @@ export default function NotificationsClient({
 
         const subscribeToNotifications = async () => {
             try {
-                const {
-                    data: { user: authUser },
-                    error: authError,
-                } = await supabase.auth.getUser()
+                // Local session read (no Auth-server round trip); realtime and
+                // the profile query below are still authorised server-side by RLS.
+                const { data: sessionData, error: authError } = await supabase.auth.getSession()
+                const authUser = sessionData.session?.user
 
                 if (cancelled || authError || !authUser) {
                     return

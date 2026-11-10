@@ -10,6 +10,7 @@ import React, {
     useCallback,
 } from 'react'
 import type { StreamChat, Event } from 'stream-chat'
+import type { User } from '@supabase/supabase-js'
 import { getStreamClient } from '@/lib/stream'
 import { createClient } from '@/lib/supabase/client'
 import { useUnreadCount } from './UnreadCountContext'
@@ -77,9 +78,20 @@ export default function ChatProvider({ children }: ChatProviderProps)
     const connectWithRetry = useCallback(async () =>
     {
         const supabase = createClient()
-        const {
-            data: { user: authUser },
-        } = await supabase.auth.getUser()
+        // Local session read (no Auth-server round trip). Identity is verified
+        // server-side when /api/stream-token issues the chat token, so this only
+        // decides whether to connect and what name to show. A network blip here
+        // just skips the connection instead of surfacing as an error.
+        let authUser: User | null = null
+        try
+        {
+            const { data } = await supabase.auth.getSession()
+            authUser = data.session?.user ?? null
+        } catch (err)
+        {
+            console.warn('[ChatProvider] Could not read session; chat will connect on next load.', err)
+            return
+        }
 
         if (!authUser || !mountedRef.current) return
 
