@@ -74,7 +74,7 @@ export default function MissionPlayer({ slug, mission, attempts, color, homeHref
 
     const props = { color, submitting: pending, onSubmit: submit }
     return (
-        <section key={round} className="rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-sm">
+        <section key={round} className="hw-rise rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-sm" style={{ animationDelay: '120ms' }}>
             {mission.kind === 'quiz' && <QuizActivity config={mission.config as QuizConfig} {...props} />}
             {mission.kind === 'sort' && <SortActivity config={mission.config as SortConfig} {...props} />}
             {mission.kind === 'scenario' && <ScenarioActivity config={mission.config as ScenarioConfig} {...props} />}
