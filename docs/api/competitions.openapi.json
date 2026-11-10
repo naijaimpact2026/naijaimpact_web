@@ -2103,6 +2103,90 @@
                 "type": "null"
               }
             ]
+          },
+          "insights": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuizInsights"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "QuizProfile": {
+        "type": "object",
+        "description": "Self-assessment result profile: what each answer option id means.",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Your Skill Compass"
+          },
+          "intro": {
+            "type": "string"
+          },
+          "outcomes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "careers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "QuizInsights": {
+        "type": "object",
+        "description": "Ranked self-assessment result, e.g. the Skill Compass. Show it instead of a score.",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "intro": {
+            "type": "string"
+          },
+          "ranking": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string",
+                  "example": "Tech & digital"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "careers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "share": {
+                  "type": "integer",
+                  "description": "% of answers",
+                  "example": 42
+                }
+              }
+            }
           }
         }
       },
@@ -2113,6 +2197,9 @@
           "questions"
         ],
         "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/QuizProfile"
+          },
           "graded": {
             "type": "boolean",
             "description": "false = self-assessment (no right answers; completing it passes)"

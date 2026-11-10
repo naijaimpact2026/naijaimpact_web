@@ -6,17 +6,18 @@ import { getObjectSize, isR2Configured, presignDownload, presignUpload } from '@
 import { NIGERIAN_STATES } from '@/lib/competitions/config'
 import type { User } from '@/lib/types'
 import { aiReview } from './ai-review'
-import { autoGrade, formToText, isFormKind, validateForm } from './grading'
+import { autoGrade, formToText, isFormKind, quizInsights, validateForm } from './grading'
 import { stageScores } from './progress'
 import { semesterClock, stageOfWeek, unlockAt } from './schedule'
 import { WORLD_CONTENT } from './content'
 import { MISSION_TIPS } from './content/tips'
+import { QUIZ_PROFILES } from './content/profiles'
 import { CONTENT_TTL_MS, invalidateWorldCache, ttl } from './cache'
 import {
     DEFAULT_PASS_MARK, MAX_ATTEMPTS, worldLevel,
     type AttemptPayload, type AttemptStatus, type AttemptView, type CompetitionDetail, type CompetitionSummary,
     type FormConfig, type InstitutionLeagueEntry, type InstitutionView, type MissionConfig, type MissionKind, type MissionStatus,
-    type MissionView, type Pathway, type PathwayView, type ProgressView, type ReviewMode, type RubricView, type ScoreBucket,
+    type MissionView, type Pathway, type QuizConfig, type PathwayView, type ProgressView, type ReviewMode, type RubricView, type ScoreBucket,
     type WorldLeaderboardEntry, type WorldParticipantView,
 } from './types'
 
@@ -152,12 +153,20 @@ const loadAttempts = cache(async (competitionId: string, userId: string): Promis
     return (data ?? []) as AttemptRow[]
 })
 
-function toAttemptView(a: AttemptRow): AttemptView
+function toAttemptView(a: AttemptRow, config?: MissionConfig): AttemptView
 {
     return {
         id: a.id, attemptNo: a.attempt_no, status: a.status, score: a.score === null ? null : Number(a.score),
         feedback: a.feedback, rubricScores: a.rubric_scores, createdAt: a.created_at, reviewedAt: a.reviewed_at,
+        insights: config ? quizInsights(config, a.payload) : null,
     }
+}
+
+/** Mission config as sent to clients: stored config + any authored result profile. */
+function clientConfig(m: { key: string; kind: MissionKind; config: MissionConfig }): MissionConfig
+{
+    const profile = m.kind === 'quiz' ? QUIZ_PROFILES[m.key] : undefined
+    return profile ? { ...(m.config as QuizConfig), profile } : m.config
 }
 
 function institutionView(r: { id: string; name: string; short_name: string | null; state: string | null; kind: string } | null): InstitutionView | null
@@ -367,12 +376,13 @@ const buildMissionViews = cache(async (competitionId: string, seasonStart: strin
         const st = statusOf([...mine])
         const status: MissionStatus = st ?? (timeLocked || stageLocked ? 'locked' : 'available')
         const last = [...mine].sort((a, b) => b.attempt_no - a.attempt_no)[0]
+        const config = clientConfig(m)
         return {
             id: m.id, key: m.key, pathway: m.pathway, stage: m.stage, week: m.week, day: m.day, title: m.title, story: m.story,
-            kind: m.kind, config: m.config, estMinutes: m.est_minutes, xp: m.xp, tokens: m.tokens, bucket: m.bucket,
+            kind: m.kind, config, estMinutes: m.est_minutes, xp: m.xp, tokens: m.tokens, bucket: m.bucket,
             reviewMode: m.review_mode, rubric: m.rubric_key ? rubrics.get(m.rubric_key) ?? null : null, status,
             unlocksAt: (opensAt ?? new Date(0)).toISOString(), attemptsUsed: mine.length, maxAttempts: m.max_attempts || MAX_ATTEMPTS,
-            lastAttempt: last ? toAttemptView(last) : null, badge: m.badge ?? null,
+            lastAttempt: last ? toAttemptView(last, config) : null, badge: m.badge ?? null,
             tips: MISSION_TIPS[m.key] ?? [],
         }
     })
@@ -416,7 +426,7 @@ export async function getMission(slug: string, missionId: string, profile: User)
     if (!mission) return fail('Mission not found.')
     return {
         ok: true, mission,
-        attempts: attempts.filter((a) => a.mission_id === missionId).sort((a, b) => a.attempt_no - b.attempt_no).map(toAttemptView),
+        attempts: attempts.filter((a) => a.mission_id === missionId).sort((a, b) => a.attempt_no - b.attempt_no).map((a) => toAttemptView(a, mission.config)),
     }
 }
 
@@ -581,7 +591,7 @@ export async function submitAttempt(slug: string, missionId: string, profile: Us
         awarded = await awardMission(profile.id, m.id).catch(() => ({ xp: 0, tokens: 0 }))
         if (m.badge) { await grantBadge(profile.id, c.slug, m.badge); badge = m.badge }
     }
-    return { ok: true, attempt: toAttemptView(row as AttemptRow), awarded, badge }
+    return { ok: true, attempt: toAttemptView(row as AttemptRow, m.config), awarded, badge }
 }
 
 export async function appealAttempt(slug: string, attemptId: string, profile: User, reason: string): Promise<Result>
