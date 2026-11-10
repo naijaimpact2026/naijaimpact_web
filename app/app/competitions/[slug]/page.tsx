@@ -11,6 +11,7 @@ import CompetitionWorld from '@/components/app/competitions/CompetitionWorld'
 import Leaderboard from '@/components/app/competitions/Leaderboard'
 import AvatarSprite from '@/components/app/competitions/AvatarSprite'
 import EditLookButton from '@/components/app/competitions/EditLookButton'
+import WorldCompetitionPage from '@/components/app/world/WorldCompetitionPage'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,6 +26,7 @@ export default async function CompetitionPage({
     const [{ slug }, { state: stateParam }, { profile }] = await Promise.all([params, searchParams, getCurrentUser()])
     const detail = await getCompetitionDetail(slug, profile)
     if (!detail) notFound()
+    if (detail.competition.format === 'world') return <WorldCompetitionPage slug={slug} profile={profile} />
 
     const { competition: c, zones, missions, participant, myXp, myRank, participantCount, states } = detail
     const Icon = competitionIcon(c.icon)

@@ -1,0 +1,85 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { getCurrentUser } from '@/lib/supabase/auth'
+import { getActingProfile } from '@/lib/modushive/acting-profile'
+import * as world from '@/lib/world/service'
+import type { AttemptPayload } from '@/lib/world/types'
+
+/*
+ * Web server actions for Hubnovo World. Thin wrappers: every check lives in
+ * lib/world/service.ts, which the mobile REST API (app/api/competitions)
+ * calls too. Only self-authenticating wrappers are exported from this file
+ * (each export here is a public endpoint).
+ */
+
+async function me()
+{
+    const acting = getActingProfile()
+    if (acting) return acting
+    const { profile } = await getCurrentUser()
+    return profile
+}
+
+const unauthorized = { ok: false as const, error: 'Please sign in again.' }
+const refresh = (slug: string) => revalidatePath(`/app/competitions/${slug}`)
+
+export async function joinWorldAction(slug: string, input: world.JoinInput)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await world.joinWorld(slug, p, input)
+    if (r.ok) refresh(slug)
+    return r
+}
+
+export async function updateWorldMeAction(slug: string, input: Partial<world.JoinInput>)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await world.updateWorldMe(slug, p, input)
+    if (r.ok) refresh(slug)
+    return r
+}
+
+export async function worldUploadUrlAction(slug: string, missionId: string, input: { fieldId: string; contentType: string; sizeBytes: number })
+{
+    const p = await me(); if (!p) return unauthorized
+    return world.createUploadUrl(slug, missionId, p, input)
+}
+
+export async function submitWorldAttemptAction(slug: string, missionId: string, payload: AttemptPayload)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await world.submitAttempt(slug, missionId, p, payload)
+    if (r.ok) refresh(slug)
+    return r
+}
+
+export async function appealWorldAttemptAction(slug: string, attemptId: string, reason: string)
+{
+    const p = await me(); if (!p) return unauthorized
+    return world.appealAttempt(slug, attemptId, p, reason)
+}
+
+// ─── Admin ───────────────────────────────────────────────────────────────────
+
+export async function syncWorldContentAction(slug: string, overwrite = false)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await world.syncContent(slug, p, overwrite)
+    if (r.ok) refresh(slug)
+    return r
+}
+
+export async function reviewWorldAttemptAction(input: world.ReviewInput)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await world.reviewAttempt(p, input)
+    if (r.ok) revalidatePath('/app/competitions/world-review')
+    return r
+}
+
+export async function addWorldTesterAction(slug: string, username: string)
+{
+    const p = await me(); if (!p) return unauthorized
+    return world.addTester(slug, p, username)
+}
