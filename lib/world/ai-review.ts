@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod'
+import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
 import * as z from 'zod/v4'
 import { rateLimit } from '@/lib/rate-limit'
 import type { RubricView } from './types'
@@ -14,8 +14,8 @@ import type { RubricView } from './types'
  * the call failed — callers then route the attempt to human review.
  */
 
-/** Model choice lives here. Opus 5.5 at low effort; switch to Haiku 5.5 to cut cost. */
-export const WORLD_AI_MODEL = 'claude-opus-5-5'
+/** Model choice lives here (team decision 10 Nov 2026: Haiku 5.5 — fast and low-cost). */
+export const WORLD_AI_MODEL = 'claude-haiku-5-5'
 const DAILY_AI_REVIEWS_PER_USER = 25
 
 let client: Anthropic | null = null
@@ -73,14 +73,13 @@ export async function aiReview(input: {
 
     try
     {
-        const response = await claude.beta.messages.parse({
+        const response = await claude.messages.parse({
             model: WORLD_AI_MODEL,
-            // Opus 5.5 always thinks, and thinking counts toward max_tokens — leave room for the JSON.
+            // Haiku 5.5 thinks adaptively and thinking counts toward max_tokens — leave room for the JSON.
+            // Low effort keeps reviews to a couple of seconds. (Haiku has no server-side refusal
+            // fallback: a refusal returns null below and the attempt goes to a human reviewer.)
             max_tokens: 4000,
-            output_config: { effort: 'low', format: betaZodOutputFormat(ReviewSchema) },
-            // If Claude declines on safety grounds, the API retries on a fallback model.
-            betas: ['server-side-fallback-2026-07-01'],
-            fallbacks: 'default',
+            output_config: { effort: 'low', format: zodOutputFormat(ReviewSchema) },
             system: SYSTEM,
             messages: [{
                 role: 'user',
