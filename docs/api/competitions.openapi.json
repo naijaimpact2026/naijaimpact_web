@@ -948,6 +948,115 @@
         }
       }
     },
+    "/competitions/{slug}/missions/{missionId}/coach": {
+      "post": {
+        "tags": [
+          "Submissions"
+        ],
+        "summary": "Ask the Novo coach about a mission",
+        "description": "In-mission AI coach. It explains the brief and rubric, asks guiding questions and gives outlines, but **never writes the submission** or reveals quiz answers. Off for judged missions (Sunday boss challenges and the Week 4 finale): returns 400, so hide the button when `kind` is `boss` or `reviewMode` is `human`. Mission context is loaded on the server. Limit: 30 messages per user per day (429). Keep `history` on the device (last 8 turns are used).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "missionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "message"
+                ],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "maxLength": 1500
+                  },
+                  "history": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "role",
+                        "content"
+                      ],
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "user",
+                            "assistant"
+                          ]
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "reply"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "reply": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          }
+        }
+      }
+    },
     "/competitions/{slug}/attempts/{attemptId}/appeal": {
       "post": {
         "tags": [

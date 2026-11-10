@@ -1,11 +1,12 @@
 import Link from 'next/link'
-import { ArrowRight, ChevronLeft, ChevronRight, Coins, Medal, Swords, Timer, Trophy, Zap } from 'lucide-react'
+import { ArrowRight, ChevronLeft, ChevronRight, Coins, IdCard, Medal, Swords, Timer, Trophy, Zap } from 'lucide-react'
 import type { User } from '@/lib/types'
 import { characterPreviewUrl } from '@/lib/competitions/config'
 import { getProgress, listQuests, todayQuests } from '@/lib/world/service'
 import { BUCKET_WEIGHTS, TOKENS_LABEL, XP_LABEL, type CompetitionDetail, type MissionView, type ScoreBucket } from '@/lib/world/types'
-import { DAY_LONG, DAY_NAMES, KIND_META, REVIEW_META, STATUS_META, formatUnlock } from '@/lib/world/ui'
+import { DAY_LONG, DAY_NAMES, KIND_META, REVIEW_META, STATUS_META, calmMotion, formatUnlock } from '@/lib/world/ui'
 import HowItWorks from './HowItWorks'
+import WorldSettings from './settings/WorldSettings'
 import { AnimatedBar, CountUp } from './fx'
 
 /*
@@ -35,7 +36,7 @@ export default async function WorldHome({ competition: c, profile, week }: { com
     const base = `/app/competitions/${c.slug}`
 
     return (
-        <div className={`space-y-5 ${me.accessibility.reducedMotion ? 'hw-reduce' : ''}`}>
+        <div className={`space-y-5 ${calmMotion(me) ? 'hw-reduce' : ''}`}>
             {/* You */}
             <section className="hw-rise relative overflow-hidden rounded-3xl p-5 sm:p-6 text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${color} 0%, #102A43 90%)` }}>
                 <div className="absolute right-4 top-4 z-10">
@@ -75,6 +76,14 @@ export default async function WorldHome({ competition: c, profile, week }: { com
                     <Stat icon={Medal} value={progress?.rank ? `#${progress.rank}` : '—'} label="Rank" />
                 </div>
             </section>
+
+            {/* Player shortcuts */}
+            <nav className="hw-rise flex flex-wrap items-center gap-2" style={{ animationDelay: '40ms' }} aria-label="Your Campus shortcuts">
+                <Link href={`${base}/passport`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-white shadow-sm hover:opacity-90" style={{ backgroundColor: color }}>
+                    <IdCard className="h-4 w-4" /> My Passport
+                </Link>
+                <WorldSettings slug={c.slug} me={me} color={color} />
+            </nav>
 
             {/* Today */}
             <section className="hw-rise space-y-2" style={{ animationDelay: '80ms' }}>

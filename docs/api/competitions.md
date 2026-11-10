@@ -115,6 +115,10 @@ Scoring rules shown to users:
 - Sunday boss + stage finale: scored by human judges.
 - Stage score = 40% evidence, 25% quality, 15% reflection, 10% teamwork, 10% showcase. Pass mark 60.
 
+### `POST /competitions/:slug/missions/:missionId/coach`
+`{ "message": "…", "history": [{ "role": "user" | "assistant", "content": "…" }] }` → `{ "ok": true, "reply": "…" }`.
+The Novo coach for one mission: explains the brief and rubric and helps the player plan, but never writes the submission or gives quiz answers (off for judged missions, the Sunday boss challenges and the Week 4 finale: returns `400`). Keep `history` on the device. 30 messages per user per day (`429`); `503` when AI is unavailable.
+
 ### `POST /competitions/:slug/attempts/:attemptId/appeal`
 `{ "reason": "…" }` (≥ 10 chars) → `{ "ok": true }`. One appeal per attempt.
 

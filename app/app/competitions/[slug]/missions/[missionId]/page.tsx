@@ -4,7 +4,7 @@ import { ArrowLeft, Coins, Swords, Timer, Trophy, Zap } from 'lucide-react'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { getCompetitionDetail, getMission } from '@/lib/world/service'
 import { TOKENS_LABEL, XP_LABEL } from '@/lib/world/types'
-import { DAY_LONG, KIND_META, REVIEW_META, STATUS_META } from '@/lib/world/ui'
+import { DAY_LONG, KIND_META, REVIEW_META, STATUS_META, calmMotion } from '@/lib/world/ui'
 import MissionPlayer from '@/components/app/world/mission/MissionPlayer'
 import MissionGuide from '@/components/app/world/mission/MissionGuide'
 
@@ -32,7 +32,7 @@ export default async function WorldMissionPage({ params }: { params: Promise<{ s
     const history = attempts.slice(0, -1).reverse()
 
     return (
-        <div className={`w-full max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 ${detail.competition.me.accessibility.reducedMotion ? 'hw-reduce' : ''}`}>
+        <div className={`w-full max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 ${calmMotion(detail.competition.me) ? 'hw-reduce' : ''}`}>
             <Link href={home} className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="h-4 w-4" /> Week {m.week}
             </Link>
@@ -61,7 +61,7 @@ export default async function WorldMissionPage({ params }: { params: Promise<{ s
                 </p>
             )}
 
-            {m.status !== 'locked' && m.status !== 'passed' && <MissionGuide mission={m} color={boss ? '#D97706' : color} />}
+            {m.status !== 'locked' && m.status !== 'passed' && <MissionGuide slug={slug} mission={m} color={boss ? '#D97706' : color} />}
 
             <MissionPlayer slug={slug} mission={m} attempts={attempts} color={color} homeHref={home} />
 

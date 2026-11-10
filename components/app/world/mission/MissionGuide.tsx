@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { Lightbulb, Sparkles } from 'lucide-react'
-import { askNovo } from '@/lib/novo-ask'
 import type { MissionView } from '@/lib/world/types'
+import { coachAvailable } from '@/lib/world/ui'
+import CoachPanel from '../coach/CoachPanel'
 
 /** What this mission type expects, in one line. */
 const KIND_HINT: Record<MissionView['kind'], string> = {
@@ -19,17 +21,11 @@ const KIND_HINT: Record<MissionView['kind'], string> = {
     boss: 'This week’s boss challenge: bring the week’s work together. Judges score it.',
 }
 
-/** "How to do this" steps + Ask Novo, shown above the activity. */
-export default function MissionGuide({ mission, color }: { mission: MissionView; color: string })
+/** "How to do this" steps + Ask Novo (the in-mission coach), shown above the activity. */
+export default function MissionGuide({ slug, mission, color }: { slug: string; mission: MissionView; color: string })
 {
-    function ask()
-    {
-        const tips = mission.tips.length ? `\nTips given: ${mission.tips.join(' ')}` : ''
-        askNovo(
-            `I'm doing a Hubnovo Campus Competition mission: "${mission.title}".\nBrief: ${mission.story ?? ''}${tips}\n` +
-            `Coach me: explain what a good answer looks like and help me get started with questions or an outline. Don't write it for me.`,
-        )
-    }
+    const [coachOpen, setCoachOpen] = useState(false)
+    const ask = () => setCoachOpen((v) => !v)
 
     return (
         <section className="hw-rise rounded-3xl border border-border bg-card p-4 sm:p-5" style={{ animationDelay: '80ms' }}>
@@ -38,13 +34,14 @@ export default function MissionGuide({ mission, color }: { mission: MissionView;
                     <span className="flex h-8 w-8 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}1f`, color }}><Lightbulb className="h-4 w-4" /></span>
                     <h2 className="text-sm font-bold text-foreground">How to do this</h2>
                 </div>
-                <button
+                {coachAvailable(mission) && <button
                     type="button"
                     onClick={ask}
+                    aria-expanded={coachOpen}
                     className="hw-press inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted"
                 >
                     <Sparkles className="h-3.5 w-3.5 text-amber-500" /> Ask Novo for help
-                </button>
+                </button>}
             </div>
             <p className="mt-2 text-sm text-muted-foreground">{KIND_HINT[mission.kind]}</p>
             {mission.tips.length > 0 && (
@@ -57,6 +54,7 @@ export default function MissionGuide({ mission, color }: { mission: MissionView;
                     ))}
                 </ol>
             )}
+            {coachOpen && coachAvailable(mission) && <CoachPanel slug={slug} missionId={mission.id} color={color} boss={mission.kind === 'boss'} onClose={() => setCoachOpen(false)} />}
         </section>
     )
 }
