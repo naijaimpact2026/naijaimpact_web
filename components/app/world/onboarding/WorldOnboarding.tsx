@@ -61,13 +61,13 @@ export default function WorldOnboarding({ slug, pathways, competitionName }: { s
     }
 
     return (
-        <section className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
+        <section className="hw-rise rounded-3xl border border-border bg-card shadow-sm overflow-hidden" style={{ animationDelay: '80ms' }}>
             {/* Progress */}
             <div className="flex items-center gap-2 border-b border-border px-4 py-3 sm:px-6">
                 {STEPS.map((label, i) => (
                     <div key={label} className="flex min-w-0 flex-1 items-center gap-2">
                         <span
-                            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${i <= step ? 'text-white' : 'bg-muted text-muted-foreground'}`}
+                            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-colors duration-300 ${i <= step ? 'text-white' : 'bg-muted text-muted-foreground'} ${i === step ? 'hw-pop' : ''}`}
                             style={i <= step ? { backgroundColor: color } : undefined}
                         >
                             {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
@@ -79,6 +79,7 @@ export default function WorldOnboarding({ slug, pathways, competitionName }: { s
             </div>
 
             <div className="space-y-5 p-4 sm:p-6">
+                <div key={step} className="hw-slide-in space-y-5">
                 {step === 0 && (
                     <>
                         <div>
@@ -98,12 +99,12 @@ export default function WorldOnboarding({ slug, pathways, competitionName }: { s
                                         type="button"
                                         onClick={() => setPathway(p.key)}
                                         aria-pressed={active}
-                                        className={`rounded-2xl border-2 p-4 text-left transition-all ${active ? 'shadow-md' : 'border-border hover:border-foreground/20'}`}
+                                        className={`hw-lift hw-press rounded-2xl border-2 p-4 text-left ${active ? 'shadow-md' : 'border-border hover:border-foreground/20'}`}
                                         style={active ? { borderColor: p.color, backgroundColor: `${p.color}0f` } : undefined}
                                     >
                                         <div className="flex items-center justify-between">
                                             <span className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ backgroundColor: `${p.color}1f`, color: p.color }}><Icon className="h-5 w-5" /></span>
-                                            {active && <span className="flex h-6 w-6 items-center justify-center rounded-full text-white" style={{ backgroundColor: p.color }}><Check className="h-3.5 w-3.5" /></span>}
+                                            {active && <span className="hw-pop flex h-6 w-6 items-center justify-center rounded-full text-white" style={{ backgroundColor: p.color }}><Check className="h-3.5 w-3.5" /></span>}
                                         </div>
                                         <h3 className="mt-3 text-base font-bold text-foreground">{p.name}</h3>
                                         {p.tagline && <p className="mt-0.5 text-xs text-muted-foreground">{p.tagline}</p>}
@@ -145,7 +146,7 @@ export default function WorldOnboarding({ slug, pathways, competitionName }: { s
                                     onClick={() => setCharacter(i)}
                                     aria-label={`Character ${i + 1}`}
                                     aria-pressed={character === i}
-                                    className={`aspect-square rounded-2xl p-1.5 transition-all ${character === i ? 'ring-2 scale-105' : 'bg-muted/60 ring-1 ring-border hover:bg-muted'}`}
+                                    className={`hw-press aspect-square rounded-2xl p-1.5 transition-all duration-200 ${character === i ? 'hw-pop ring-2 scale-105' : 'bg-muted/60 ring-1 ring-border hover:-translate-y-0.5 hover:bg-muted'}`}
                                     style={character === i ? { backgroundColor: `${color}1f`, ['--tw-ring-color' as string]: color } : undefined}
                                 >
                                     {/* eslint-disable-next-line @next/next/no-img-element -- tiny static PNG */}
@@ -172,7 +173,7 @@ export default function WorldOnboarding({ slug, pathways, competitionName }: { s
                 {step === 3 && chosen && (
                     <div className="space-y-4">
                         <div className="flex items-center gap-4">
-                            <div className="h-20 w-20 shrink-0 rounded-3xl p-2" style={{ backgroundColor: `${color}1f` }}>
+                            <div className="hw-float h-20 w-20 shrink-0 rounded-3xl p-2" style={{ backgroundColor: `${color}1f` }}>
                                 {/* eslint-disable-next-line @next/next/no-img-element -- tiny static PNG */}
                                 <img src={characterPreviewUrl(character)} alt="" className="h-full w-full object-contain" />
                             </div>
@@ -195,13 +196,15 @@ export default function WorldOnboarding({ slug, pathways, competitionName }: { s
                     </div>
                 )}
 
+                </div>
+
                 {/* Nav */}
                 <div className="flex items-center justify-between gap-3 pt-1">
                     <button
                         type="button"
                         onClick={() => setStep((s) => Math.max(0, s - 1))}
                         disabled={step === 0 || pending}
-                        className="inline-flex h-11 items-center gap-1.5 rounded-xl px-4 text-sm font-semibold text-muted-foreground hover:text-foreground disabled:invisible"
+                        className="hw-press inline-flex h-11 items-center gap-1.5 rounded-xl px-4 text-sm font-semibold text-muted-foreground hover:text-foreground disabled:invisible"
                     >
                         <ArrowLeft className="h-4 w-4" /> Back
                     </button>
@@ -210,7 +213,7 @@ export default function WorldOnboarding({ slug, pathways, competitionName }: { s
                             type="button"
                             onClick={() => setStep((s) => s + 1)}
                             disabled={!canNext}
-                            className="inline-flex h-11 items-center gap-1.5 rounded-xl px-5 text-sm font-bold text-white shadow-md transition-opacity hover:opacity-90 disabled:opacity-40"
+                            className="hw-press inline-flex h-11 items-center gap-1.5 rounded-xl px-5 text-sm font-bold text-white shadow-md hover:opacity-90 hover:shadow-lg disabled:opacity-40"
                             style={{ backgroundColor: color }}
                         >
                             Continue <ArrowRight className="h-4 w-4" />
@@ -220,7 +223,7 @@ export default function WorldOnboarding({ slug, pathways, competitionName }: { s
                             type="button"
                             onClick={join}
                             disabled={pending}
-                            className="inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold text-white shadow-md transition-opacity hover:opacity-90 disabled:opacity-60"
+                            className="hw-press inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold text-white shadow-md hover:opacity-90 hover:shadow-lg disabled:opacity-60"
                             style={{ backgroundColor: color }}
                         >
                             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />} Enter Hubnovo World
@@ -250,7 +253,7 @@ function Toggle({ icon: Icon, label, hint, checked, onChange, color }: { icon: t
             role="switch"
             aria-checked={checked}
             onClick={() => onChange(!checked)}
-            className="flex w-full items-center gap-3 rounded-xl border border-border px-3 py-2.5 text-left hover:bg-muted/50"
+            className="hw-press flex w-full items-center gap-3 rounded-xl border border-border px-3 py-2.5 text-left hover:bg-muted/50"
         >
             <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
             <span className="min-w-0 flex-1">
@@ -321,7 +324,7 @@ function CampusStep(props: {
                             <button
                                 type="button"
                                 onClick={() => props.onPick(r)}
-                                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left ${active ? '' : 'hover:bg-muted'}`}
+                                className={`hw-press flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${active ? '' : 'hover:bg-muted'}`}
                                 style={active ? { backgroundColor: `${props.color}14` } : undefined}
                             >
                                 <GraduationCap className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -329,7 +332,7 @@ function CampusStep(props: {
                                     <span className="block truncate text-sm font-semibold text-foreground">{r.name}</span>
                                     <span className="block text-xs text-muted-foreground">{[r.shortName, r.state].filter(Boolean).join(' · ')}</span>
                                 </span>
-                                {active && <Check className="h-4 w-4 shrink-0" style={{ color: props.color }} />}
+                                {active && <Check className="hw-pop h-4 w-4 shrink-0" style={{ color: props.color }} />}
                             </button>
                         </li>
                     )
