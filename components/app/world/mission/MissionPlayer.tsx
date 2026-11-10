@@ -8,7 +8,7 @@ import { submitWorldAttemptAction } from '@/lib/actions/world'
 import type { AttemptPayload, AttemptView, FormConfig, MissionView, QuizConfig, ScenarioConfig, SortConfig } from '@/lib/world/types'
 import { formatUnlock } from '@/lib/world/ui'
 import AttemptResult from './AttemptResult'
-import FormActivity from './FormActivity'
+import FormActivity, { clearFormDraft } from './FormActivity'
 import QuizActivity from './QuizActivity'
 import ScenarioActivity from './ScenarioActivity'
 import SortActivity from './SortActivity'
@@ -31,6 +31,7 @@ export default function MissionPlayer({ slug, mission, attempts, color, homeHref
         {
             const r = await submitWorldAttemptAction(slug, mission.id, payload)
             if (!r.ok) { toast.error(r.error); return }
+            clearFormDraft(mission.id)
             setResult({ attempt: r.attempt, awarded: r.awarded, badge: r.badge })
             setRetrying(false)
             if (r.awarded.xp > 0) toast.success(`+${r.awarded.xp} XP earned!`)
