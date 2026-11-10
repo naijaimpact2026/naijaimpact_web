@@ -56,7 +56,22 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(callbackUrl)
   }
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // Verify the session locally (ES256 JWT + cached JWKS) instead of calling the
+  // Auth server on every request; getClaims() still refreshes an expiring
+  // session. Falls back to getUser() if local verification isn't possible.
+  let user: { id: string; email?: string } | null = null
+  try {
+    const { data, error } = await supabase.auth.getClaims()
+    if (!error && data?.claims?.sub) {
+      user = { id: data.claims.sub, email: typeof data.claims.email === 'string' ? data.claims.email : undefined }
+    } else if (error) {
+      const { data: { user: u } } = await supabase.auth.getUser()
+      user = u ? { id: u.id, email: u.email } : null
+    }
+  } catch {
+    const { data: { user: u } } = await supabase.auth.getUser()
+    user = u ? { id: u.id, email: u.email } : null
+  }
 
   // Protect /app routes — carry the original destination through as `next`
   // so login can send the user back where they were headed.

@@ -8,6 +8,7 @@ import { appealWorldAttemptAction } from '@/lib/actions/world'
 import { TOKENS_LABEL, XP_LABEL, type AttemptView, type MissionView } from '@/lib/world/types'
 import { STATUS_META } from '@/lib/world/ui'
 import { Confetti, CountUp } from '../fx'
+import SkillCompass from './SkillCompass'
 
 interface Props
 {
@@ -50,6 +51,12 @@ export default function AttemptResult({ slug, mission, attempt, awarded, badge, 
                 </div>
             )}
 
+            {attempt.insights ? (
+                <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${status.tone}`}><status.icon className="h-3.5 w-3.5" />Complete</span>
+                    <h2 className="text-lg font-extrabold text-foreground">{attempt.insights.title} unlocked</h2>
+                </div>
+            ) : (
             <div className="flex items-center gap-4">
                 {attempt.score !== null ? <ScoreRing score={attempt.score} passMark={passMark} color={attempt.status === 'passed' ? '#16A34A' : '#D97706'} /> : (
                     <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-sky-700 dark:text-sky-300"><Hourglass className="h-8 w-8" /></span>
@@ -60,6 +67,7 @@ export default function AttemptResult({ slug, mission, attempt, awarded, badge, 
                     <p className="text-xs text-muted-foreground">Attempt {attempt.attemptNo} of {mission.maxAttempts}{attempt.score !== null ? ` · pass mark ${passMark}` : ''}</p>
                 </div>
             </div>
+            )}
 
             {awarded && (awarded.xp > 0 || awarded.tokens > 0) && (
                 <div className="flex flex-wrap gap-2">
@@ -68,7 +76,9 @@ export default function AttemptResult({ slug, mission, attempt, awarded, badge, 
                 </div>
             )}
 
-            {attempt.feedback && <p className="hw-rise whitespace-pre-wrap rounded-2xl bg-muted/60 px-4 py-3 text-sm leading-relaxed text-foreground">{attempt.feedback}</p>}
+            {attempt.insights && <SkillCompass insights={attempt.insights} color={color} />}
+
+            {attempt.feedback && !attempt.insights && <p className="hw-rise whitespace-pre-wrap rounded-2xl bg-muted/60 px-4 py-3 text-sm leading-relaxed text-foreground">{attempt.feedback}</p>}
 
             {attempt.rubricScores && mission.rubric && (
                 <ul className="space-y-2">

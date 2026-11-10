@@ -23,10 +23,43 @@ export interface CurrentUser
  * /app/settings/onboarding, e.g. a first-time OAuth sign-in) — the two
  * cases route differently across the app.
  */
+/**
+ * The signed-in user from the verified access token. The project signs JWTs
+ * with an asymmetric (ES256) key, so getClaims() verifies locally against the
+ * cached JWKS — no Auth-server round trip per request, unlike getUser().
+ * Only id / email / user_metadata are read by callers, and all are claims.
+ * Falls back to getUser() if local verification isn't possible.
+ */
+async function verifiedAuthUser(supabase: Awaited<ReturnType<typeof createClient>>): Promise<SupabaseAuthUser | null>
+{
+    try
+    {
+        const { data, error } = await supabase.auth.getClaims()
+        const c = data?.claims
+        if (!error && c?.sub)
+        {
+            return {
+                id: c.sub,
+                email: typeof c.email === 'string' ? c.email : undefined,
+                phone: typeof c.phone === 'string' ? c.phone : undefined,
+                role: typeof c.role === 'string' ? c.role : undefined,
+                aud: typeof c.aud === 'string' ? c.aud : 'authenticated',
+                app_metadata: (c.app_metadata ?? {}) as SupabaseAuthUser['app_metadata'],
+                user_metadata: (c.user_metadata ?? {}) as SupabaseAuthUser['user_metadata'],
+                is_anonymous: Boolean(c.is_anonymous),
+                created_at: '',
+            } as SupabaseAuthUser
+        }
+        if (!error) return null
+    } catch { /* fall through to the network check */ }
+    const { data: { user } } = await supabase.auth.getUser()
+    return user
+}
+
 export const getCurrentUser = cache(async (): Promise<CurrentUser> =>
 {
     const supabase = await createClient()
-    const { data: { user: authUser } } = await supabase.auth.getUser()
+    const authUser = await verifiedAuthUser(supabase)
     if (!authUser) return { authUser: null, profile: null }
 
     // Own profile via service role: users.email isn't readable with the user client.
