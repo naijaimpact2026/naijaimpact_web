@@ -38,7 +38,20 @@ export default async function WorldHome({ competition: c, profile, week }: { com
         <div className={`space-y-5 ${me.accessibility.reducedMotion ? 'hw-reduce' : ''}`}>
             {/* You */}
             <section className="hw-rise relative overflow-hidden rounded-3xl p-5 sm:p-6 text-white shadow-lg" style={{ background: `linear-gradient(135deg, ${color} 0%, #102A43 90%)` }}>
-                <div className="absolute right-4 top-4 z-10"><HowItWorks color={color} autoOpen /></div>
+                <div className="absolute right-4 top-4 z-10">
+                    <HowItWorks
+                        color={color}
+                        summary={{
+                            pathwayName: pathway.name,
+                            week: c.clock.week, day: c.clock.day, dayName: c.clock.day ? DAY_LONG[c.clock.day - 1] : null,
+                            today: today ? { title: today.title, href: `${base}/missions/${today.id}`, status: today.status, xp: today.xp } : null,
+                            catchUp: catchUp.length,
+                            stage: stage ? { number: stage.stage, total: stage.total, passMark: stage.passMark, done: stage.missionsDone, count: stage.missionsTotal } : null,
+                            level: progress ? { level: progress.level.level, name: progress.level.name } : null,
+                            xp: progress?.xp ?? 0, tokens: progress?.tokens ?? 0,
+                        }}
+                    />
+                </div>
                 <div className="flex items-center gap-4 pr-0 sm:pr-36">
                     <div className="hw-float h-20 w-20 shrink-0 rounded-3xl bg-white/15 p-2 sm:h-24 sm:w-24">
                         {/* eslint-disable-next-line @next/next/no-img-element -- tiny static PNG */}
