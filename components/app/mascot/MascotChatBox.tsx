@@ -32,6 +32,9 @@ interface MascotChatBoxProps {
   soundEnabled: boolean
   onToggleSound: () => void
   dockedSide?: 'left' | 'right'
+  /** A question sent from another screen; sent once the chat is open. */
+  pendingPrompt?: string | null
+  onPromptConsumed?: () => void
 }
 
 export default function MascotChatBox({
@@ -45,7 +48,9 @@ export default function MascotChatBox({
   userRole = 'Community Member',
   soundEnabled,
   onToggleSound,
-  dockedSide = 'right'
+  dockedSide = 'right',
+  pendingPrompt = null,
+  onPromptConsumed,
 }: MascotChatBoxProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputText, setInputText] = useState('')
@@ -76,6 +81,14 @@ export default function MascotChatBox({
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages, isLoading, isOpen])
+
+  // Send a question handed over by another screen (e.g. "Ask Novo" on a mission).
+  useEffect(() => {
+    if (!isOpen || !pendingPrompt || isLoading) return
+    onPromptConsumed?.()
+    void handleSend(pendingPrompt)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, pendingPrompt])
 
   // Focus input when opened
   useEffect(() => {

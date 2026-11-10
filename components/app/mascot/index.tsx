@@ -21,6 +21,19 @@ export default function NovoCompanion({ user }: NovoCompanionProps) {
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [customLookId, setCustomLookId] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
+  // A question another screen asked Novo to answer (see lib/novo-ask.ts).
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null)
+
+  useEffect(() => {
+    const onAsk = (e: Event) => {
+      const message = (e as CustomEvent<{ message?: string }>).detail?.message?.trim()
+      if (!message) return
+      setIsChatOpen(true)
+      setPendingPrompt(message.slice(0, 1500))
+    }
+    window.addEventListener('novo:ask', onAsk)
+    return () => window.removeEventListener('novo:ask', onAsk)
+  }, [])
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -105,6 +118,8 @@ export default function NovoCompanion({ user }: NovoCompanionProps) {
         soundEnabled={soundEnabled}
         onToggleSound={handleToggleSound}
         dockedSide="right"
+        pendingPrompt={pendingPrompt}
+        onPromptConsumed={() => setPendingPrompt(null)}
       />
 
       {/* Wardrobe Modal */}

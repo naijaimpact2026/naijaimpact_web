@@ -9,6 +9,7 @@ import { autoGrade, formToText, isFormKind, validateForm } from './grading'
 import { stageScores } from './progress'
 import { semesterClock, stageOfWeek, unlockAt } from './schedule'
 import { WORLD_CONTENT } from './content'
+import { MISSION_TIPS } from './content/tips'
 import {
     DEFAULT_PASS_MARK, MAX_ATTEMPTS, worldLevel,
     type AttemptPayload, type AttemptStatus, type AttemptView, type CompetitionDetail, type CompetitionSummary,
@@ -338,6 +339,7 @@ async function buildMissionViews(c: CompetitionRow, pathway: Pathway, userId: st
             reviewMode: m.review_mode, rubric: m.rubric_key ? rubrics.get(m.rubric_key) ?? null : null, status,
             unlocksAt: (opensAt ?? new Date(0)).toISOString(), attemptsUsed: mine.length, maxAttempts: m.max_attempts || MAX_ATTEMPTS,
             lastAttempt: last ? toAttemptView(last) : null, badge: m.badge ?? null,
+            tips: MISSION_TIPS[m.key] ?? [],
         }
     })
     return { views, missions: allMissions, attempts }
