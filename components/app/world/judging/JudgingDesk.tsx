@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
 import { AlertTriangle, ArrowLeft, Check, CheckCircle2, ChevronDown, Coins, Gavel, Inbox, Loader2, MessageSquareQuote, RotateCcw, Scale, Sparkles, XCircle, Zap } from 'lucide-react'
 import { toast } from '@/components/toast'
@@ -33,7 +32,6 @@ type Tab = 'queue' | 'appeals'
 
 export default function JudgingDesk({ tab, items: initial, counts }: { tab: Tab; items: ReviewQueueItem[]; counts: ReviewCounts })
 {
-    const router = useRouter()
     const [items, setItems] = useState(initial)
     const [done, setDone] = useState(0)
     const [filter, setFilter] = useState<'all' | Pathway>('all')
@@ -50,10 +48,7 @@ export default function JudgingDesk({ tab, items: initial, counts }: { tab: Tab;
         setSelectedId(next?.attemptId ?? null)
         setDone((n) => n + 1)
         if (!next) setMobileDetail(false)
-        router.refresh()
     }
-
-    const remaining = (tab === 'queue' ? counts.inReview : counts.appeals) - done
 
     return (
         <div className="space-y-4">
@@ -66,8 +61,8 @@ export default function JudgingDesk({ tab, items: initial, counts }: { tab: Tab;
             </header>
 
             <div className="flex flex-wrap items-center gap-2">
-                <TabLink href="/app/competitions/judging" active={tab === 'queue'} label="To score" count={tab === 'queue' ? Math.max(0, remaining) : counts.inReview} />
-                <TabLink href="/app/competitions/judging?tab=appeals" active={tab === 'appeals'} label="Appeals" count={tab === 'appeals' ? Math.max(0, remaining) : counts.appeals} />
+                <TabLink href="/app/competitions/judging" active={tab === 'queue'} label="To score" count={counts.inReview} />
+                <TabLink href="/app/competitions/judging?tab=appeals" active={tab === 'appeals'} label="Appeals" count={counts.appeals} />
                 <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
                 {(['all', 'career', 'enterprise'] as const).map((f) => (
                     <button
