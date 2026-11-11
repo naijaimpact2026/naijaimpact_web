@@ -1496,7 +1496,8 @@
                   "type": "object",
                   "required": [
                     "ok",
-                    "items"
+                    "items",
+                    "counts"
                   ],
                   "properties": {
                     "ok": {
@@ -1507,6 +1508,18 @@
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/ReviewQueueItem"
+                      }
+                    },
+                    "counts": {
+                      "type": "object",
+                      "description": "Totals across the whole queue (for badges).",
+                      "properties": {
+                        "inReview": {
+                          "type": "integer"
+                        },
+                        "appeals": {
+                          "type": "integer"
+                        }
                       }
                     }
                   }
@@ -3124,6 +3137,9 @@
             "type": "string",
             "format": "uuid"
           },
+          "attemptNo": {
+            "type": "integer"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -3132,7 +3148,48 @@
             "type": "string"
           },
           "mission": {
-            "type": "object"
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "title": {
+                "type": "string"
+              },
+              "story": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "kind": {
+                "$ref": "#/components/schemas/MissionKind"
+              },
+              "pathway": {
+                "$ref": "#/components/schemas/Pathway"
+              },
+              "week": {
+                "type": "integer"
+              },
+              "day": {
+                "type": "integer"
+              },
+              "xp": {
+                "type": "integer"
+              },
+              "tokens": {
+                "type": "integer"
+              },
+              "config": {
+                "type": "object",
+                "description": "Mission config (form fields + checklist) — use the field labels to show the answers."
+              }
+            }
           },
           "rubric": {
             "anyOf": [
@@ -3164,6 +3221,69 @@
                 "anyOf": [
                   {
                     "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "avatarUrl": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "current": {
+            "type": "object",
+            "description": "Where the attempt stands now. For appeals this is the result being appealed.",
+            "properties": {
+              "status": {
+                "$ref": "#/components/schemas/AttemptStatus"
+              },
+              "score": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "feedback": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "rubricScores": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "number"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reviewedAt": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
                   },
                   {
                     "type": "null"

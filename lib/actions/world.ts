@@ -72,6 +72,6 @@ export async function reviewWorldAttemptAction(input: world.ReviewInput)
 {
     const p = await me(); if (!p) return unauthorized
     const r = await world.reviewAttempt(p, input)
-    if (r.ok) revalidatePath('/app/competitions/world-review')
+    if (r.ok) revalidatePath('/app/competitions/judging')
     return r
 }

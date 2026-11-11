@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import { ArrowLeft, Lock } from 'lucide-react'
+import { ArrowLeft, Gavel, Lock } from 'lucide-react'
 import type { User } from '@/lib/types'
-import { getCompetitionDetail } from '@/lib/world/service'
+import { getCompetitionDetail, isAdmin, reviewCounts } from '@/lib/world/service'
 import { TOKENS_LABEL, XP_LABEL } from '@/lib/world/types'
 import WorldHome from './WorldHome'
 import WorldOnboarding from './onboarding/WorldOnboarding'
@@ -12,13 +12,24 @@ import WorldOnboarding from './onboarding/WorldOnboarding'
  */
 export default async function WorldCompetitionPage({ slug, profile, week }: { slug: string; profile: User | null; week?: number })
 {
-    const detail = profile ? await getCompetitionDetail(slug, profile) : null
+    const [detail, judging] = await Promise.all([
+        profile ? getCompetitionDetail(slug, profile) : null,
+        isAdmin(profile) ? reviewCounts(profile) : null,
+    ])
 
     return (
         <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-5">
-            <Link href="/app/competitions" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="h-4 w-4" /> Competitions
-            </Link>
+            <div className="flex items-center justify-between gap-3">
+                <Link href="/app/competitions" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+                    <ArrowLeft className="h-4 w-4" /> Competitions
+                </Link>
+                {judging && (
+                    <Link href="/app/competitions/judging" className="hw-press inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted">
+                        <Gavel className="h-3.5 w-3.5 text-primary" /> Judging
+                        {judging.inReview + judging.appeals > 0 && <span className="rounded-full bg-primary px-1.5 text-[10px] tabular-nums text-primary-foreground">{judging.inReview + judging.appeals}</span>}
+                    </Link>
+                )}
+            </div>
 
             {!detail || !detail.ok || !profile ? (
                 <section className="rounded-3xl border border-border bg-card p-8 text-center space-y-3">

@@ -41,9 +41,14 @@ export default async function CompetitionsPage()
                     )}
                 </div>
                 {isAdmin && (
-                    <Link href="/app/competitions/review" className="absolute top-4 right-4 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold hover:bg-white/25">
-                        Review queue
-                    </Link>
+                    <div className="absolute top-4 right-4 flex gap-2">
+                        <Link href="/app/competitions/judging" className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold hover:bg-white/25">
+                            Judging
+                        </Link>
+                        <Link href="/app/competitions/review" className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold hover:bg-white/25">
+                            Review queue
+                        </Link>
+                    </div>
                 )}
             </section>
 

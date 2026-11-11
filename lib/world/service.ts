@@ -748,11 +748,14 @@ export async function syncContent(slug: string, profile: User, overwrite = false
 export interface ReviewQueueItem
 {
     attemptId: string
+    attemptNo: number
     createdAt: string
     competition: string
-    mission: { id: string; title: string; kind: MissionKind; pathway: Pathway; week: number; day: number; config: MissionConfig }
+    mission: { id: string; title: string; story: string | null; kind: MissionKind; pathway: Pathway; week: number; day: number; xp: number; tokens: number; config: MissionConfig }
     rubric: RubricView | null
-    user: { id: string; username: string | null; displayName: string | null }
+    user: { id: string; username: string | null; displayName: string | null; avatarUrl: string | null }
+    /** Where the attempt stands now (for appeals: the result being appealed). */
+    current: { status: AttemptStatus; score: number | null; feedback: string | null; rubricScores: Record<string, number> | null; reviewedAt: string | null }
     payload: unknown
     files: { fieldId: string; url: string }[]
     aiSuggestion: { score: number | null; feedback: string | null; criteria: Record<string, number> | null }
@@ -760,24 +763,24 @@ export interface ReviewQueueItem
     appeal: { reason: string | null; status: string | null }
 }
 
-export async function reviewQueue(profile: User, opts: { appeals?: boolean; limit?: number } = {}): Promise<Result<{ items: ReviewQueueItem[] }>>
+export async function reviewQueue(profile: User, opts: { appeals?: boolean; limit?: number } = {}): Promise<Result<{ items: ReviewQueueItem[]; counts: ReviewCounts }>>
 {
     if (!isAdmin(profile)) return fail('Unauthorized')
     const db = createServiceClient()
     let q = db.from('competition_attempts')
-        .select('id, created_at, payload, ai_score, ai_feedback, flags, appeal_reason, appeal_status, user_id, mission_id, competition:competitions(slug)')
+        .select('id, attempt_no, status, score, feedback, rubric_scores, reviewed_at, created_at, payload, ai_score, ai_feedback, flags, appeal_reason, appeal_status, user_id, mission_id, competition:competitions(slug)')
         .order('created_at', { ascending: true }).limit(Math.min(opts.limit ?? 50, 100))
     q = opts.appeals ? q.eq('appeal_status', 'open') : q.eq('status', 'in_review')
-    const { data } = await q
-    const rows = (data ?? []) as unknown as { id: string; created_at: string; payload: AttemptPayload; ai_score: number | null; ai_feedback: { feedback?: string; criteria?: Record<string, number> } | null; flags: string[]; appeal_reason: string | null; appeal_status: string | null; user_id: string; mission_id: string; competition: { slug: string } | null }[]
-    if (rows.length === 0) return { ok: true, items: [] }
+    const [{ data }, counts] = await Promise.all([q, countReviews()])
+    const rows = (data ?? []) as unknown as { id: string; attempt_no: number; status: AttemptStatus; score: number | null; feedback: string | null; rubric_scores: Record<string, number> | null; reviewed_at: string | null; created_at: string; payload: AttemptPayload; ai_score: number | null; ai_feedback: { feedback?: string; criteria?: Record<string, number> } | null; flags: string[]; appeal_reason: string | null; appeal_status: string | null; user_id: string; mission_id: string; competition: { slug: string } | null }[]
+    if (rows.length === 0) return { ok: true, items: [], counts }
 
     const [{ data: missions }, { data: users }] = await Promise.all([
         db.from('competition_missions').select(MISSION_COLUMNS).in('id', [...new Set(rows.map((r) => r.mission_id))]),
-        db.from('users').select('id, username, display_name').in('id', [...new Set(rows.map((r) => r.user_id))]),
+        db.from('users').select('id, username, display_name, avatar_url').in('id', [...new Set(rows.map((r) => r.user_id))]),
     ])
     const mm = new Map(((missions ?? []) as MissionRow[]).map((m) => [m.id, m]))
-    const uu = new Map(((users ?? []) as { id: string; username: string | null; display_name: string | null }[]).map((u) => [u.id, u]))
+    const uu = new Map(((users ?? []) as { id: string; username: string | null; display_name: string | null; avatar_url: string | null }[]).map((u) => [u.id, u]))
     const rubrics = await loadRubrics(((missions ?? []) as MissionRow[]).map((m) => m.rubric_key).filter(Boolean) as string[])
 
     const items = await Promise.all(rows.map(async (r): Promise<ReviewQueueItem> =>
@@ -788,17 +791,38 @@ export async function reviewQueue(profile: User, opts: { appeals?: boolean; limi
             for (const [fieldId, v] of Object.entries(r.payload.fields ?? {}))
                 for (const one of [v].flat())
                     if (one && typeof one === 'object' && 'key' in one) files.push({ fieldId, url: await presignDownload(one.key, 30 * 60) })
+        const u = uu.get(r.user_id)
         return {
-            attemptId: r.id, createdAt: r.created_at, competition: r.competition?.slug ?? '',
-            mission: { id: m.id, title: m.title, kind: m.kind, pathway: m.pathway, week: m.week, day: m.day, config: m.config },
+            attemptId: r.id, attemptNo: r.attempt_no, createdAt: r.created_at, competition: r.competition?.slug ?? '',
+            mission: { id: m.id, title: m.title, story: m.story, kind: m.kind, pathway: m.pathway, week: m.week, day: m.day, xp: m.xp, tokens: m.tokens, config: m.config },
             rubric: m.rubric_key ? rubrics.get(m.rubric_key) ?? null : null,
-            user: { id: r.user_id, username: uu.get(r.user_id)?.username ?? null, displayName: uu.get(r.user_id)?.display_name ?? null },
+            user: { id: r.user_id, username: u?.username ?? null, displayName: u?.display_name ?? null, avatarUrl: u?.avatar_url ?? null },
+            current: { status: r.status, score: r.score === null ? null : Number(r.score), feedback: r.feedback, rubricScores: r.rubric_scores, reviewedAt: r.reviewed_at },
             payload: r.payload, files,
             aiSuggestion: { score: r.ai_score === null ? null : Number(r.ai_score), feedback: r.ai_feedback?.feedback ?? null, criteria: r.ai_feedback?.criteria ?? null },
             flags: r.flags ?? [], appeal: { reason: r.appeal_reason, status: r.appeal_status },
         }
     }))
-    return { ok: true, items }
+    return { ok: true, items, counts }
+}
+
+export interface ReviewCounts { inReview: number; appeals: number }
+
+async function countReviews(): Promise<ReviewCounts>
+{
+    const db = createServiceClient()
+    const [a, b] = await Promise.all([
+        db.from('competition_attempts').select('id', { count: 'exact', head: true }).eq('status', 'in_review'),
+        db.from('competition_attempts').select('id', { count: 'exact', head: true }).eq('appeal_status', 'open'),
+    ])
+    return { inReview: a.count ?? 0, appeals: b.count ?? 0 }
+}
+
+/** Badge counts for the judging link (admins only; 0s otherwise). */
+export async function reviewCounts(profile: User | null): Promise<ReviewCounts>
+{
+    if (!isAdmin(profile)) return { inReview: 0, appeals: 0 }
+    return countReviews().catch(() => ({ inReview: 0, appeals: 0 }))
 }
 
 export interface ReviewInput
