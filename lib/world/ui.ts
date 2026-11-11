@@ -44,4 +44,22 @@ export function formatUnlock(iso: string)
     return new Date(iso).toLocaleString('en-NG', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'Africa/Lagos' })
 }
 
+/** Turn animations off for "Reduce motion" and for Lite mode (low-end phones, low data). */
+export function calmMotion(me: { accessibility: { lite?: boolean; reducedMotion?: boolean } } | null | undefined)
+{
+    return Boolean(me?.accessibility.reducedMotion || me?.accessibility.lite)
+}
+
+/**
+ * Novo coach on judged missions (Sunday boss challenges + the Week 4 finale).
+ * Off for now (recommended 10 Nov 2026, pending the team lead): judges score
+ * that work, so it must be the player's own. Flip to true to allow it again.
+ */
+export const COACH_ON_JUDGED_MISSIONS = false
+
+export function coachAvailable(m: { kind: string; reviewMode: string })
+{
+    return COACH_ON_JUDGED_MISSIONS || (m.kind !== 'boss' && m.reviewMode !== 'human')
+}
+
 export { Clock }

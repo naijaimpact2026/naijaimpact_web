@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CheckCircle2, FileText, Film, ImageIcon, Loader2, Send, ShieldCheck, Upload, X } from 'lucide-react'
+import { Camera, CheckCircle2, FileText, Film, ImageIcon, Loader2, Send, ShieldCheck, Upload, X } from 'lucide-react'
 import { toast } from '@/components/toast'
 import { worldUploadUrlAction } from '@/lib/actions/world'
 import type { AttemptPayload, FieldDef, FieldValue, FormConfig } from '@/lib/world/types'
@@ -336,14 +336,31 @@ function UploadField(props: {
 })
 {
     const ref = useRef<HTMLInputElement>(null)
+    const camRef = useRef<HTMLInputElement>(null)
     const groups = props.field.accept ?? (props.field.type === 'video' ? ['video'] : ['image', 'pdf'])
     const accept = groups.flatMap((g) => MIME[g as keyof typeof MIME] ?? []).join(',')
     const Icon = props.field.type === 'video' ? Film : groups.includes('image') ? ImageIcon : FileText
+    const isVideo = props.field.type === 'video' || groups.includes('video')
+    const maxSeconds = props.field.maxSeconds ?? 120
+    // Phones/tablets: offer "Record now", which opens the front camera through the OS (no camera permission needed).
+    const [canRecord, setCanRecord] = useState(false)
+    const [preview, setPreview] = useState<string | null>(null)
+    useEffect(() => { setCanRecord(isVideo && window.matchMedia('(pointer: coarse)').matches) }, [isVideo])
+    useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
 
     async function pick(file: File | undefined)
     {
+        if (ref.current) ref.current.value = ''
+        if (camRef.current) camRef.current.value = ''
         if (!file) return
-        if (!accept.split(',').includes(file.type)) { toast.error(`Upload a ${groups.join(' or ')} file.`); return }
+        if (!accept.split(',').includes(file.type)) { toast.error(file.type.startsWith('video/') ? 'Use an MP4, MOV or WebM video.' : `Upload a ${groups.join(' or ')} file.`); return }
+        if (file.type.startsWith('video/'))
+        {
+            const secs = await videoSeconds(file)
+            // Small allowance for phone recordings that run a second over.
+            if (secs !== null && secs > maxSeconds + 2) { toast.error(`That video is ${Math.round(secs)}s. Keep it to ${maxSeconds}s or less.`); return }
+            setPreview(URL.createObjectURL(file))
+        }
         props.onStart(file.name)
         const r = await props.getUrl(file.type, file.size)
         if (!r.ok) { toast.error(r.error); props.onClear(); return }
@@ -362,13 +379,22 @@ function UploadField(props: {
             xhr.onerror = () => { toast.error('Upload failed. Check your connection and try again.'); props.onClear(); resolve() }
             xhr.send(file)
         })
-        if (ref.current) ref.current.value = ''
+    }
+
+    function clear()
+    {
+        setPreview(null)
+        props.onClear()
     }
 
     const s = props.state
     return (
-        <div>
+        <div className="space-y-2">
             <input ref={ref} type="file" accept={accept} className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
+            {canRecord && <input ref={camRef} type="file" accept="video/*" capture="user" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />}
+            {s && preview && (
+                <video src={preview} controls playsInline preload="metadata" className="max-h-72 w-full rounded-xl bg-black" aria-label="Your video preview" />
+            )}
             {s ? (
                 <div className="hw-pop flex items-center gap-3 rounded-xl border border-border px-3 py-2.5">
                     {s.key ? <CheckCircle2 className="hw-pop h-5 w-5 shrink-0 text-emerald-600" /> : <Loader2 className="h-5 w-5 shrink-0 animate-spin text-muted-foreground" />}
@@ -378,7 +404,20 @@ function UploadField(props: {
                             <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-muted"><span className="hw-bar block h-full rounded-full" style={{ width: `${s.progress}%`, backgroundColor: props.color }} /></span>
                         )}
                     </span>
-                    {s.key && <button type="button" onClick={props.onClear} aria-label="Remove file" className="rounded-full p-1 hover:bg-muted"><X className="h-4 w-4" /></button>}
+                    {s.key && <button type="button" onClick={clear} aria-label="Remove file" className="rounded-full p-1 hover:bg-muted"><X className="h-4 w-4" /></button>}
+                </div>
+            ) : canRecord ? (
+                <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => camRef.current?.click()} className="hw-press flex flex-col items-center gap-1.5 rounded-xl px-3 py-4 text-center text-white shadow-sm" style={{ backgroundColor: props.color }}>
+                        <Camera className="h-5 w-5" />
+                        <span className="text-sm font-bold">Record now</span>
+                        <span className="text-[11px] text-white/80">Up to {maxSeconds}s</span>
+                    </button>
+                    <button type="button" onClick={() => ref.current?.click()} className="hw-press flex flex-col items-center gap-1.5 rounded-xl border-2 border-dashed border-border px-3 py-4 text-center hover:bg-muted/40">
+                        <Upload className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm font-semibold text-foreground">Choose a video</span>
+                        <span className="text-[11px] text-muted-foreground">MP4, MOV, WebM · 150 MB</span>
+                    </button>
                 </div>
             ) : (
                 <button type="button" onClick={() => ref.current?.click()} className="hw-press hw-lift flex w-full items-center gap-3 rounded-xl border-2 border-dashed border-border px-4 py-4 text-left hover:border-foreground/30 hover:bg-muted/40">
@@ -393,4 +432,20 @@ function UploadField(props: {
             )}
         </div>
     )
+}
+
+/** Length of a local video file in seconds, or null if the browser can't read it (the server still checks size). */
+function videoSeconds(file: File): Promise<number | null>
+{
+    return new Promise((resolve) =>
+    {
+        const url = URL.createObjectURL(file)
+        const v = document.createElement('video')
+        const done = (n: number | null) => { URL.revokeObjectURL(url); resolve(n) }
+        const timer = setTimeout(() => done(null), 8000)
+        v.preload = 'metadata'
+        v.onloadedmetadata = () => { clearTimeout(timer); done(Number.isFinite(v.duration) ? v.duration : null) }
+        v.onerror = () => { clearTimeout(timer); done(null) }
+        v.src = url
+    })
 }

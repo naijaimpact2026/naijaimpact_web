@@ -49,7 +49,7 @@ async function markIntent(
  * A metadata user id is only trusted when that account's email is the email
  * that paid (metadata comes from the browser).
  */
-async function verifiedPayer(admin: Admin, userId: unknown, payerEmail: string): Promise<string | null> {
+export async function verifiedPayer(admin: Admin, userId: unknown, payerEmail: string): Promise<string | null> {
   if (typeof userId !== 'string' || !userId || userId === 'anonymous' || !payerEmail) return null
   const { data } = await admin.from('users').select('id, email').eq('id', userId).maybeSingle()
   return data && String(data.email ?? '').trim().toLowerCase() === payerEmail ? data.id : null
