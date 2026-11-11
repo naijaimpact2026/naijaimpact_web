@@ -193,7 +193,7 @@ Example:
 ## Admin (role `admin`)
 - `POST /competitions/:slug/admin/sync` `{ "overwrite": false }` → `{ inserted, updated }` — loads missions from `lib/world/content`.
 - `POST /competitions/:slug/admin/testers` `{ "username": "dev_mobile" }` — allow a user to play while `preview`.
-- `GET /competitions/review` (or `?appeals=1`) → `{ items: ReviewQueueItem[] }` with signed file URLs and the AI suggestion.
+- `GET /competitions/review` (or `?appeals=1`) → `{ items: ReviewQueueItem[], counts: { inReview, appeals } }`. Each item has the mission (with its form config, so you can label the answers), the student, `current` (the result being appealed, for appeals), signed file URLs (30 min) and the AI suggestion. Web judges use `/app/competitions/judging`.
 - `POST /competitions/review/:attemptId` `{ "decision": "pass"|"revise"|"reject", "rubricScores": { "clarity": 80, … }, "feedback": "…", "appeal": "upheld"|"dismissed" }`.
 
 ---
