@@ -885,8 +885,11 @@ export async function reviewAttempt(profile: User, input: ReviewInput): Promise<
     let awarded = { xp: 0, tokens: 0 }
     if (status === 'passed')
     {
-        awarded = await awardMission(attempt.user_id, m.id).catch(() => ({ xp: 0, tokens: 0 }))
-        if (m.badge && attempt.competition?.slug) await grantBadge(attempt.user_id, attempt.competition.slug, m.badge)
+        const slug = attempt.competition?.slug
+        ;[awarded] = await Promise.all([
+            awardMission(attempt.user_id, m.id).catch(() => ({ xp: 0, tokens: 0 })),
+            m.badge && slug ? grantBadge(attempt.user_id, slug, m.badge) : null,
+        ])
     }
     return { ok: true, score, awarded }
 }
