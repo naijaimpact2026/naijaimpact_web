@@ -77,11 +77,13 @@ export function clearFormDraft(missionId: string)
     try { localStorage.removeItem(draftKey(missionId)) } catch { /* ignore */ }
 }
 
-export default function FormActivity({ slug, missionId, config, color, submitting, onSubmit }: {
+export default function FormActivity({ slug, missionId, config, color, submitting, onSubmit, defaults }: {
     slug: string; missionId: string; config: FormConfig; color: string; submitting: boolean; onSubmit: (p: AttemptPayload) => void
+    /** Starting values (e.g. the squad name on team missions); a saved draft wins. */
+    defaults?: Record<string, string>
 })
 {
-    const [values, setValues] = useState<Record<string, Value>>({})
+    const [values, setValues] = useState<Record<string, Value>>(() => ({ ...(defaults ?? {}) }))
     const [checked, setChecked] = useState<string[]>([])
     const [uploads, setUploads] = useState<Record<string, UploadState>>({})
     const [showErrors, setShowErrors] = useState(false)

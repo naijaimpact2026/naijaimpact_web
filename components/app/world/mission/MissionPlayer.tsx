@@ -15,7 +15,7 @@ import SortActivity from './SortActivity'
 import ReviewingCard from './ReviewingCard'
 
 /** Runs a mission: shows its state, renders the activity, submits, shows the result. */
-export default function MissionPlayer({ slug, mission, attempts, color, homeHref }: { slug: string; mission: MissionView; attempts: AttemptView[]; color: string; homeHref: string })
+export default function MissionPlayer({ slug, mission, attempts, color, homeHref, defaults }: { slug: string; mission: MissionView; attempts: AttemptView[]; color: string; homeHref: string; defaults?: Record<string, string> })
 {
     const router = useRouter()
     const [pending, start] = useTransition()
@@ -82,7 +82,7 @@ export default function MissionPlayer({ slug, mission, attempts, color, homeHref
             {mission.kind === 'quiz' && <QuizActivity config={mission.config as QuizConfig} {...props} />}
             {mission.kind === 'sort' && <SortActivity config={mission.config as SortConfig} {...props} />}
             {mission.kind === 'scenario' && <ScenarioActivity config={mission.config as ScenarioConfig} {...props} />}
-            {!['quiz', 'sort', 'scenario'].includes(mission.kind) && <FormActivity slug={slug} missionId={mission.id} config={mission.config as FormConfig} {...props} />}
+            {!['quiz', 'sort', 'scenario'].includes(mission.kind) && <FormActivity slug={slug} missionId={mission.id} config={mission.config as FormConfig} defaults={defaults} {...props} />}
         </section>
         </>
     )

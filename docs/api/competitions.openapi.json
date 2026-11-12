@@ -42,6 +42,10 @@
       "name": "Progress"
     },
     {
+      "name": "Squads",
+      "description": "Teams of 3–5 in the same pathway, invite code only"
+    },
+    {
       "name": "Admin",
       "description": "role = admin"
     }
@@ -1474,6 +1478,425 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/squad": {
+      "get": {
+        "tags": [
+          "Squads"
+        ],
+        "summary": "My squad",
+        "description": "`squad` is null when not in one. `enabled: false` means squads are not switched on yet (hide the feature).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "enabled",
+                    "squad"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "squad": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/Squad"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Squads"
+        ],
+        "summary": "Create a squad",
+        "description": "You become the leader. Same pathway only; one squad per player. 2–40 character name.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 40
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "squad"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "squad": {
+                      "$ref": "#/components/schemas/Squad"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Squads"
+        ],
+        "summary": "Rename the squad (leader)",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 40
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkEmpty"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/squad/join": {
+      "post": {
+        "tags": [
+          "Squads"
+        ],
+        "summary": "Join with an invite code",
+        "description": "Squads are invite-only (no public list). Errors: full (5 players), other pathway, already in a squad, unknown code.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "code"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "example": "K7MQ3X"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "squad"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "squad": {
+                      "$ref": "#/components/schemas/Squad"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/squad/leave": {
+      "post": {
+        "tags": [
+          "Squads"
+        ],
+        "summary": "Leave your squad",
+        "description": "If the leader leaves, the longest-standing member becomes leader. The last player leaving closes the squad.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkEmpty"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/squad/chat": {
+      "post": {
+        "tags": [
+          "Squads"
+        ],
+        "summary": "Open the squad chat",
+        "description": "Makes sure the Stream channel exists and every member is in it, then returns its id. Call before opening the chat.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "chatChannelId"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "chatChannelId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/squad/members/{userId}": {
+      "delete": {
+        "tags": [
+          "Squads"
+        ],
+        "summary": "Remove a player (leader)",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkEmpty"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
           },
           "401": {
             "$ref": "#/components/responses/E401"
@@ -3309,6 +3732,172 @@
           },
           "isMine": {
             "type": "boolean"
+          }
+        }
+      },
+      "SquadMember": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "displayName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avatarUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "character": {
+            "type": "integer"
+          },
+          "isLeader": {
+            "type": "boolean"
+          },
+          "isMe": {
+            "type": "boolean"
+          },
+          "xp": {
+            "type": "integer"
+          },
+          "weekXp": {
+            "type": "integer",
+            "description": "XP this semester week"
+          },
+          "teamMission": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MissionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Squad": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "K7MQ3X",
+            "description": "6-character invite code"
+          },
+          "pathway": {
+            "$ref": "#/components/schemas/Pathway"
+          },
+          "leaderId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "chatChannelId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "example": "group_squad_9f…",
+                "description": "Stream channel (type messaging) — connect with /api/stream-token, call POST …/squad/chat first"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SquadMember"
+            }
+          },
+          "totalXp": {
+            "type": "integer"
+          },
+          "weekXp": {
+            "type": "integer"
+          },
+          "min": {
+            "type": "integer",
+            "example": 3
+          },
+          "max": {
+            "type": "integer",
+            "example": 5
+          },
+          "teamMission": {
+            "anyOf": [
+              {
+                "type": "object",
+                "description": "This week's Friday team mission",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "week": {
+                    "type": "integer"
+                  },
+                  "day": {
+                    "type": "integer"
+                  },
+                  "unlocksAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },

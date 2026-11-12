@@ -1,8 +1,9 @@
 import Link from 'next/link'
-import { ArrowRight, Building2, ChevronLeft, ChevronRight, Coins, IdCard, Medal, Swords, Timer, Trophy, Zap } from 'lucide-react'
+import { ArrowRight, Building2, ChevronLeft, Users, ChevronRight, Coins, IdCard, Medal, Swords, Timer, Trophy, Zap } from 'lucide-react'
 import type { User } from '@/lib/types'
 import { characterPreviewUrl } from '@/lib/competitions/config'
 import { getProgress, listQuests, todayQuests } from '@/lib/world/service'
+import { squadSummary } from '@/lib/world/squads'
 import { BUCKET_WEIGHTS, TOKENS_LABEL, XP_LABEL, type CompetitionDetail, type MissionView, type ScoreBucket } from '@/lib/world/types'
 import { DAY_LONG, DAY_NAMES, KIND_META, REVIEW_META, STATUS_META, calmMotion, formatUnlock } from '@/lib/world/ui'
 import HowItWorks from './HowItWorks'
@@ -22,10 +23,11 @@ export default async function WorldHome({ competition: c, profile, week }: { com
     const me = c.me!
     const pathway = c.pathways.find((p) => p.key === me.pathway)!
     const color = pathway.color
-    const [progressRes, todayRes, weekRes] = await Promise.all([
+    const [progressRes, todayRes, weekRes, squad] = await Promise.all([
         getProgress(c.slug, profile),
         todayQuests(c.slug, profile),
         listQuests(c.slug, profile, week),
+        squadSummary(c.id, profile.id),
     ])
     const progress = progressRes.ok ? progressRes.progress : null
     const today = todayRes.ok ? todayRes.today : null
@@ -81,6 +83,10 @@ export default async function WorldHome({ competition: c, profile, week }: { com
             <nav className="hw-rise flex flex-wrap items-center gap-2" style={{ animationDelay: '40ms' }} aria-label="Your Campus shortcuts">
                 <Link href={`${base}/passport`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-white shadow-sm hover:opacity-90" style={{ backgroundColor: color }}>
                     <IdCard className="h-4 w-4" /> My Passport
+                </Link>
+                <Link href={`${base}/squad`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm hover:bg-muted">
+                    <Users className="h-4 w-4" style={{ color }} /> {squad ? squad.name : 'Find a squad'}
+                    {squad && squad.needed > 0 && <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">needs {squad.needed}</span>}
                 </Link>
                 <Link href={`${base}/leaderboard`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm hover:bg-muted">
                     <Trophy className="h-4 w-4 text-amber-500" /> Leaderboard
