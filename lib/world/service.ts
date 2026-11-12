@@ -13,6 +13,7 @@ import { WORLD_CONTENT } from './content'
 import { MISSION_TIPS } from './content/tips'
 import { QUIZ_PROFILES } from './content/profiles'
 import { CONTENT_TTL_MS, invalidateWorldCache, ttl } from './cache'
+import { notifyWorld } from './notify'
 import {
     DEFAULT_PASS_MARK, MAX_ATTEMPTS, worldLevel,
     type AttemptPayload, type AttemptStatus, type AttemptView, type CompetitionDetail, type CompetitionSummary,
@@ -947,6 +948,13 @@ export async function reviewAttempt(profile: User, input: ReviewInput): Promise<
     if (isAppeal && input.appeal === 'dismissed')
     {
         await db.from('competition_attempts').update({ appeal_status: 'dismissed', reviewer_id: profile.id }).eq('id', attempt.id)
+        const { data: mt } = await db.from('competition_missions').select('title').eq('id', attempt.mission_id).maybeSingle()
+        await notifyWorld([{
+            userId: attempt.user_id, actorId: profile.id, referenceId: attempt.id, referenceType: 'world_attempt',
+            title: `Appeal reviewed: ${(mt as { title: string } | null)?.title ?? 'your submission'}`,
+            body: 'Your appeal was reviewed and the original result stands.',
+            url: `/app/competitions/${attempt.competition?.slug ?? 'campus'}/missions/${attempt.mission_id}`,
+        }])
         return { ok: true, score: null, awarded: { xp: 0, tokens: 0 } }
     }
 
@@ -991,6 +999,16 @@ export async function reviewAttempt(profile: User, input: ReviewInput): Promise<
             m.badge && slug ? grantBadge(attempt.user_id, slug, m.badge) : null,
         ])
     }
+    const rewards = awarded.xp > 0 ? ` +${awarded.xp} XP, +${awarded.tokens} HubTokens${m.badge ? ` and the ${m.badge.label} badge` : ''}.` : ''
+    const prefix = isAppeal ? 'Appeal upheld' : status === 'passed' ? 'Passed' : status === 'needs_revision' ? 'Revision needed' : 'Not accepted'
+    await notifyWorld([{
+        userId: attempt.user_id, actorId: profile.id, referenceId: attempt.id, referenceType: 'world_attempt',
+        title: `${prefix}: ${m.title}`,
+        body: status === 'passed' ? `Judges scored it ${score}/100.${rewards}`
+            : status === 'needs_revision' ? `Judges scored it ${score}/100. Read their feedback and resubmit.`
+            : 'Read the judge’s feedback. You can appeal if you think it’s wrong.',
+        url: `/app/competitions/${attempt.competition?.slug ?? 'campus'}/missions/${m.id}`,
+    }])
     return { ok: true, score, awarded }
 }
 

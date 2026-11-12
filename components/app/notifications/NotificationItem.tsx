@@ -24,6 +24,7 @@ import {
     Trash2,
     BellOff,
     X,
+    Trophy,
 } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -167,6 +168,15 @@ const TYPE_CONFIG: Partial<Record<NotificationType, TypeConfig>> = {
         iconBackground: 'bg-violet-50',
         label: 'Course Completed',
         getText: (name) => `${name ?? 'A learner'} completed your course.`,
+    },
+
+    // Hubnovo World (Campus Competition): title/body come from the row
+    competition: {
+        Icon: Trophy,
+        colour: 'text-amber-600',
+        iconBackground: 'bg-amber-50 dark:bg-amber-500/15',
+        label: 'Campus Competition',
+        getText: () => 'There’s an update in the Campus Competition.',
     },
 
     // Artisan hiring (escrow jobs)
@@ -449,7 +459,10 @@ export default function NotificationItem({
         notification.actor?.username ??
         null
 
-    const actionText = getText(actorName)
+    // Server-written notifications (Campus Competition) carry their own words.
+    const ownText = notification.type === 'competition'
+    const headline = ownText && notification.title ? notification.title : label
+    const actionText = ownText && notification.body ? notification.body : getText(actorName)
 
     /*
      * Every notification has a destination.
@@ -512,6 +525,14 @@ export default function NotificationItem({
                 }
 
             // ─── Services ─────────────────────────────────────────────
+            case 'competition': {
+                const url = typeof notification.data?.url === 'string' ? notification.data.url : null
+                return {
+                    href: url && url.startsWith('/app/') ? url : '/app/competitions',
+                    label: 'Open',
+                }
+            }
+
             case 'artisan_job':
                 return {
                     href: referenceId ? `/app/artisans/jobs/${referenceId}` : '/app/artisans/jobs',
@@ -703,7 +724,7 @@ export default function NotificationItem({
                                 : 'text-foreground'
                         }`}
                     >
-                        {label}
+                        {headline}
                     </h3>
                 </div>
 

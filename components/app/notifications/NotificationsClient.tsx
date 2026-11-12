@@ -201,6 +201,9 @@ export default function NotificationsClient({
                                         reference_id,
                                         read,
                                         created_at,
+                                        title,
+                                        body,
+                                        data,
                                         actor:users!notifications_actor_id_fkey (
                                             username,
                                             display_name,
