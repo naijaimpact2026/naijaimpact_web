@@ -142,8 +142,8 @@ export async function createSquad(slug: string, profile: User, input: { name: un
         await db.from('competition_squads').delete().eq('id', squad.id)
         return fail(joinError(error.message))
     }
-    await ensureSquadChat(squad.chat_channel_id!, name, profile.id, [profile.id])
-    return { ok: true, squad: await buildView(ctx.c, squad, profile.id) }
+    const [, view] = await Promise.all([ensureSquadChat(squad.chat_channel_id!, name, profile.id, [profile.id]), buildView(ctx.c, squad, profile.id)])
+    return { ok: true, squad: view }
 }
 
 export async function joinSquad(slug: string, profile: User, input: { code: unknown }): Promise<Result<{ squad: SquadView }>>
@@ -160,8 +160,11 @@ export async function joinSquad(slug: string, profile: User, input: { code: unkn
     if (!squad) return fail(JOIN_ERRORS.squad_not_found)
     const { error } = await db.rpc('_unsafe_join_squad', { p_squad_id: squad.id, p_user_id: profile.id, p_max: SQUAD_MAX })
     if (error) return fail(joinError(error.message))
-    if (squad.chat_channel_id) await addToSquadChat(squad.chat_channel_id, profile.id, profile.display_name ?? profile.username ?? 'A new player')
-    return { ok: true, squad: await buildView(ctx.c, squad, profile.id) }
+    const [, view] = await Promise.all([
+        squad.chat_channel_id ? addToSquadChat(squad.chat_channel_id, profile.id, profile.display_name ?? profile.username ?? 'A new player') : null,
+        buildView(ctx.c, squad, profile.id),
+    ])
+    return { ok: true, squad: view }
 }
 
 /** Leave your squad (the next-longest member becomes leader; an empty squad is deleted). */
