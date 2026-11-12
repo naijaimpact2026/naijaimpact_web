@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import type { User } from '@/lib/types'
 import { loadMissionRows, loadParticipant, playableWorld, type Result } from './service'
 import { semesterClock, unlockAt } from './schedule'
+import { notifyWorld } from './notify'
 import { addToSquadChat, deleteSquadChat, ensureSquadChat, removeFromSquadChat, renameSquadChat, squadChannelId } from './squad-chat'
 import { SQUAD_MAX, SQUAD_MIN, type MissionStatus, type MySquadView, type Pathway, type SquadView } from './types'
 
@@ -160,10 +161,19 @@ export async function joinSquad(slug: string, profile: User, input: { code: unkn
     if (!squad) return fail(JOIN_ERRORS.squad_not_found)
     const { error } = await db.rpc('_unsafe_join_squad', { p_squad_id: squad.id, p_user_id: profile.id, p_max: SQUAD_MAX })
     if (error) return fail(joinError(error.message))
+    const who = profile.display_name ?? profile.username ?? 'A new player'
     const [, view] = await Promise.all([
-        squad.chat_channel_id ? addToSquadChat(squad.chat_channel_id, profile.id, profile.display_name ?? profile.username ?? 'A new player') : null,
+        squad.chat_channel_id ? addToSquadChat(squad.chat_channel_id, profile.id, who) : null,
         buildView(ctx.c, squad, profile.id),
     ])
+    const others = view.members.filter((m) => !m.isMe)
+    const left = Math.max(0, SQUAD_MIN - view.members.length)
+    await notifyWorld(others.map((m) => ({
+        userId: m.userId, actorId: profile.id, referenceId: squad.id, referenceType: 'world_squad' as const,
+        title: `${who} joined ${squad.name}`,
+        body: left > 0 ? `Your squad needs ${left} more player${left === 1 ? '' : 's'} for team missions.` : `Your squad has ${view.members.length} players. Plan this week’s team mission in the squad chat.`,
+        url: `/app/competitions/${slug}/squad`,
+    })))
     return { ok: true, squad: view }
 }
 
@@ -174,7 +184,7 @@ export async function leaveSquad(slug: string, profile: User): Promise<Result>
     if (!ctx) return fail(NOT_FOUND)
     const { row } = await membershipOf(ctx.c.id, profile.id)
     if (!row) return fail('You’re not in a squad.')
-    return removeMember(row, profile.id)
+    return removeMember(row, profile.id, slug, false)
 }
 
 /** Leader only: remove someone from the squad. */
@@ -186,10 +196,10 @@ export async function removeSquadMember(slug: string, profile: User, userId: str
     if (!row) return fail('You’re not in a squad.')
     if (row.leader_id !== profile.id) return fail('Only the squad leader can remove players.')
     if (userId === profile.id) return fail('Use “Leave squad” to leave.')
-    return removeMember(row, userId)
+    return removeMember(row, userId, slug, true)
 }
 
-async function removeMember(squad: SquadRow, userId: string): Promise<Result>
+async function removeMember(squad: SquadRow, userId: string, slug: string, removedByLeader: boolean): Promise<Result>
 {
     const db = createServiceClient()
     const { data: gone } = await db.from('competition_squad_members').delete().eq('squad_id', squad.id).eq('user_id', userId).select('user_id')
@@ -202,8 +212,14 @@ async function removeMember(squad: SquadRow, userId: string): Promise<Result>
         if (squad.chat_channel_id) await deleteSquadChat(squad.chat_channel_id)
         return { ok: true }
     }
-    if (squad.leader_id === userId) await db.from('competition_squads').update({ leader_id: next.user_id }).eq('id', squad.id)
+    const newLeader = squad.leader_id === userId
+    if (newLeader) await db.from('competition_squads').update({ leader_id: next.user_id }).eq('id', squad.id)
     if (squad.chat_channel_id) await removeFromSquadChat(squad.chat_channel_id, userId)
+    const url = `/app/competitions/${slug}/squad`
+    await notifyWorld([
+        ...(removedByLeader ? [{ userId, referenceId: squad.id, referenceType: 'world_squad' as const, title: `You were removed from ${squad.name}`, body: 'You keep all your XP and progress. Start or join another squad any time.', url }] : []),
+        ...(newLeader ? [{ userId: next.user_id, referenceId: squad.id, referenceType: 'world_squad' as const, title: `You’re now the leader of ${squad.name}`, body: 'The previous leader left. You can share the code, rename the squad and manage players.', url }] : []),
+    ])
     return { ok: true }
 }
 

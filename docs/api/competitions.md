@@ -158,6 +158,16 @@ Team missions pre-fill their `squad` field with the squad name on the web; do th
 
 ---
 
+## Notifications
+Campus events arrive as rows in `notifications` with `type: "competition"` (push via the existing OneSignal trigger):
+- daily "Today's quest" at 07:00 Lagos (Sunday: "Boss challenge is live"): `reference_type: "world_quest"`, `reference_id` = mission id
+- judge results and appeal results: `reference_type: "world_attempt"`, `reference_id` = attempt id
+- squad joins, removals and new leader: `reference_type: "world_squad"`, `reference_id` = squad id
+
+Show `title` and `body`; `data.url` is the web path to open (e.g. `/app/competitions/campus/missions/<id>`, `/app/competitions/campus/squad`). Map it to the matching app screen.
+
+---
+
 ## `MissionView`
 ```ts
 { id, key, pathway: 'career'|'enterprise', stage, week, day /* 1=Mon … 7=Sun */,
