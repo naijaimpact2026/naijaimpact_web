@@ -240,10 +240,32 @@ export interface WorldLeaderboardEntry
     username: string | null
     displayName: string | null
     avatarUrl: string | null
+    /** 3D avatar (0–11) chosen at onboarding; use when avatarUrl is null. */
+    character: number
+    /** XP in the chosen period (all time, or this week). */
     xp: number
     missionsCompleted: number
     institution: string | null
+    institutionId: string | null
     state: string | null
+    isMe: boolean
+}
+
+export interface LeaderboardView
+{
+    pathway: Pathway
+    scope: 'overall' | 'institution' | 'state'
+    /** Institution id or state name the board is filtered to (null for overall). */
+    scopeValue: string | null
+    scopeLabel: string
+    period: 'all' | 'week'
+    /** Semester week when period = 'week'. */
+    week: number | null
+    entries: WorldLeaderboardEntry[]
+    /** The caller's position in this board; rank null = no XP this week yet; null = not on this board. */
+    me: { rank: number | null; xp: number; missionsCompleted: number } | null
+    /** Players ranked on this board. */
+    total: number
 }
 
 export interface InstitutionLeagueEntry
@@ -252,10 +274,21 @@ export interface InstitutionLeagueEntry
     institutionId: string
     name: string
     shortName: string | null
+    state: string | null
     participants: number
     totalXp: number
     /** Average XP per participant (fairer between big and small campuses). */
     averageXp: number
+    isMine: boolean
+}
+
+export interface LeagueView
+{
+    pathway: Pathway | null
+    minPlayers: number
+    entries: InstitutionLeagueEntry[]
+    /** The caller's campus: its rank, or how many more players it needs to qualify. */
+    me: { institutionId: string; name: string; participants: number; rank: number | null; averageXp: number; playersNeeded: number } | null
 }
 
 export interface CompetitionSummary

@@ -1188,6 +1188,7 @@
           "Progress"
         ],
         "summary": "Leaderboard",
+        "description": "One pathway at a time (defaults to the caller's). `scope=institution|state` without `value` uses the caller's own campus/state. `period=week` ranks XP earned in the current semester week (only players with XP this week). `me` is the caller's own position even outside the top `limit` (`me.rank` null = no XP this week yet; `me` null = not on this board).",
         "parameters": [
           {
             "name": "slug",
@@ -1221,9 +1222,21 @@
           {
             "name": "value",
             "in": "query",
-            "description": "institution id (scope=institution) or state name (scope=state)",
+            "description": "institution id (scope=institution) or state name (scope=state); defaults to the caller's",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "week"
+              ],
+              "default": "all"
             }
           },
           {
@@ -1245,18 +1258,100 @@
                   "type": "object",
                   "required": [
                     "ok",
-                    "entries"
+                    "pathway",
+                    "scope",
+                    "scopeValue",
+                    "scopeLabel",
+                    "period",
+                    "week",
+                    "entries",
+                    "me",
+                    "total"
                   ],
                   "properties": {
                     "ok": {
                       "type": "boolean",
                       "const": true
                     },
+                    "pathway": {
+                      "$ref": "#/components/schemas/Pathway"
+                    },
+                    "scope": {
+                      "type": "string",
+                      "enum": [
+                        "overall",
+                        "institution",
+                        "state"
+                      ]
+                    },
+                    "scopeValue": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "scopeLabel": {
+                      "type": "string",
+                      "example": "UNILAG"
+                    },
+                    "period": {
+                      "type": "string",
+                      "enum": [
+                        "all",
+                        "week"
+                      ]
+                    },
+                    "week": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "entries": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/LeaderboardEntry"
                       }
+                    },
+                    "me": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "rank": {
+                              "anyOf": [
+                                {
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "xp": {
+                              "type": "integer"
+                            },
+                            "missionsCompleted": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "players on this board"
                     }
                   }
                 }
@@ -1278,7 +1373,7 @@
           "Progress"
         ],
         "summary": "Campus league",
-        "description": "Institutions ranked by average XP per participant (3+ participants).",
+        "description": "Institutions ranked by average XP per participant (needs `minPlayers`+ players). Omit `pathway` for both pathways combined. `me` = the caller's campus: its rank, or `playersNeeded` to qualify.",
         "parameters": [
           {
             "name": "slug",
@@ -1307,18 +1402,73 @@
                   "type": "object",
                   "required": [
                     "ok",
-                    "entries"
+                    "pathway",
+                    "minPlayers",
+                    "entries",
+                    "me"
                   ],
                   "properties": {
                     "ok": {
                       "type": "boolean",
                       "const": true
                     },
+                    "pathway": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/Pathway"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "minPlayers": {
+                      "type": "integer",
+                      "example": 3
+                    },
                     "entries": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/LeagueEntry"
                       }
+                    },
+                    "me": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "institutionId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "participants": {
+                              "type": "integer"
+                            },
+                            "rank": {
+                              "anyOf": [
+                                {
+                                  "type": "integer"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "averageXp": {
+                              "type": "integer"
+                            },
+                            "playersNeeded": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   }
                 }
@@ -3068,8 +3218,13 @@
               }
             ]
           },
+          "character": {
+            "type": "integer",
+            "description": "3D avatar 0–11 — show its preview when avatarUrl is null"
+          },
           "xp": {
-            "type": "integer"
+            "type": "integer",
+            "description": "XP in the chosen period"
           },
           "missionsCompleted": {
             "type": "integer"
@@ -3078,6 +3233,17 @@
             "anyOf": [
               {
                 "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "institutionId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
               },
               {
                 "type": "null"
@@ -3093,6 +3259,9 @@
                 "type": "null"
               }
             ]
+          },
+          "isMe": {
+            "type": "boolean"
           }
         }
       },
@@ -3119,6 +3288,16 @@
               }
             ]
           },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "participants": {
             "type": "integer"
           },
@@ -3127,6 +3306,9 @@
           },
           "averageXp": {
             "type": "integer"
+          },
+          "isMine": {
+            "type": "boolean"
           }
         }
       },
