@@ -3,6 +3,8 @@ import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft, Coins, Swords, Timer, Trophy, Zap } from 'lucide-react'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { getCompetitionDetail, getMission } from '@/lib/world/service'
+import { mySquadName } from '@/lib/world/squads'
+import type { FormConfig } from '@/lib/world/types'
 import { TOKENS_LABEL, XP_LABEL } from '@/lib/world/types'
 import { DAY_LONG, KIND_META, REVIEW_META, STATUS_META, calmMotion } from '@/lib/world/ui'
 import MissionPlayer from '@/components/app/world/mission/MissionPlayer'
@@ -30,6 +32,10 @@ export default async function WorldMissionPage({ params }: { params: Promise<{ s
     const boss = m.kind === 'boss'
     const home = `/app/competitions/${slug}?week=${m.week}`
     const history = attempts.slice(0, -1).reverse()
+    // Team missions: pre-fill the "Squad name" field.
+    const hasSquadField = m.kind === 'team' && (m.config as FormConfig).fields?.some((f) => f.id === 'squad')
+    const squadName = hasSquadField ? await mySquadName(detail.competition.id, profile.id) : null
+    const defaults = squadName ? { squad: squadName } : undefined
 
     return (
         <div className={`w-full max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 ${calmMotion(detail.competition.me) ? 'hw-reduce' : ''}`}>
@@ -63,7 +69,7 @@ export default async function WorldMissionPage({ params }: { params: Promise<{ s
 
             {m.status !== 'locked' && m.status !== 'passed' && <MissionGuide slug={slug} mission={m} color={boss ? '#D97706' : color} />}
 
-            <MissionPlayer slug={slug} mission={m} attempts={attempts} color={color} homeHref={home} />
+            <MissionPlayer slug={slug} mission={m} attempts={attempts} color={color} homeHref={home} defaults={defaults} />
 
             {m.rubric && m.status !== 'locked' && (
                 <details className="rounded-2xl border border-border bg-card px-4 py-3">

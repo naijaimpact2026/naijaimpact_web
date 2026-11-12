@@ -98,7 +98,7 @@ async function canPlay(c: CompetitionRow, profile: User | null)
 }
 
 /** World competition the caller is allowed to see, or null (reported as "not found"). */
-async function playableWorld(slug: string, profile: User): Promise<CompetitionRow | null>
+export async function playableWorld(slug: string, profile: User): Promise<CompetitionRow | null>
 {
     const c = await loadCompetition(slug)
     if (!c || c.format !== 'world') return null
@@ -132,7 +132,7 @@ async function loadRubrics(keys: string[]): Promise<Map<string, RubricView>>
 }
 
 /** All active world missions of a competition (every pathway), cached. */
-function loadMissionRows(competitionId: string): Promise<MissionRow[]>
+export function loadMissionRows(competitionId: string): Promise<MissionRow[]>
 {
     return ttl(`missions:${competitionId}`, CONTENT_TTL_MS, async () =>
     {
@@ -205,7 +205,7 @@ export async function listCompetitionSummaries(profile: User): Promise<Competiti
     }))
 }
 
-const loadParticipant = cache(async (competitionId: string, userId: string): Promise<(WorldParticipantView & { institutionId: string | null }) | null> =>
+export const loadParticipant = cache(async (competitionId: string, userId: string): Promise<(WorldParticipantView & { institutionId: string | null }) | null> =>
 {
     const { data } = await createServiceClient()
         .from('competition_participants')

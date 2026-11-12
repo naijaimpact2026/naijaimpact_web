@@ -351,3 +351,53 @@ export function worldLevel(xp: number): ProgressView['level']
         progress: next ? Math.min(1, (xp - current.minXp) / (next.minXp - current.minXp)) : 1,
     }
 }
+
+// ─── Squads ──────────────────────────────────────────────────────────────────
+
+export const SQUAD_MIN = 3
+export const SQUAD_MAX = 5
+
+export interface SquadMemberView
+{
+    userId: string
+    username: string | null
+    displayName: string | null
+    avatarUrl: string | null
+    /** 3D avatar (0–11); show its preview when avatarUrl is null. */
+    character: number
+    isLeader: boolean
+    isMe: boolean
+    xp: number
+    /** XP earned this semester week. */
+    weekXp: number
+    /** Their status on this week's team mission (null = not started). */
+    teamMission: MissionStatus | null
+    joinedAt: string
+}
+
+export interface SquadView
+{
+    id: string
+    name: string
+    /** 6-character invite code — share it with classmates. */
+    code: string
+    pathway: Pathway
+    leaderId: string | null
+    /** Stream channel (type "messaging"); open it with a /api/stream-token session. */
+    chatChannelId: string | null
+    members: SquadMemberView[]
+    totalXp: number
+    weekXp: number
+    min: number
+    max: number
+    /** This week's Friday team mission for the squad's pathway. */
+    teamMission: { id: string; title: string; week: number; day: number; unlocksAt: string } | null
+    createdAt: string
+}
+
+export interface MySquadView
+{
+    /** False until squads are switched on (database not ready yet). */
+    enabled: boolean
+    squad: SquadView | null
+}

@@ -144,6 +144,18 @@ Show `character` (avatar preview) when `avatarUrl` is null.
 Campus vs campus: average XP per participant, campuses with `minPlayers` (3)+ players. Omit `pathway` for both pathways.
 `{ "ok": true, "pathway", "minPlayers": 3, "me": { "institutionId", "name", "participants", "rank": null, "averageXp", "playersNeeded": 2 }, "entries": [ { "rank", "institutionId", "name", "shortName", "state", "participants", "totalXp", "averageXp", "isMine" } ] }`
 
+### Squads (teams of 3–5, same pathway, invite code only)
+- `GET /competitions/:slug/squad` → `{ "ok": true, "enabled": true, "squad": Squad | null }`. Hide the feature when `enabled` is `false`.
+- `POST /competitions/:slug/squad` `{ "name": "Lagoon Builders" }` → `{ "ok": true, "squad": Squad }` (you become leader).
+- `PATCH /competitions/:slug/squad` `{ "name": "…" }` (leader renames).
+- `POST /competitions/:slug/squad/join` `{ "code": "K7MQ3X" }` → `{ "ok": true, "squad": Squad }`. Errors: full, other pathway, already in a squad, unknown code.
+- `POST /competitions/:slug/squad/leave` (leader leaving hands over to the longest-standing member; last one out closes the squad).
+- `DELETE /competitions/:slug/squad/members/:userId` (leader removes a player).
+- `POST /competitions/:slug/squad/chat` → `{ "ok": true, "chatChannelId": "group_squad_…" }`. Call it, then open that Stream `messaging` channel with the `/api/stream-token` session.
+
+`Squad`: `{ id, name, code, pathway, leaderId, chatChannelId, totalXp, weekXp, min: 3, max: 5, createdAt, teamMission: { id, title, week, day, unlocksAt } | null, members: [ { userId, username, displayName, avatarUrl, character, isLeader, isMe, xp, weekXp, teamMission: MissionStatus | null, joinedAt } ] }`
+Team missions pre-fill their `squad` field with the squad name on the web; do the same in the app.
+
 ---
 
 ## `MissionView`
@@ -202,4 +214,4 @@ Example:
 ---
 
 ## Coming next (not yet available)
-Squads (create/join by code, squad chat), Rewards Exchange (spend HubTokens), reminders/notifications, and the 3D campus districts. Endpoints will be added to this document.
+Rewards Exchange (spend HubTokens), reminders/notifications, and the 3D campus districts. Endpoints will be added to this document.

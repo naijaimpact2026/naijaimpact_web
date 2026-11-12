@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { getActingProfile } from '@/lib/modushive/acting-profile'
 import * as world from '@/lib/world/service'
+import * as squads from '@/lib/world/squads'
 import type { AttemptPayload } from '@/lib/world/types'
 
 /*
@@ -74,4 +75,54 @@ export async function reviewWorldAttemptAction(input: world.ReviewInput)
     const r = await world.reviewAttempt(p, input)
     if (r.ok) revalidatePath('/app/competitions/judging')
     return r
+}
+
+// ─── Squads ──────────────────────────────────────────────────────────────────
+
+const refreshSquad = (slug: string) => { revalidatePath(`/app/competitions/${slug}/squad`); refresh(slug) }
+
+export async function createSquadAction(slug: string, name: string)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await squads.createSquad(slug, p, { name })
+    if (r.ok) refreshSquad(slug)
+    return r
+}
+
+export async function joinSquadAction(slug: string, code: string)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await squads.joinSquad(slug, p, { code })
+    if (r.ok) refreshSquad(slug)
+    return r
+}
+
+export async function leaveSquadAction(slug: string)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await squads.leaveSquad(slug, p)
+    if (r.ok) refreshSquad(slug)
+    return r
+}
+
+export async function removeSquadMemberAction(slug: string, userId: string)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await squads.removeSquadMember(slug, p, userId)
+    if (r.ok) refreshSquad(slug)
+    return r
+}
+
+export async function renameSquadAction(slug: string, name: string)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await squads.renameSquad(slug, p, { name })
+    if (r.ok) refreshSquad(slug)
+    return r
+}
+
+export async function openSquadChatAction(slug: string)
+{
+    const p = await me(); if (!p) return unauthorized
+    return squads.openSquadChat(slug, p)
 }
