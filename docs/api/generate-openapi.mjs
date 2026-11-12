@@ -125,7 +125,7 @@ const spec = {
       '',
       '**Access:** the Campus Competition is `live` — any signed-in user can join. (A competition in `preview` is limited to admins and testers.)',
       '',
-      '**Notifications:** Campus events (daily quest open at 07:00 Lagos, Sunday boss live, judge results, appeal results, squad joins/leader changes) are rows in `public.notifications` with `type = \'competition\'`. Show `title` + `body`; open `data.url` (a web path such as `/app/competitions/campus/missions/{id}` or `/app/competitions/campus/squad` → map to the app screen). `reference_type` is `world_quest`, `world_attempt` or `world_squad`, `reference_id` the mission / attempt / squad id. Push goes out through the existing OneSignal trigger.',
+      '**Notifications:** Campus events (daily quest open at 07:00 Lagos, Sunday boss live, judge results, appeal results, squad joins/leader changes) are rows in `public.notifications` with `type = \'competition\'`. Show `title` + `body`; open `data.url` (a web path such as `/app/competitions/campus/missions/{id}` or `/app/competitions/campus/squad` → map to the app screen). `data.kind` is `world_quest`, `world_attempt` or `world_squad`; `reference_id` (and `data.resource_id`) the mission / attempt / squad id. Push goes out through the existing OneSignal trigger.',
       '**App flow:** `GET /competitions` → `GET /competitions/campus` (me = null → onboarding) → `GET /institutions` → `POST …/join` → home `GET …/quests/today` → mission `GET …/missions/{id}` → uploads → `POST …/attempts` → `GET …/progress`, `…/leaderboard`, `…/league`.',
       '',
       'Shared TypeScript types: `lib/world/types.ts` in the web repo.',

@@ -36,9 +36,9 @@ export async function notifyWorld(notices: WorldNotice[]): Promise<number>
             category: 'competition',
             title: n.title.slice(0, 120),
             body: n.body.slice(0, 300),
-            data: { url: n.url, resource_type: n.referenceType ?? null, resource_id: n.referenceId ?? null },
+            // reference_type is a DB enum without our kinds, so the kind lives in data.kind.
+            data: { url: n.url, kind: n.referenceType ?? null, resource_id: n.referenceId ?? null },
             reference_id: n.referenceId ?? null,
-            reference_type: n.referenceType ?? null,
             read: false,
         }))
         const { error } = await db.from('notifications').insert(rows)

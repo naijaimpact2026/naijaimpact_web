@@ -29,7 +29,7 @@ export async function sendDailyQuestReminders(now = Date.now(), opts: { dryRun?:
         {
             const [{ data: players }, { data: reminded }, { data: started }] = await Promise.all([
                 db.from('competition_participants').select('user_id').eq('competition_id', c.id).eq('pathway', m.pathway).limit(MAX_ROWS),
-                db.from('notifications').select('user_id').eq('reference_id', m.id).eq('reference_type', 'world_quest').limit(MAX_ROWS),
+                db.from('notifications').select('user_id').eq('type', 'competition').eq('reference_id', m.id).limit(MAX_ROWS),
                 db.from('competition_attempts').select('user_id').eq('mission_id', m.id).limit(MAX_ROWS),
             ])
             const skip = new Set([...((reminded ?? []) as { user_id: string }[]), ...((started ?? []) as { user_id: string }[])].map((r) => r.user_id))
