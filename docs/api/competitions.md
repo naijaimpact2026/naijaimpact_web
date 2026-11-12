@@ -158,6 +158,14 @@ Team missions pre-fill their `squad` field with the squad name on the web; do th
 
 ---
 
+### Certificates
+A stage is passed with a stage score of 60+ **and** its finale passed (the last boss challenge: Week 4 for Stage 1). Each passed stage gives one certificate.
+- `GET /competitions/:slug/certificates` → `{ "ok": true, "enabled": true, "certificates": Certificate[], "next": { "stage": 1, "stageName": "Discover & Define", "total": 42, "passMark": 60, "finalePassed": false, "finaleWeek": 4 } | null }` (issues newly earned certificates first)
+- Public, no token: `GET /certificates/:code` (verify JSON), `GET /certificates/:code/image` (PNG, `?download=1`), `GET /certificates/:code/pdf` (PDF, `?inline=1`)
+- `Certificate`: `{ code, verifyUrl, imageUrl, pdfUrl, competitionName, stage, stageName, pathway, pathwayName, holderName, institution, score, issuedAt, revoked }`. Share `verifyUrl` (the QR code on the certificate points there).
+
+---
+
 ## Notifications
 Campus events arrive as rows in `notifications` with `type: "competition"` (push via the existing OneSignal trigger):
 - daily "Today's quest" at 07:00 Lagos (Sunday: "Boss challenge is live"): `data.kind: "world_quest"`, `reference_id` = mission id

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Building2, ChevronLeft, Users, ChevronRight, Coins, IdCard, Medal, Swords, Timer, Trophy, Zap } from 'lucide-react'
+import { ArrowRight, Award, Building2, ChevronLeft, Users, ChevronRight, Coins, IdCard, Medal, Swords, Timer, Trophy, Zap } from 'lucide-react'
 import type { User } from '@/lib/types'
 import { characterPreviewUrl } from '@/lib/competitions/config'
 import { getProgress, listQuests, todayQuests } from '@/lib/world/service'
@@ -87,6 +87,9 @@ export default async function WorldHome({ competition: c, profile, week }: { com
                 <Link href={`${base}/squad`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm hover:bg-muted">
                     <Users className="h-4 w-4" style={{ color }} /> {squad ? squad.name : 'Find a squad'}
                     {squad && squad.needed > 0 && <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">needs {squad.needed}</span>}
+                </Link>
+                <Link href={`${base}/certificates`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm hover:bg-muted">
+                    <Award className="h-4 w-4 text-amber-500" /> Certificates
                 </Link>
                 <Link href={`${base}/leaderboard`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm hover:bg-muted">
                     <Trophy className="h-4 w-4 text-amber-500" /> Leaderboard
