@@ -18,7 +18,7 @@ import {
     type AttemptPayload, type AttemptStatus, type AttemptView, type CompetitionDetail, type CompetitionSummary,
     type FormConfig, type InstitutionLeagueEntry, type InstitutionView, type MissionConfig, type MissionKind, type MissionStatus,
     type MissionView, type Pathway, type QuizConfig, type PathwayView, type ProgressView, type ReviewMode, type RubricView, type ScoreBucket,
-    type WorldLeaderboardEntry, type WorldParticipantView,
+    type LeaderboardView, type LeagueView, type WorldLeaderboardEntry, type WorldParticipantView,
 } from './types'
 
 /*
@@ -641,62 +641,162 @@ export async function getProgress(slug: string, profile: User): Promise<Result<{
 
 // ─── Leaderboards ────────────────────────────────────────────────────────────
 
-export async function worldLeaderboard(slug: string, profile: User, opts: { pathway?: string; scope?: string; value?: string; limit?: number }): Promise<Result<{ entries: WorldLeaderboardEntry[] }>>
+export interface LeaderboardOptions { pathway?: string; scope?: string; value?: string; period?: string; limit?: number }
+
+/**
+ * Player leaderboard for one pathway. scope: overall | institution | state
+ * (institution/state default to the caller's own). period: all | week
+ * (week = XP earned in the current semester week). Always returns the
+ * caller's own rank, even outside the top `limit`.
+ */
+export async function worldLeaderboard(slug: string, profile: User, opts: LeaderboardOptions): Promise<Result<LeaderboardView>>
 {
     const c = await playableWorld(slug, profile)
     if (!c) return fail(NOT_FOUND)
-    const pathway = opts.pathway === 'enterprise' ? 'enterprise' : 'career'
     const db = createServiceClient()
-    let q = db.from('competition_scores').select('user_id, xp, missions_completed, state, institution_id, last_xp_at')
-        .eq('competition_id', c.id).eq('pathway', pathway)
-        .order('xp', { ascending: false }).order('last_xp_at', { ascending: true, nullsFirst: false })
-        .limit(Math.min(Math.max(opts.limit ?? 50, 1), 100))
-    if (opts.scope === 'institution' && opts.value) q = q.eq('institution_id', opts.value)
-    if (opts.scope === 'state' && opts.value) q = q.eq('state', opts.value)
-    const { data } = await q
-    const rows = (data ?? []) as { user_id: string; xp: number; missions_completed: number; state: string | null; institution_id: string | null }[]
-    if (rows.length === 0) return { ok: true, entries: [] }
-    const [{ data: users }, { data: insts }] = await Promise.all([
-        db.from('users').select('id, username, display_name, avatar_url').in('id', rows.map((r) => r.user_id)),
-        db.from('institutions').select('id, name, short_name').in('id', [...new Set(rows.map((r) => r.institution_id).filter(Boolean))] as string[]),
+    const mine = await loadParticipant(c.id, profile.id)
+    const pathway: Pathway = opts.pathway === 'enterprise' || opts.pathway === 'career' ? opts.pathway : mine?.pathway ?? 'career'
+    const scope: LeaderboardView['scope'] = opts.scope === 'institution' || opts.scope === 'state' ? opts.scope : 'overall'
+    const value = scope === 'institution' ? (opts.value || mine?.institutionId || null)
+        : scope === 'state' ? cleanState(opts.value || mine?.state) : null
+    const clock = semesterClock(c.season_start, c.season_end, c.weeks)
+    const period: LeaderboardView['period'] = opts.period === 'week' && clock.week ? 'week' : 'all'
+    const limit = Math.min(Math.max(opts.limit ?? 50, 1), 100)
+
+    let scopeLabel = 'All of Nigeria'
+    if (scope === 'state') scopeLabel = value ?? 'No state set'
+    if (scope === 'institution')
+    {
+        const { data: inst } = value ? await db.from('institutions').select('name, short_name').eq('id', value).maybeSingle() : { data: null }
+        scopeLabel = inst ? (inst.short_name ?? inst.name) : 'No campus set'
+    }
+    const base: Omit<LeaderboardView, 'entries' | 'me' | 'total'> = { pathway, scope, scopeValue: value, scopeLabel, period, week: period === 'week' ? clock.week : null }
+    if (scope !== 'overall' && !value) return { ok: true, ...base, entries: [], me: null, total: 0 }
+
+    type Row = { user_id: string; xp: number; missions_completed: number; state: string | null; institution_id: string | null }
+    let top: Row[]
+    let me: LeaderboardView['me'] = null
+    let total: number
+    const inScope = (r: { state: string | null; institution_id: string | null }) =>
+        scope === 'overall' || (scope === 'state' ? r.state === value : r.institution_id === value)
+
+    if (period === 'all')
+    {
+        const col = scope === 'institution' ? 'institution_id' : scope === 'state' ? 'state' : null
+        let topQ = db.from('competition_scores').select('user_id, xp, missions_completed, state, institution_id, last_xp_at').eq('competition_id', c.id).eq('pathway', pathway)
+        let countQ = db.from('competition_scores').select('user_id', { count: 'exact', head: true }).eq('competition_id', c.id).eq('pathway', pathway)
+        if (col) { topQ = topQ.eq(col, value!); countQ = countQ.eq(col, value!) }
+        const [{ data }, { count }, { data: myRow }] = await Promise.all([
+            topQ.order('xp', { ascending: false }).order('last_xp_at', { ascending: true, nullsFirst: false }).limit(limit),
+            countQ,
+            db.from('competition_scores').select('xp, missions_completed, state, institution_id, pathway').eq('competition_id', c.id).eq('user_id', profile.id).maybeSingle(),
+        ])
+        top = (data ?? []) as Row[]
+        total = count ?? 0
+        const m = myRow as (Row & { pathway: string }) | null
+        if (m && m.pathway === pathway && inScope(m))
+        {
+            const idx = top.findIndex((r) => r.user_id === profile.id)
+            let ahead = idx
+            if (idx < 0)
+            {
+                let aheadQ = db.from('competition_scores').select('user_id', { count: 'exact', head: true }).eq('competition_id', c.id).eq('pathway', pathway).gt('xp', m.xp)
+                if (col) aheadQ = aheadQ.eq(col, value!)
+                ahead = (await aheadQ).count ?? 0
+            }
+            me = { rank: ahead + 1, xp: m.xp, missionsCompleted: m.missions_completed }
+        }
+    }
+    else
+    {
+        // This week: sum XP events since the week started, for players in scope.
+        const weekStart = new Date(new Date(c.season_start!).getTime() + (clock.week! - 1) * 7 * 86_400_000).toISOString()
+        let pq = db.from('competition_participants').select('user_id, state, institution_id').eq('competition_id', c.id).eq('pathway', pathway).limit(50000)
+        if (scope === 'institution') pq = pq.eq('institution_id', value!)
+        if (scope === 'state') pq = pq.eq('state', value!)
+        const [{ data: parts }, { data: events }] = await Promise.all([
+            pq,
+            db.from('competition_xp_events').select('user_id, amount, created_at').eq('competition_id', c.id).gte('created_at', weekStart).limit(100000),
+        ])
+        const who = new Map(((parts ?? []) as Omit<Row, 'xp' | 'missions_completed'>[]).map((p) => [p.user_id, p]))
+        const agg = new Map<string, { xp: number; n: number; last: string }>()
+        for (const e of (events ?? []) as { user_id: string; amount: number; created_at: string }[])
+        {
+            if (!who.has(e.user_id)) continue
+            const a = agg.get(e.user_id) ?? { xp: 0, n: 0, last: e.created_at }
+            a.xp += e.amount; a.n++; if (e.created_at > a.last) a.last = e.created_at
+            agg.set(e.user_id, a)
+        }
+        const sorted = [...agg.entries()].filter(([, a]) => a.xp > 0).sort((x, y) => y[1].xp - x[1].xp || x[1].last.localeCompare(y[1].last))
+        total = sorted.length
+        top = sorted.slice(0, limit).map(([id, a]) => ({ user_id: id, xp: a.xp, missions_completed: a.n, state: who.get(id)!.state, institution_id: who.get(id)!.institution_id }))
+        const idx = sorted.findIndex(([id]) => id === profile.id)
+        if (idx >= 0) me = { rank: idx + 1, xp: sorted[idx][1].xp, missionsCompleted: sorted[idx][1].n }
+        else if (who.has(profile.id)) me = { rank: null, xp: 0, missionsCompleted: 0 }
+    }
+
+    if (top.length === 0) return { ok: true, ...base, entries: [], me, total }
+    const ids = top.map((r) => r.user_id)
+    const [{ data: users }, { data: insts }, { data: avatars }] = await Promise.all([
+        db.from('users').select('id, username, display_name, avatar_url').in('id', ids),
+        db.from('institutions').select('id, name, short_name').in('id', [...new Set(top.map((r) => r.institution_id).filter(Boolean))] as string[]),
+        db.from('competition_participants').select('user_id, avatar').eq('competition_id', c.id).in('user_id', ids),
     ])
     const u = new Map(((users ?? []) as { id: string; username: string | null; display_name: string | null; avatar_url: string | null }[]).map((x) => [x.id, x]))
     const i = new Map(((insts ?? []) as { id: string; name: string; short_name: string | null }[]).map((x) => [x.id, x]))
+    const av = new Map(((avatars ?? []) as { user_id: string; avatar: { character?: number } | null }[]).map((x) => [x.user_id, Number(x.avatar?.character ?? 0)]))
     return {
-        ok: true,
-        entries: rows.map((r, idx) => ({
+        ok: true, ...base, me, total,
+        entries: top.map((r, idx) => ({
             rank: idx + 1, userId: r.user_id, username: u.get(r.user_id)?.username ?? null, displayName: u.get(r.user_id)?.display_name ?? null,
-            avatarUrl: u.get(r.user_id)?.avatar_url ?? null, xp: r.xp, missionsCompleted: r.missions_completed,
-            institution: r.institution_id ? (i.get(r.institution_id)?.short_name ?? i.get(r.institution_id)?.name ?? null) : null, state: r.state,
+            avatarUrl: u.get(r.user_id)?.avatar_url ?? null, character: av.get(r.user_id) ?? 0, xp: r.xp, missionsCompleted: r.missions_completed,
+            institution: r.institution_id ? (i.get(r.institution_id)?.short_name ?? i.get(r.institution_id)?.name ?? null) : null,
+            institutionId: r.institution_id, state: r.state, isMe: r.user_id === profile.id,
         })),
     }
 }
 
-/** Campus league: institutions ranked by average XP per participant (min 3 participants). */
-export async function institutionLeague(slug: string, profile: User, pathway?: string): Promise<Result<{ entries: InstitutionLeagueEntry[] }>>
+export const LEAGUE_MIN_PLAYERS = 3
+
+/** Campus league: institutions ranked by average XP per participant (min 3 participants), plus the caller's campus. */
+export async function institutionLeague(slug: string, profile: User, pathway?: string): Promise<Result<LeagueView>>
 {
     const c = await playableWorld(slug, profile)
     if (!c) return fail(NOT_FOUND)
     const db = createServiceClient()
     let q = db.from('competition_scores').select('institution_id, xp').eq('competition_id', c.id).not('institution_id', 'is', null).limit(50000)
     if (pathway === 'career' || pathway === 'enterprise') q = q.eq('pathway', pathway)
-    const { data } = await q
+    const [{ data }, mine] = await Promise.all([q, loadParticipant(c.id, profile.id)])
     const agg = new Map<string, { n: number; xp: number }>()
     for (const r of (data ?? []) as { institution_id: string; xp: number }[])
     {
         const a = agg.get(r.institution_id) ?? { n: 0, xp: 0 }
         a.n++; a.xp += r.xp; agg.set(r.institution_id, a)
     }
-    const ids = [...agg.entries()].filter(([, a]) => a.n >= 3).map(([id]) => id)
-    if (ids.length === 0) return { ok: true, entries: [] }
-    const { data: insts } = await db.from('institutions').select('id, name, short_name').in('id', ids)
-    const entries = ((insts ?? []) as { id: string; name: string; short_name: string | null }[]).map((inst) =>
+    const myId = mine?.institutionId ?? null
+    const ids = [...agg.entries()].filter(([id, a]) => a.n >= LEAGUE_MIN_PLAYERS || id === myId).map(([id]) => id)
+    const { data: insts } = ids.length ? await db.from('institutions').select('id, name, short_name, state').in('id', ids) : { data: [] }
+    const all = ((insts ?? []) as { id: string; name: string; short_name: string | null; state: string | null }[]).map((inst): InstitutionLeagueEntry =>
     {
         const a = agg.get(inst.id)!
-        return { rank: 0, institutionId: inst.id, name: inst.name, shortName: inst.short_name, participants: a.n, totalXp: a.xp, averageXp: Math.round(a.xp / a.n) }
-    }).sort((x, y) => y.averageXp - x.averageXp || y.participants - x.participants)
+        return { rank: 0, institutionId: inst.id, name: inst.name, shortName: inst.short_name, state: inst.state, participants: a.n, totalXp: a.xp, averageXp: Math.round(a.xp / a.n), isMine: inst.id === myId }
+    })
+    const entries = all.filter((e) => e.participants >= LEAGUE_MIN_PLAYERS)
+        .sort((x, y) => y.averageXp - x.averageXp || y.participants - x.participants)
     entries.forEach((e, idx) => { e.rank = idx + 1 })
-    return { ok: true, entries }
+
+    let me: LeagueView['me'] = null
+    if (myId && mine?.institution)
+    {
+        const ranked = entries.find((e) => e.isMine)
+        const players = agg.get(myId)?.n ?? 0
+        me = {
+            institutionId: myId, name: mine.institution.shortName ?? mine.institution.name, participants: players,
+            rank: ranked?.rank ?? null, averageXp: ranked?.averageXp ?? (players ? Math.round(agg.get(myId)!.xp / players) : 0),
+            playersNeeded: Math.max(0, LEAGUE_MIN_PLAYERS - players),
+        }
+    }
+    return { ok: true, entries, me, minPlayers: LEAGUE_MIN_PLAYERS, pathway: pathway === 'career' || pathway === 'enterprise' ? pathway : null }
 }
 
 // ─── Admin: content + review ─────────────────────────────────────────────────

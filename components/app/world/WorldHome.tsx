@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, ChevronLeft, ChevronRight, Coins, IdCard, Medal, Swords, Timer, Trophy, Zap } from 'lucide-react'
+import { ArrowRight, Building2, ChevronLeft, ChevronRight, Coins, IdCard, Medal, Swords, Timer, Trophy, Zap } from 'lucide-react'
 import type { User } from '@/lib/types'
 import { characterPreviewUrl } from '@/lib/competitions/config'
 import { getProgress, listQuests, todayQuests } from '@/lib/world/service'
@@ -81,6 +81,12 @@ export default async function WorldHome({ competition: c, profile, week }: { com
             <nav className="hw-rise flex flex-wrap items-center gap-2" style={{ animationDelay: '40ms' }} aria-label="Your Campus shortcuts">
                 <Link href={`${base}/passport`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-white shadow-sm hover:opacity-90" style={{ backgroundColor: color }}>
                     <IdCard className="h-4 w-4" /> My Passport
+                </Link>
+                <Link href={`${base}/leaderboard`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm hover:bg-muted">
+                    <Trophy className="h-4 w-4 text-amber-500" /> Leaderboard
+                </Link>
+                <Link href={`${base}/leaderboard?view=league`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm hover:bg-muted">
+                    <Building2 className="h-4 w-4 text-primary" /> Campus league
                 </Link>
                 <WorldSettings slug={c.slug} me={me} color={color} />
             </nav>

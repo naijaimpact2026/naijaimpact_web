@@ -133,13 +133,16 @@ The Novo coach for one mission: explains the brief and rubric and helps the play
 } }
 ```
 
-### `GET /competitions/:slug/leaderboard?pathway=career&scope=overall|institution|state&value=&limit=50`
-`scope=institution&value=<institutionId>` or `scope=state&value=Lagos`.
-`{ "ok": true, "entries": [ { "rank", "userId", "username", "displayName", "avatarUrl", "xp", "missionsCompleted", "institution", "state" } ] }`
+### `GET /competitions/:slug/leaderboard?pathway=career&scope=overall|institution|state&value=&period=all|week&limit=50`
+- `pathway` defaults to the caller's. `scope=institution` / `scope=state` without `value` use the caller's own campus / state (or pass `value=<institutionId>` / `value=Lagos`).
+- `period=week` ranks XP earned in the current semester week (only players with XP this week).
+- `me` is the caller's own position even outside the top 50 (`me.rank: null` = no XP this week yet; `me: null` = not on this board).
+`{ "ok": true, "pathway", "scope", "scopeValue", "scopeLabel": "UNILAG", "period", "week", "total": 3, "me": { "rank": 1, "xp": 110, "missionsCompleted": 2 }, "entries": [ { "rank", "userId", "username", "displayName", "avatarUrl", "character", "xp", "missionsCompleted", "institution", "institutionId", "state", "isMe" } ] }`
+Show `character` (avatar preview) when `avatarUrl` is null.
 
 ### `GET /competitions/:slug/league?pathway=career`
-Campus vs campus — average XP per participant, institutions with 3+ participants.
-`{ "ok": true, "entries": [ { "rank", "institutionId", "name", "shortName", "participants", "totalXp", "averageXp" } ] }`
+Campus vs campus: average XP per participant, campuses with `minPlayers` (3)+ players. Omit `pathway` for both pathways.
+`{ "ok": true, "pathway", "minPlayers": 3, "me": { "institutionId", "name", "participants", "rank": null, "averageXp", "playersNeeded": 2 }, "entries": [ { "rank", "institutionId", "name", "shortName", "state", "participants", "totalXp", "averageXp", "isMine" } ] }`
 
 ---
 
