@@ -159,8 +159,10 @@ function StageCard({ stage: s, color }: { stage: StageScore; color: string })
             </ul>
             <p className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold ${s.passed ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-muted text-muted-foreground'}`}>
                 {s.passed
-                    ? <><Sparkles className="h-4 w-4" /> Stage passed. The next stage is unlocked.</>
-                    : <><Lock className="h-4 w-4" /> {gap} more point{gap === 1 ? '' : 's'} to pass this stage.</>}
+                    ? <><Sparkles className="h-4 w-4" /> Stage passed. Your certificate is ready and the next stage is unlocked.</>
+                    : gap > 0
+                        ? <><Lock className="h-4 w-4" /> {gap} more point{gap === 1 ? '' : 's'}{s.finalePassed ? '' : `, then pass the Week ${firstWeek + STAGE_WEEKS - 1} finale,`} to pass this stage.</>
+                        : <><Lock className="h-4 w-4" /> Score reached. Pass the Week {firstWeek + STAGE_WEEKS - 1} finale to complete this stage.</>}
             </p>
         </div>
     )

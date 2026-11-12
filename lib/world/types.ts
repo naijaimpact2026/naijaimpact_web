@@ -218,7 +218,10 @@ export interface StageScore
     /** Weighted total 0–100 (40/25/15/10/10). */
     total: number
     passMark: number
+    /** total >= passMark AND the stage finale (last boss challenge) passed. */
     passed: boolean
+    /** The stage finale (e.g. Week 4 showcase) has been passed. */
+    finalePassed: boolean
     missionsDone: number
     missionsTotal: number
 }
