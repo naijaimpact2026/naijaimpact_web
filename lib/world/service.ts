@@ -7,7 +7,7 @@ import { NIGERIAN_STATES } from '@/lib/competitions/config'
 import type { User } from '@/lib/types'
 import { aiReview } from './ai-review'
 import { autoGrade, formToText, isFormKind, quizInsights, validateForm } from './grading'
-import { stageScores } from './progress'
+import { stageFinale, stageScores } from './progress'
 import { semesterClock, stageOfWeek, unlockAt } from './schedule'
 import { WORLD_CONTENT } from './content'
 import { MISSION_TIPS } from './content/tips'
@@ -357,7 +357,7 @@ function statusOf(missionAttempts: AttemptRow[]): AttemptStatus | null
 }
 
 /** Mission views for one player on one pathway — computed once per request. */
-const buildMissionViews = cache(async (competitionId: string, seasonStart: string | null, pathway: Pathway, userId: string): Promise<{ views: MissionView[]; missions: MissionRow[]; attempts: AttemptRow[] }> =>
+export const buildMissionViews = cache(async (competitionId: string, seasonStart: string | null, pathway: Pathway, userId: string): Promise<{ views: MissionView[]; missions: MissionRow[]; attempts: AttemptRow[] }> =>
 {
     const [rows, attempts] = await Promise.all([loadMissionRows(competitionId), loadAttempts(competitionId, userId)])
     const allMissions = rows.filter((m) => m.pathway === pathway)
@@ -998,6 +998,17 @@ export async function reviewAttempt(profile: User, input: ReviewInput): Promise<
             awardMission(attempt.user_id, m.id).catch(() => ({ xp: 0, tokens: 0 })),
             m.badge && slug ? grantBadge(attempt.user_id, slug, m.badge) : null,
         ])
+    }
+    // Passing a stage finale (e.g. the Week 4 showcase) can complete the stage → issue the certificate.
+    if (status === 'passed' && m.kind === 'boss' && attempt.competition?.slug)
+    {
+        const comp = await loadCompetition(attempt.competition.slug)
+        const stageMissions = (await loadMissionRows(m.competition_id)).filter((x) => x.pathway === m.pathway && x.stage === m.stage)
+        if (comp && stageFinale(stageMissions)?.id === m.id)
+        {
+            const { ensureCertificates } = await import('./certificates')
+            await ensureCertificates(comp, attempt.user_id).catch((e) => console.error('certificate after finale failed:', e instanceof Error ? e.message : e))
+        }
     }
     const rewards = awarded.xp > 0 ? ` +${awarded.xp} XP, +${awarded.tokens} HubTokens${m.badge ? ` and the ${m.badge.label} badge` : ''}.` : ''
     const prefix = isAppeal ? 'Appeal upheld' : status === 'passed' ? 'Passed' : status === 'needs_revision' ? 'Revision needed' : 'Not accepted'

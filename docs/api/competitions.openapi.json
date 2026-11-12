@@ -46,6 +46,10 @@
       "description": "Teams of 3–5 in the same pathway, invite code only"
     },
     {
+      "name": "Certificates",
+      "description": "Stage certificates: PNG/PDF and public verification"
+    },
+    {
       "name": "Admin",
       "description": "role = admin"
     }
@@ -1484,6 +1488,245 @@
           },
           "404": {
             "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/certificates": {
+      "get": {
+        "tags": [
+          "Certificates"
+        ],
+        "summary": "My certificates",
+        "description": "Issues any newly earned certificates first. A stage is passed with a stage score of 60+ **and** its finale (last boss challenge, Week 4 for Stage 1) passed. `next` = the stage being worked towards. `enabled: false` = certificates not switched on yet.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "enabled",
+                    "certificates",
+                    "next"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "certificates": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Certificate"
+                      }
+                    },
+                    "next": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "stage": {
+                              "type": "integer"
+                            },
+                            "stageName": {
+                              "type": "string"
+                            },
+                            "total": {
+                              "type": "integer"
+                            },
+                            "passMark": {
+                              "type": "integer"
+                            },
+                            "finalePassed": {
+                              "type": "boolean"
+                            },
+                            "finaleWeek": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/certificates/{code}": {
+      "get": {
+        "tags": [
+          "Certificates"
+        ],
+        "summary": "Verify a certificate (public)",
+        "security": [],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "K7MQ3XP9RT2B"
+            },
+            "description": "12-character certificate code (dashes optional)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "valid",
+                    "certificate"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "valid": {
+                      "type": "boolean"
+                    },
+                    "certificate": {
+                      "$ref": "#/components/schemas/Certificate"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/certificates/{code}/image": {
+      "get": {
+        "tags": [
+          "Certificates"
+        ],
+        "summary": "Certificate image (PNG, public)",
+        "security": [],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "K7MQ3XP9RT2B"
+            },
+            "description": "12-character certificate code (dashes optional)"
+          },
+          {
+            "name": "download",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            },
+            "description": "1 = download as a file"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PNG",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/certificates/{code}/pdf": {
+      "get": {
+        "tags": [
+          "Certificates"
+        ],
+        "summary": "Certificate PDF (public)",
+        "security": [],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "K7MQ3XP9RT2B"
+            },
+            "description": "12-character certificate code (dashes optional)"
+          },
+          {
+            "name": "inline",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            },
+            "description": "1 = open in the browser instead of downloading"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
           }
         }
       }
@@ -3731,6 +3974,68 @@
             "type": "integer"
           },
           "isMine": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Certificate": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "K7MQ3XP9RT2B",
+            "description": "Show as K7MQ-3XP9-RT2B"
+          },
+          "verifyUrl": {
+            "type": "string",
+            "example": "https://hubnovo.com/certificates/K7MQ-3XP9-RT2B",
+            "description": "Public verification page (share this)"
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "PNG, 2000×1414"
+          },
+          "pdfUrl": {
+            "type": "string",
+            "description": "A4 landscape PDF"
+          },
+          "competitionName": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "integer"
+          },
+          "stageName": {
+            "type": "string",
+            "example": "Discover & Define"
+          },
+          "pathway": {
+            "$ref": "#/components/schemas/Pathway"
+          },
+          "pathwayName": {
+            "type": "string"
+          },
+          "holderName": {
+            "type": "string"
+          },
+          "institution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "score": {
+            "type": "integer"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revoked": {
             "type": "boolean"
           }
         }

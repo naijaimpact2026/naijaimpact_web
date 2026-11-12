@@ -31,6 +31,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Certificate images/PDFs read their fonts from disk at request time.
+  outputFileTracingIncludes: {
+    '/api/certificates/**/*': ['./lib/world/certificate-fonts/**/*'],
+  },
   async headers() {
     return [
       {

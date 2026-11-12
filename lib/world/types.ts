@@ -218,7 +218,10 @@ export interface StageScore
     /** Weighted total 0–100 (40/25/15/10/10). */
     total: number
     passMark: number
+    /** total >= passMark AND the stage finale (last boss challenge) passed. */
     passed: boolean
+    /** The stage finale (e.g. Week 4 showcase) has been passed. */
+    finalePassed: boolean
     missionsDone: number
     missionsTotal: number
 }
@@ -400,4 +403,41 @@ export interface MySquadView
     /** False until squads are switched on (database not ready yet). */
     enabled: boolean
     squad: SquadView | null
+}
+
+// ─── Certificates ────────────────────────────────────────────────────────────
+
+/** Stage names on certificates (falls back to "Stage N"). */
+export const STAGE_NAMES: Record<Pathway, Record<number, string>> = {
+    career: { 1: 'Discover & Define' },
+    enterprise: { 1: 'Identify & Innovate' },
+}
+
+export interface CertificateView
+{
+    /** 12-character verification code; show as XXXX-XXXX-XXXX. */
+    code: string
+    /** Public verification page (always on hubnovo.com). */
+    verifyUrl: string
+    imageUrl: string
+    pdfUrl: string
+    competitionName: string
+    stage: number
+    stageName: string
+    pathway: Pathway
+    pathwayName: string
+    holderName: string
+    institution: string | null
+    score: number
+    issuedAt: string
+    revoked: boolean
+}
+
+export interface MyCertificatesView
+{
+    /** False until certificates are switched on (database not ready yet). */
+    enabled: boolean
+    certificates: CertificateView[]
+    /** The stage the player is working towards (null when every stage is certified). */
+    next: { stage: number; stageName: string; total: number; passMark: number; finalePassed: boolean; finaleWeek: number } | null
 }
