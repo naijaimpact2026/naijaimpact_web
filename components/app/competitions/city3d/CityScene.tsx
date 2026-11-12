@@ -21,7 +21,7 @@ import {
     type DecorItem, type Slot,
 } from './layout'
 
-export interface CityZone { key: string; label: string; done: number; total: number }
+export interface CityZone { key: string; label: string; done: number; total: number; /** Marker icon (defaults to the building style's). */ emoji?: string }
 
 export interface CitySceneProps
 {
@@ -187,6 +187,21 @@ function LandmarkBody({ slot, color }: { slot: Slot; color: string })
                     </group>
                 </group>
             )
+        case 'academy':
+            return (
+                <group>
+                    <Model url={M.house[3]} position={[0, 0, -1.3]} rotation={FRONT} scale={1.7} />
+                    <Model url={M.house[0]} position={[-2.1, 0, -1.6]} rotation={FRONT} scale={1.15} />
+                    <Model url={M.house[2]} position={[2.1, 0, -1.6]} rotation={FRONT} scale={1.15} />
+                    <Model url={M.planter} position={[-1.1, 0, 1.1]} scale={1.2} />
+                    <Model url={M.planter} position={[1.1, 0, 1.1]} scale={1.2} />
+                    <Model url={M.flower[0]} position={[-2, 0, 1.2]} scale={1.1} shadow={false} />
+                    <Model url={M.flower[1]} position={[2, 0, 1.2]} scale={1.1} shadow={false} />
+                    {/* Campus flag */}
+                    <mesh position={[0, 1.1, 1.3]} castShadow><cylinderGeometry args={[0.03, 0.03, 2.2, 8]} /><meshStandardMaterial color="#9ca3af" /></mesh>
+                    <mesh position={[0.32, 1.95, 1.3]} castShadow><boxGeometry args={[0.6, 0.36, 0.02]} /><meshStandardMaterial color={color} /></mesh>
+                </group>
+            )
         case 'trophy':
             return <Trophy color={color} />
         default:
@@ -194,9 +209,9 @@ function LandmarkBody({ slot, color }: { slot: Slot; color: string })
     }
 }
 
-const MARKER_HEIGHT: Record<Slot['style'], number> = { market: 2.3, tower: 5.2, logistics: 2.6, arena: 3.9, trophy: 2.6, plaza: 2.3 }
+const MARKER_HEIGHT: Record<Slot['style'], number> = { market: 2.3, tower: 5.2, logistics: 2.6, arena: 3.9, trophy: 2.6, plaza: 2.3, academy: 2.9 }
 /** Marker sits over the main building (local z, before rotation). */
-const MARKER_Z: Record<Slot['style'], number> = { market: -1.4, tower: -0.9, logistics: -1.3, arena: -1.2, trophy: 0, plaza: -1 }
+const MARKER_Z: Record<Slot['style'], number> = { market: -1.4, tower: -0.9, logistics: -1.3, arena: -1.2, trophy: 0, plaza: -1, academy: -1.3 }
 
 function Landmark({ zone, slot, color, onTapBuilding, onTapMarker }: {
     zone: CityZone; slot: Slot; color: string; onTapBuilding: () => void; onTapMarker: () => void
@@ -238,7 +253,7 @@ function Landmark({ zone, slot, color, onTapBuilding, onTapMarker }: {
                         className="flex h-11 w-11 items-center justify-center rounded-full border-[3px] border-white text-lg shadow-lg"
                         style={{ backgroundColor: done ? '#16a34a' : color }}
                     >
-                        {done ? '✓' : MARKER_EMOJI[slot.style]}
+                        {done ? '✓' : zone.emoji ?? MARKER_EMOJI[slot.style]}
                     </span>
                     <span className="whitespace-nowrap rounded-full bg-[#102A43]/90 px-3 py-1 text-[13px] font-bold text-white shadow-md">
                         {zone.label}{zone.total > 0 ? ` · ${zone.done}/${zone.total}` : ''}
@@ -249,7 +264,7 @@ function Landmark({ zone, slot, color, onTapBuilding, onTapMarker }: {
     )
 }
 
-const MARKER_EMOJI: Record<Slot['style'], string> = { market: '🛍️', tower: '🎓', logistics: '🚚', arena: '🎤', trophy: '🏆', plaza: '📍' }
+const MARKER_EMOJI: Record<Slot['style'], string> = { market: '🛍️', tower: '🎓', logistics: '🚚', arena: '🎤', trophy: '🏆', plaza: '📍', academy: '📚' }
 
 // ─── Decor ───────────────────────────────────────────────────────────────────
 

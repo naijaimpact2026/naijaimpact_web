@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Award, Building2, ChevronLeft, Users, ChevronRight, Coins, IdCard, Medal, Swords, Timer, Trophy, Zap } from 'lucide-react'
+import { ArrowRight, Award, Building2, MapPin, ChevronLeft, Users, ChevronRight, Coins, IdCard, Medal, Swords, Timer, Trophy, Zap } from 'lucide-react'
 import type { User } from '@/lib/types'
 import { characterPreviewUrl } from '@/lib/competitions/config'
 import { getProgress, listQuests, todayQuests } from '@/lib/world/service'
@@ -7,6 +7,7 @@ import { squadSummary } from '@/lib/world/squads'
 import { BUCKET_WEIGHTS, TOKENS_LABEL, XP_LABEL, type CompetitionDetail, type MissionView, type ScoreBucket } from '@/lib/world/types'
 import { DAY_LONG, DAY_NAMES, KIND_META, REVIEW_META, STATUS_META, calmMotion, formatUnlock } from '@/lib/world/ui'
 import HowItWorks from './HowItWorks'
+import WorldEntryCard from './campus3d/WorldEntryCard'
 import WorldSettings from './settings/WorldSettings'
 import { AnimatedBar, CountUp } from './fx'
 
@@ -81,6 +82,9 @@ export default async function WorldHome({ competition: c, profile, week }: { com
 
             {/* Player shortcuts */}
             <nav className="hw-rise flex flex-wrap items-center gap-2" style={{ animationDelay: '40ms' }} aria-label="Your Campus shortcuts">
+                <Link href={`${base}/world`} className="hw-press hw-shine-host inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#102A43] px-4 text-sm font-bold text-white shadow-sm hover:opacity-90">
+                    <MapPin className="h-4 w-4 text-amber-300" /> 3D World
+                </Link>
                 <Link href={`${base}/passport`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-white shadow-sm hover:opacity-90" style={{ backgroundColor: color }}>
                     <IdCard className="h-4 w-4" /> My Passport
                 </Link>
@@ -99,6 +103,16 @@ export default async function WorldHome({ competition: c, profile, week }: { com
                 </Link>
                 <WorldSettings slug={c.slug} me={me} color={color} />
             </nav>
+
+            {/* The way into the 3D Campus */}
+            <WorldEntryCard
+                href={`${base}/world${shownWeek !== c.clock.week ? `?week=${shownWeek}` : ''}`}
+                color={color}
+                character={me.avatar.character}
+                week={shownWeek}
+                myDistrict={me.pathway === 'enterprise' ? 'enterprise_hub' : 'career_district'}
+                missions={weekMissions.map((m) => ({ id: m.id, title: m.title, kind: m.kind, pathway: m.pathway, week: m.week, day: m.day, xp: m.xp, tokens: m.tokens, status: m.status, unlocksAt: m.unlocksAt, estMinutes: m.estMinutes }))}
+            />
 
             {/* Today */}
             <section className="hw-rise space-y-2" style={{ animationDelay: '80ms' }}>
