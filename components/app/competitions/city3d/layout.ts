@@ -18,7 +18,7 @@ export const inside = (x: number, z: number) => x >= 0 && z >= 0 && x < N && z <
 export type RoadPiece = 'straight' | 'crossroad' | 'roundabout'
 export interface RoadTile { x: number; z: number; piece: RoadPiece; rot: number }
 
-export type LandmarkStyle = 'market' | 'tower' | 'logistics' | 'arena' | 'trophy' | 'plaza'
+export type LandmarkStyle = 'market' | 'tower' | 'logistics' | 'arena' | 'trophy' | 'plaza' | 'academy'
 
 export interface Slot
 {
@@ -48,6 +48,12 @@ const STYLE_BY_KEY: Record<string, LandmarkStyle> = {
     logistics_hub: 'logistics',
     showcase_arena: 'arena',
     rewards_hub: 'trophy',
+    // Hubnovo World (Campus) districts
+    learning_academy: 'academy',
+    career_district: 'tower',
+    enterprise_hub: 'market',
+    competition_arena: 'arena',
+    rewards_exchange: 'trophy',
 }
 
 /** Assign zones to slots. Rewards goes on the roundabout island; others fill the blocks in order. */
