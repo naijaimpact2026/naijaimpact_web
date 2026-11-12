@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Check, Copy, Crown, Loader2, LogOut, MessageCircle, Pencil, Share2, ShieldCheck, UserMinus, UserPlus, Users, X, Zap } from 'lucide-react'
 import { toast } from '@/components/toast'
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { characterPreviewUrl } from '@/lib/competitions/config'
 import { createSquadAction, joinSquadAction, leaveSquadAction, openSquadChatAction, removeSquadMemberAction, renameSquadAction } from '@/lib/actions/world'
 import { SQUAD_MAX, SQUAD_MIN, XP_LABEL, type SquadMemberView, type SquadView } from '@/lib/world/types'
@@ -44,7 +45,6 @@ function NoSquad({ slug, pathway, inviteCode }: { slug: string; pathway: Pathway
         setBusy(null)
         if (!r.ok) { toast.error(r.error); return }
         toast.success(`Squad “${r.squad.name}” created. Share your code!`)
-        router.refresh()
     }
     async function join()
     {
@@ -54,7 +54,6 @@ function NoSquad({ slug, pathway, inviteCode }: { slug: string; pathway: Pathway
         if (!r.ok) { toast.error(r.error); return }
         toast.success(`You joined ${r.squad.name} 🎉`)
         router.replace(`/app/competitions/${slug}/squad`)
-        router.refresh()
     }
 
     return (
@@ -135,7 +134,7 @@ function MySquad({ slug, squad, color }: { slug: string; squad: SquadView; color
     const needed = Math.max(0, squad.min - squad.members.length)
     const [copied, setCopied] = useState(false)
     const [busy, setBusy] = useState<string | null>(null)
-    const [confirmLeave, setConfirmLeave] = useState(false)
+    const [confirm, setConfirm] = useState<{ kind: 'leave' } | { kind: 'remove'; member: SquadMemberView } | null>(null)
     const [editing, setEditing] = useState(false)
     const [name, setName] = useState(squad.name)
     const teamDone = squad.members.filter((m) => m.teamMission === 'passed').length
@@ -166,8 +165,8 @@ function MySquad({ slug, squad, color }: { slug: string; squad: SquadView; color
         const r = await leaveSquadAction(slug)
         setBusy(null)
         if (!r.ok) { toast.error(r.error); return }
-        toast.success('You left the squad')
-        router.refresh()
+        setConfirm(null)
+        toast.success(`You left ${squad.name}`)
     }
     async function remove(m: SquadMemberView)
     {
@@ -175,8 +174,8 @@ function MySquad({ slug, squad, color }: { slug: string; squad: SquadView; color
         const r = await removeSquadMemberAction(slug, m.userId)
         setBusy(null)
         if (!r.ok) { toast.error(r.error); return }
+        setConfirm(null)
         toast.success(`${m.displayName ?? m.username ?? 'Player'} was removed`)
-        router.refresh()
     }
     async function rename()
     {
@@ -186,7 +185,6 @@ function MySquad({ slug, squad, color }: { slug: string; squad: SquadView; color
         setBusy(null)
         if (!r.ok) { toast.error(r.error); return }
         setEditing(false)
-        router.refresh()
     }
 
     return (
@@ -278,7 +276,7 @@ function MySquad({ slug, squad, color }: { slug: string; squad: SquadView; color
                                     ? <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${st.tone}`}>{st.label}</span>
                                     : <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">Not started</span>)}
                                 {iLead && !m.isMe && (
-                                    <button type="button" onClick={() => remove(m)} disabled={Boolean(busy)} className="hw-press shrink-0 rounded-xl p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-600" aria-label={`Remove ${name}`} title="Remove from squad">
+                                    <button type="button" onClick={() => setConfirm({ kind: 'remove', member: m })} disabled={Boolean(busy)} className="hw-press shrink-0 rounded-xl p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-600" aria-label={`Remove ${name}`} title="Remove from squad">
                                         {busy === `rm:${m.userId}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserMinus className="h-4 w-4" />}
                                     </button>
                                 )}
@@ -296,20 +294,66 @@ function MySquad({ slug, squad, color }: { slug: string; squad: SquadView; color
 
             {/* Leave */}
             <div className="flex justify-center">
-                {confirmLeave ? (
-                    <span className="hw-pop inline-flex items-center gap-2 rounded-2xl border border-red-500/40 px-3 py-2 text-sm">
-                        <span className="text-red-700 dark:text-red-300">{iLead && squad.members.length > 1 ? 'Leave? The next member becomes leader.' : squad.members.length === 1 ? 'Leave? The squad will be closed.' : 'Leave this squad?'}</span>
-                        <button type="button" onClick={leave} disabled={busy === 'leave'} className="hw-press rounded-xl bg-red-600 px-3 py-1 text-xs font-bold text-white">{busy === 'leave' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Leave'}</button>
-                        <button type="button" onClick={() => setConfirmLeave(false)} className="text-xs font-bold text-muted-foreground hover:text-foreground">Cancel</button>
-                    </span>
-                ) : (
-                    <button type="button" onClick={() => setConfirmLeave(true)} className="hw-press inline-flex items-center gap-1.5 rounded-2xl px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
-                        <LogOut className="h-4 w-4" /> Leave squad
-                    </button>
-                )}
+                <button type="button" onClick={() => setConfirm({ kind: 'leave' })} className="hw-press inline-flex items-center gap-1.5 rounded-2xl px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-red-500/10 hover:text-red-600">
+                    <LogOut className="h-4 w-4" /> Leave squad
+                </button>
             </div>
+
+            <AlertDialog open={confirm !== null} onOpenChange={(open) => { if (!open && !busy) setConfirm(null) }}>
+                <AlertDialogContent className="rounded-3xl sm:max-w-md">
+                    {confirm?.kind === 'leave' ? (
+                        <>
+                            <AlertDialogHeader className="items-center text-center sm:items-center sm:text-center">
+                                <span className="hw-pop mb-1 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 text-red-600"><LogOut className="h-6 w-6" /></span>
+                                <AlertDialogTitle>Leave {squad.name}?</AlertDialogTitle>
+                                <AlertDialogDescription asChild>
+                                    <div className="space-y-2 text-sm text-muted-foreground">
+                                        {squad.members.length === 1 ? (
+                                            <p>You’re the only player, so the squad and its chat will be <span className="font-semibold text-foreground">closed for good</span>.</p>
+                                        ) : iLead ? (
+                                            <p><span className="font-semibold text-foreground">{nextLeaderName(squad)}</span> becomes the new leader. You’ll be removed from the squad chat.</p>
+                                        ) : (
+                                            <p>You’ll be removed from the squad chat. You can rejoin later with the code if there’s a spot.</p>
+                                        )}
+                                        <p className="rounded-xl bg-muted px-3 py-2 text-xs">You keep all your {XP_LABEL}, HubTokens and badges.</p>
+                                    </div>
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="gap-2 sm:justify-center">
+                                <AlertDialogCancel disabled={busy === 'leave'} className="rounded-2xl">Stay in squad</AlertDialogCancel>
+                                <button type="button" onClick={leave} disabled={busy === 'leave'} className="hw-press inline-flex h-9 items-center justify-center gap-1.5 rounded-2xl bg-red-600 px-4 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60">
+                                    {busy === 'leave' ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />} {squad.members.length === 1 ? 'Leave and close' : 'Leave squad'}
+                                </button>
+                            </AlertDialogFooter>
+                        </>
+                    ) : confirm?.kind === 'remove' ? (
+                        <>
+                            <AlertDialogHeader className="items-center text-center sm:items-center sm:text-center">
+                                <MemberAvatar m={confirm.member} />
+                                <AlertDialogTitle>Remove {confirm.member.displayName ?? confirm.member.username ?? 'this player'}?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    They’ll leave {squad.name} and its chat. They keep their own {XP_LABEL} and progress, and can rejoin with the code if you share it again.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="gap-2 sm:justify-center">
+                                <AlertDialogCancel disabled={Boolean(busy)} className="rounded-2xl">Cancel</AlertDialogCancel>
+                                <button type="button" onClick={() => remove(confirm.member)} disabled={Boolean(busy)} className="hw-press inline-flex h-9 items-center justify-center gap-1.5 rounded-2xl bg-red-600 px-4 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60">
+                                    {busy?.startsWith('rm:') ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserMinus className="h-4 w-4" />} Remove
+                                </button>
+                            </AlertDialogFooter>
+                        </>
+                    ) : null}
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
+}
+
+/** Who takes over when the leader leaves: the longest-standing other member. */
+function nextLeaderName(squad: SquadView)
+{
+    const next = squad.members.filter((m) => !m.isMe).sort((a, b) => a.joinedAt.localeCompare(b.joinedAt))[0]
+    return next ? next.displayName ?? next.username ?? 'The next member' : 'The next member'
 }
 
 function MemberAvatar({ m }: { m: SquadMemberView })
