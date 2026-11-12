@@ -82,8 +82,8 @@ export default async function WorldHome({ competition: c, profile, week }: { com
 
             {/* Player shortcuts */}
             <nav className="hw-rise flex flex-wrap items-center gap-2" style={{ animationDelay: '40ms' }} aria-label="Your Campus shortcuts">
-                <Link href={`${base}/world`} className="hw-press hw-shine-host inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#102A43] px-4 text-sm font-bold text-white shadow-sm hover:opacity-90">
-                    <MapPin className="h-4 w-4 text-amber-300" /> 3D World
+                <Link href={`${base}/world`} className="hw-press hw-shine-host inline-flex h-10 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-white shadow-md ring-1 ring-white/20 hover:opacity-90" style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #EA580C 100%)' }}>
+                    <MapPin className="h-4 w-4" /> 3D World
                 </Link>
                 <Link href={`${base}/passport`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-white shadow-sm hover:opacity-90" style={{ backgroundColor: color }}>
                     <IdCard className="h-4 w-4" /> My Passport
