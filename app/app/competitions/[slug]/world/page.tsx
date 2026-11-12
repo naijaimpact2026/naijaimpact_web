@@ -3,14 +3,14 @@ import { getCurrentUser } from '@/lib/supabase/auth'
 import { getCompetitionDetail, getProgress, listQuests } from '@/lib/world/service'
 import { squadSummary } from '@/lib/world/squads'
 import { calmMotion } from '@/lib/world/ui'
-import type { WorldMissionLite } from '@/lib/world/districts'
+import { DISTRICTS, type DistrictKey, type WorldMissionLite } from '@/lib/world/districts'
 import CampusWorld from '@/components/app/world/campus3d/CampusWorld'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Hubnovo World · 3D Campus' }
 
 /** The 3D Campus: walk your avatar between districts; each district holds this week's quests of that type. */
-export default async function WorldMapPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ week?: string }> })
+export default async function WorldMapPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ week?: string; district?: string }> })
 {
     const { slug } = await params
     const { profile } = await getCurrentUser()
@@ -20,7 +20,9 @@ export default async function WorldMapPage({ params, searchParams }: { params: P
     const c = detail.competition
     if (!c.me) redirect(`/app/competitions/${slug}`)
 
-    const asked = Number((await searchParams).week)
+    const sp = await searchParams
+    const asked = Number(sp.week)
+    const district = DISTRICTS.some((d) => d.key === sp.district) ? (sp.district as DistrictKey) : null
     const week = Number.isInteger(asked) && asked >= 1 && asked <= c.weeks ? asked : undefined
     const [quests, progress, squad] = await Promise.all([listQuests(slug, profile, week), getProgress(slug, profile), squadSummary(c.id, profile.id)])
     if (!quests.ok) notFound()
@@ -47,6 +49,7 @@ export default async function WorldMapPage({ params, searchParams }: { params: P
                 badges={progress.ok ? progress.progress.badges.length : 0}
                 squad={squad}
                 lite={Boolean(c.me.accessibility.lite)}
+                initialDistrict={district}
             />
         </div>
     )

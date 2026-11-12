@@ -32,23 +32,27 @@ interface Props
     badges: number
     squad: { name: string; members: number; needed: number } | null
     lite: boolean
+    /** Open this district's panel straight away (deep link from the Campus home). */
+    initialDistrict?: DistrictKey | null
 }
 
 export default function CampusWorld(props: Props)
 {
-    const { slug, week, currentWeek, totalWeeks, pathway, character, missions, xp, tokens, badges, squad, lite } = props
+    const { slug, week, currentWeek, totalWeeks, pathway, character, missions, xp, tokens, badges, squad, lite, initialDistrict } = props
     const base = `/app/competitions/${slug}`
     const color = pathway.color
     const myDistrict: DistrictKey = pathway.key === 'enterprise' ? 'enterprise_hub' : 'career_district'
-    const [open, setOpen] = useState<DistrictKey | null>(null)
+    const [open, setOpen] = useState<DistrictKey | null>(initialDistrict ?? null)
     const [failed, setFailed] = useState(false)
     const [intro, setIntro] = useState(false)
     const [forceCity, setForceCity] = useState(false)
 
     useEffect(() =>
     {
+        // A deep link already says where to go, so skip the first-visit guide.
+        if (initialDistrict) return
         try { if (!localStorage.getItem(INTRO_KEY)) setIntro(true) } catch { /* storage blocked */ }
-    }, [])
+    }, [initialDistrict])
     const closeIntro = () => { setIntro(false); try { localStorage.setItem(INTRO_KEY, '1') } catch { /* ignore */ } }
 
     const progress = useMemo(() => districtProgress(missions), [missions])
