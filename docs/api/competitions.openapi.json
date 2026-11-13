@@ -1,9 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Hubnovo World — Competitions API",
+    "title": "Hubnovo API — Competitions & Wallet",
     "version": "1.0.0",
-    "description": "REST API for the **Campus Competition** (Career & Employability + Enterprise Development pathways) — used by the mobile app and the web.\n\n**Auth:** `Authorization: Bearer <Supabase access token>` (same token as the ModusHive/Livestream API).\n\n**Responses:** success → `200 { \"ok\": true, ...fields }`. Error → `{ \"error\": \"message\" }` with 400 (show the message), 401, 403 (admin only), 404 (also for a competition you can’t play yet), 429 (120 req/min), 500.\n\n**Points:** XP = progress & level. HubTokens = closed-loop, non-cash credits (no cash-out, no transfers).\n\n**Time:** ISO-8601 UTC. Semesters run on Lagos time (UTC+1); day 1 = Monday, day 7 = Sunday (boss day).\n\n**Access:** the Campus Competition is `live` — any signed-in user can join. (A competition in `preview` is limited to admins and testers.)\n\n**Notifications:** Campus events (daily quest open at 07:00 Lagos, Sunday boss live, judge results, appeal results, squad joins/leader changes) are rows in `public.notifications` with `type = 'competition'`. Show `title` + `body`; open `data.url` (a web path such as `/app/competitions/campus/missions/{id}` or `/app/competitions/campus/squad` → map to the app screen). `data.kind` is `world_quest`, `world_attempt` or `world_squad`; `reference_id` (and `data.resource_id`) the mission / attempt / squad id. Push goes out through the existing OneSignal trigger.\n**App flow:** `GET /competitions` → `GET /competitions/campus` (me = null → onboarding) → `GET /institutions` → `POST …/join` → home `GET …/quests/today` → mission `GET …/missions/{id}` → uploads → `POST …/attempts` → `GET …/progress`, `…/leaderboard`, `…/league`.\n\nShared TypeScript types: `lib/world/types.ts` in the web repo."
+    "description": "REST API for the **Campus Competition** (Career & Employability + Enterprise Development pathways) — used by the mobile app and the web.\n\n**Auth:** `Authorization: Bearer <Supabase access token>` (same token as the ModusHive/Livestream API).\n\n**Responses:** success → `200 { \"ok\": true, ...fields }`. Error → `{ \"error\": \"message\" }` with 400 (show the message), 401, 403 (admin only), 404 (also for a competition you can’t play yet), 429 (120 req/min), 500.\n\n**Points:** XP = progress & level. HubTokens = closed-loop, non-cash credits (no cash-out, no transfers).\n\n**Time:** ISO-8601 UTC. Semesters run on Lagos time (UTC+1); day 1 = Monday, day 7 = Sunday (boss day).\n\n**Access:** the Campus Competition is `live` — any signed-in user can join. (A competition in `preview` is limited to admins and testers.)\n\n**Notifications:** Campus events (daily quest open at 07:00 Lagos, Sunday boss live, judge results, appeal results, squad joins/leader changes) are rows in `public.notifications` with `type = 'competition'`. Show `title` + `body`; open `data.url` (a web path such as `/app/competitions/campus/missions/{id}` or `/app/competitions/campus/squad` → map to the app screen). `data.kind` is `world_quest`, `world_attempt`, `world_squad`, `world_certificate` or `world_reward`; `reference_id` (and `data.resource_id`) the mission / attempt / squad id. Push goes out through the existing OneSignal trigger.\n**App flow:** `GET /competitions` → `GET /competitions/campus` (me = null → onboarding) → `GET /institutions` → `POST …/join` → home `GET …/quests/today` → mission `GET …/missions/{id}` → uploads → `POST …/attempts` → `GET …/progress`, `…/leaderboard`, `…/league`.\n\nShared TypeScript types: `lib/world/types.ts` in the web repo.\n\n**Wallet:** `/wallet`, `/banks`, `/users/lookup` return the documented fields directly (no `ok` flag); errors are `{ \"error\" }` with 400 / 401 / 403 / 404 / 429 / 503 (503 = Paystack or the database is unavailable; retry). Amounts are naira. PIN lockout (5 wrong tries → 15 minutes) and rate limits are shared with the web."
   },
   "servers": [
     {
@@ -50,8 +50,16 @@
       "description": "Stage certificates: PNG/PDF and public verification"
     },
     {
+      "name": "Reports",
+      "description": "Report another player (moderation)"
+    },
+    {
       "name": "Admin",
       "description": "role = admin"
+    },
+    {
+      "name": "Wallet",
+      "description": "Wallet, deposits (Paystack), withdrawals, transfers, PIN and banks. Amounts in naira."
     }
   ],
   "paths": {
@@ -2150,6 +2158,973 @@
         }
       }
     },
+    "/competitions/{slug}/rewards": {
+      "get": {
+        "tags": [
+          "Rewards"
+        ],
+        "summary": "Rewards catalogue + my balance",
+        "description": "Active rewards for this competition and the caller’s HubTokens balance. `enabled: false` = Rewards Exchange not switched on yet (hide it). Disable the Redeem button when `blocked` is set.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "enabled",
+                    "balance",
+                    "rewards"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "balance": {
+                      "type": "integer"
+                    },
+                    "rewards": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RewardView"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/rewards/{id}/redeem": {
+      "post": {
+        "tags": [
+          "Rewards"
+        ],
+        "summary": "Redeem a reward",
+        "description": "Spends HubTokens in one database transaction (balance, stock and per-student limit checked under a per-user lock). **Send a `requestId` (UUID) created when the confirm dialog opens and reuse it on retry**: the same id never spends twice. `auto` rewards come back `fulfilled` with a `code`; `manual` ones are `pending` until the team fulfils them (the student gets a notification).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "requestId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              },
+              "example": {
+                "requestId": "3f0c1d7e-6a2b-4c55-9d1e-2b7f8a90c4e1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "redemption",
+                    "balance"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "redemption": {
+                      "$ref": "#/components/schemas/RedemptionView"
+                    },
+                    "balance": {
+                      "type": "integer",
+                      "description": "balance after spending"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/redemptions": {
+      "get": {
+        "tags": [
+          "Rewards"
+        ],
+        "summary": "My redemptions",
+        "description": "Newest first, with status and code. `enabled: false` = not switched on yet.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "enabled",
+                    "redemptions"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "redemptions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RedemptionView"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/rewards": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Rewards catalogue (admin)",
+        "description": "Every reward, including switched-off ones, with redemption counts.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "enabled",
+                    "rewards"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "rewards": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminReward"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Add a reward (admin)",
+        "description": "Starts switched off unless `isActive: true`.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RewardInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "id"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/rewards/{id}": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Edit or switch off a reward (admin)",
+        "description": "Any subset of `RewardInput`; `{ \"isActive\": false }` hides it from students. Rewards are never deleted (redemptions point at them).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RewardInput"
+              },
+              "example": {
+                "isActive": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "id"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/redemptions": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Redemptions (admin)",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/RedemptionStatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "enabled",
+                    "redemptions",
+                    "counts"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "redemptions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminRedemption"
+                      }
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "pending": {
+                          "type": "integer"
+                        },
+                        "fulfilled": {
+                          "type": "integer"
+                        },
+                        "cancelled": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/redemptions/{id}/fulfil": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Mark a redemption fulfilled (admin)",
+        "description": "Only `pending` ones. The student is notified (`data.kind = world_reward`).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkEmpty"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/redemptions/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Cancel and refund a redemption (admin)",
+        "description": "Adds a positive `reversal` row to the token ledger (refund) and puts stock back, in one transaction. Works on `pending` or `fulfilled`. The student is notified (`data.kind = world_reward`).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "description": "reason, sent to the student"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "refunded"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "refunded": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/reports": {
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Report a player",
+        "description": "From a leaderboard row or a squad member. Private: the reported player never sees who sent it. One open report per player per reporter (a repeat returns 200), 10 reports per day. `note` is required when `reason` is `other`. Reporting yourself returns 400.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "targetUserId",
+                  "reason"
+                ],
+                "properties": {
+                  "targetUserId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "reason": {
+                    "$ref": "#/components/schemas/ReportReason"
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "attemptId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "optional: one of the reported player’s submissions"
+                  },
+                  "context": {
+                    "type": "string",
+                    "enum": [
+                      "leaderboard",
+                      "squad",
+                      "attempt",
+                      "other"
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "targetUserId": "9b7c…",
+                "reason": "cheating",
+                "note": "Same answers as another player",
+                "context": "leaderboard"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkEmpty"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/reports": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Player reports (admin)",
+        "description": "Oldest first for `open`. `enabled: false` = reports not switched on yet. Web: `/app/competitions/judging?tab=reports`.",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open",
+                "actioned",
+                "dismissed"
+              ],
+              "default": "open"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "enabled",
+                    "reports",
+                    "open"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "reports": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReportItem"
+                      }
+                    },
+                    "open": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          }
+        }
+      }
+    },
+    "/competitions/reports/{reportId}": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Handle a report (admin)",
+        "description": "`dismiss` closes it. `reject_attempt` sets one of the reported player’s submissions (default: the one in the report) to `rejected` with `note` as feedback, notifies the student (they can appeal) and marks the report `actioned`. XP/HubTokens already awarded are not removed.",
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "action"
+                ],
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "dismiss",
+                      "reject_attempt"
+                    ]
+                  },
+                  "attemptId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "description": "required (5+ chars) for reject_attempt"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "status"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "actioned",
+                        "dismissed"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/analytics": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Analytics (admin)",
+        "description": "Sign-ups per day / pathway / school, onboarding, activity, week-4 retention, stage completion, per-mission funnel, review queue, tokens and the pilot targets (70% onboarding, 40% week 4, 25% stage). Web: `/app/competitions/{slug}/admin/analytics`.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "analytics"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "analytics": {
+                      "$ref": "#/components/schemas/Analytics"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
     "/competitions/{slug}/admin/sync": {
       "post": {
         "tags": [
@@ -3132,6 +4107,655 @@
           },
           "404": {
             "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/wallet": {
+      "get": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Balance and history",
+        "description": "The caller’s balance (`user_wallet.balance`, the only balance) and latest transactions, newest first.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "balance",
+                    "transactions"
+                  ],
+                  "properties": {
+                    "balance": {
+                      "type": "number",
+                      "description": "Naira",
+                      "example": 5000
+                    },
+                    "transactions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WalletTransaction"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          }
+        }
+      }
+    },
+    "/wallet/deposit": {
+      "post": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Start a deposit (Paystack checkout)",
+        "description": "Records the deposit and opens a Paystack checkout (₦100 – ₦10,000,000). Open `authorizationUrl` in a browser / WebView. When it navigates to `…/api/paystack/callback`, close it and call `POST /wallet/deposit/verify` with the `reference`. The webhook and a daily reconcile also credit it, so a closed app never loses a payment.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "amount"
+                ],
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "description": "Naira",
+                    "example": 5000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "reference",
+                    "authorizationUrl"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string",
+                      "example": "DEP_3f1c…"
+                    },
+                    "authorizationUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        }
+      }
+    },
+    "/wallet/deposit/verify": {
+      "post": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Verify / recover a deposit",
+        "description": "Checks the reference with Paystack and credits it exactly once (safe to repeat). Also recovers an older deposit by reference. The payment must have been made with the caller’s email. `pending` → poll again shortly (or Paystack is still processing / we are reviewing it); `failed` → show `message`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reference"
+                ],
+                "properties": {
+                  "reference": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "success",
+                        "pending",
+                        "failed"
+                      ]
+                    },
+                    "amount": {
+                      "type": "number",
+                      "description": "success only",
+                      "example": 5000
+                    },
+                    "newBalance": {
+                      "type": "number",
+                      "description": "success only",
+                      "example": 5000
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "pending / failed only — show it"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "description": "Paid from another account, or not a wallet deposit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Paystack has no such reference",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        }
+      }
+    },
+    "/wallet/withdraw": {
+      "post": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Withdraw to a bank account",
+        "description": "PIN-checked (5 wrong tries lock the PIN for 15 minutes → 429). The server resolves the account holder’s name with Paystack, holds the amount and queues the payout (`pending` until paid). Minimum ₦100; 5 requests per hour.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "amount",
+                  "bankCode",
+                  "accountNumber",
+                  "pin"
+                ],
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "description": "Naira",
+                    "example": 5000
+                  },
+                  "bankCode": {
+                    "type": "string",
+                    "example": "058"
+                  },
+                  "accountNumber": {
+                    "type": "string",
+                    "pattern": "^\\d{10}$"
+                  },
+                  "pin": {
+                    "type": "string",
+                    "pattern": "^\\d{4,6}$",
+                    "example": "1234"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "reference",
+                    "accountName"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "success",
+                        "pending"
+                      ]
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "accountName": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        }
+      }
+    },
+    "/wallet/transfer": {
+      "post": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Send money to a user",
+        "description": "PIN-checked; debit and credit happen in one database transaction. Minimum ₦50; 10 per 10 minutes.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "amount",
+                  "pin"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "example": "ada"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": "Naira",
+                    "example": 5000
+                  },
+                  "pin": {
+                    "type": "string",
+                    "pattern": "^\\d{4,6}$",
+                    "example": "1234"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "reference",
+                    "newBalance"
+                  ],
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "newBalance": {
+                      "type": "number",
+                      "description": "Naira",
+                      "example": 5000
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "description": "No user with that username",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        }
+      }
+    },
+    "/wallet/pin": {
+      "get": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Has the caller set a wallet PIN?",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "hasPin"
+                  ],
+                  "properties": {
+                    "hasPin": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Set or change the wallet PIN",
+        "description": "4–6 digits. Changing an existing PIN needs `currentPin`. Shared with the web.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "pin"
+                ],
+                "properties": {
+                  "pin": {
+                    "type": "string",
+                    "pattern": "^\\d{4,6}$",
+                    "example": "1234"
+                  },
+                  "currentPin": {
+                    "type": "string",
+                    "pattern": "^\\d{4,6}$",
+                    "example": "1234"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkEmpty"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          }
+        }
+      }
+    },
+    "/banks": {
+      "get": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Nigerian banks",
+        "description": "From Paystack, popular banks first (cached 24h; a short built-in list if Paystack is down).",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "banks"
+                  ],
+                  "properties": {
+                    "banks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "code"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "code": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          }
+        }
+      }
+    },
+    "/banks/resolve": {
+      "post": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Resolve an account number",
+        "description": "The account holder’s name for a 10-digit NUBAN at a bank. 30 per 10 minutes.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "bankCode",
+                  "accountNumber"
+                ],
+                "properties": {
+                  "bankCode": {
+                    "type": "string",
+                    "example": "058"
+                  },
+                  "accountNumber": {
+                    "type": "string",
+                    "pattern": "^\\d{10}$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "accountName"
+                  ],
+                  "properties": {
+                    "accountName": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        }
+      }
+    },
+    "/users/lookup": {
+      "get": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Find a user by username",
+        "description": "For the Send flow. `user` is null when nobody has that username. A leading `@` is ignored.",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "user"
+                  ],
+                  "properties": {
+                    "user": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/UserCard"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
           }
         }
       }
@@ -5389,6 +7013,871 @@
           }
         }
       },
+      "RewardKind": {
+        "type": "string",
+        "enum": [
+          "course_discount",
+          "avatar_item",
+          "event_access",
+          "merch",
+          "other"
+        ]
+      },
+      "RedemptionStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "fulfilled",
+          "cancelled"
+        ],
+        "description": "`pending` = waiting for the team · `fulfilled` = ready (show `code`/`note`) · `cancelled` = refunded"
+      },
+      "RewardView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "imageUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "costTokens": {
+            "type": "integer"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RewardKind"
+          },
+          "fulfilment": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "manual"
+            ],
+            "description": "`auto` = code issued at once; `manual` = the team fulfils it"
+          },
+          "stock": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "description": "left in stock; null = unlimited"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "perUserLimit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "description": "null = no limit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "redeemedByMe": {
+            "type": "integer"
+          },
+          "blocked": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "out_of_stock",
+                  "limit_reached",
+                  "insufficient_tokens"
+                ],
+                "description": "Why the caller can’t redeem it now. null = they can."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "RedemptionView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reward": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "title": {
+                "type": "string"
+              },
+              "kind": {
+                "$ref": "#/components/schemas/RewardKind"
+              },
+              "imageUrl": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "cost": {
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RedemptionStatus"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "example": "HN-7F3A9C21"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fulfilledAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cancelledAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "RewardInput": {
+        "type": "object",
+        "required": [
+          "title",
+          "costTokens",
+          "kind",
+          "fulfilment"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "imageUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "https:// only"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "costTokens": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "stock": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "description": "null = unlimited"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "perUserLimit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "description": "null = no limit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RewardKind"
+          },
+          "fulfilment": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "manual"
+            ]
+          },
+          "isActive": {
+            "type": "boolean",
+            "default": false
+          },
+          "sort": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminReward": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RewardInput"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "redeemed": {
+                "type": "integer",
+                "description": "redemptions not cancelled"
+              },
+              "pending": {
+                "type": "integer"
+              }
+            }
+          }
+        ]
+      },
+      "AdminRedemption": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RedemptionView"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "user": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "username": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "displayName": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "avatarUrl": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              "fulfilledBy": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "ReportReason": {
+        "type": "string",
+        "enum": [
+          "spam",
+          "abuse",
+          "cheating",
+          "personal_info",
+          "other"
+        ]
+      },
+      "ReportAttempt": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "missionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "missionTitle": {
+            "type": "string"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MissionKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "week": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "day": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/AttemptStatus"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ReportItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "competition": {
+            "type": "string"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/ReportReason"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "context": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "leaderboard",
+                  "squad",
+                  "attempt",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "actioned",
+              "dismissed"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "handledAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reporter": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "username": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "displayName": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "avatarUrl": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "target": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "username": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "displayName": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "avatarUrl": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "attempt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportAttempt"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recentAttempts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportAttempt"
+            },
+            "description": "the reported player’s latest submissions (up to 8)"
+          },
+          "openAboutTarget": {
+            "type": "integer",
+            "description": "open reports about this player in total"
+          }
+        }
+      },
+      "Rate": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "of": {
+            "type": "integer"
+          },
+          "pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "percent, 1 decimal; null when `of` is 0"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "Analytics": {
+        "type": "object",
+        "description": "Pilot health. Definitions: joined = participant with a pathway; finished onboarding = joined + Week 1 Day 1 mission completed; active = submitted that week; week-4 retention = active in week 4 ÷ joined before week 4; stage = stage 1 passed.",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "clock": {
+            "type": "object",
+            "properties": {
+              "week": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "day": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "phase": {
+                "type": "string",
+                "enum": [
+                  "upcoming",
+                  "running",
+                  "ended"
+                ]
+              }
+            }
+          },
+          "joined": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "career": {
+                "type": "integer"
+              },
+              "enterprise": {
+                "type": "integer"
+              }
+            }
+          },
+          "signupsByDay": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "Lagos day"
+                },
+                "career": {
+                  "type": "integer"
+                },
+                "enterprise": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "bySchool": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "institutionId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "career": {
+                  "type": "integer"
+                },
+                "enterprise": {
+                  "type": "integer"
+                },
+                "total": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "onboarding": {
+            "$ref": "#/components/schemas/Rate"
+          },
+          "activeThisWeek": {
+            "$ref": "#/components/schemas/Rate"
+          },
+          "week4": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Rate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Rate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "missions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "pathway": {
+                  "$ref": "#/components/schemas/Pathway"
+                },
+                "week": {
+                  "type": "integer"
+                },
+                "day": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "kind": {
+                  "$ref": "#/components/schemas/MissionKind"
+                },
+                "reviewMode": {
+                  "$ref": "#/components/schemas/ReviewMode"
+                },
+                "started": {
+                  "type": "integer",
+                  "description": "students with ≥1 submission"
+                },
+                "submitted": {
+                  "type": "integer",
+                  "description": "all submissions incl. retries"
+                },
+                "passed": {
+                  "type": "integer",
+                  "description": "students who passed"
+                }
+              }
+            }
+          },
+          "review": {
+            "type": "object",
+            "properties": {
+              "queue": {
+                "type": "integer"
+              },
+              "avgWaitHours": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "avgTurnaroundHours": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "description": "judged missions, last 14 days"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "appeals": {
+                "type": "integer"
+              }
+            }
+          },
+          "tokens": {
+            "type": "object",
+            "properties": {
+              "earned": {
+                "type": "integer"
+              },
+              "redeemed": {
+                "type": "integer"
+              },
+              "refunded": {
+                "type": "integer"
+              }
+            }
+          },
+          "targets": {
+            "type": "object",
+            "properties": {
+              "onboarding": {
+                "type": "integer",
+                "example": 70
+              },
+              "week4": {
+                "type": "integer",
+                "example": 40
+              },
+              "stage": {
+                "type": "integer",
+                "example": 25
+              }
+            }
+          }
+        }
+      },
       "Error": {
         "type": "object",
         "required": [
@@ -5411,6 +7900,97 @@
           "ok": {
             "type": "boolean",
             "const": true
+          }
+        }
+      },
+      "UserCard": {
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "displayName",
+          "avatarUrl"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "ada"
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "Ada Obi"
+          },
+          "avatarUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "WalletTransaction": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "amount",
+          "status",
+          "reference",
+          "description",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "description": "Credits: deposit, topup, transfer_credit, receive, escrow_release, escrow_refund, course_sale, campaign_payout. Debits: withdrawal, transfer_debit, transfer, escrow_hold, marketplace_purchase, course_purchase, campaign_donation, …",
+            "example": "transfer_debit"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Naira, always positive — the type says credit or debit",
+            "example": 5000
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "success",
+              "failed",
+              "rejected",
+              "reversed"
+            ]
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "example": "Sent to @ada"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "counterparty": {
+            "$ref": "#/components/schemas/UserCard",
+            "description": "The other user on a transfer"
           }
         }
       }
@@ -5467,6 +8047,16 @@
       },
       "E429": {
         "description": "Rate limited",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "E503": {
+        "description": "Paystack or the database is unavailable — try again",
         "content": {
           "application/json": {
             "schema": {
