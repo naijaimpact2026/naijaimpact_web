@@ -16,7 +16,7 @@ const columns = [
   {
     heading: 'Our vision',
     links: [
-      { label: 'Savings & Wallet', href: '#vision' },
+      { label: 'Savings', href: '#vision' },
       { label: 'Ajo Circles', href: '#vision' },
       { label: 'Credit & Micro-loans', href: '#vision' },
       { label: 'Crowdfunding', href: '#vision' },

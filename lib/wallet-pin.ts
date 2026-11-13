@@ -9,7 +9,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 
 export type PinResult = { ok: true } | { ok: false; error: string }
 
-const LOCKED = 'Too many incorrect PIN attempts. Try again in 15 minutes.'
+export const PIN_LOCKED = 'Too many incorrect PIN attempts. Try again in 15 minutes.'
 
 export async function hasWalletPin(userId: string): Promise<boolean> {
   const { data } = await createServiceClient().rpc('_unsafe_has_user_pin', { p_user_id: userId })
@@ -25,7 +25,7 @@ export async function checkWalletPin(userId: string, pin: string): Promise<PinRe
     case 'no_pin':
       return { ok: false, error: 'You have not set a wallet PIN yet. Set one in Settings.' }
     case 'locked':
-      return { ok: false, error: LOCKED }
+      return { ok: false, error: PIN_LOCKED }
     default:
       return { ok: false, error: 'Incorrect PIN.' }
   }
@@ -40,6 +40,6 @@ export async function setWalletPin(userId: string, newPin: string, currentPin?: 
   })
   if (error) return { ok: false, error: 'Failed to save PIN. Please try again.' }
   if (data === 'ok') return { ok: true }
-  if (data === 'locked') return { ok: false, error: LOCKED }
+  if (data === 'locked') return { ok: false, error: PIN_LOCKED }
   return { ok: false, error: currentPin ? 'Current PIN is incorrect.' : 'Please enter your current PIN to change it.' }
 }

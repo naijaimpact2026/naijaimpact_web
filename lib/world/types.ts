@@ -441,3 +441,53 @@ export interface MyCertificatesView
     /** The stage the player is working towards (null when every stage is certified). */
     next: { stage: number; stageName: string; total: number; passMark: number; finalePassed: boolean; finaleWeek: number } | null
 }
+
+// ─── Rewards Exchange ────────────────────────────────────────────────────────
+// HubTokens buy non-cash rewards only: never score or XP, never transferable,
+// never cashed out. Spending is a negative row in the token ledger.
+
+export type RewardKind = 'course_discount' | 'avatar_item' | 'event_access' | 'merch' | 'other'
+export type RedemptionStatus = 'pending' | 'fulfilled' | 'cancelled'
+
+export interface RewardView
+{
+    id: string
+    title: string
+    description: string | null
+    imageUrl: string | null
+    costTokens: number
+    kind: RewardKind
+    /** auto = delivered at once with a code; manual = an admin fulfils it. */
+    fulfilment: 'auto' | 'manual'
+    /** Left in stock; null = unlimited. */
+    stock: number | null
+    /** Max per student; null = no limit. */
+    perUserLimit: number | null
+    /** The caller's redemptions of this reward that aren't cancelled. */
+    redeemedByMe: number
+    /** Why the caller can't redeem right now (null = they can). */
+    blocked: 'out_of_stock' | 'limit_reached' | 'insufficient_tokens' | null
+}
+
+export interface RedemptionView
+{
+    id: string
+    reward: { id: string; title: string; kind: RewardKind; imageUrl: string | null }
+    cost: number
+    status: RedemptionStatus
+    /** Voucher / access code once fulfilled. */
+    code: string | null
+    /** Message from the team (how to use it, or why it was cancelled). */
+    note: string | null
+    createdAt: string
+    fulfilledAt: string | null
+    cancelledAt: string | null
+}
+
+export interface RewardsView
+{
+    /** False until the Rewards Exchange is switched on (database not ready yet). */
+    enabled: boolean
+    balance: number
+    rewards: RewardView[]
+}

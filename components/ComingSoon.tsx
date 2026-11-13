@@ -3,7 +3,7 @@ import { PiggyBank, Users, Gauge, HandCoins } from 'lucide-react'
 // Money features that are being built — shown honestly as "Soon",
 // nothing here is usable yet.
 const upcoming = [
-  { icon: PiggyBank, name: 'Savings & Wallet' },
+  { icon: PiggyBank, name: 'Savings' },
   { icon: Users, name: 'Ajo Circles' },
   { icon: Gauge, name: 'Credit & Micro-loans' },
   { icon: HandCoins, name: 'Crowdfunding' },

@@ -37,6 +37,51 @@ export async function paystackVerify(reference: string): Promise<VerifyResult> {
   }
 }
 
+export type InitializeResult =
+  | { ok: true; authorizationUrl: string; accessCode: string }
+  | { ok: false; unavailable: boolean; message: string }
+
+/**
+ * Open a hosted Paystack checkout for a reference the server already recorded
+ * (payment_intents). The mobile app loads `authorizationUrl` in a browser /
+ * WebView; settlement still happens through the webhook, the callback, the
+ * verify endpoint or the reconcile cron. Never throws.
+ */
+export async function paystackInitialize(input: {
+  reference: string
+  email: string
+  amountKobo: number
+  callbackUrl?: string
+  metadata?: Record<string, unknown>
+}): Promise<InitializeResult> {
+  const secret = process.env.PAYSTACK_SECRET_KEY
+  if (!secret) return { ok: false, unavailable: true, message: 'PAYSTACK_SECRET_KEY is not set' }
+
+  try {
+    const res = await fetch('https://api.paystack.co/transaction/initialize', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        reference: input.reference,
+        email: input.email,
+        amount: input.amountKobo,
+        currency: 'NGN',
+        ...(input.callbackUrl ? { callback_url: input.callbackUrl } : {}),
+        ...(input.metadata ? { metadata: input.metadata } : {}),
+      }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10_000),
+    })
+    const body = await res.json().catch(() => null)
+    if (res.ok && body?.status && body.data?.authorization_url) {
+      return { ok: true, authorizationUrl: body.data.authorization_url, accessCode: body.data.access_code }
+    }
+    return { ok: false, unavailable: res.status >= 500, message: body?.message ?? `Paystack returned ${res.status}` }
+  } catch (err) {
+    return { ok: false, unavailable: true, message: err instanceof Error ? err.message : 'Network error' }
+  }
+}
+
 /** Paystack sends metadata as an object, but older clients may send a JSON string. */
 export function parseMetadata(metadata: PaystackTransaction['metadata']): Record<string, unknown> {
   if (!metadata) return {}
