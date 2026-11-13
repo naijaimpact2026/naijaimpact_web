@@ -27,8 +27,10 @@ import
     Wrench,
     Rocket,
     Clapperboard,
+    Radio,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import SidebarCompetitions from './SidebarCompetitions'
 import type { User as UserType } from '@/lib/types'
 
 interface SidebarProps
@@ -43,19 +45,20 @@ interface SidebarProps
 
 const navItems = [
     { icon: Home, label: 'Home', href: '/app' },
-    { icon: Compass, label: 'Explore Directory', href: '/app/explore' },
+    { icon: Compass, label: 'Explore', href: '/app/explore' },
     { icon: Search, label: 'Search', href: '/app/search' },
     { icon: Users, label: 'Community', href: '/app/feed' },
-    { icon: Clapperboard, label: 'ModusHive', href: '/app/modushive' },
+    { icon: Radio, label: 'Livestream', href: '/app/modushive' },
+    { group: 'competitions' as const, label: 'Competitions', href: '/app/competitions' },
     { icon: ShoppingBag, label: 'Marketplace', href: '/app/market' },
     { icon: Briefcase, label: 'Jobs & Careers', href: '/app/jobs' },
     { icon: Wrench, label: 'Artisans & Pros', href: '/app/artisans' },
     { icon: Rocket, label: 'Business LaunchPad', href: '/app/services' },
     { icon: BookOpen, label: 'Learn', href: '/app/learn' },
-    { icon: HandCoins, label: 'Crowdfunding', href: '/app/funding' },
-    { icon: LayoutGrid, label: 'Fintech', href: '/app/fintech' },
-    { icon: MessageCircle, label: 'Messages', href: '/app/chat', badgeProp: 'messageCount' as const },
+    { icon: MessageCircle, label: 'Chat', href: '/app/chat', badgeProp: 'messageCount' as const },
     { icon: Bell, label: 'Notifications', href: '/app/notifications', badgeProp: 'notificationCount' as const },
+    { icon: HandCoins, label: 'Crowdfunding', href: '/app/funding', badgeText: 'Soon' },
+    { icon: Wallet, label: 'Wallet', href: '/app/wallet' },
 ]
 
 function getInitials(name: string | null | undefined): string
@@ -141,8 +144,9 @@ function Sidebar({
                 <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
                     {/* Navigation */}
                     <nav className="px-2 py-3 space-y-0.5">
-                        {navItems.map(({ icon: Icon, label, href, badgeProp }) =>
+                        {navItems.map(({ icon: Icon, label, href, badgeProp, badgeText, group }: any) =>
                         {
+                            if (group === 'competitions') return <SidebarCompetitions key={href} onNavigate={onClose} />
                             const active = isActive(href)
                             const count = badgeProp ? badgeCounts[badgeProp] : 0
                             return (
@@ -163,8 +167,16 @@ function Sidebar({
                                                 {count > 99 ? '99+' : count}
                                             </span>
                                         )}
+                                        {badgeText && (
+                                            <span className="lg:flex xl:hidden absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                                        )}
                                     </span>
                                     <span className="flex-1 lg:hidden xl:inline">{label}</span>
+                                    {badgeText && (
+                                        <span className="hidden xl:inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25 leading-none shrink-0">
+                                            {badgeText}
+                                        </span>
+                                    )}
                                     {count > 0 && (
                                         <span className="hidden xl:flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-white text-[10px] font-bold leading-none shrink-0">
                                             {count > 99 ? '99+' : count}

@@ -4,11 +4,8 @@ import { getCurrentUser } from '@/lib/supabase/auth'
 import { fetchCourses } from '@/lib/actions/learn'
 import HomeRightSidebar from '@/components/app/home/HomeRightSidebar'
 import HeroIllustration from '@/components/illustrations/HeroIllustration'
-import CourseIllustration from '@/components/illustrations/CourseIllustration'
-import JobsIllustration from '@/components/illustrations/JobsIllustration'
-import MarketIllustration from '@/components/illustrations/MarketIllustration'
-import FundingIllustration from '@/components/illustrations/FundingIllustration'
 import EcosystemTeaserBanner from '@/components/app/home/EcosystemTeaserBanner'
+import OpportunityCard from '@/components/app/home/OpportunityCard'
 import
 {
     BookOpen,
@@ -78,33 +75,33 @@ export default async function HomePage()
 
                     {/* Welcome hero */}
                     <section
-                        className="relative overflow-hidden rounded-3xl border border-border px-6 py-8 sm:px-10 sm:py-10"
+                        className="relative overflow-hidden rounded-3xl border border-border px-6 py-5 sm:px-8 sm:py-6"
                         style={{ background: 'linear-gradient(120deg, #EAF3FE 0%, #F8FAFC 55%, #E6F7FB 100%)' }}
                     >
-                        <div className="relative z-10 flex items-center justify-between gap-8">
+                        <div className="relative z-10 flex items-center justify-between gap-6">
                             <div className="max-w-sm">
-                                <h1 className="font-display text-2xl sm:text-3xl font-extrabold leading-tight text-secondary">
+                                <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-extrabold leading-tight text-secondary">
                                     Welcome to Hubnovo, {firstName}
                                 </h1>
-                                <p className="mt-1.5 text-sm sm:text-base text-primary font-semibold">
+                                <p className="mt-1 text-xs sm:text-sm text-primary font-semibold">
                                     People. Opportunities. Prosperity.
                                 </p>
-                                <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+                                <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
                                     Learn. Earn. Save. Start. Connect. Make an impact.
                                 </p>
-                                <div className="mt-6 flex flex-wrap items-center gap-3">
+                                <div className="mt-4 flex flex-wrap items-center gap-2.5">
                                     <Link
                                         href="/app/explore"
-                                        className="inline-flex items-center gap-1.5 bg-secondary text-white font-bold text-sm px-5 py-2.5 rounded-full hover:bg-secondary/90 transition-all shadow-xs animate-heartbeat"
+                                        className="inline-flex items-center gap-1.5 bg-secondary text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-full hover:bg-secondary/90 transition-all shadow-xs animate-heartbeat"
                                     >
                                         Explore Opportunities <ArrowRight className="w-4 h-4" />
                                     </Link>
-                                    <button className="inline-flex items-center gap-1.5 border border-secondary/20 text-secondary font-semibold text-sm px-5 py-2.5 rounded-full hover:bg-secondary/5 transition-colors">
+                                    <button className="inline-flex items-center gap-1.5 border border-secondary/20 text-secondary font-semibold text-xs sm:text-sm px-4 py-2 rounded-full hover:bg-secondary/5 transition-colors">
                                         <PlayCircle className="w-4 h-4" /> Watch Video
                                     </button>
                                 </div>
                             </div>
-                            <HeroIllustration className="hidden md:block w-72 h-56 shrink-0" />
+                            <HeroIllustration className="hidden md:block w-56 h-40 shrink-0" />
                         </div>
                     </section>
 
@@ -136,8 +133,9 @@ export default async function HomePage()
                         </div>
                         <div className="grid sm:grid-cols-2 gap-4">
                             <OpportunityCard
-                                illustration={<CourseIllustration className="w-full h-full" />}
-                                bannerGradient="from-blue-700 via-indigo-800 to-sky-900"
+                                image="photo-1655720348616-184ae7fad7e3"
+                                imageAlt="A smiling young woman studying on her laptop outdoors"
+                                imagePosition="center 12%"
                                 tag="Trending"
                                 tagClass="bg-primary text-white"
                                 title={featuredCourse ? featuredCourse.title : 'Free Digital Skills Training'}
@@ -147,8 +145,9 @@ export default async function HomePage()
                                 href="/app/learn"
                             />
                             <OpportunityCard
-                                illustration={<JobsIllustration className="w-full h-full" />}
-                                bannerGradient="from-rose-700 via-orange-800 to-amber-900"
+                                image="photo-1758876201985-66c20343e681"
+                                imageAlt="A woman working on her laptop in a bright office"
+                                imagePosition="center 18%"
                                 tag="Hot"
                                 tagClass="bg-destructive text-white"
                                 title="Remote Job Opportunities"
@@ -158,8 +157,9 @@ export default async function HomePage()
                                 href={null}
                             />
                             <OpportunityCard
-                                illustration={<MarketIllustration className="w-full h-full" />}
-                                bannerGradient="from-emerald-800 via-teal-800 to-cyan-900"
+                                image="photo-1687422808248-f807f4ea2a2e"
+                                imageAlt="A smiling shop owner in an apron checking an order on his phone"
+                                imagePosition="center 20%"
                                 tag="Featured"
                                 tagClass="bg-cyan text-white"
                                 title="Support Small Businesses"
@@ -169,8 +169,9 @@ export default async function HomePage()
                                 href="/app/market"
                             />
                             <OpportunityCard
-                                illustration={<FundingIllustration className="w-full h-full" />}
-                                bannerGradient="from-purple-800 via-indigo-900 to-slate-900"
+                                image="photo-1694286080811-e5e416f4fdb1"
+                                imageAlt="Smiling community members standing together"
+                                imagePosition="center 30%"
                                 tag="Impact"
                                 tagClass="bg-secondary text-white"
                                 title="Fund a Community Project"
@@ -257,62 +258,4 @@ function TodayCard({
     if (!href) return <div className="opacity-70">{content}</div>
 
     return <Link href={href}>{content}</Link>
-}
-
-function OpportunityCard({
-    illustration,
-    bannerGradient,
-    tag,
-    tagClass,
-    title,
-    sub,
-    meta,
-    cta,
-    href,
-}: {
-    illustration: React.ReactNode
-    bannerGradient?: string
-    tag: string
-    tagClass: string
-    title: string
-    sub: string
-    meta: string[]
-    cta: string
-    href: string | null
-})
-{
-    return (
-        <div className="group rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all duration-300">
-            {/* Graphic Background Banner with illustration */}
-            <div className={`relative h-36 w-full overflow-hidden bg-gradient-to-tr ${bannerGradient || 'from-slate-800 to-slate-900'} p-3`}>
-                {/* Decorative glow */}
-                <div className="absolute inset-0 bg-black/20 pointer-events-none" />
-                <div className="relative w-full h-full flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
-                    {illustration}
-                </div>
-                <span className={`absolute top-3 left-3 z-10 text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-md ${tagClass}`}>
-                    {tag}
-                </span>
-            </div>
-            <div className="p-4">
-                <h3 className="text-sm font-bold text-foreground leading-tight group-hover:text-primary transition-colors">{title}</h3>
-                <p className="text-xs text-muted-foreground mt-1 leading-snug line-clamp-2">{sub}</p>
-                <div className="flex items-center gap-3 mt-2.5 text-[11px] text-muted-foreground">
-                    {meta.map((m) => <span key={m}>{m}</span>)}
-                </div>
-                {href ? (
-                    <Link
-                        href={href}
-                        className="mt-3 inline-flex w-full items-center justify-center bg-primary text-primary-foreground text-xs font-bold px-4 py-2.5 rounded-xl hover:bg-primary/90 transition-all shadow-xs group-hover:shadow-md animate-heartbeat"
-                    >
-                        {cta}
-                    </Link>
-                ) : (
-                    <span className="mt-3 inline-flex w-full items-center justify-center bg-muted text-muted-foreground text-xs font-bold px-4 py-2.5 rounded-xl cursor-default">
-                        {cta}
-                    </span>
-                )}
-            </div>
-        </div>
-    )
 }

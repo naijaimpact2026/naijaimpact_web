@@ -5,6 +5,11 @@
 
 html {
   scroll-behavior: smooth;
+  /* Anything wider than the screen gets clipped instead of making Android
+     Chrome zoom the whole page out (Galaxy Fold, tablets). Must be on html —
+     on body it doesn't stop the zoom-out. `clip`, not `hidden`, so
+     position: sticky keeps working. */
+  overflow-x: clip;
 }
 
 @theme {
@@ -73,33 +78,36 @@ html {
    Neutral slate family, independent of the green brand hue used for primary/accent.
 ────────────────────────────────────────────────────────────────────────────── */
 html.dark {
-  --color-background: #0a1420; /* near Novo Navy, darker */
-  --color-foreground: #e7ecf3;
-  --color-card: #102a43; /* Novo Navy */
-  --color-card-foreground: #e7ecf3;
-  --color-popover: #16324f;
-  --color-popover-foreground: #e7ecf3;
-  --color-elevated: #16324f;
-  --color-elevated-foreground: #e7ecf3;
-  --color-primary: hsl(212, 90%, 62%); /* brighter interactive blue for dark bg */
-  --color-primary-foreground: #06111c;
-  --color-secondary: hsl(209, 45%, 26%);
-  --color-secondary-foreground: #e7ecf3;
-  --color-accent: hsl(209, 30%, 22%);
-  --color-accent-foreground: #e7ecf3;
-  --color-emerald: hsl(156, 85%, 45%); /* brighter Emerald for dark bg */
-  --color-emerald-foreground: #06110c;
-  --color-lime: hsl(94, 55%, 58%);
-  --color-lime-foreground: #06110c;
-  --color-cyan: hsl(190, 90%, 52%); /* brighter Cyan for dark bg */
-  --color-cyan-foreground: #06110c;
-  --color-muted: #132840;
-  --color-muted-foreground: #93a4bb;
-  --color-border: #1e3a58;
-  --color-input: #1e3a58;
-  --color-ring: hsl(212, 90%, 62%);
-  --color-destructive: hsl(0, 70%, 58%);
-  --color-destructive-foreground: #06110c;
+  /* Mature Obsidian & Royal Cobalt Dark Palette
+     Replaces overly saturated neon blue tints with calibrated obsidian surfaces,
+     razor-sharp slate-800 borders, and high-legibility typography. */
+  --color-background: #0b0f17; /* Deep Obsidian */
+  --color-foreground: #f8fafc; /* Crisp Slate-50 */
+  --color-card: #121824; /* Refined elevated surface */
+  --color-card-foreground: #f8fafc;
+  --color-popover: #172030; /* Higher surface elevation */
+  --color-popover-foreground: #f8fafc;
+  --color-elevated: #172030;
+  --color-elevated-foreground: #f8fafc;
+  --color-primary: hsl(217, 91%, 60%); /* Royal Cobalt Sapphire */
+  --color-primary-foreground: #ffffff; /* Pure white text for crisp button contrast */
+  --color-secondary: #1e293b; /* Subtle slate-800 */
+  --color-secondary-foreground: #f8fafc;
+  --color-accent: #1e293b;
+  --color-accent-foreground: #f8fafc;
+  --color-emerald: hsl(158, 75%, 44%); /* Refined emerald impact accent */
+  --color-emerald-foreground: #ffffff;
+  --color-lime: hsl(94, 50%, 54%);
+  --color-lime-foreground: #ffffff;
+  --color-cyan: hsl(190, 80%, 48%);
+  --color-cyan-foreground: #ffffff;
+  --color-muted: #161e2e;
+  --color-muted-foreground: #94a3b8; /* Balanced Slate-400 readability */
+  --color-border: #1e293b; /* Subtle hairline border, eliminates harsh blue lines */
+  --color-input: #1e293b;
+  --color-ring: hsl(217, 91%, 60%);
+  --color-destructive: hsl(0, 72%, 58%);
+  --color-destructive-foreground: #ffffff;
 }
 
 @layer base {
@@ -405,6 +413,10 @@ html.dark {
     background-color: transparent !important;
     background: transparent !important;
   }
+  .str-chat .str-chat__empty-channel svg {
+    color: var(--color-muted-foreground) !important;
+    opacity: 0.6 !important;
+  }
   .str-chat .str-chat__message-composer-container {
     flex-shrink: 0 !important;
     width: 100% !important;
@@ -527,17 +539,17 @@ html.dark {
   .str-chat .str-chat__attachment-selector,
   .str-chat .str-chat__attachment-selector button,
   .str-chat .str-chat__attachment-selector .str-chat__attachment-selector__menu-button {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
-    min-height: 40px !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     border-radius: 9999px !important;
     color: var(--color-muted-foreground) !important;
-    background: transparent !important;
-    border: none !important;
+    background-color: var(--color-muted) !important;
+    border: 1px solid var(--color-border) !important;
     cursor: pointer !important;
     transition: all 0.18s ease !important;
     flex-shrink: 0 !important;
@@ -545,7 +557,8 @@ html.dark {
   .str-chat .str-chat__attachment-selector button:hover,
   .str-chat .str-chat__attachment-selector .str-chat__attachment-selector__menu-button:hover {
     color: var(--color-primary) !important;
-    background-color: color-mix(in srgb, var(--color-primary) 10%, transparent) !important;
+    background-color: color-mix(in srgb, var(--color-primary) 12%, transparent) !important;
+    border-color: var(--color-primary) !important;
     transform: scale(1.05) !important;
   }
 
@@ -738,6 +751,20 @@ html.dark {
   }
 
   /* Chat composer dark mode support */
+  html.dark .str-chat .str-chat__attachment-selector,
+  html.dark .str-chat .str-chat__attachment-selector button,
+  html.dark .str-chat .str-chat__attachment-selector .str-chat__attachment-selector__menu-button {
+    background-color: #0e2236 !important;
+    border-color: #1e3a58 !important;
+    color: #94a3b8 !important;
+  }
+  html.dark .str-chat .str-chat__attachment-selector:hover,
+  html.dark .str-chat .str-chat__attachment-selector button:hover,
+  html.dark .str-chat .str-chat__attachment-selector .str-chat__attachment-selector__menu-button:hover {
+    background-color: #16324f !important;
+    border-color: hsl(212, 90%, 62%) !important;
+    color: #ffffff !important;
+  }
   html.dark .str-chat .str-chat__message-composer-container {
     background-color: #0b1929 !important;
     border-color: #1a334e !important;
@@ -1207,4 +1234,123 @@ html.dark [data-testid="attachment-selector-actions-menu"],
   box-shadow: 0 20px 48px -6px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
 }
 
+/* ── TikTok-style Floating Live Reactions ── */
+@keyframes floatReactionUp {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.6) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+    transform: translate3d(var(--reaction-sway-1, 10px), -40px, 0) scale(1.2) rotate(var(--reaction-rot, 6deg));
+  }
+  50% {
+    opacity: 0.95;
+    transform: translate3d(var(--reaction-sway-2, -12px), -140px, 0) scale(1.05) rotate(calc(var(--reaction-rot, 6deg) * -0.7));
+  }
+  80% {
+    opacity: 0.8;
+    transform: translate3d(var(--reaction-sway-3, 14px), -240px, 0) scale(0.95) rotate(var(--reaction-rot, 6deg));
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--reaction-sway-4, -8px), -320px, 0) scale(0.7) rotate(0deg);
+  }
+}
 
+.animate-float-reaction {
+  animation: floatReactionUp var(--reaction-duration, 2.2s) cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+/* ── Carousel Anti-Flicker & GPU Layer Isolation (Foldable / High Refresh AMOLED) ── */
+[data-slot="carousel"],
+.embla {
+  position: relative;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+[data-slot="carousel-content"],
+.embla__viewport {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-perspective: 1000px;
+  perspective: 1000px;
+  contain: paint;
+}
+
+[data-slot="carousel-content"] > div,
+.embla__container {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+[data-slot="carousel-item"],
+.embla__slide {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+
+
+
+/* Modal scroll lock (Radix / react-remove-scroll sets overflow:hidden on <body>).
+   That turns <body> into a scroll container, so `position: sticky` elements like
+   the app sidebar jump back to the top of the page while a dialog is open. Lock
+   the root scroller instead and keep <body> a normal block. Extra specificity
+   (html body) beats the injected rule. */
+html:has(body[data-scroll-locked]) {
+  overflow: hidden;
+}
+html body[data-scroll-locked] {
+  overflow: visible !important;
+}
+
+/* ─── Hubnovo World motion ─────────────────────────────────────────────────
+   Small, purposeful animations for the Campus Competition screens.
+   Everything is off under prefers-reduced-motion and inside .hw-reduce
+   (the player's "Reduce motion" setting). */
+@keyframes hw-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes hw-pop { 0% { transform: scale(.85); opacity: 0; } 60% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes hw-slide-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes hw-glow { 0%, 100% { box-shadow: 0 0 0 0 var(--hw-glow, rgba(59,130,246,.35)); } 50% { box-shadow: 0 0 0 6px transparent; } }
+@keyframes hw-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes hw-shine { from { transform: translateX(-120%) skewX(-20deg); } to { transform: translateX(220%) skewX(-20deg); } }
+@keyframes hw-confetti { 0% { transform: translate3d(0,0,0) rotate(0); opacity: 1; } 100% { transform: translate3d(var(--x), var(--y), 0) rotate(var(--r)); opacity: 0; } }
+@keyframes hw-check { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+@keyframes hw-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+
+.hw-rise { animation: hw-rise .45s cubic-bezier(.2,.7,.2,1) both; }
+.hw-pop { animation: hw-pop .4s cubic-bezier(.2,.9,.3,1.3) both; }
+.hw-slide-in { animation: hw-slide-in .3s cubic-bezier(.2,.7,.2,1) both; }
+.hw-glow { animation: hw-glow 2.4s ease-in-out infinite; }
+.hw-float { animation: hw-float 3s ease-in-out infinite; }
+.hw-shake { animation: hw-shake .3s ease-in-out 2; }
+.hw-lift { transition: transform .18s ease, box-shadow .18s ease, background-color .18s ease, border-color .18s ease; }
+.hw-lift:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -12px rgba(0,0,0,.35); }
+.hw-press { transition: transform .12s ease, opacity .15s ease, background-color .15s ease, box-shadow .15s ease; }
+.hw-press:active:not(:disabled) { transform: scale(.97); }
+.hw-shine-host { position: relative; overflow: hidden; }
+.hw-shine-host::after { content: ""; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); animation: hw-shine 2.2s ease-in-out 0.4s 2; pointer-events: none; }
+.hw-bar { transition: width .9s cubic-bezier(.2,.7,.2,1); }
+.hw-check path { stroke-dasharray: 24; animation: hw-check .35s ease-out both; }
+.hw-confetti-piece { position: absolute; top: 50%; left: 50%; width: 8px; height: 12px; border-radius: 2px; animation: hw-confetti 1.1s cubic-bezier(.2,.6,.3,1) forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hw-rise, .hw-pop, .hw-slide-in, .hw-glow, .hw-float, .hw-shake, .hw-confetti-piece, .hw-shine-host::after { animation: none !important; }
+  .hw-lift:hover, .hw-press:active:not(:disabled) { transform: none; }
+  .hw-bar { transition: none; }
+}
+.hw-reduce .hw-rise, .hw-reduce .hw-pop, .hw-reduce .hw-slide-in, .hw-reduce .hw-glow, .hw-reduce .hw-float, .hw-reduce .hw-shake,
+.hw-reduce .hw-confetti-piece, .hw-reduce .hw-shine-host::after { animation: none !important; }
+.hw-reduce .hw-lift:hover, .hw-reduce .hw-press:active:not(:disabled) { transform: none; }
+.hw-reduce .hw-bar { transition: none; }

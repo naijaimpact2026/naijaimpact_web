@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { ensureUserRow } from '@/lib/supabase/ensure-user-row'
+import { sanitizeRedirectPath } from '@/lib/security/redirect'
 import type { EmailOtpType } from '@supabase/supabase-js'
 
 export async function GET(request: Request) {
@@ -35,21 +36,9 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${publicOrigin}/auth/reset-password?error=invalid_code`)
     }
 
-    // Resolve against publicOrigin and require it to stay same-origin
-    let next = '/app'
-    try {
-        const resolved = new URL(requestedNext, publicOrigin)
-        if (resolved.origin === publicOrigin) {
-            next = `${resolved.pathname}${resolved.search}${resolved.hash}`
-        }
-    } catch {
-        // Malformed next value — fall back to '/app'
-    }
-
-    // Always send authenticated users to /app, never let them get stranded on the root landing page
-    if (!next || next === '/') {
-        next = '/app'
-    }
+    // Sanitize requestedNext and require it to stay same-origin
+    const sanitizedNext = sanitizeRedirectPath(requestedNext, '/app')
+    let next = sanitizedNext === '/' ? '/app' : sanitizedNext
 
     const supabase = await createClient()
 

@@ -3,27 +3,27 @@ import { Plus } from 'lucide-react'
 const faqs = [
   {
     q: 'What is Hubnovo?',
-    a: 'Hubnovo is one app for your savings, ajo circles, credit score, micro-loans and insurance, plus a community where you can post, chat, learn and offer your services.',
+    a: 'One app for community, learning, marketplace and jobs, with one free account.',
   },
   {
     q: 'Does it cost anything to join?',
-    a: 'No. Creating a Hubnovo account is free, and every product is available from your free account.',
+    a: 'No. Creating an account is free.',
   },
   {
-    q: 'How does NaijaAjo work?',
-    a: 'You start or join a circle of 2 to 20 members and agree on an amount and a schedule (weekly, bi-weekly or monthly). Everyone contributes each cycle, and one member receives the payout in turn. Every contribution is recorded, so there are no arguments about who has paid.',
+    q: 'Can I sell my products or services?',
+    a: 'Yes. Open a storefront in the Marketplace or list your skills in Artisans & Pros.',
   },
   {
-    q: 'How is my TradeCred score calculated?',
-    a: 'Your score runs from 0 to 1000 and reflects your activity on Hubnovo, including your savings, transactions and ajo history. You can see a breakdown by category and tips to improve it.',
+    q: 'How do I post or apply for a job?',
+    a: 'Go to Jobs & Careers. Job seekers apply in a few taps. Employers post for free.',
   },
   {
-    q: 'How do I add money to my wallet?',
-    a: 'Fund your wallet securely through Paystack from the Wallet page. Your balance updates once the payment is confirmed.',
+    q: 'When will savings, ajo and loans be available?',
+    a: 'They are in development. Create an account and you will be notified.',
   },
   {
-    q: 'I need help with my account. Who do I contact?',
-    a: 'Email us at hello@hubnovo.com and the team will get back to you.',
+    q: 'Who do I contact for help?',
+    a: 'Email hello@hubnovo.com.',
   },
 ]
 

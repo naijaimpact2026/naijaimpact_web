@@ -18,6 +18,7 @@ import {
 import { saveBusinessProfile, type SaveBusinessInput } from '@/lib/actions/launchpad'
 import type { BusinessProfile } from '@/lib/types'
 import { toast } from '@/components/toast'
+import LaunchpadModalPortal from './LaunchpadModalPortal'
 
 interface BusinessProfileModalProps {
     isOpen: boolean
@@ -143,8 +144,8 @@ export default function BusinessProfileModal({
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="relative w-full max-w-2xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+        <LaunchpadModalPortal isOpen={isOpen} onClose={onClose}>
+            <div className="relative w-full max-w-2xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] my-auto">
                 {/* Header */}
                 <div className="px-6 py-4.5 border-b border-border/80 flex items-center justify-between bg-muted/30">
                     <div className="flex items-center gap-3">
@@ -471,6 +472,6 @@ export default function BusinessProfileModal({
                     )}
                 </div>
             </div>
-        </div>
+        </LaunchpadModalPortal>
     )
 }

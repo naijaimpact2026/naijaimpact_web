@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = {
     title: 'Platform Directory & Ecosystem | Hubnovo',
-    description: 'Explore all 9 specialized engines and platforms in the Hubnovo ecosystem.',
+    description: 'Explore all 10 specialized engines and platforms in the Hubnovo ecosystem.',
 }
 
 export default async function ExplorePage() {
@@ -38,7 +38,7 @@ export default async function ExplorePage() {
             </div>
 
             {/* Dedicated Hero Header */}
-            <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-gradient-to-br from-card via-card/90 to-primary/5 p-6 sm:p-10 backdrop-blur-xl shadow-sm">
+            <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-gradient-to-br from-card via-card/90 to-primary/5 p-5 sm:p-7 backdrop-blur-xl shadow-sm">
                 <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
                 <div className="absolute -bottom-24 -left-24 w-96 h-96 rounded-full bg-secondary/10 blur-3xl pointer-events-none" />
 
@@ -49,7 +49,7 @@ export default async function ExplorePage() {
                     </div>
 
                     <h1 className="font-display text-3xl sm:text-4xl font-black text-foreground tracking-tight leading-tight">
-                        Nine Engines for Growth, Trade & Impact
+                        Ten Engines for Growth, Trade & Impact
                     </h1>
 
                     <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">

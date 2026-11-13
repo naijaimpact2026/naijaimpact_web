@@ -13,6 +13,7 @@ import
     Bell,
     Menu,
     Clapperboard,
+    Trophy,
     Wrench,
     Rocket,
 } from 'lucide-react'
@@ -21,7 +22,7 @@ import { SkeletonAvatar, SkeletonBlock, SkeletonLine, WAVE_STEP } from './primit
 
 // Same order as navItems in components/app/Sidebar.tsx.
 const NAV_ITEMS = [
-    Home, Compass, Search, Users, Clapperboard, ShoppingBag, Briefcase, Wrench, Rocket,
+    Home, Compass, Search, Users, Clapperboard, Trophy, ShoppingBag, Briefcase, Wrench, Rocket,
     BookOpen, HandCoins, LayoutGrid, MessageCircle, Bell,
 ]
 

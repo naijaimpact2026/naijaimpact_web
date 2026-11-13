@@ -17,6 +17,7 @@ import {
 import { broadcastBusinessLaunch } from '@/lib/actions/launchpad'
 import type { BusinessProfile, CacApplication } from '@/lib/types'
 import { toast } from '@/components/toast'
+import LaunchpadModalPortal from './LaunchpadModalPortal'
 
 interface LaunchAnnouncementModalProps {
     isOpen: boolean
@@ -89,8 +90,8 @@ export default function LaunchAnnouncementModal({
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto bg-card border border-border rounded-2xl sm:rounded-3xl shadow-2xl text-foreground">
+        <LaunchpadModalPortal isOpen={isOpen} onClose={onClose}>
+            <div className="relative w-full max-w-xl max-h-[90vh] my-auto overflow-y-auto bg-card border border-border rounded-2xl sm:rounded-3xl shadow-2xl text-foreground">
                 {/* Header */}
                 <div className="sticky top-0 z-20 flex items-center justify-between px-5 sm:px-6 py-4 bg-card/95 backdrop-blur-md border-b border-border">
                     <div className="flex items-center gap-3">
@@ -280,6 +281,6 @@ export default function LaunchAnnouncementModal({
                     </form>
                 )}
             </div>
-        </div>
+        </LaunchpadModalPortal>
     )
 }

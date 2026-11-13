@@ -13,37 +13,37 @@ export default function BusinessLaunchpadSkeleton()
         <div className="w-full min-h-[calc(100dvh-4rem)] bg-background text-foreground pb-12 overflow-x-hidden">
             <div className="max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 space-y-6">
                 {/* ── 1. Hero Banner Skeleton ── */}
-                <section className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-8 lg:p-10 shadow-xs">
-                    <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+                <section className="relative overflow-hidden rounded-3xl border border-border bg-card px-6 py-5 sm:px-8 sm:py-6 lg:px-9 lg:py-6 shadow-xs">
+                    <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
                         {/* Left Column: Headlines & CTA */}
-                        <div className="flex-1 max-w-xl w-full space-y-3">
-                            <Skeleton className="h-6 w-36 rounded-full" />
-                            <SkeletonLine width="80%" height={38} delay={WAVE_STEP} className="rounded-xl" />
-                            <SkeletonLine width="55%" height={24} delay={WAVE_STEP * 2} className="rounded-lg mt-1" />
-                            <div className="space-y-2 pt-2">
-                                <SkeletonLine width="95%" height={14} delay={WAVE_STEP * 3} />
-                                <SkeletonLine width="85%" height={14} delay={WAVE_STEP * 4} />
+                        <div className="flex-1 max-w-xl w-full space-y-2.5">
+                            <Skeleton className="h-5 w-32 rounded-full" />
+                            <SkeletonLine width="80%" height={30} delay={WAVE_STEP} className="rounded-xl" />
+                            <SkeletonLine width="55%" height={20} delay={WAVE_STEP * 2} className="rounded-lg mt-1" />
+                            <div className="space-y-1.5 pt-1.5">
+                                <SkeletonLine width="95%" height={12} delay={WAVE_STEP * 3} />
+                                <SkeletonLine width="85%" height={12} delay={WAVE_STEP * 4} />
                             </div>
-                            <div className="pt-4">
-                                <Skeleton className="h-12 w-56 rounded-xl shadow-xs" delay={WAVE_STEP * 5} />
+                            <div className="pt-3">
+                                <Skeleton className="h-10 w-48 rounded-xl shadow-xs" delay={WAVE_STEP * 5} />
                             </div>
                         </div>
 
                         {/* Right Column: Hero Photo Placeholder */}
                         <div className="shrink-0 w-full sm:w-auto flex justify-center lg:justify-end">
                             <SkeletonBlock
-                                className="w-64 h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-2xl"
+                                className="w-44 h-44 sm:w-52 sm:h-52 lg:w-56 lg:h-56 rounded-2xl"
                                 delay={WAVE_STEP * 3}
                             />
                         </div>
                     </div>
 
                     {/* Bottom 4 Value Proposition Chips */}
-                    <div className="mt-8 pt-4 border-t border-border/70 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="mt-5 pt-3 border-t border-border/70 grid grid-cols-2 md:grid-cols-4 gap-3">
                         {Array.from({ length: 4 }).map((_, i) => (
-                            <div key={i} className="flex items-center gap-2.5">
-                                <Skeleton className="w-6 h-6 rounded-full shrink-0" delay={i * WAVE_STEP} />
-                                <SkeletonLine width="75%" height={12} delay={i * WAVE_STEP} />
+                            <div key={i} className="flex items-center gap-2">
+                                <Skeleton className="w-5 h-5 rounded-full shrink-0" delay={i * WAVE_STEP} />
+                                <SkeletonLine width="75%" height={11} delay={i * WAVE_STEP} />
                             </div>
                         ))}
                     </div>

@@ -40,7 +40,7 @@ interface Opportunity
 const OPPORTUNITIES_DATA: Opportunity[] = [
     {
         id: 'grant-tech-1',
-        title: 'Naija Impact Innovation Grant 2026',
+        title: 'Hubnovo Innovation Grant 2026',
         organization: 'Hubnovo Impact Foundation',
         isVerified: true,
         category: 'grant',

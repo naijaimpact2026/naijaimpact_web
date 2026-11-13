@@ -203,6 +203,9 @@ export async function fetchNotificationsPage(
                 reference_id,
                 read,
                 created_at,
+                title,
+                body,
+                data,
                 actor:users!notifications_actor_id_fkey (
                     username,
                     display_name,
@@ -253,6 +256,9 @@ export async function fetchNotificationsPage(
                 reference_id: row.reference_id,
                 read: row.read,
                 created_at: row.created_at,
+                title: row.title ?? null,
+                body: row.body ?? null,
+                data: row.data ?? null,
                 actor: row.actor ?? null,
             }))
 

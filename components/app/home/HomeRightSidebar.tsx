@@ -127,7 +127,7 @@ export default async function HomeRightSidebar({ user }: HomeRightSidebarProps)
                         <p className="text-sm font-bold text-foreground">
                             <HomeMessagesStat />
                         </p>
-                        <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">New Messages</p>
+                        <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">New Chats</p>
                     </div>
                 </div>
             </div>

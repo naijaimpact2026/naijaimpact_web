@@ -4,6 +4,7 @@ import React, { useRef } from 'react'
 import { X, Download, Printer, ShieldCheck, CheckCircle2, Award } from 'lucide-react'
 import type { CacApplication, BusinessProfile } from '@/lib/types'
 import { toast } from '@/components/toast'
+import LaunchpadModalPortal from './LaunchpadModalPortal'
 
 interface CacCertificateModalProps {
     isOpen: boolean
@@ -42,8 +43,8 @@ export default function CacCertificateModal({
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="relative w-full max-w-3xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
+        <LaunchpadModalPortal isOpen={isOpen} onClose={onClose}>
+            <div className="relative w-full max-w-3xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] my-auto">
                 {/* Header Actions Bar */}
                 <div className="px-6 py-3.5 border-b border-border/80 flex items-center justify-between bg-muted/40">
                     <div className="flex items-center gap-2">
@@ -214,6 +215,6 @@ export default function CacCertificateModal({
                     </div>
                 </div>
             </div>
-        </div>
+        </LaunchpadModalPortal>
     )
 }

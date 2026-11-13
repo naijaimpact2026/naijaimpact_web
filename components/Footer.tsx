@@ -3,31 +3,33 @@ import Image from 'next/image'
 
 const columns = [
   {
-    heading: 'Products',
+    heading: 'Features',
     links: [
-      { label: 'NaijaSafe', href: '#products' },
-      { label: 'NaijaAjo', href: '#products' },
-      { label: 'TradeCred', href: '#products' },
-      { label: 'NaijaCredit', href: '#products' },
-      { label: 'NaijaInsure', href: '#products' },
+      { label: 'Community', href: '#community' },
+      { label: 'Learn', href: '#learn' },
+      { label: 'Marketplace', href: '#marketplace' },
+      { label: 'Artisans & Pros', href: '#artisans' },
+      { label: 'Jobs & Careers', href: '#jobs' },
+      { label: 'Explore more', href: '#more' },
     ],
   },
   {
-    heading: 'Community',
+    heading: 'Our vision',
     links: [
-      { label: 'Social feed', href: '#community' },
-      { label: 'Crowdfunding', href: '#community' },
-      { label: 'Learn and earn', href: '#community' },
-      { label: 'Services', href: '#community' },
+      { label: 'Savings & Wallet', href: '#vision' },
+      { label: 'Ajo Circles', href: '#vision' },
+      { label: 'Credit & Micro-loans', href: '#vision' },
+      { label: 'Crowdfunding', href: '#vision' },
     ],
   },
   {
     heading: 'Company',
     links: [
       { label: 'About', href: '#about' },
-      { label: 'Security', href: '#security' },
+      { label: 'Reviews', href: '#reviews' },
       { label: 'FAQs', href: '#faq' },
-      { label: 'Contact', href: '#contact' },
+      { label: 'Download', href: '#download' },
+      { label: 'Contact', href: 'mailto:hello@hubnovo.com' },
     ],
   },
   {
@@ -51,7 +53,7 @@ export default function Footer() {
               <Image src="/logo-wordmark.png" alt="Hubnovo" width={90} height={30} />
             </Link>
             <p className="mt-5 text-sm leading-relaxed text-ink-soft">
-              Savings, ajo, credit and community in one app. Built in Nigeria, for Nigerians.
+              Community, learning, marketplace and jobs in one app. Built in Nigeria, for Nigerians.
             </p>
           </div>
 

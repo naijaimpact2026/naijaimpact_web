@@ -1,7 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { getUploadLimits } from './config'
 import { getMux, isMuxConfigured } from './mux'
-import { getCloudflareLiveInput, isCloudflareStreamConfigured } from './cloudflare'
+import { getCloudflareLiveInput, getCloudflareLiveInputVideos, isCloudflareStreamConfigured } from './cloudflare'
 import type { LiveStream, Video } from '@/lib/types'
 
 /**
@@ -182,6 +182,40 @@ export async function syncLiveStream<T extends LiveStream>(stream: T): Promise<T
             let patch: StreamPatch = {}
             if (stream.status === 'idle' && remote.state === 'connected')
                 patch = await applyStreamActive(stream.provider_stream_id)
+
+            // If stream is ended and needs replay video, check if recording is finalized
+            const isEnded = (patch.status ?? stream.status) === 'ended'
+            if (isEnded && !stream.replay_video_id) {
+                const recordedVideos = await getCloudflareLiveInputVideos(stream.provider_stream_id)
+                const latest = recordedVideos[0]
+                if (latest?.uid) {
+                    const supabase = createServiceClient()
+                    const now = new Date().toISOString()
+                    const { data: replay } = await supabase
+                        .from('videos')
+                        .upsert({
+                            owner_id: stream.host_id,
+                            title: stream.title,
+                            description: stream.description,
+                            kind: 'live_replay',
+                            status: 'ready',
+                            provider: 'cloudflare',
+                            provider_asset_id: latest.uid,
+                            playback_id: latest.uid,
+                            playback_policy: 'public',
+                            duration_s: latest.duration ?? null,
+                            updated_at: now,
+                        }, { onConflict: 'provider_asset_id' })
+                        .select('id')
+                        .single()
+
+                    if (replay) {
+                        await supabase.from('live_streams').update({ replay_video_id: replay.id, updated_at: now }).eq('id', stream.id)
+                        patch.replay_video_id = replay.id
+                    }
+                }
+            }
+
             return { ...stream, ...patch }
         } catch
         {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from '@/components/toast'
 import { X, ShoppingCart, MapPin, Truck, Package, Lock } from 'lucide-react'
 import { createOrder } from '@/lib/actions/marketplace'
+import { startOrderCheckout } from '@/lib/actions/payments'
 import type { ProductWithSeller } from '@/lib/types'
 
 
@@ -45,7 +46,7 @@ export default function BuyNowModal({ open, onOpenChange, product, userEmail, us
         setLoading(true)
         try
         {
-            const { id: orderId, paystack_ref } = await createOrder({
+            const { id: orderId } = await createOrder({
                 product_id: product.id,
                 quantity: qty,
                 delivery_method: deliveryMethod,
@@ -59,15 +60,23 @@ export default function BuyNowModal({ open, onOpenChange, product, userEmail, us
                 return
             }
 
+            // Server records the payment (reference + amount from the stored order).
+            const intent = await startOrderCheckout([orderId])
+            if (!intent.success) {
+                toast.error(intent.error)
+                setLoading(false)
+                return
+            }
+
             const handler = window.PaystackPop.setup({
                 key: paystackKey,
-                email: userEmail,
-                amount: Math.round(total * 100), // kobo
+                email: intent.email,
+                amount: intent.amountKobo,
                 currency: 'NGN',
-                ref: paystack_ref,
+                ref: intent.reference,
                 metadata: {
                     type: 'marketplace_purchase',
-                    userId,
+                    userId: intent.userId,
                     referenceId: orderId,
                 },
                 onClose: () =>

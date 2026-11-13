@@ -651,80 +651,52 @@ export async function fetchEmployerJobsWithApplicants(): Promise<{
   const { supabase, profile } = await getAuthContext()
   if (!profile) return { jobs: [], applications: [] }
 
-  // 1. Fetch all jobs posted by this employer
-  const { data: jobsData, error: jobsErr } = await supabase
+  // Fetch all employer jobs along with applications and applicant profiles in a single JOIN
+  const { data: rawData, error: jobsErr } = await supabase
     .from('jobs')
-    .select('*')
+    .select(`
+      *,
+      job_applications (
+        *,
+        applicant:users (
+          id,
+          display_name,
+          avatar_url,
+          username
+        )
+      )
+    `)
     .eq('employer_id', profile.id)
     .order('created_at', { ascending: false })
 
-  if (jobsErr || !jobsData) {
+  if (jobsErr || !rawData) {
     console.error('fetchEmployerJobs error:', jobsErr)
     return { jobs: [], applications: [] }
   }
 
-  const jobs = jobsData as Job[]
-  if (jobs.length === 0) return { jobs: [], applications: [] }
+  const jobs: Job[] = rawData.map((row: any) => {
+    const { job_applications, ...jobFields } = row
+    return {
+      ...jobFields,
+      requirements: Array.isArray(jobFields.requirements) ? jobFields.requirements : [],
+      responsibilities: Array.isArray(jobFields.responsibilities) ? jobFields.responsibilities : [],
+      benefits: Array.isArray(jobFields.benefits) ? jobFields.benefits : [],
+      tags: Array.isArray(jobFields.tags) ? jobFields.tags : [],
+    } as Job
+  })
 
-  const jobIds = jobs.map((j) => j.id)
-
-  // 2. Fetch all applications for these jobs
-  let apps: JobApplication[] = []
-
-  const { data: appsData, error: appsErr } = await supabase
-    .from('job_applications')
-    .select(
-      `
-      *,
-      applicant:users(
-        id,
-        display_name,
-        avatar_url,
-        username
-      )
-    `
-    )
-    .in('job_id', jobIds)
-    .order('created_at', { ascending: false })
-
-  if (appsErr) {
-    // Fallback: query without relational join, then attach applicants
-    const { data: fallbackData } = await supabase
-      .from('job_applications')
-      .select('*')
-      .in('job_id', jobIds)
-      .order('created_at', { ascending: false })
-
-    if (fallbackData && fallbackData.length > 0) {
-      const applicantIds = Array.from(new Set(fallbackData.map((a: any) => a.applicant_id).filter(Boolean)))
-      let usersMap = new Map<string, any>()
-      if (applicantIds.length > 0) {
-        const { data: usersData } = await supabase
-          .from('users')
-          .select('id, display_name, avatar_url, username')
-          .in('id', applicantIds)
-        usersMap = new Map((usersData ?? []).map((u: any) => [u.id, u]))
-      }
-      apps = fallbackData.map((a: any) => ({
-        ...a,
-        applicant: usersMap.get(a.applicant_id) ?? null,
-      })) as JobApplication[]
-    }
-  } else {
-    apps = (appsData ?? []) as JobApplication[]
-  }
-
-  // Attach job details from already-fetched jobs
   const jobsMap = new Map(jobs.map((j) => [j.id, j]))
-  // The applicant's email comes from their application (shared with the
-  // employer on purpose), not from users.email, which is private.
-  const enrichedApplications = apps.map((a) => ({
-    ...a,
-    applicant: a.applicant ? { ...a.applicant, email: a.email } : a.applicant,
-    job: a.job ?? jobsMap.get(a.job_id) ?? null,
-  }))
 
-  return { jobs, applications: enrichedApplications }
+  const applications: JobApplication[] = rawData.flatMap((row: any) => {
+    const jobItem = jobsMap.get(row.id) ?? null
+    return (row.job_applications ?? []).map((a: any) => ({
+      ...a,
+      job: jobItem,
+      applicant: a.applicant ? { ...a.applicant, email: a.email } : a.applicant,
+    }))
+  })
+
+  return { jobs, applications }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

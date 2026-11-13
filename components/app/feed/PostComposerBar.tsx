@@ -1,6 +1,7 @@
 'use client'
 
-import { Image as ImageIcon, BarChart2, Calendar, HandCoins, UserPlus, type LucideIcon } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Image as ImageIcon, BarChart2, Calendar, HandCoins, UserPlus, Radio, type LucideIcon } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { User } from '@/lib/types'
 
@@ -26,11 +27,12 @@ interface ComposerAction {
     label: string
     color: string
     functional: boolean
-    mode?: 'media' | 'tag'
+    mode?: 'media' | 'tag' | 'live'
 }
 
 const ACTIONS: ComposerAction[] = [
     { icon: ImageIcon, label: 'Photo/Video', color: 'text-primary', functional: true, mode: 'media' },
+    { icon: Radio, label: 'Livestream', color: 'text-destructive', functional: true, mode: 'live' },
     { icon: BarChart2, label: 'Poll', color: 'text-amber-600', functional: false },
     { icon: Calendar, label: 'Event', color: 'text-secondary', functional: false },
     { icon: HandCoins, label: 'Opportunity', color: 'text-cyan', functional: false },
@@ -39,9 +41,16 @@ const ACTIONS: ComposerAction[] = [
 
 export default function PostComposerBar({ user, onOpen }: PostComposerBarProps)
 {
+    const router = useRouter()
+
     function handleActionClick(action: ComposerAction)
     {
         if (!action.functional) return
+        if (action.mode === 'live')
+        {
+            router.push('/app/modushive/studio')
+            return
+        }
         if (action.mode === 'media')
         {
             onOpen({ withMedia: true })
@@ -86,6 +95,7 @@ export default function PostComposerBar({ user, onOpen }: PostComposerBarProps)
                 {ACTIONS.map((action) => {
                     const Icon = action.icon
                     const isFunctional = action.functional
+                    const isLive = action.mode === 'live'
 
                     return (
                         <button
@@ -96,12 +106,19 @@ export default function PostComposerBar({ user, onOpen }: PostComposerBarProps)
                             title={isFunctional ? action.label : `${action.label} (coming soon)`}
                             className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl transition-all text-xs font-medium min-w-0 ${
                                 isFunctional
-                                    ? 'hover:bg-muted text-muted-foreground hover:text-foreground active:scale-95'
+                                    ? isLive
+                                        ? 'hover:bg-destructive/10 text-foreground font-semibold active:scale-95'
+                                        : 'hover:bg-muted text-muted-foreground hover:text-foreground active:scale-95'
                                     : 'text-muted-foreground/40 cursor-default'
                             }`}
                             aria-label={isFunctional ? action.label : `${action.label} (coming soon)`}
                         >
-                            <Icon className={`w-4 h-4 shrink-0 ${isFunctional ? action.color : ''}`} />
+                            <div className="relative flex items-center justify-center shrink-0">
+                                <Icon className={`w-4 h-4 shrink-0 ${isFunctional ? action.color : ''}`} />
+                                {isLive && (
+                                    <span className="absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5 rounded-full bg-destructive animate-pulse" />
+                                )}
+                            </div>
                             <span className="hidden sm:inline truncate">{action.label}</span>
                         </button>
                     )

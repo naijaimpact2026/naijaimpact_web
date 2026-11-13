@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from '@/components/toast'
 import { X, ShoppingCart, Shield, MapPin, Truck, Package } from 'lucide-react'
 import { createEscrowOrder } from '@/lib/actions/marketplace'
+import { startOrderCheckout } from '@/lib/actions/payments'
 import type { NmListingDetail, NmDeliveryOption } from '@/lib/types'
 import Script from 'next/script'
 
@@ -79,16 +80,24 @@ export default function EscrowOrderModal({ open, onOpenChange, listing, userEmai
                 return
             }
 
-            const paystackRef = `nm_${order_id.slice(0, 8)}_${Date.now()}`
+            // Server records the payment (reference + amount from the stored order).
+            const intent = await startOrderCheckout([order_id])
+            if (!intent.success)
+            {
+                setLoading(false)
+                toast.error(intent.error)
+                return
+            }
+
             const handler = (window as any).PaystackPop?.setup({
                 key: paystackKey,
-                email: userEmail,
-                amount: total * 100,
+                email: intent.email,
+                amount: intent.amountKobo,
                 currency: 'NGN',
-                ref: paystackRef,
+                ref: intent.reference,
                 metadata: {
                     type: 'marketplace_purchase',
-                    userId,
+                    userId: intent.userId,
                     referenceId: order_id,
                 },
                 onClose: () =>

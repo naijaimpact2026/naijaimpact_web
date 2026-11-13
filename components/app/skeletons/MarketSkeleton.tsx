@@ -11,15 +11,15 @@ export default function MarketSkeleton() {
                 className="relative overflow-hidden rounded-3xl"
                 style={{ background: 'linear-gradient(135deg,#102A43 0%,#0E6EDC 130%)' }}
             >
-                <div className="grid grid-cols-1 items-center gap-6 px-6 py-8 sm:px-10 sm:py-10 lg:grid-cols-[1.1fr_0.9fr]">
+                <div className="grid grid-cols-1 items-center gap-6 px-6 py-6 sm:px-8 sm:py-6 lg:px-10 lg:py-7 lg:grid-cols-[1.1fr_0.9fr]">
                     <div className="space-y-3 max-w-lg">
                         <Skeleton base={ON_DARK} className="h-2.5 w-40 rounded-full" />
-                        <Skeleton base={ON_DARK} className="h-8 w-72 rounded-lg" delay={WAVE_STEP} />
-                        <Skeleton base={ON_DARK} className="h-3.5 w-56 rounded-full" delay={WAVE_STEP * 2} />
-                        <Skeleton base="rgba(255,255,255,0.9)" className="h-11 w-full max-w-md rounded-2xl mt-4" delay={WAVE_STEP * 3} />
-                        <Skeleton base={ON_DARK} className="h-9 w-28 rounded-2xl mt-2" delay={WAVE_STEP * 4} />
+                        <Skeleton base={ON_DARK} className="h-7 w-72 rounded-lg" delay={WAVE_STEP} />
+                        <Skeleton base={ON_DARK} className="h-3 w-56 rounded-full" delay={WAVE_STEP * 2} />
+                        <Skeleton base="rgba(255,255,255,0.9)" className="h-10 w-full max-w-md rounded-xl mt-3" delay={WAVE_STEP * 3} />
+                        <Skeleton base={ON_DARK} className="h-8 w-28 rounded-xl mt-2" delay={WAVE_STEP * 4} />
                     </div>
-                    <SkeletonBlock base={ON_DARK} className="hidden w-full max-w-sm h-48 justify-self-end sm:block" delay={WAVE_STEP * 2} />
+                    <SkeletonBlock base={ON_DARK} className="hidden w-full max-w-sm h-36 justify-self-end sm:block" delay={WAVE_STEP * 2} />
                 </div>
             </section>
 

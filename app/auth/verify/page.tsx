@@ -7,12 +7,13 @@ import { Loader2, RefreshCw, CheckCircle2 } from 'lucide-react'
 import { verifySignupOtp, resendSignupOtp } from '@/lib/actions/auth'
 import OtpInput from '@/components/auth/OtpInput'
 import AuthShell, { AuthAlert, authLink, authPrimaryButton } from '@/components/auth/AuthShell'
+import { sanitizeRedirectPath } from '@/lib/security/redirect'
 
 function VerifyContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams.get('email') ?? ''
-  const next = searchParams.get('next') || '/app/settings/onboarding'
+  const next = sanitizeRedirectPath(searchParams.get('next'), '/app/settings/onboarding')
 
   const [digits, setDigits] = useState<string[]>(Array(6).fill(''))
   const [error, setError] = useState('')

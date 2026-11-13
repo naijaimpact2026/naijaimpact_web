@@ -4,20 +4,20 @@ import { useEffect, useState, useCallback, useRef, useMemo, Suspense } from 'rea
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Chat } from 'stream-chat-react'
 import type { Channel } from 'stream-chat'
-import { MessageCircle, Users, Search, UserPlus, UserCheck, Loader2, Plus, Sparkles, MessagesSquare } from 'lucide-react'
+import { MessageCircle, Users, Search, UserPlus, UserCheck, Loader2, Plus, Sparkles, MessagesSquare, Ban, ShieldCheck, ShieldAlert } from 'lucide-react'
 import { useChatClient } from '@/components/app/ChatProvider'
 import CreateGroupChatModal from '@/components/app/chat/CreateGroupChatModal'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { followUser, unfollowUser } from '@/lib/actions/profile'
-import { startDmChat, fetchFollowingForChat, fetchSuggestedUsers } from '@/lib/actions/chat'
+import { startDmChat, fetchFollowingForChat, fetchSuggestedUsers, fetchBlockedUsers, unblockUserChat, type BlockedUserItem } from '@/lib/actions/chat'
 import { toast } from '@/components/toast'
 import { SkeletonAvatar, SkeletonLine, WAVE_STEP } from '@/components/app/skeletons/primitives'
 import ChatSkeleton from '@/components/app/skeletons/ChatSkeleton'
 
 interface ChatUser { id: string; username: string; display_name: string; avatar_url: string | null }
 interface SuggestedUser extends ChatUser { isFollowing: boolean }
-type ActiveTab = 'chats' | 'groups' | 'people' | 'suggested'
+type ActiveTab = 'chats' | 'groups' | 'people' | 'suggested' | 'blocked'
 
 function getInitials(name: string) { return name.split(' ').map(p => p[0] ?? '').join('').toUpperCase().slice(0, 2) }
 function timeAgo(date: Date | string | undefined): string
@@ -121,7 +121,7 @@ function GroupEmptyState()
 }
 
 // ─── Channel row ─────────────────────────────────────────────────────────────
-function ChannelRow({ channel, onClick }: { channel: Channel; onClick: () => void })
+function ChannelRow({ channel, onClick, isBlocked }: { channel: Channel; onClick: () => void; isBlocked?: boolean })
 {
     const lastMessage = channel.state.messages[channel.state.messages.length - 1]
     const rawData = channel.data as Record<string, unknown> | undefined
@@ -150,7 +150,12 @@ function ChannelRow({ channel, onClick }: { channel: Channel; onClick: () => voi
                         {isGroup ? <Users className="w-4 h-4" /> : getInitials(name)}
                     </AvatarFallback>
                 </Avatar>
-                {unread > 0 && (
+                {isBlocked && (
+                    <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-destructive text-white flex items-center justify-center ring-2 ring-card text-[9px] shadow-xs">
+                        <Ban className="w-2.5 h-2.5" />
+                    </span>
+                )}
+                {unread > 0 && !isBlocked && (
                     <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center shadow-sm">
                         {unread > 99 ? '99+' : unread}
                     </span>
@@ -158,7 +163,14 @@ function ChannelRow({ channel, onClick }: { channel: Channel; onClick: () => voi
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                    <p className={`text-sm truncate ${unread > 0 ? 'font-black text-foreground' : 'font-semibold text-foreground/90'}`}>{name}</p>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        <p className={`text-sm truncate ${unread > 0 ? 'font-black text-foreground' : 'font-semibold text-foreground/90'}`}>{name}</p>
+                        {isBlocked && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-destructive/10 text-destructive border border-destructive/20 shrink-0">
+                                <Ban className="w-2.5 h-2.5" /> Blocked
+                            </span>
+                        )}
+                    </div>
                     <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(lastMessage?.created_at)}</span>
                 </div>
                 <p className={`text-xs mt-0.5 truncate ${unread > 0 ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
@@ -166,6 +178,73 @@ function ChannelRow({ channel, onClick }: { channel: Channel; onClick: () => voi
                 </p>
             </div>
         </button>
+    )
+}
+
+// ─── Blocked row ─────────────────────────────────────────────────────────────
+function BlockedRow({
+    item,
+    onUnblock,
+    onOpenChat,
+}: {
+    item: BlockedUserItem
+    onUnblock: (id: string) => Promise<void>
+    onOpenChat?: () => void
+})
+{
+    const [unblocking, setUnblocking] = useState(false)
+    return (
+        <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/50 transition-colors border-b border-border last:border-0">
+            <div className="relative h-11 w-11 shrink-0 rounded-full overflow-hidden border border-border bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground">
+                {item.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.avatar_url} alt={item.display_name} className="w-full h-full object-cover" />
+                ) : (
+                    getInitials(item.display_name)
+                )}
+                <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-destructive text-white flex items-center justify-center ring-2 ring-card text-[8px]">
+                    <Ban className="w-2.5 h-2.5" />
+                </span>
+            </div>
+            <div className="flex-1 min-w-0 cursor-pointer" onClick={onOpenChat}>
+                <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-bold text-foreground truncate hover:text-primary transition-colors">{item.display_name}</p>
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-destructive/10 text-destructive border border-destructive/20 shrink-0">
+                        Blocked
+                    </span>
+                </div>
+                <p className="text-xs text-muted-foreground truncate">
+                    @{item.username} {item.blocked_at && `· Blocked ${timeAgo(item.blocked_at)}`}
+                </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+                {onOpenChat && (
+                    <button
+                        onClick={onOpenChat}
+                        className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium border border-border bg-card text-foreground hover:bg-muted transition-colors"
+                    >
+                        View Prior Chat
+                    </button>
+                )}
+                <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={unblocking}
+                    onClick={async () => {
+                        setUnblocking(true)
+                        try {
+                            await onUnblock(item.id)
+                        } finally {
+                            setUnblocking(false)
+                        }
+                    }}
+                    className="rounded-xl text-xs font-semibold h-8 px-3 border-destructive/30 text-destructive hover:bg-destructive/10"
+                >
+                    {unblocking ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <ShieldCheck className="w-3.5 h-3.5 mr-1" />}
+                    Unblock
+                </Button>
+            </div>
+        </div>
     )
 }
 
@@ -286,7 +365,64 @@ function ChatPageContent()
     const [suggested, setSuggested] = useState<SuggestedUser[]>([])
     const [loadingPeople, setLoadingPeople] = useState(false)
     const [startingDm, setStartingDm] = useState<string | null>(null)
+    const [blockedUsers, setBlockedUsers] = useState<BlockedUserItem[]>([])
+    const [loadingBlocked, setLoadingBlocked] = useState(false)
     const mountedRef = useRef(true)
+
+    const loadBlockedUsers = useCallback(async () =>
+    {
+        setLoadingBlocked(true)
+        try
+        {
+            const users = await fetchBlockedUsers()
+            setBlockedUsers(users)
+        }
+        catch (err)
+        {
+            console.error('Failed to load blocked users:', err)
+        }
+        finally
+        {
+            setLoadingBlocked(false)
+        }
+    }, [])
+
+    useEffect(() =>
+    {
+        loadBlockedUsers()
+    }, [loadBlockedUsers])
+
+    useEffect(() =>
+    {
+        if (activeTab === 'blocked')
+        {
+            loadBlockedUsers()
+        }
+    }, [activeTab, loadBlockedUsers])
+
+    const handleUnblockUser = useCallback(async (targetUserId: string) =>
+    {
+        try
+        {
+            await unblockUserChat(targetUserId)
+            toast.success('User unblocked')
+            setBlockedUsers(prev => prev.filter(u => u.id !== targetUserId))
+        }
+        catch (err: any)
+        {
+            toast.error(err?.message || 'Failed to unblock user')
+        }
+    }, [])
+
+    const blockedSet = useMemo(() => new Set(blockedUsers.map(u => u.id)), [blockedUsers])
+
+    const isChannelBlocked = useCallback((ch: Channel) =>
+    {
+        const clientUserId = ch._client?.userID
+        const otherMember = Object.values(ch.state?.members || {}).find(m => m.user?.id !== clientUserId)
+        if (!otherMember?.user?.id) return false
+        return blockedSet.has(otherMember.user.id)
+    }, [blockedSet])
 
     // Automatically open DM with target user when redirected from artisan/seller profile
     useEffect(() =>
@@ -327,9 +463,6 @@ function ChatPageContent()
         if (!isReady || !client) return
         setChannelsLoading(true)
 
-        // Tracks the channels this effect started watching, so cleanup can
-        // stop watching them instead of leaving them subscribed for the
-        // rest of the session after the user navigates away.
         let watchedChannels: Awaited<ReturnType<typeof client.queryChannels>> = []
 
         client.queryChannels(
@@ -387,14 +520,29 @@ function ChatPageContent()
         else setFollowing(prev => prev.filter(u => u.id !== user.id))
     }, [])
 
+    // Ensure recent chats are explicitly ordered by latest message activity
     const normalChannels = useMemo(() =>
     {
-        return channels.filter(ch => !isGroupChannel(ch))
+        return channels
+            .filter(ch => !isGroupChannel(ch))
+            .sort((a, b) =>
+            {
+                const aTime = a.state.last_message_at ? new Date(a.state.last_message_at).getTime() : 0
+                const bTime = b.state.last_message_at ? new Date(b.state.last_message_at).getTime() : 0
+                return bTime - aTime
+            })
     }, [channels])
 
     const groupChannels = useMemo(() =>
     {
-        return channels.filter(ch => isGroupChannel(ch))
+        return channels
+            .filter(ch => isGroupChannel(ch))
+            .sort((a, b) =>
+            {
+                const aTime = a.state.last_message_at ? new Date(a.state.last_message_at).getTime() : 0
+                const bTime = b.state.last_message_at ? new Date(b.state.last_message_at).getTime() : 0
+                return bTime - aTime
+            })
     }, [channels])
 
     const filterChannelList = useCallback((list: Channel[]) =>
@@ -428,6 +576,13 @@ function ChatPageContent()
         return suggested.filter(u => u.display_name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q))
     }, [suggested, searchQuery])
 
+    const filteredBlocked = useMemo(() =>
+    {
+        if (!searchQuery) return blockedUsers
+        const q = searchQuery.toLowerCase().trim()
+        return blockedUsers.filter(u => u.display_name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q))
+    }, [blockedUsers, searchQuery])
+
     if (!isReady || !client)
     {
         return <ChatSkeleton />
@@ -440,7 +595,7 @@ function ChatPageContent()
                 {/* ── Header ── */}
                 <div className="flex items-center justify-between px-4 pt-4 pb-3 bg-card sticky top-0 z-10 border-b border-border shadow-sm">
                     <div>
-                        <h1 className="text-lg font-black text-foreground">Messages</h1>
+                        <h1 className="text-lg font-black text-foreground">Chat</h1>
                         <p className="text-xs text-muted-foreground font-medium">Chat with your community</p>
                     </div>
                     <CreateGroupChatModal />
@@ -466,7 +621,9 @@ function ChatPageContent()
                                     ? 'Search direct messages…'
                                     : activeTab === 'groups'
                                         ? 'Search groups…'
-                                        : 'Search people…'
+                                        : activeTab === 'blocked'
+                                            ? 'Search blocked accounts…'
+                                            : 'Search people…'
                             }
                             className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl bg-muted/60 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary transition-all"
                         />
@@ -498,11 +655,17 @@ function ChatPageContent()
                         onClick={() => setActiveTab('groups')}
                         badge={groupChannels.reduce((s, ch) => s + ch.countUnread(), 0) || undefined}
                     />
+                    <TabBtn
+                        label="Blocked"
+                        active={activeTab === 'blocked'}
+                        onClick={() => setActiveTab('blocked')}
+                        badge={blockedUsers.length || undefined}
+                    />
                 </div>
 
                 {/* ── Content ── */}
                 <div className="flex-1 overflow-y-auto bg-background">
-                    {/* Normal Direct Messages */}
+                    {/* Normal Direct Messages (Recent Chats) */}
                     {activeTab === 'chats' && (
                         channelsLoading ? (
                             <div className="space-y-0 pt-0">
@@ -526,7 +689,14 @@ function ChatPageContent()
                                 : <ChatEmptyState onFindPeople={() => setActiveTab('people')} />
                         ) : (
                             <div className="bg-card rounded-none divide-y divide-border">
-                                {filteredNormalChannels.map(ch => <ChannelRow key={ch.id} channel={ch} onClick={() => router.push(`/app/chat/${ch.id}`)} />)}
+                                {filteredNormalChannels.map(ch => (
+                                    <ChannelRow
+                                        key={ch.id}
+                                        channel={ch}
+                                        isBlocked={isChannelBlocked(ch)}
+                                        onClick={() => router.push(`/app/chat/${ch.id}`)}
+                                    />
+                                ))}
                             </div>
                         )
                     )}
@@ -613,7 +783,52 @@ function ChatPageContent()
                                     </div>
                                 </div>
                     )}
+
+                    {/* Blocked Accounts Tab */}
+                    {activeTab === 'blocked' && (
+                        loadingBlocked ? (
+                            <div className="flex justify-center py-12 bg-card">
+                                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                            </div>
+                        ) : filteredBlocked.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16 px-6 gap-3 text-center bg-card">
+                                <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                                    <ShieldCheck className="w-7 h-7 text-primary" />
+                                </div>
+                                <p className="font-bold text-foreground">
+                                    {searchQuery ? 'No matching blocked users' : 'No blocked users'}
+                                </p>
+                                <p className="text-sm text-muted-foreground max-w-xs">
+                                    {searchQuery ? 'Try a different search term' : 'Anyone you block will appear here. Their prior message history is preserved.'}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="bg-card">
+                                <p className="px-4 py-2 text-[11px] font-bold text-muted-foreground uppercase tracking-wider bg-muted/40 border-b border-border">
+                                    Blocked accounts · {filteredBlocked.length}
+                                </p>
+                                <div className="divide-y divide-border">
+                                    {filteredBlocked.map(u => {
+                                        const existingChannel = channels.find(ch => {
+                                            if (isGroupChannel(ch)) return false
+                                            const members = Object.values(ch.state?.members || {})
+                                            return members.some(m => m.user?.id === u.id)
+                                        })
+                                        return (
+                                            <BlockedRow
+                                                key={u.id}
+                                                item={u}
+                                                onUnblock={handleUnblockUser}
+                                                onOpenChat={existingChannel ? () => router.push(`/app/chat/${existingChannel.id}`) : undefined}
+                                            />
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )
+                    )}
                 </div>
+
 
                 {/* ── FAB ── */}
                 <button
