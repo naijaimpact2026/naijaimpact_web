@@ -11,6 +11,8 @@ interface PhoneFrameProps {
   className?: string
   priority?: boolean
   size?: 'md' | 'sm'
+  /** Hide the app's own top bar (menu, logo, search) so the screen content shows first */
+  hideAppBar?: boolean
 }
 
 const sizes = {
@@ -26,7 +28,14 @@ const sizes = {
   },
 }
 
-export default function PhoneFrame({ src, alt, className = '', priority = false, size = 'md' }: PhoneFrameProps) {
+export default function PhoneFrame({
+  src,
+  alt,
+  className = '',
+  priority = false,
+  size = 'md',
+  hideAppBar = false,
+}: PhoneFrameProps) {
   const s = sizes[size]
   return (
     <div
@@ -50,6 +59,9 @@ export default function PhoneFrame({ src, alt, className = '', priority = false,
           priority={priority}
           sizes={s.imgSizes}
           className="block h-auto w-full"
+          // The app bar is the top ~16% of the screenshot's width (127px of 780px).
+          // Percentage margins resolve against width, so this crops it at any size.
+          style={hideAppBar ? { marginTop: '-16.3%' } : undefined}
         />
       </div>
     </div>

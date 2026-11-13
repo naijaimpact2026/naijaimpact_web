@@ -1,0 +1,3 @@
+Inter and Playfair Display (TTF subsets from Fontsource, v5.2.5).
+Both are licensed under the SIL Open Font License 1.1 (https://openfontlicense.org).
+Used to render Hubnovo World certificates (lib/world/certificate-art.tsx).

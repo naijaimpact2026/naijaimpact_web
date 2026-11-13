@@ -6,6 +6,7 @@ import { Lock } from 'lucide-react'
 import { toast } from '@/components/toast'
 import { submitWorldAttemptAction } from '@/lib/actions/world'
 import type { AttemptPayload, AttemptView, FormConfig, MissionView, QuizConfig, ScenarioConfig, SortConfig } from '@/lib/world/types'
+import { autoGrade, isFormKind } from '@/lib/world/grading'
 import { formatUnlock } from '@/lib/world/ui'
 import AttemptResult from './AttemptResult'
 import FormActivity, { clearFormDraft } from './FormActivity'
@@ -14,8 +15,12 @@ import ScenarioActivity from './ScenarioActivity'
 import SortActivity from './SortActivity'
 import ReviewingCard from './ReviewingCard'
 
-/** Runs a mission: shows its state, renders the activity, submits, shows the result. */
-export default function MissionPlayer({ slug, mission, attempts, color, homeHref }: { slug: string; mission: MissionView; attempts: AttemptView[]; color: string; homeHref: string })
+/**
+ * Runs a mission: shows its state, renders the activity, submits, shows the result.
+ * `preview` (admin content editor): nothing is submitted — quiz/sort/scenario
+ * are marked locally with the draft answer key so the author can check it.
+ */
+export default function MissionPlayer({ slug, mission, attempts, color, homeHref, defaults, preview }: { slug: string; mission: MissionView; attempts: AttemptView[]; color: string; homeHref: string; defaults?: Record<string, string>; preview?: { answerKey: unknown } })
 {
     const router = useRouter()
     const [pending, start] = useTransition()
@@ -28,6 +33,17 @@ export default function MissionPlayer({ slug, mission, attempts, color, homeHref
 
     function submit(payload: AttemptPayload)
     {
+        if (preview)
+        {
+            if (isFormKind(mission.kind)) { toast.success('Preview: a student would submit this now. Nothing was saved.'); return }
+            const g = autoGrade(mission.kind, mission.config, preview.answerKey, payload)
+            if (!g.ok) { toast.error(g.error); return }
+            const pass = mission.rubric?.passMark ?? 60
+            if (g.score >= pass) toast.success(`Preview score: ${g.score}/100 (passes). Nothing was saved.`)
+            else toast.error(`Preview score: ${g.score}/100 (below the pass mark of ${pass}). Nothing was saved.`)
+            setRound((n) => n + 1)
+            return
+        }
         start(async () =>
         {
             const r = await submitWorldAttemptAction(slug, mission.id, payload)
@@ -82,7 +98,7 @@ export default function MissionPlayer({ slug, mission, attempts, color, homeHref
             {mission.kind === 'quiz' && <QuizActivity config={mission.config as QuizConfig} {...props} />}
             {mission.kind === 'sort' && <SortActivity config={mission.config as SortConfig} {...props} />}
             {mission.kind === 'scenario' && <ScenarioActivity config={mission.config as ScenarioConfig} {...props} />}
-            {!['quiz', 'sort', 'scenario'].includes(mission.kind) && <FormActivity slug={slug} missionId={mission.id} config={mission.config as FormConfig} {...props} />}
+            {!['quiz', 'sort', 'scenario'].includes(mission.kind) && <FormActivity slug={slug} missionId={mission.id} config={mission.config as FormConfig} defaults={defaults} {...props} />}
         </section>
         </>
     )

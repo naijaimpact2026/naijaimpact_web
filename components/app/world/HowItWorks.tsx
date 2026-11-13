@@ -67,7 +67,7 @@ const DETAIL = [
     {
         icon: Trophy, title: 'Pass the stage, climb the league',
         points: [
-            'Every 4 weeks is a stage. Complete all its missions with a stage score of 60+ to unlock the next stage.',
+            'Every 4 weeks is a stage. Score 60+ and pass the Week 4 finale to complete it: you get a certificate and the next stage unlocks.',
             'Your stage score is: Evidence 40% · Quality 25% · Reflection 15% · Teamwork 10% · Showcase 10%.',
             'Your XP ranks you on your pathway’s leaderboard, and counts for your campus in the campus vs campus league.',
         ],

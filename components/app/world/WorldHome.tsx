@@ -1,11 +1,13 @@
 import Link from 'next/link'
-import { ArrowRight, ChevronLeft, ChevronRight, Coins, IdCard, Medal, Swords, Timer, Trophy, Zap } from 'lucide-react'
+import { ArrowRight, Award, Building2, MapPin, ChevronLeft, Users, ChevronRight, Coins, IdCard, Medal, Swords, Timer, Trophy, Zap } from 'lucide-react'
 import type { User } from '@/lib/types'
 import { characterPreviewUrl } from '@/lib/competitions/config'
 import { getProgress, listQuests, todayQuests } from '@/lib/world/service'
+import { squadSummary } from '@/lib/world/squads'
 import { BUCKET_WEIGHTS, TOKENS_LABEL, XP_LABEL, type CompetitionDetail, type MissionView, type ScoreBucket } from '@/lib/world/types'
 import { DAY_LONG, DAY_NAMES, KIND_META, REVIEW_META, STATUS_META, calmMotion, formatUnlock } from '@/lib/world/ui'
 import HowItWorks from './HowItWorks'
+import WorldEntryCard from './campus3d/WorldEntryCard'
 import WorldSettings from './settings/WorldSettings'
 import { AnimatedBar, CountUp } from './fx'
 
@@ -22,10 +24,11 @@ export default async function WorldHome({ competition: c, profile, week }: { com
     const me = c.me!
     const pathway = c.pathways.find((p) => p.key === me.pathway)!
     const color = pathway.color
-    const [progressRes, todayRes, weekRes] = await Promise.all([
+    const [progressRes, todayRes, weekRes, squad] = await Promise.all([
         getProgress(c.slug, profile),
         todayQuests(c.slug, profile),
         listQuests(c.slug, profile, week),
+        squadSummary(c.id, profile.id),
     ])
     const progress = progressRes.ok ? progressRes.progress : null
     const today = todayRes.ok ? todayRes.today : null
@@ -79,11 +82,37 @@ export default async function WorldHome({ competition: c, profile, week }: { com
 
             {/* Player shortcuts */}
             <nav className="hw-rise flex flex-wrap items-center gap-2" style={{ animationDelay: '40ms' }} aria-label="Your Campus shortcuts">
+                <Link href={`${base}/world`} className="hw-press hw-shine-host inline-flex h-10 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-white shadow-md ring-1 ring-white/20 hover:opacity-90" style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #EA580C 100%)' }}>
+                    <MapPin className="h-4 w-4" /> 3D World
+                </Link>
                 <Link href={`${base}/passport`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl px-4 text-sm font-bold text-white shadow-sm hover:opacity-90" style={{ backgroundColor: color }}>
                     <IdCard className="h-4 w-4" /> My Passport
                 </Link>
+                <Link href={`${base}/squad`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm hover:bg-muted">
+                    <Users className="h-4 w-4" style={{ color }} /> {squad ? squad.name : 'Find a squad'}
+                    {squad && squad.needed > 0 && <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-300">needs {squad.needed}</span>}
+                </Link>
+                <Link href={`${base}/certificates`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm hover:bg-muted">
+                    <Award className="h-4 w-4 text-amber-500" /> Certificates
+                </Link>
+                <Link href={`${base}/leaderboard`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm hover:bg-muted">
+                    <Trophy className="h-4 w-4 text-amber-500" /> Leaderboard
+                </Link>
+                <Link href={`${base}/leaderboard?view=league`} className="hw-press inline-flex h-10 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-sm font-bold text-foreground shadow-sm hover:bg-muted">
+                    <Building2 className="h-4 w-4 text-primary" /> Campus league
+                </Link>
                 <WorldSettings slug={c.slug} me={me} color={color} />
             </nav>
+
+            {/* The way into the 3D Campus */}
+            <WorldEntryCard
+                href={`${base}/world${shownWeek !== c.clock.week ? `?week=${shownWeek}` : ''}`}
+                color={color}
+                character={me.avatar.character}
+                week={shownWeek}
+                myDistrict={me.pathway === 'enterprise' ? 'enterprise_hub' : 'career_district'}
+                missions={weekMissions.map((m) => ({ id: m.id, title: m.title, kind: m.kind, pathway: m.pathway, week: m.week, day: m.day, xp: m.xp, tokens: m.tokens, status: m.status, unlocksAt: m.unlocksAt, estMinutes: m.estMinutes }))}
+            />
 
             {/* Today */}
             <section className="hw-rise space-y-2" style={{ animationDelay: '80ms' }}>

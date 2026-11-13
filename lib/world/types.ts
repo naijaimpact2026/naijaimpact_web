@@ -218,7 +218,10 @@ export interface StageScore
     /** Weighted total 0–100 (40/25/15/10/10). */
     total: number
     passMark: number
+    /** total >= passMark AND the stage finale (last boss challenge) passed. */
     passed: boolean
+    /** The stage finale (e.g. Week 4 showcase) has been passed. */
+    finalePassed: boolean
     missionsDone: number
     missionsTotal: number
 }
@@ -240,10 +243,32 @@ export interface WorldLeaderboardEntry
     username: string | null
     displayName: string | null
     avatarUrl: string | null
+    /** 3D avatar (0–11) chosen at onboarding; use when avatarUrl is null. */
+    character: number
+    /** XP in the chosen period (all time, or this week). */
     xp: number
     missionsCompleted: number
     institution: string | null
+    institutionId: string | null
     state: string | null
+    isMe: boolean
+}
+
+export interface LeaderboardView
+{
+    pathway: Pathway
+    scope: 'overall' | 'institution' | 'state'
+    /** Institution id or state name the board is filtered to (null for overall). */
+    scopeValue: string | null
+    scopeLabel: string
+    period: 'all' | 'week'
+    /** Semester week when period = 'week'. */
+    week: number | null
+    entries: WorldLeaderboardEntry[]
+    /** The caller's position in this board; rank null = no XP this week yet; null = not on this board. */
+    me: { rank: number | null; xp: number; missionsCompleted: number } | null
+    /** Players ranked on this board. */
+    total: number
 }
 
 export interface InstitutionLeagueEntry
@@ -252,10 +277,21 @@ export interface InstitutionLeagueEntry
     institutionId: string
     name: string
     shortName: string | null
+    state: string | null
     participants: number
     totalXp: number
     /** Average XP per participant (fairer between big and small campuses). */
     averageXp: number
+    isMine: boolean
+}
+
+export interface LeagueView
+{
+    pathway: Pathway | null
+    minPlayers: number
+    entries: InstitutionLeagueEntry[]
+    /** The caller's campus: its rank, or how many more players it needs to qualify. */
+    me: { institutionId: string; name: string; participants: number; rank: number | null; averageXp: number; playersNeeded: number } | null
 }
 
 export interface CompetitionSummary
@@ -317,4 +353,91 @@ export function worldLevel(xp: number): ProgressView['level']
         xpToNext: next ? next.minXp - xp : 0,
         progress: next ? Math.min(1, (xp - current.minXp) / (next.minXp - current.minXp)) : 1,
     }
+}
+
+// ─── Squads ──────────────────────────────────────────────────────────────────
+
+export const SQUAD_MIN = 3
+export const SQUAD_MAX = 5
+
+export interface SquadMemberView
+{
+    userId: string
+    username: string | null
+    displayName: string | null
+    avatarUrl: string | null
+    /** 3D avatar (0–11); show its preview when avatarUrl is null. */
+    character: number
+    isLeader: boolean
+    isMe: boolean
+    xp: number
+    /** XP earned this semester week. */
+    weekXp: number
+    /** Their status on this week's team mission (null = not started). */
+    teamMission: MissionStatus | null
+    joinedAt: string
+}
+
+export interface SquadView
+{
+    id: string
+    name: string
+    /** 6-character invite code — share it with classmates. */
+    code: string
+    pathway: Pathway
+    leaderId: string | null
+    /** Stream channel (type "messaging"); open it with a /api/stream-token session. */
+    chatChannelId: string | null
+    members: SquadMemberView[]
+    totalXp: number
+    weekXp: number
+    min: number
+    max: number
+    /** This week's Friday team mission for the squad's pathway. */
+    teamMission: { id: string; title: string; week: number; day: number; unlocksAt: string } | null
+    createdAt: string
+}
+
+export interface MySquadView
+{
+    /** False until squads are switched on (database not ready yet). */
+    enabled: boolean
+    squad: SquadView | null
+}
+
+// ─── Certificates ────────────────────────────────────────────────────────────
+
+/** Stage names on certificates (falls back to "Stage N"). */
+export const STAGE_NAMES: Record<Pathway, Record<number, string>> = {
+    career: { 1: 'Discover & Define' },
+    enterprise: { 1: 'Identify & Innovate' },
+}
+
+export interface CertificateView
+{
+    /** 12-character verification code; show as XXXX-XXXX-XXXX. */
+    code: string
+    /** Public verification page (always on hubnovo.com). */
+    verifyUrl: string
+    imageUrl: string
+    pdfUrl: string
+    competitionName: string
+    stage: number
+    stageName: string
+    pathway: Pathway
+    pathwayName: string
+    holderName: string
+    institution: string | null
+    score: number
+    issuedAt: string
+    revoked: boolean
+}
+
+export interface MyCertificatesView
+{
+    /** False until certificates are switched on (database not ready yet). */
+    enabled: boolean
+    certificates: CertificateView[]
+    /** The stage the player is working towards (null when every stage is certified). */
+    next: { stage: number; stageName: string; total: number; passMark: number; finalePassed: boolean; finaleWeek: number } | null
 }

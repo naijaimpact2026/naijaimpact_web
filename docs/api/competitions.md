@@ -133,13 +133,46 @@ The Novo coach for one mission: explains the brief and rubric and helps the play
 } }
 ```
 
-### `GET /competitions/:slug/leaderboard?pathway=career&scope=overall|institution|state&value=&limit=50`
-`scope=institution&value=<institutionId>` or `scope=state&value=Lagos`.
-`{ "ok": true, "entries": [ { "rank", "userId", "username", "displayName", "avatarUrl", "xp", "missionsCompleted", "institution", "state" } ] }`
+### `GET /competitions/:slug/leaderboard?pathway=career&scope=overall|institution|state&value=&period=all|week&limit=50`
+- `pathway` defaults to the caller's. `scope=institution` / `scope=state` without `value` use the caller's own campus / state (or pass `value=<institutionId>` / `value=Lagos`).
+- `period=week` ranks XP earned in the current semester week (only players with XP this week).
+- `me` is the caller's own position even outside the top 50 (`me.rank: null` = no XP this week yet; `me: null` = not on this board).
+`{ "ok": true, "pathway", "scope", "scopeValue", "scopeLabel": "UNILAG", "period", "week", "total": 3, "me": { "rank": 1, "xp": 110, "missionsCompleted": 2 }, "entries": [ { "rank", "userId", "username", "displayName", "avatarUrl", "character", "xp", "missionsCompleted", "institution", "institutionId", "state", "isMe" } ] }`
+Show `character` (avatar preview) when `avatarUrl` is null.
 
 ### `GET /competitions/:slug/league?pathway=career`
-Campus vs campus — average XP per participant, institutions with 3+ participants.
-`{ "ok": true, "entries": [ { "rank", "institutionId", "name", "shortName", "participants", "totalXp", "averageXp" } ] }`
+Campus vs campus: average XP per participant, campuses with `minPlayers` (3)+ players. Omit `pathway` for both pathways.
+`{ "ok": true, "pathway", "minPlayers": 3, "me": { "institutionId", "name", "participants", "rank": null, "averageXp", "playersNeeded": 2 }, "entries": [ { "rank", "institutionId", "name", "shortName", "state", "participants", "totalXp", "averageXp", "isMine" } ] }`
+
+### Squads (teams of 3–5, same pathway, invite code only)
+- `GET /competitions/:slug/squad` → `{ "ok": true, "enabled": true, "squad": Squad | null }`. Hide the feature when `enabled` is `false`.
+- `POST /competitions/:slug/squad` `{ "name": "Lagoon Builders" }` → `{ "ok": true, "squad": Squad }` (you become leader).
+- `PATCH /competitions/:slug/squad` `{ "name": "…" }` (leader renames).
+- `POST /competitions/:slug/squad/join` `{ "code": "K7MQ3X" }` → `{ "ok": true, "squad": Squad }`. Errors: full, other pathway, already in a squad, unknown code.
+- `POST /competitions/:slug/squad/leave` (leader leaving hands over to the longest-standing member; last one out closes the squad).
+- `DELETE /competitions/:slug/squad/members/:userId` (leader removes a player).
+- `POST /competitions/:slug/squad/chat` → `{ "ok": true, "chatChannelId": "group_squad_…" }`. Call it, then open that Stream `messaging` channel with the `/api/stream-token` session.
+
+`Squad`: `{ id, name, code, pathway, leaderId, chatChannelId, totalXp, weekXp, min: 3, max: 5, createdAt, teamMission: { id, title, week, day, unlocksAt } | null, members: [ { userId, username, displayName, avatarUrl, character, isLeader, isMe, xp, weekXp, teamMission: MissionStatus | null, joinedAt } ] }`
+Team missions pre-fill their `squad` field with the squad name on the web; do the same in the app.
+
+---
+
+### Certificates
+A stage is passed with a stage score of 60+ **and** its finale passed (the last boss challenge: Week 4 for Stage 1). Each passed stage gives one certificate.
+- `GET /competitions/:slug/certificates` → `{ "ok": true, "enabled": true, "certificates": Certificate[], "next": { "stage": 1, "stageName": "Discover & Define", "total": 42, "passMark": 60, "finalePassed": false, "finaleWeek": 4 } | null }` (issues newly earned certificates first)
+- Public, no token: `GET /certificates/:code` (verify JSON), `GET /certificates/:code/image` (PNG, `?download=1`), `GET /certificates/:code/pdf` (PDF, `?inline=1`)
+- `Certificate`: `{ code, verifyUrl, imageUrl, pdfUrl, competitionName, stage, stageName, pathway, pathwayName, holderName, institution, score, issuedAt, revoked }`. Share `verifyUrl` (the QR code on the certificate points there).
+
+---
+
+## Notifications
+Campus events arrive as rows in `notifications` with `type: "competition"` (push via the existing OneSignal trigger):
+- daily "Today's quest" at 07:00 Lagos (Sunday: "Boss challenge is live"): `data.kind: "world_quest"`, `reference_id` = mission id
+- judge results and appeal results: `data.kind: "world_attempt"`, `reference_id` = attempt id
+- squad joins, removals and new leader: `data.kind: "world_squad"`, `reference_id` = squad id
+
+Show `title` and `body`; `data.url` is the web path to open (e.g. `/app/competitions/campus/missions/<id>`, `/app/competitions/campus/squad`). Map it to the matching app screen.
 
 ---
 
@@ -192,11 +225,18 @@ Example:
 
 ## Admin (role `admin`)
 - `POST /competitions/:slug/admin/sync` `{ "overwrite": false }` → `{ inserted, updated }` — loads missions from `lib/world/content`.
+- Content editor (web: `/app/competitions/:slug/admin/content`):
+  - `GET /competitions/:slug/admin/missions?pathway=&week=&day=&active=` → `{ missions: AdminMission[], weeks, checks: WeekCheck[] }` (answer keys and attempt counts included).
+  - `POST /competitions/:slug/admin/missions` `MissionInput` (same shape as `SeedMission`) → `{ mission }`. Graded quiz / sort / scenario need an `answerKey`; day 7 must be a `boss` (reviewMode `human`); the day-7 boss of weeks 4, 8, 12, 16 is the stage finale (rubric `showcase` + badge); one active mission per pathway/week/day.
+  - `GET|PATCH /competitions/:slug/admin/missions/:id`: PATCH any subset; `{ "isActive": false }` switches it off. Missions are never hard-deleted; kind and pathway lock once students have attempts.
+  - `POST /competitions/:slug/admin/missions/duplicate` `{ missionId, toWeek, toPathway?, toDay? }` or `{ pathway, fromWeek, toWeek, toPathway? }`. Copies start switched off.
+  - `POST /competitions/:slug/admin/missions/import` `{ missions: [...], replace?: false, activate?: true }`: one week at a time; all-or-nothing validation.
+  - `GET|POST /competitions/:slug/admin/rubrics`: upsert by key; weights add up to 100.
 - `POST /competitions/:slug/admin/testers` `{ "username": "dev_mobile" }` — allow a user to play while `preview`.
-- `GET /competitions/review` (or `?appeals=1`) → `{ items: ReviewQueueItem[] }` with signed file URLs and the AI suggestion.
+- `GET /competitions/review` (or `?appeals=1`) → `{ items: ReviewQueueItem[], counts: { inReview, appeals } }`. Each item has the mission (with its form config, so you can label the answers), the student, `current` (the result being appealed, for appeals), signed file URLs (30 min) and the AI suggestion. Web judges use `/app/competitions/judging`.
 - `POST /competitions/review/:attemptId` `{ "decision": "pass"|"revise"|"reject", "rubricScores": { "clarity": 80, … }, "feedback": "…", "appeal": "upheld"|"dismissed" }`.
 
 ---
 
 ## Coming next (not yet available)
-Squads (create/join by code, squad chat), Rewards Exchange (spend HubTokens), reminders/notifications, and the 3D campus districts. Endpoints will be added to this document.
+Rewards Exchange (spend HubTokens), reminders/notifications, and the 3D campus districts. Endpoints will be added to this document.

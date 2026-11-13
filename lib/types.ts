@@ -344,6 +344,9 @@ export type NotificationType =
   | 'update_policy'
   | 'update_announcement'
 
+  // Hubnovo World (Campus Competition) — message in title/body, link in data.url
+  | 'competition'
+
   // System
   | 'chat_message'
   | 'system'
@@ -357,6 +360,10 @@ export type Notification = {
   reference_id: string | null
   read: boolean
   created_at: string
+  /** Server-written message (used by 'competition' notifications). */
+  title?: string | null
+  body?: string | null
+  data?: { url?: string | null; [key: string]: unknown } | null
 }
 
 // ─────────────────────────────────────────────
