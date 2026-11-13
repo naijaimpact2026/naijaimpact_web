@@ -16,6 +16,8 @@ interface Feature {
   screenshot: boolean
   /** grid span + when the card lays out side by side (text left, phone right) */
   layout: string
+  /** not live yet: shows a "Coming soon" badge */
+  comingSoon?: boolean
 }
 
 // Wide: spans the full row on tablets, half the row on desktop, side by side from md up.
@@ -61,12 +63,13 @@ const features: Feature[] = [
     eyebrow: 'Artisans & Pros',
     title: 'Hire trusted pros near you.',
     tagline: 'Verified artisans and service providers.',
-    // TODO: swap for /landing/artisans.png once a screenshot of the
-    // Artisans & Services hub is captured (390×844, mobile view).
-    image: '/images/community/skilled-artisan-workshop.jpg',
-    alt: 'A skilled artisan at work in a workshop',
+    // Transparent cutout (same figure as the in-app Artisans hero), shown
+    // on a brand-blue backdrop instead of a full-bleed photo.
+    image: '/images/heroes/artisan-electrician.png',
+    alt: 'A smiling electrician wearing a tool belt',
     screenshot: false,
     layout: NARROW,
+    comingSoon: true,
   },
   {
     id: 'jobs',
@@ -105,25 +108,44 @@ function PhotoCard({ f }: { f: Feature }) {
   return (
     <article
       id={f.id}
-      className={`relative flex h-[500px] scroll-mt-24 flex-col justify-end overflow-hidden rounded-3xl bg-ink ${f.layout}`}
+      className={`relative flex h-[500px] scroll-mt-24 flex-col justify-end overflow-hidden rounded-3xl bg-gradient-to-br from-brand to-brand-deep ${f.layout}`}
     >
-      <Image
-        src={f.image}
-        alt={f.alt}
-        fill
-        sizes="(min-width: 1024px) 400px, (min-width: 768px) 50vw, 100vw"
-        className="object-cover"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/30 to-transparent" />
+      {/* Soft glow behind the figure */}
+      <div className="absolute -right-16 top-10 h-80 w-80 rounded-full bg-white/15 blur-3xl" aria-hidden="true" />
+      <div className="absolute inset-x-0 bottom-0 top-16">
+        <Image
+          src={f.image}
+          alt={f.alt}
+          fill
+          sizes="(min-width: 1024px) 400px, (min-width: 768px) 50vw, 100vw"
+          className="object-contain object-bottom"
+        />
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/20 to-transparent" />
       <span className="absolute left-6 top-6 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-ink backdrop-blur">
-        <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-brand" aria-hidden="true">
-          <path
-            fillRule="evenodd"
-            d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.6l7.3-7.3a1 1 0 0 1 1.4 0Z"
-            clipRule="evenodd"
-          />
-        </svg>
-        Verified
+        {f.comingSoon ? (
+          <>
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-brand" aria-hidden="true">
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-12.25a.75.75 0 0 0-1.5 0V10c0 .2.08.39.22.53l2.5 2.5a.75.75 0 1 0 1.06-1.06l-2.28-2.28V5.75Z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Coming soon
+          </>
+        ) : (
+          <>
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-brand" aria-hidden="true">
+              <path
+                fillRule="evenodd"
+                d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.6l7.3-7.3a1 1 0 0 1 1.4 0Z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Verified
+          </>
+        )}
       </span>
       <div className="relative p-8 md:p-10">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/80">{f.eyebrow}</p>
