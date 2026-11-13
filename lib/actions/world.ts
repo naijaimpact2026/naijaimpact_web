@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/supabase/auth'
 import { getActingProfile } from '@/lib/modushive/acting-profile'
 import * as world from '@/lib/world/service'
 import * as squads from '@/lib/world/squads'
+import * as rewards from '@/lib/world/rewards'
 import type { AttemptPayload } from '@/lib/world/types'
 
 /*
@@ -74,6 +75,42 @@ export async function reviewWorldAttemptAction(input: world.ReviewInput)
     const p = await me(); if (!p) return unauthorized
     const r = await world.reviewAttempt(p, input)
     if (r.ok) revalidatePath('/app/competitions/judging')
+    return r
+}
+
+// ─── Rewards Exchange ────────────────────────────────────────────────────────
+
+const refreshRewards = (slug: string) => { revalidatePath(`/app/competitions/${slug}/rewards`); revalidatePath(`/app/competitions/${slug}/admin/rewards`); refresh(slug) }
+
+export async function redeemRewardAction(slug: string, rewardId: string, requestId: string)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await rewards.redeemReward(slug, p, rewardId, requestId)
+    if (r.ok) refreshRewards(slug)
+    return r
+}
+
+export async function saveRewardAction(slug: string, id: string | null, input: Partial<rewards.RewardInput>)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await rewards.saveReward(slug, p, id, input)
+    if (r.ok) refreshRewards(slug)
+    return r
+}
+
+export async function fulfilRedemptionAction(slug: string, id: string, input: { code?: string | null; note?: string | null })
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await rewards.fulfilRedemption(slug, p, id, input)
+    if (r.ok) refreshRewards(slug)
+    return r
+}
+
+export async function cancelRedemptionAction(slug: string, id: string, note?: string | null)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await rewards.cancelRedemption(slug, p, id, note)
+    if (r.ok) refreshRewards(slug)
     return r
 }
 

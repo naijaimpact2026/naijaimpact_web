@@ -158,6 +158,12 @@ Team missions pre-fill their `squad` field with the squad name on the web; do th
 
 ---
 
+### Rewards Exchange
+Spend HubTokens on non-cash rewards (course discounts, avatar items, event access). Tokens never buy score or XP, can't be sent to anyone and can't be cashed out. `enabled: false` = not switched on yet (hide the feature).
+- `GET /competitions/:slug/rewards` → `{ enabled, balance, rewards: RewardView[] }`. Disable Redeem when `blocked` is set (`out_of_stock` · `limit_reached` · `insufficient_tokens`).
+- `POST /competitions/:slug/rewards/:id/redeem` `{ "requestId": "<uuid>" }` → `{ redemption, balance }`. Create the `requestId` when the confirm dialog opens and reuse it on retry: the same id never spends twice. `auto` rewards return `fulfilled` with a `code`; `manual` ones stay `pending` until the team fulfils them.
+- `GET /competitions/:slug/redemptions` → `{ enabled, redemptions: RedemptionView[] }` (status `pending` · `fulfilled` · `cancelled` = refunded).
+
 ### Certificates
 A stage is passed with a stage score of 60+ **and** its finale passed (the last boss challenge: Week 4 for Stage 1). Each passed stage gives one certificate.
 - `GET /competitions/:slug/certificates` → `{ "ok": true, "enabled": true, "certificates": Certificate[], "next": { "stage": 1, "stageName": "Discover & Define", "total": 42, "passMark": 60, "finalePassed": false, "finaleWeek": 4 } | null }` (issues newly earned certificates first)
@@ -171,6 +177,7 @@ Campus events arrive as rows in `notifications` with `type: "competition"` (push
 - daily "Today's quest" at 07:00 Lagos (Sunday: "Boss challenge is live"): `data.kind: "world_quest"`, `reference_id` = mission id
 - judge results and appeal results: `data.kind: "world_attempt"`, `reference_id` = attempt id
 - squad joins, removals and new leader: `data.kind: "world_squad"`, `reference_id` = squad id
+- reward fulfilled or cancelled (refunded): `data.kind: "world_reward"`, `reference_id` = redemption id, `data.url` = the Rewards Exchange
 
 Show `title` and `body`; `data.url` is the web path to open (e.g. `/app/competitions/campus/missions/<id>`, `/app/competitions/campus/squad`). Map it to the matching app screen.
 
@@ -225,6 +232,7 @@ Example:
 
 ## Admin (role `admin`)
 - `POST /competitions/:slug/admin/sync` `{ "overwrite": false }` → `{ inserted, updated }` — loads missions from `lib/world/content`.
+- Rewards (web: `/app/competitions/:slug/admin/rewards`): `GET|POST /competitions/:slug/admin/rewards`, `PATCH …/admin/rewards/:id` (`{ "isActive": false }` switches off), `GET …/admin/redemptions?status=pending`, `POST …/admin/redemptions/:id/fulfil` `{ code?, note? }`, `POST …/admin/redemptions/:id/cancel` `{ note? }` (refunds the tokens). The student is notified on fulfil and cancel.
 - `POST /competitions/:slug/admin/testers` `{ "username": "dev_mobile" }` — allow a user to play while `preview`.
 - `GET /competitions/review` (or `?appeals=1`) → `{ items: ReviewQueueItem[], counts: { inReview, appeals } }`. Each item has the mission (with its form config, so you can label the answers), the student, `current` (the result being appealed, for appeals), signed file URLs (30 min) and the AI suggestion. Web judges use `/app/competitions/judging`.
 - `POST /competitions/review/:attemptId` `{ "decision": "pass"|"revise"|"reject", "rubricScores": { "clarity": 80, … }, "feedback": "…", "appeal": "upheld"|"dismissed" }`.
@@ -232,4 +240,4 @@ Example:
 ---
 
 ## Coming next (not yet available)
-Rewards Exchange (spend HubTokens), reminders/notifications, and the 3D campus districts. Endpoints will be added to this document.
+Reminders/notifications, and the 3D campus districts. Endpoints will be added to this document.

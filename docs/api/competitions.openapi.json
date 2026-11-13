@@ -3,7 +3,7 @@
   "info": {
     "title": "Hubnovo World — Competitions API",
     "version": "1.0.0",
-    "description": "REST API for the **Campus Competition** (Career & Employability + Enterprise Development pathways) — used by the mobile app and the web.\n\n**Auth:** `Authorization: Bearer <Supabase access token>` (same token as the ModusHive/Livestream API).\n\n**Responses:** success → `200 { \"ok\": true, ...fields }`. Error → `{ \"error\": \"message\" }` with 400 (show the message), 401, 403 (admin only), 404 (also for a competition you can’t play yet), 429 (120 req/min), 500.\n\n**Points:** XP = progress & level. HubTokens = closed-loop, non-cash credits (no cash-out, no transfers).\n\n**Time:** ISO-8601 UTC. Semesters run on Lagos time (UTC+1); day 1 = Monday, day 7 = Sunday (boss day).\n\n**Access:** the Campus Competition is `live` — any signed-in user can join. (A competition in `preview` is limited to admins and testers.)\n\n**Notifications:** Campus events (daily quest open at 07:00 Lagos, Sunday boss live, judge results, appeal results, squad joins/leader changes) are rows in `public.notifications` with `type = 'competition'`. Show `title` + `body`; open `data.url` (a web path such as `/app/competitions/campus/missions/{id}` or `/app/competitions/campus/squad` → map to the app screen). `data.kind` is `world_quest`, `world_attempt` or `world_squad`; `reference_id` (and `data.resource_id`) the mission / attempt / squad id. Push goes out through the existing OneSignal trigger.\n**App flow:** `GET /competitions` → `GET /competitions/campus` (me = null → onboarding) → `GET /institutions` → `POST …/join` → home `GET …/quests/today` → mission `GET …/missions/{id}` → uploads → `POST …/attempts` → `GET …/progress`, `…/leaderboard`, `…/league`.\n\nShared TypeScript types: `lib/world/types.ts` in the web repo."
+    "description": "REST API for the **Campus Competition** (Career & Employability + Enterprise Development pathways) — used by the mobile app and the web.\n\n**Auth:** `Authorization: Bearer <Supabase access token>` (same token as the ModusHive/Livestream API).\n\n**Responses:** success → `200 { \"ok\": true, ...fields }`. Error → `{ \"error\": \"message\" }` with 400 (show the message), 401, 403 (admin only), 404 (also for a competition you can’t play yet), 429 (120 req/min), 500.\n\n**Points:** XP = progress & level. HubTokens = closed-loop, non-cash credits (no cash-out, no transfers).\n\n**Time:** ISO-8601 UTC. Semesters run on Lagos time (UTC+1); day 1 = Monday, day 7 = Sunday (boss day).\n\n**Access:** the Campus Competition is `live` — any signed-in user can join. (A competition in `preview` is limited to admins and testers.)\n\n**Notifications:** Campus events (daily quest open at 07:00 Lagos, Sunday boss live, judge results, appeal results, squad joins/leader changes) are rows in `public.notifications` with `type = 'competition'`. Show `title` + `body`; open `data.url` (a web path such as `/app/competitions/campus/missions/{id}` or `/app/competitions/campus/squad` → map to the app screen). `data.kind` is `world_quest`, `world_attempt`, `world_squad`, `world_certificate` or `world_reward`; `reference_id` (and `data.resource_id`) the mission / attempt / squad id. Push goes out through the existing OneSignal trigger.\n**App flow:** `GET /competitions` → `GET /competitions/campus` (me = null → onboarding) → `GET /institutions` → `POST …/join` → home `GET …/quests/today` → mission `GET …/missions/{id}` → uploads → `POST …/attempts` → `GET …/progress`, `…/leaderboard`, `…/league`.\n\nShared TypeScript types: `lib/world/types.ts` in the web repo."
   },
   "servers": [
     {
@@ -48,6 +48,10 @@
     {
       "name": "Certificates",
       "description": "Stage certificates: PNG/PDF and public verification"
+    },
+    {
+      "name": "Rewards",
+      "description": "Rewards Exchange: spend HubTokens on non-cash rewards"
     },
     {
       "name": "Admin",
@@ -2143,6 +2147,669 @@
           },
           "401": {
             "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/rewards": {
+      "get": {
+        "tags": [
+          "Rewards"
+        ],
+        "summary": "Rewards catalogue + my balance",
+        "description": "Active rewards for this competition and the caller’s HubTokens balance. `enabled: false` = Rewards Exchange not switched on yet (hide it). Disable the Redeem button when `blocked` is set.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "enabled",
+                    "balance",
+                    "rewards"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "balance": {
+                      "type": "integer"
+                    },
+                    "rewards": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RewardView"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/rewards/{id}/redeem": {
+      "post": {
+        "tags": [
+          "Rewards"
+        ],
+        "summary": "Redeem a reward",
+        "description": "Spends HubTokens in one database transaction (balance, stock and per-student limit checked under a per-user lock). **Send a `requestId` (UUID) created when the confirm dialog opens and reuse it on retry**: the same id never spends twice. `auto` rewards come back `fulfilled` with a `code`; `manual` ones are `pending` until the team fulfils them (the student gets a notification).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "requestId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              },
+              "example": {
+                "requestId": "3f0c1d7e-6a2b-4c55-9d1e-2b7f8a90c4e1"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "redemption",
+                    "balance"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "redemption": {
+                      "$ref": "#/components/schemas/RedemptionView"
+                    },
+                    "balance": {
+                      "type": "integer",
+                      "description": "balance after spending"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/redemptions": {
+      "get": {
+        "tags": [
+          "Rewards"
+        ],
+        "summary": "My redemptions",
+        "description": "Newest first, with status and code. `enabled: false` = not switched on yet.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "enabled",
+                    "redemptions"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "redemptions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RedemptionView"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/rewards": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Rewards catalogue (admin)",
+        "description": "Every reward, including switched-off ones, with redemption counts.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "enabled",
+                    "rewards"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "rewards": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminReward"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Add a reward (admin)",
+        "description": "Starts switched off unless `isActive: true`.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RewardInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "id"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/rewards/{id}": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Edit or switch off a reward (admin)",
+        "description": "Any subset of `RewardInput`; `{ \"isActive\": false }` hides it from students. Rewards are never deleted (redemptions point at them).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RewardInput"
+              },
+              "example": {
+                "isActive": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "id"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/redemptions": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Redemptions (admin)",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/RedemptionStatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "enabled",
+                    "redemptions",
+                    "counts"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "redemptions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminRedemption"
+                      }
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "pending": {
+                          "type": "integer"
+                        },
+                        "fulfilled": {
+                          "type": "integer"
+                        },
+                        "cancelled": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/redemptions/{id}/fulfil": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Mark a redemption fulfilled (admin)",
+        "description": "Only `pending` ones. The student is notified (`data.kind = world_reward`).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkEmpty"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/redemptions/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Cancel and refund a redemption (admin)",
+        "description": "Adds a positive `reversal` row to the token ledger (refund) and puts stock back, in one transaction. Works on `pending` or `fulfilled`. The student is notified (`data.kind = world_reward`).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "description": "reason, sent to the student"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "refunded"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "refunded": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
           },
           "404": {
             "$ref": "#/components/responses/E404"
@@ -4453,6 +5120,367 @@
             }
           }
         }
+      },
+      "RewardKind": {
+        "type": "string",
+        "enum": [
+          "course_discount",
+          "avatar_item",
+          "event_access",
+          "merch",
+          "other"
+        ]
+      },
+      "RedemptionStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "fulfilled",
+          "cancelled"
+        ],
+        "description": "`pending` = waiting for the team · `fulfilled` = ready (show `code`/`note`) · `cancelled` = refunded"
+      },
+      "RewardView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "imageUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "costTokens": {
+            "type": "integer"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RewardKind"
+          },
+          "fulfilment": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "manual"
+            ],
+            "description": "`auto` = code issued at once; `manual` = the team fulfils it"
+          },
+          "stock": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "description": "left in stock; null = unlimited"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "perUserLimit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "description": "null = no limit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "redeemedByMe": {
+            "type": "integer"
+          },
+          "blocked": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "out_of_stock",
+                  "limit_reached",
+                  "insufficient_tokens"
+                ],
+                "description": "Why the caller can’t redeem it now. null = they can."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "RedemptionView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reward": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "title": {
+                "type": "string"
+              },
+              "kind": {
+                "$ref": "#/components/schemas/RewardKind"
+              },
+              "imageUrl": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "cost": {
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RedemptionStatus"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "example": "HN-7F3A9C21"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fulfilledAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cancelledAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "RewardInput": {
+        "type": "object",
+        "required": [
+          "title",
+          "costTokens",
+          "kind",
+          "fulfilment"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "imageUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "https:// only"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "costTokens": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "stock": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0,
+                "description": "null = unlimited"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "perUserLimit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "description": "null = no limit"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/RewardKind"
+          },
+          "fulfilment": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "manual"
+            ]
+          },
+          "isActive": {
+            "type": "boolean",
+            "default": false
+          },
+          "sort": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminReward": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RewardInput"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "redeemed": {
+                "type": "integer",
+                "description": "redemptions not cancelled"
+              },
+              "pending": {
+                "type": "integer"
+              }
+            }
+          }
+        ]
+      },
+      "AdminRedemption": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RedemptionView"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "user": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "username": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "displayName": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "avatarUrl": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              },
+              "fulfilledBy": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        ]
       },
       "Error": {
         "type": "object",

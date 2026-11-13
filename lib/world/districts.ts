@@ -15,7 +15,7 @@ export const DISTRICTS: DistrictDef[] = [
     { key: 'career_district', label: 'Career District', blurb: 'Career & Employability: real-world tasks, CV, interviews and reflections.', emoji: '💼' },
     { key: 'enterprise_hub', label: 'Enterprise Hub', blurb: 'Enterprise Development: find real problems, test ideas and pitch.', emoji: '🚀' },
     { key: 'competition_arena', label: 'Competition Arena', blurb: 'Friday squad missions and the Sunday boss challenge. Judges score it here.', emoji: '🏟️' },
-    { key: 'rewards_exchange', label: 'Rewards Exchange', blurb: 'Your HubTokens, badges and certificates. Rewards open soon.', emoji: '🏆' },
+    { key: 'rewards_exchange', label: 'Rewards Exchange', blurb: 'Spend HubTokens on rewards, and see your badges and certificates.', emoji: '🏆' },
 ]
 
 const LEARN: MissionKind[] = ['quiz', 'sort', 'scenario']

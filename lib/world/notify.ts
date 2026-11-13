@@ -16,7 +16,7 @@ export interface WorldNotice
     url: string
     /** What it is about (mission id, attempt id, squad id). */
     referenceId?: string | null
-    referenceType?: 'world_quest' | 'world_attempt' | 'world_squad' | 'world_certificate'
+    referenceType?: 'world_quest' | 'world_attempt' | 'world_squad' | 'world_certificate' | 'world_reward'
     actorId?: string | null
 }
 
