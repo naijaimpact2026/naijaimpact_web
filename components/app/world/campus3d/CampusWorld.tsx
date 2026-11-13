@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, Award, ChevronLeft, ChevronRight, Coins, IdCard, Lock, MousePointerClick, Trophy, Users, X, Zap } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Award, ChevronLeft, ChevronRight, Coins, Gift, IdCard, Lock, MousePointerClick, Trophy, Users, X, Zap } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DISTRICTS, districtOf, districtProgress, type DistrictKey, type WorldMissionLite } from '@/lib/world/districts'
 import { TOKENS_LABEL, XP_LABEL } from '@/lib/world/types'
@@ -206,7 +206,10 @@ function DistrictPanel({ district, onClose, onGo, missions, base, color, myDistr
                                         <div className="rounded-2xl bg-violet-500/10 p-3 text-center"><p className="text-2xl font-extrabold tabular-nums text-foreground">{tokens}</p><p className="text-xs text-muted-foreground">{TOKENS_LABEL}</p></div>
                                         <div className="rounded-2xl bg-amber-500/10 p-3 text-center"><p className="text-2xl font-extrabold tabular-nums text-foreground">{badges}</p><p className="text-xs text-muted-foreground">badges</p></div>
                                     </div>
-                                    <p className="rounded-2xl border border-dashed border-border p-3 text-sm text-muted-foreground">The Rewards Exchange opens soon. Keep earning {TOKENS_LABEL}; you’ll spend them here on approved rewards.</p>
+                                    <p className="text-sm text-muted-foreground">Spend {TOKENS_LABEL} on course discounts, avatar items and event access. They never buy score or {XP_LABEL}.</p>
+                                    <Link href={`${base}/rewards`} className="hw-press flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold text-white shadow-sm hover:opacity-90" style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #DB2777 100%)' }}>
+                                        <Gift className="h-4 w-4" /> Open the Rewards Exchange <ArrowRight className="h-4 w-4" />
+                                    </Link>
                                     <div className="flex flex-wrap gap-2">
                                         <PanelLink href={`${base}/certificates`} icon={Award}>My certificates</PanelLink>
                                         <PanelLink href={`${base}/passport`} icon={IdCard}>My Passport</PanelLink>

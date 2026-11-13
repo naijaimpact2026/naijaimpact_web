@@ -7,6 +7,8 @@ import * as world from '@/lib/world/service'
 import * as squads from '@/lib/world/squads'
 import * as content from '@/lib/world/admin-content'
 import type { AttemptPayload, Pathway, RubricView } from '@/lib/world/types'
+import * as rewards from '@/lib/world/rewards'
+import * as reports from '@/lib/world/reports'
 
 /*
  * Web server actions for Hubnovo World. Thin wrappers: every check lives in
@@ -125,6 +127,58 @@ export async function saveRubricAction(slug: string, input: RubricView)
     const p = await me(); if (!p) return unauthorized
     const r = await content.saveRubric(slug, p, input)
     if (r.ok) refreshContent(slug)
+    return r
+}
+
+// ─── Rewards Exchange ────────────────────────────────────────────────────────
+
+const refreshRewards = (slug: string) => { revalidatePath(`/app/competitions/${slug}/rewards`); revalidatePath(`/app/competitions/${slug}/admin/rewards`); refresh(slug) }
+
+export async function redeemRewardAction(slug: string, rewardId: string, requestId: string)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await rewards.redeemReward(slug, p, rewardId, requestId)
+    if (r.ok) refreshRewards(slug)
+    return r
+}
+
+export async function saveRewardAction(slug: string, id: string | null, input: Partial<rewards.RewardInput>)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await rewards.saveReward(slug, p, id, input)
+    if (r.ok) refreshRewards(slug)
+    return r
+}
+
+export async function fulfilRedemptionAction(slug: string, id: string, input: { code?: string | null; note?: string | null })
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await rewards.fulfilRedemption(slug, p, id, input)
+    if (r.ok) refreshRewards(slug)
+    return r
+}
+
+export async function cancelRedemptionAction(slug: string, id: string, note?: string | null)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await rewards.cancelRedemption(slug, p, id, note)
+    if (r.ok) refreshRewards(slug)
+    return r
+}
+
+// ─── Reports ─────────────────────────────────────────────────────────────────
+
+export async function reportPlayerAction(slug: string, input: reports.ReportInput)
+{
+    const p = await me(); if (!p) return unauthorized
+    return reports.reportPlayer(slug, p, input)
+}
+
+export async function handleReportAction(input: reports.HandleReportInput)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await reports.handleReport(p, input)
+    if (r.ok) revalidatePath('/app/competitions/judging')
     return r
 }
 

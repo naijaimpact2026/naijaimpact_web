@@ -1,8 +1,8 @@
 export const dynamic = 'force-static'
 
 /*
- * GET /api/docs — public Swagger UI for the Hubnovo World (Campus
- * Competition) API. Reads /api/docs/openapi.json. "Authorize" takes a
+ * GET /api/docs — public Swagger UI for the Hubnovo API (Campus
+ * Competition + Wallet). Reads /api/docs/openapi.json. "Authorize" takes a
  * Supabase access token so developers can call the live endpoints.
  */
 
@@ -14,7 +14,7 @@ const HTML = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Hubnovo World API</title>
+<title>Hubnovo API</title>
 <link rel="stylesheet" href="${SWAGGER}/swagger-ui.css">
 <style>
   body { margin: 0; background: #fff; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -27,8 +27,8 @@ const HTML = `<!doctype html>
 </head>
 <body>
 <header class="band">
-  <h1>Hubnovo World API</h1>
-  <p>Campus Competition endpoints for the mobile app and web. Click <b>Authorize</b> and paste a Supabase access token (just the token, no <code>Bearer</code>) to try requests against this deployment. Any signed-in Hubnovo account can join the Campus Competition.</p>
+  <h1>Hubnovo API</h1>
+  <p>Campus Competition and Wallet endpoints for the mobile app and web. Click <b>Authorize</b> and paste a Supabase access token (just the token, no <code>Bearer</code>) to try requests against this deployment. Any signed-in Hubnovo account can join the Campus Competition.</p>
 </header>
 <div id="swagger"></div>
 <script src="${SWAGGER}/swagger-ui-bundle.js"></script>
