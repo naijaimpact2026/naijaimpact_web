@@ -5,7 +5,8 @@ import { getCurrentUser } from '@/lib/supabase/auth'
 import { getActingProfile } from '@/lib/modushive/acting-profile'
 import * as world from '@/lib/world/service'
 import * as squads from '@/lib/world/squads'
-import type { AttemptPayload } from '@/lib/world/types'
+import * as content from '@/lib/world/admin-content'
+import type { AttemptPayload, Pathway, RubricView } from '@/lib/world/types'
 
 /*
  * Web server actions for Hubnovo World. Thin wrappers: every check lives in
@@ -74,6 +75,56 @@ export async function reviewWorldAttemptAction(input: world.ReviewInput)
     const p = await me(); if (!p) return unauthorized
     const r = await world.reviewAttempt(p, input)
     if (r.ok) revalidatePath('/app/competitions/judging')
+    return r
+}
+
+// ─── Admin: content editor ───────────────────────────────────────────────────
+
+const refreshContent = (slug: string) => { revalidatePath(`/app/competitions/${slug}/admin/content`); refresh(slug) }
+
+export async function listAdminMissionsAction(slug: string, filters: content.MissionFilters = {})
+{
+    const p = await me(); if (!p) return unauthorized
+    return content.listAdminMissions(slug, p, filters)
+}
+
+export async function saveMissionAction(slug: string, id: string | null, input: content.MissionInput)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = id ? await content.updateMission(slug, p, id, input) : await content.createMission(slug, p, input)
+    if (r.ok) refreshContent(slug)
+    return r
+}
+
+export async function setMissionActiveAction(slug: string, id: string, isActive: boolean)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await content.updateMission(slug, p, id, { isActive })
+    if (r.ok) refreshContent(slug)
+    return r
+}
+
+export async function duplicateMissionsAction(slug: string, input: { missionId?: string; pathway?: Pathway; fromWeek?: number; toWeek: number; toPathway?: Pathway; toDay?: number })
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await content.duplicateMissions(slug, p, input)
+    if (r.ok) refreshContent(slug)
+    return r
+}
+
+export async function importWeekAction(slug: string, input: { missions: content.MissionInput[]; replace?: boolean; activate?: boolean })
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await content.importWeek(slug, p, input)
+    if (r.ok) refreshContent(slug)
+    return r
+}
+
+export async function saveRubricAction(slug: string, input: RubricView)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await content.saveRubric(slug, p, input)
+    if (r.ok) refreshContent(slug)
     return r
 }
 

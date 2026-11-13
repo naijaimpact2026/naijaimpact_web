@@ -2224,6 +2224,672 @@
         }
       }
     },
+    "/competitions/{slug}/admin/missions": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List missions for the content editor (admin)",
+        "description": "Every world mission (active and switched off) with answer keys, attempt counts and a readiness check per pathway-week.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "pathway",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/Pathway"
+            }
+          },
+          {
+            "name": "week",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "day",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 7
+            }
+          },
+          {
+            "name": "active",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "missions",
+                    "weeks",
+                    "checks"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "missions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminMission"
+                      }
+                    },
+                    "weeks": {
+                      "type": "integer"
+                    },
+                    "checks": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WeekCheck"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Create a mission (admin)",
+        "description": "Fails with 400 and a readable `error` when a content rule is broken (missing answer key, day 7 not a boss, slot already taken, …).",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MissionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "mission"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "mission": {
+                      "$ref": "#/components/schemas/AdminMission"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/missions/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "One mission with its answer key (admin)",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "mission"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "mission": {
+                      "$ref": "#/components/schemas/AdminMission"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Edit or switch off a mission (admin)",
+        "description": "Send any subset of `MissionInput`. `{ \"isActive\": false }` switches it off (students stop seeing it; attempts and scores are kept). Missions are never hard-deleted.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MissionInput"
+              },
+              "example": {
+                "isActive": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "mission"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "mission": {
+                      "$ref": "#/components/schemas/AdminMission"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/missions/duplicate": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Duplicate a mission or a whole week (admin)",
+        "description": "Send `missionId` (+ optional `toDay`) to copy one mission, or `pathway` + `fromWeek` to copy that week’s active missions. Copies are created **switched off**, with answer keys.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "toWeek"
+                ],
+                "properties": {
+                  "missionId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "pathway": {
+                    "$ref": "#/components/schemas/Pathway"
+                  },
+                  "fromWeek": {
+                    "type": "integer"
+                  },
+                  "toWeek": {
+                    "type": "integer"
+                  },
+                  "toPathway": {
+                    "$ref": "#/components/schemas/Pathway"
+                  },
+                  "toDay": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 7
+                  }
+                }
+              },
+              "example": {
+                "pathway": "career",
+                "fromWeek": 4,
+                "toWeek": 5
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "created"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "created": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminMission"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/missions/import": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Import a whole week as JSON (admin)",
+        "description": "All missions must be for one week. Nothing is written if any mission fails its checks. With `activate` (default true) each pathway in the file needs 7 missions, Mon–Sun, Sunday = boss. Existing keys are updated; `replace: true` switches off other active missions on the same days.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "missions"
+                ],
+                "properties": {
+                  "missions": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/MissionInput"
+                    },
+                    "maxItems": 28
+                  },
+                  "replace": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "activate": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "inserted",
+                    "updated",
+                    "switchedOff"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "inserted": {
+                      "type": "integer"
+                    },
+                    "updated": {
+                      "type": "integer"
+                    },
+                    "switchedOff": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/rubrics": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List rubrics (admin)",
+        "description": "Rubrics are shared by every pathway. `missions` = how many missions use it.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "rubrics"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "rubrics": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          {
+                            "$ref": "#/components/schemas/RubricView"
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "missions": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Create or update a rubric (admin)",
+        "description": "Upsert by `key`. Criterion weights are whole numbers that add up to 100.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RubricView"
+              },
+              "example": {
+                "key": "pitch",
+                "title": "Pitch",
+                "passMark": 60,
+                "criteria": [
+                  {
+                    "id": "clarity",
+                    "label": "Clear problem and solution",
+                    "weight": 50
+                  },
+                  {
+                    "id": "evidence",
+                    "label": "Backed by evidence",
+                    "weight": 50
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "rubric"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "rubric": {
+                      "$ref": "#/components/schemas/RubricView"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
     "/competitions/{slug}/admin/testers": {
       "post": {
         "tags": [
@@ -4451,6 +5117,275 @@
                 ]
               }
             }
+          }
+        }
+      },
+      "AnswerKey": {
+        "description": "Server-only answer key (saved to competition_mission_keys, never sent to students). quiz → `{ correct: { questionId: optionId | optionId[] } }` · sort → `{ correct: { itemId: binId } }` · scenario → `{ scores: { choiceId: 0–100 } }`. Required for graded quizzes, sorts and scenarios; ignored for other kinds.",
+        "anyOf": [
+          {
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "MissionInput": {
+        "type": "object",
+        "description": "Same shape as `SeedMission` in lib/world/content. Rules: day 7 = `boss` (reviewMode `human`); the day-7 boss of weeks 4, 8, 12, 16 is the stage finale (rubricKey `showcase` + a badge); `ai`/`human` review needs a rubric; one active mission per pathway/week/day.",
+        "required": [
+          "pathway",
+          "week",
+          "day",
+          "title",
+          "kind",
+          "config",
+          "xp",
+          "tokens",
+          "bucket",
+          "reviewMode",
+          "estMinutes"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Optional; generated as c-w5-d1 / e-w5-d1 when omitted",
+            "example": "c-w5-d1"
+          },
+          "pathway": {
+            "$ref": "#/components/schemas/Pathway"
+          },
+          "week": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16
+          },
+          "day": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7,
+            "description": "7 = Sunday boss"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 140
+          },
+          "story": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/MissionKind"
+          },
+          "config": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/QuizConfig"
+              },
+              {
+                "$ref": "#/components/schemas/SortConfig"
+              },
+              {
+                "$ref": "#/components/schemas/ScenarioConfig"
+              },
+              {
+                "$ref": "#/components/schemas/FormConfig"
+              }
+            ]
+          },
+          "answerKey": {
+            "$ref": "#/components/schemas/AnswerKey"
+          },
+          "xp": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "tokens": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "bucket": {
+            "$ref": "#/components/schemas/ScoreBucket"
+          },
+          "reviewMode": {
+            "$ref": "#/components/schemas/ReviewMode"
+          },
+          "rubricKey": {
+            "anyOf": [
+              {
+                "type": "string",
+                "example": "practice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "estMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 480
+          },
+          "badge": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "isActive": {
+            "type": "boolean",
+            "default": true,
+            "description": "false = saved but hidden from students"
+          }
+        }
+      },
+      "AdminMission": {
+        "type": "object",
+        "description": "A mission as the content editor sees it (admins only — includes the answer key).",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string"
+          },
+          "pathway": {
+            "$ref": "#/components/schemas/Pathway"
+          },
+          "stage": {
+            "type": "integer"
+          },
+          "week": {
+            "type": "integer"
+          },
+          "day": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "story": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/MissionKind"
+          },
+          "config": {
+            "type": "object"
+          },
+          "answerKey": {
+            "$ref": "#/components/schemas/AnswerKey"
+          },
+          "xp": {
+            "type": "integer"
+          },
+          "tokens": {
+            "type": "integer"
+          },
+          "bucket": {
+            "$ref": "#/components/schemas/ScoreBucket"
+          },
+          "reviewMode": {
+            "$ref": "#/components/schemas/ReviewMode"
+          },
+          "rubricKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "estMinutes": {
+            "type": "integer"
+          },
+          "maxAttempts": {
+            "type": "integer"
+          },
+          "badge": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "attempts": {
+            "type": "integer",
+            "description": "Student attempts. Missions with attempts are never deleted, only switched off; kind and pathway are locked."
+          }
+        }
+      },
+      "WeekCheck": {
+        "type": "object",
+        "properties": {
+          "pathway": {
+            "$ref": "#/components/schemas/Pathway"
+          },
+          "week": {
+            "type": "integer"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "active missions per day, Mon…Sun"
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ready": {
+            "type": "boolean",
+            "description": "7 active missions, one per day, Sunday boss (finale on weeks 4/8/12/16)"
           }
         }
       },
