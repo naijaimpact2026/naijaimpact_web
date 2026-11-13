@@ -1,166 +1,55 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { getCurrentUser } from '@/lib/supabase/auth'
 import { revalidatePath } from 'next/cache'
-import { createServiceClient } from '@/lib/supabase/service'
-import { checkWalletPin, setWalletPin } from '@/lib/wallet-pin'
-import { rateLimit, RATE_LIMITED } from '@/lib/rate-limit'
-import { paystackVerify } from '@/lib/payments/paystack'
-import { settleSuccessfulCharge } from '@/lib/payments/settle'
+import { getCurrentUser } from '@/lib/supabase/auth'
+import * as wallet from '@/lib/wallet/service'
 import type { Transaction, Wallet } from '@/lib/types'
+
+/*
+ * Web server actions for the wallet. Thin wrappers: every check (PIN lockout,
+ * rate limits, settlement) lives in lib/wallet/service.ts, which the mobile
+ * REST API (app/api/wallet) calls too. Each export here is a public endpoint,
+ * so each one authenticates from the cookie session itself.
+ */
 
 export type ActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string }
 
-// ─────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────
-
-/**
- * Resolve the platform users.id + full profile from the auth session.
- *
- * The wallet PIN is checked server-side via lib/wallet-pin.ts.
- */
-async function resolveProfile() {
+async function signedIn() {
   const { authUser, profile } = await getCurrentUser()
-
   if (!authUser) throw new Error('Unauthenticated')
   if (!profile) throw new Error('User profile not found')
-
-  return { authUser, profile }
+  return { profile, email: String(authUser.email ?? profile.email ?? '') }
 }
 
-/*
- * Balance and ledger writes go through the service client: clients can't
- * write user_wallet / transactions directly (see the Supabase migrations), so
- * every write below is scoped to the signed-in user (or the resolved
- * recipient) by these server actions.
- */
-type DbClient = ReturnType<typeof createServiceClient>
-
-/** Get or create the wallet row for a given users.id. */
-async function getOrCreateWallet(
-  supabase: DbClient,
-  userId: string
-): Promise<Wallet> {
-  const { data: wallet } = await supabase
-    .from('user_wallet')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  if (wallet) {
-    // Ensure balance is always a number (DB may return null)
-    return { ...wallet, balance: wallet.balance ?? 0 } as Wallet
-  }
-
-  const { data: created, error } = await supabase
-    .from('user_wallet')
-    .insert({ user_id: userId, balance: 0 })
-    .select('*')
-    .single()
-
-  if (error || !created) {
-    console.error('getOrCreateWallet insert error:', error)
-    throw new Error('Failed to create wallet')
-  }
-  return { ...created, balance: created.balance ?? 0 } as Wallet
-}
-
-// ─────────────────────────────────────────────
-// fetchWallet
-// ─────────────────────────────────────────────
+const refreshWallet = () => revalidatePath('/app/wallet')
 
 /** Fetch the wallet balance and last N transactions for the current user. */
-export async function fetchWallet(limit = 10): Promise<{
-  wallet: Wallet
-  transactions: Transaction[]
-}> {
-  const supabase = await createClient()
-  const { profile } = await resolveProfile()
-
-  const [wallet, { data: transactions }] = await Promise.all([
-    getOrCreateWallet(createServiceClient(), profile.id),
-    supabase
-      .from('transactions')
-      .select('*')
-      .eq('user_id', profile.id)
-      .order('created_at', { ascending: false })
-      .limit(limit),
-  ])
-
-  return {
-    wallet,
-    transactions: (transactions ?? []) as Transaction[],
-  }
+export async function fetchWallet(limit = 10): Promise<{ wallet: Wallet; transactions: Transaction[] }> {
+  const { profile } = await signedIn()
+  return wallet.getWallet(profile, limit)
 }
 
-// ─────────────────────────────────────────────
-// verifyAndProcessDeposit (Paystack Verification & Recovery)
-// ─────────────────────────────────────────────
-
 /**
- * Verifies a deposit with Paystack and credits it exactly once, through the
- * same settlement code as the webhook and the reconcile cron. Also used for
- * "recover my deposit" with a reference. The payment must have been made with
- * this user's email.
+ * Verifies a deposit with Paystack and credits it exactly once (same
+ * settlement as the webhook and the reconcile cron). Also used for "recover
+ * my deposit" with a reference. The payment must have been made with this
+ * user's email.
  */
 export async function verifyAndProcessDeposit(
   reference: string
 ): Promise<ActionResult<{ reference: string; amount: number; newBalance: number; alreadyProcessed?: boolean }>> {
   try {
-    const supabase = createServiceClient()
-    const { authUser, profile } = await resolveProfile()
+    const { profile, email } = await signedIn()
+    const r = await wallet.verifyDeposit(profile, email, reference)
+    if (!r.ok) return { success: false, error: r.error }
+    if (r.status !== 'success') return { success: false, error: r.message }
 
-    if (!reference || !reference.trim()) {
-      return { success: false, error: 'A valid transaction reference is required' }
-    }
-    if (!(await rateLimit(`deposit-verify:${profile.id}`, 20, 600))) {
-      return { success: false, error: RATE_LIMITED }
-    }
-
-    const cleanRef = reference.trim()
-    const verified = await paystackVerify(cleanRef)
-    if (!verified.ok) {
-      return { success: false, error: verified.notFound ? 'Transaction not found on Paystack' : verified.message }
-    }
-
-    const { tx } = verified
-    if (tx.status !== 'success') {
-      return { success: false, error: tx.gateway_response || `Payment status is ${tx.status}` }
-    }
-
-    const payerEmail = String(tx.customer?.email ?? '').trim().toLowerCase()
-    const myEmail = String(authUser.email ?? profile.email ?? '').trim().toLowerCase()
-    if (!payerEmail || payerEmail !== myEmail) {
-      return { success: false, error: 'This payment was not made from your account.' }
-    }
-
-    const result = await settleSuccessfulCharge(supabase, tx, { legacyDepositUserId: profile.id })
-
-    if (result.outcome === 'error') {
-      return { success: false, error: 'Failed to credit wallet balance. Please try again shortly.' }
-    }
-    if (result.outcome === 'needs_review') {
-      return { success: false, error: 'We received this payment but need to check it. Our team will follow up.' }
-    }
-    if (result.purpose !== 'deposit' || result.userId !== profile.id) {
-      return { success: false, error: 'This payment is not a wallet deposit from your account.' }
-    }
-
-    const wallet = await getOrCreateWallet(supabase, profile.id)
-    revalidatePath('/app/wallet')
-
+    refreshWallet()
     return {
       success: true,
-      data: {
-        reference: cleanRef,
-        amount: result.amountNGN ?? Number(tx.amount) / 100,
-        newBalance: wallet.balance,
-        alreadyProcessed: result.outcome === 'already_settled',
-      },
+      data: { reference: r.reference, amount: r.amount, newBalance: r.newBalance, alreadyProcessed: r.alreadyProcessed },
     }
   } catch (err: any) {
     console.error('verifyAndProcessDeposit error:', err)
@@ -168,95 +57,28 @@ export async function verifyAndProcessDeposit(
   }
 }
 
-/**
- * Record and verify a Paystack reference after the popup onSuccess callback.
- */
+/** Record and verify a Paystack reference after the popup onSuccess callback. */
 export async function depositCallback(
   reference: string
 ): Promise<ActionResult<{ reference: string; amount?: number; newBalance?: number }>> {
   return verifyAndProcessDeposit(reference)
 }
 
-// ─────────────────────────────────────────────
-// sendFunds
-// ─────────────────────────────────────────────
-
-/**
- * Transfer funds from the current user to a recipient by username.
- * Atomically:
- *   1. Verify PIN (with lockout after 5 consecutive failures)
- *   2. Check sender balance >= amount
- *   3. Debit sender wallet
- *   4. Credit recipient wallet
- *   5. Insert two transaction rows (transfer_debit + transfer_credit)
- *
- * Requirements: 9.3, 9.4, 9.5, 9.6, 9.7
- */
+/** Send money to another user by username (PIN-checked, atomic). */
 export async function sendFunds(
   recipientUsername: string,
   amountNGN: number,
   pin: string
 ): Promise<ActionResult<{ newBalance: number }>> {
-  if (amountNGN < 50) {
-    return { success: false, error: 'Minimum transfer amount is ₦50' }
-  }
+  const { profile } = await signedIn()
+  const r = await wallet.sendFunds(profile, recipientUsername, amountNGN, pin)
+  if (!r.ok) return { success: false, error: r.error }
 
-  const supabase = createServiceClient()
-  const { profile } = await resolveProfile()
-
-  if (!(await rateLimit(`send:${profile.id}`, 10, 600))) return { success: false, error: RATE_LIMITED }
-
-  // ── PIN check (shared with mobile; locks for 15 min after 5 wrong tries) ──
-  const pinResult = await checkWalletPin(profile.id, pin)
-  if (!pinResult.ok) return { success: false, error: pinResult.error }
-
-  // ── Resolve recipient ─────────────────────────────────────────────────────
-  const { data: recipient } = await supabase
-    .from('users')
-    .select('id, display_name, username')
-    .eq('username', recipientUsername.toLowerCase().trim())
-    .maybeSingle()
-
-  if (!recipient) {
-    return { success: false, error: 'Recipient not found. Check the username and try again.' }
-  }
-
-  if (recipient.id === profile.id) {
-    return { success: false, error: 'You cannot send funds to yourself.' }
-  }
-
-  // ── Move the money in one database transaction (no double spends) ───────
-  const transferRef = `TRF-${crypto.randomUUID()}`
-  const { data: newBalance, error: transferError } = await supabase.rpc('web_wallet_transfer', {
-    p_sender: profile.id,
-    p_recipient: recipient.id,
-    p_amount: amountNGN,
-    p_ref: transferRef,
-  })
-
-  if (transferError) {
-    if (transferError.message?.includes('Insufficient')) return { success: false, error: 'Insufficient balance.' }
-    console.error('sendFunds error:', transferError)
-    return { success: false, error: 'Transfer failed. Please try again.' }
-  }
-
-  revalidatePath('/app/wallet')
-
-  return { success: true, data: { newBalance: Number(newBalance) } }
+  refreshWallet()
+  return { success: true, data: { newBalance: r.newBalance } }
 }
 
-// ─────────────────────────────────────────────
-// requestWithdrawal
-// ─────────────────────────────────────────────
-
-/**
- * Request a bank withdrawal:
- *   1. Verify PIN
- *   2. Debit balance immediately (held pending manual payout)
- *   3. Insert a pending withdrawal transaction
- *
- * Requirements: 9.2, 10.1–10.6
- */
+/** Request a bank withdrawal: PIN, then hold the amount pending a manual payout. */
 export async function requestWithdrawal(
   bankName: string,
   accountNumber: string,
@@ -264,101 +86,44 @@ export async function requestWithdrawal(
   amountNGN: number,
   pin: string
 ): Promise<ActionResult> {
-  if (amountNGN < 100) {
-    return { success: false, error: 'Minimum withdrawal amount is ₦100' }
-  }
+  const { profile } = await signedIn()
+  const r = await wallet.requestWithdrawal(profile, { bankName, accountNumber, accountName, amount: amountNGN, pin })
+  if (!r.ok) return { success: false, error: r.error }
 
-  const supabase = createServiceClient()
-  const { profile } = await resolveProfile()
-
-  if (!(await rateLimit(`withdraw:${profile.id}`, 5, 3600))) return { success: false, error: RATE_LIMITED }
-
-  // ── PIN check (shared with mobile; locks for 15 min after 5 wrong tries) ──
-  const pinResult = await checkWalletPin(profile.id, pin)
-  if (!pinResult.ok) return { success: false, error: pinResult.error }
-
-  if (!/^\d{10}$/.test(accountNumber.trim()) || !bankName.trim() || !accountName.trim()) {
-    return { success: false, error: 'Enter a valid bank, 10-digit account number and account name.' }
-  }
-
-  // ── Hold the amount and record a pending payout, atomically ──────────────
-  const { error: debitError } = await supabase.rpc('web_wallet_debit', {
-    p_user_id: profile.id,
-    p_amount: amountNGN,
-    p_type: 'withdrawal',
-    p_ref: `WTH-${crypto.randomUUID()}`,
-    p_status: 'pending',
-    p_bank_name: bankName.trim(),
-    p_account_number: accountNumber.trim(),
-    p_account_name: accountName.trim(),
-  })
-
-  if (debitError) {
-    if (debitError.message?.includes('Insufficient')) return { success: false, error: 'Insufficient balance.' }
-    console.error('requestWithdrawal error:', debitError)
-    return { success: false, error: 'Withdrawal request failed. Please try again.' }
-  }
-
-  revalidatePath('/app/wallet')
-
+  refreshWallet()
   return { success: true }
 }
 
-// ─────────────────────────────────────────────
-// setPin  (re-exported for convenience; primary lives in profile.ts)
-// ─────────────────────────────────────────────
-
-/**
- * Set or update the wallet PIN for the current user.
- * Requirement: 10.8
- */
-export async function setPin(formData: {
-  pin: string
-  current_pin?: string
-}): Promise<ActionResult> {
-  let profileId: string
+/** Set or update the wallet PIN for the current user. */
+export async function setPin(formData: { pin: string; current_pin?: string }): Promise<ActionResult> {
+  let profile
   try {
-    profileId = (await resolveProfile()).profile.id
+    profile = (await signedIn()).profile
   } catch {
     return { success: false, error: 'You must be signed in to set a PIN.' }
   }
 
-  if (!(await rateLimit(`pin-set:${profileId}`, 5, 900))) return { success: false, error: RATE_LIMITED }
-
-  const result = await setWalletPin(profileId, formData.pin, formData.current_pin || undefined)
-  if (!result.ok) return { success: false, error: result.error }
+  const r = await wallet.setPin(profile, formData.pin, formData.current_pin || undefined)
+  if (!r.ok) return { success: false, error: r.error }
 
   revalidatePath('/app/settings')
-  revalidatePath('/app/wallet')
-
+  refreshWallet()
   return { success: true }
 }
-
-// ─────────────────────────────────────────────
-// lookupUser
-// ─────────────────────────────────────────────
 
 /** Look up a user by username for the Send modal recipient step. */
 export async function lookupUser(
   username: string
 ): Promise<ActionResult<{ id: string; display_name: string; avatar_url: string | null }>> {
-  const supabase = await createClient()
+  const { profile } = await getCurrentUser()
+  if (!profile) return { success: false, error: 'Unauthenticated' }
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const r = await wallet.lookupUser(profile, username)
+  if (!r.ok) return { success: false, error: r.error }
+  if (!r.user) return { success: false, error: 'User not found' }
 
-  if (authError || !user) return { success: false, error: 'Unauthenticated' }
-  if (!(await rateLimit(`lookup:${user.id}`, 30, 60))) return { success: false, error: RATE_LIMITED }
-
-  const { data: found } = await supabase
-    .from('users')
-    .select('id, display_name, avatar_url')
-    .eq('username', username.toLowerCase().trim())
-    .maybeSingle()
-
-  if (!found) return { success: false, error: 'User not found' }
-
-  return { success: true, data: found }
+  return {
+    success: true,
+    data: { id: r.user.id, display_name: r.user.displayName ?? '', avatar_url: r.user.avatarUrl },
+  }
 }

@@ -8,13 +8,12 @@
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { createServiceClient } from '@/lib/supabase/service'
 import { rateLimit, RATE_LIMITED } from '@/lib/rate-limit'
+import * as wallet from '@/lib/wallet/service'
 
 export type CheckoutResult =
   | { success: true; reference: string; amountKobo: number; email: string; userId: string }
   | { success: false; error: string }
 
-const MIN_DEPOSIT = 100
-const MAX_DEPOSIT = 10_000_000
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const newRef = (prefix: string) => `${prefix}_${crypto.randomUUID().replace(/-/g, '')}`
@@ -42,22 +41,14 @@ async function createIntent(row: {
   return null
 }
 
-/** Begin a wallet deposit of `amountNGN`. */
+/** Begin a wallet deposit of `amountNGN` (core shared with POST /api/wallet/deposit). */
 export async function startDeposit(amountNGN: number): Promise<CheckoutResult> {
   const me = await payer()
   if (!me) return { success: false, error: 'Please sign in again.' }
 
-  if (!Number.isFinite(amountNGN) || amountNGN < MIN_DEPOSIT || amountNGN > MAX_DEPOSIT) {
-    return { success: false, error: `Deposit must be between ₦${MIN_DEPOSIT} and ₦${MAX_DEPOSIT.toLocaleString()}.` }
-  }
-  if (!(await rateLimit(`checkout:${me.profile.id}`, 20, 600))) return { success: false, error: RATE_LIMITED }
-
-  const reference = newRef('DEP')
-  const amountKobo = Math.round(amountNGN * 100)
-  const err = await createIntent({ reference, user_id: me.profile.id, purpose: 'deposit', amount_kobo: amountKobo })
-  if (err) return { success: false, error: err }
-
-  return { success: true, reference, amountKobo, email: me.email, userId: me.profile.id }
+  const r = await wallet.startDeposit(me.profile, me.email, amountNGN)
+  if (!r.ok) return { success: false, error: r.error }
+  return { success: true, reference: r.reference, amountKobo: r.amountKobo, email: r.email, userId: r.userId }
 }
 
 /**
