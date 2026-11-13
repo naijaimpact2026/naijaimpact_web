@@ -50,6 +50,10 @@
       "description": "Stage certificates: PNG/PDF and public verification"
     },
     {
+      "name": "Reports",
+      "description": "Report another player (moderation)"
+    },
+    {
       "name": "Admin",
       "description": "role = admin"
     }
@@ -2143,6 +2147,310 @@
           },
           "401": {
             "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/reports": {
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Report a player",
+        "description": "From a leaderboard row or a squad member. Private: the reported player never sees who sent it. One open report per player per reporter (a repeat returns 200), 10 reports per day. `note` is required when `reason` is `other`. Reporting yourself returns 400.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "targetUserId",
+                  "reason"
+                ],
+                "properties": {
+                  "targetUserId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "reason": {
+                    "$ref": "#/components/schemas/ReportReason"
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "attemptId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "optional: one of the reported player’s submissions"
+                  },
+                  "context": {
+                    "type": "string",
+                    "enum": [
+                      "leaderboard",
+                      "squad",
+                      "attempt",
+                      "other"
+                    ]
+                  }
+                }
+              },
+              "example": {
+                "targetUserId": "9b7c…",
+                "reason": "cheating",
+                "note": "Same answers as another player",
+                "context": "leaderboard"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkEmpty"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/reports": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Player reports (admin)",
+        "description": "Oldest first for `open`. `enabled: false` = reports not switched on yet. Web: `/app/competitions/judging?tab=reports`.",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open",
+                "actioned",
+                "dismissed"
+              ],
+              "default": "open"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "enabled",
+                    "reports",
+                    "open"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "reports": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReportItem"
+                      }
+                    },
+                    "open": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          }
+        }
+      }
+    },
+    "/competitions/reports/{reportId}": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Handle a report (admin)",
+        "description": "`dismiss` closes it. `reject_attempt` sets one of the reported player’s submissions (default: the one in the report) to `rejected` with `note` as feedback, notifies the student (they can appeal) and marks the report `actioned`. XP/HubTokens already awarded are not removed.",
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "action"
+                ],
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "dismiss",
+                      "reject_attempt"
+                    ]
+                  },
+                  "attemptId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "description": "required (5+ chars) for reject_attempt"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "status"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "actioned",
+                        "dismissed"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/admin/analytics": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Analytics (admin)",
+        "description": "Sign-ups per day / pathway / school, onboarding, activity, week-4 retention, stage completion, per-mission funnel, review queue, tokens and the pilot targets (70% onboarding, 40% week 4, 25% stage). Web: `/app/competitions/{slug}/admin/analytics`.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "analytics"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "analytics": {
+                      "$ref": "#/components/schemas/Analytics"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
           },
           "404": {
             "$ref": "#/components/responses/E404"
@@ -4449,6 +4757,510 @@
                     "type": "null"
                   }
                 ]
+              }
+            }
+          }
+        }
+      },
+      "ReportReason": {
+        "type": "string",
+        "enum": [
+          "spam",
+          "abuse",
+          "cheating",
+          "personal_info",
+          "other"
+        ]
+      },
+      "ReportAttempt": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "missionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "missionTitle": {
+            "type": "string"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MissionKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "week": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "day": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/AttemptStatus"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ReportItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "competition": {
+            "type": "string"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/ReportReason"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "context": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "leaderboard",
+                  "squad",
+                  "attempt",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "actioned",
+              "dismissed"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "handledAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reporter": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "username": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "displayName": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "avatarUrl": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "target": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "username": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "displayName": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "avatarUrl": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "attempt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportAttempt"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recentAttempts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportAttempt"
+            },
+            "description": "the reported player’s latest submissions (up to 8)"
+          },
+          "openAboutTarget": {
+            "type": "integer",
+            "description": "open reports about this player in total"
+          }
+        }
+      },
+      "Rate": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "of": {
+            "type": "integer"
+          },
+          "pct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "description": "percent, 1 decimal; null when `of` is 0"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "Analytics": {
+        "type": "object",
+        "description": "Pilot health. Definitions: joined = participant with a pathway; finished onboarding = joined + Week 1 Day 1 mission completed; active = submitted that week; week-4 retention = active in week 4 ÷ joined before week 4; stage = stage 1 passed.",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "clock": {
+            "type": "object",
+            "properties": {
+              "week": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "day": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "phase": {
+                "type": "string",
+                "enum": [
+                  "upcoming",
+                  "running",
+                  "ended"
+                ]
+              }
+            }
+          },
+          "joined": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "career": {
+                "type": "integer"
+              },
+              "enterprise": {
+                "type": "integer"
+              }
+            }
+          },
+          "signupsByDay": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "description": "Lagos day"
+                },
+                "career": {
+                  "type": "integer"
+                },
+                "enterprise": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "bySchool": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "institutionId": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "career": {
+                  "type": "integer"
+                },
+                "enterprise": {
+                  "type": "integer"
+                },
+                "total": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "onboarding": {
+            "$ref": "#/components/schemas/Rate"
+          },
+          "activeThisWeek": {
+            "$ref": "#/components/schemas/Rate"
+          },
+          "week4": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Rate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Rate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "missions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "pathway": {
+                  "$ref": "#/components/schemas/Pathway"
+                },
+                "week": {
+                  "type": "integer"
+                },
+                "day": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "kind": {
+                  "$ref": "#/components/schemas/MissionKind"
+                },
+                "reviewMode": {
+                  "$ref": "#/components/schemas/ReviewMode"
+                },
+                "started": {
+                  "type": "integer",
+                  "description": "students with ≥1 submission"
+                },
+                "submitted": {
+                  "type": "integer",
+                  "description": "all submissions incl. retries"
+                },
+                "passed": {
+                  "type": "integer",
+                  "description": "students who passed"
+                }
+              }
+            }
+          },
+          "review": {
+            "type": "object",
+            "properties": {
+              "queue": {
+                "type": "integer"
+              },
+              "avgWaitHours": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "avgTurnaroundHours": {
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "description": "judged missions, last 14 days"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "appeals": {
+                "type": "integer"
+              }
+            }
+          },
+          "tokens": {
+            "type": "object",
+            "properties": {
+              "earned": {
+                "type": "integer"
+              },
+              "redeemed": {
+                "type": "integer"
+              },
+              "refunded": {
+                "type": "integer"
+              }
+            }
+          },
+          "targets": {
+            "type": "object",
+            "properties": {
+              "onboarding": {
+                "type": "integer",
+                "example": 70
+              },
+              "week4": {
+                "type": "integer",
+                "example": 40
+              },
+              "stage": {
+                "type": "integer",
+                "example": 25
               }
             }
           }

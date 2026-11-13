@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowLeft, Gavel, Lock } from 'lucide-react'
+import { ArrowLeft, BarChart3, Gavel, Lock } from 'lucide-react'
 import type { User } from '@/lib/types'
 import { getCompetitionDetail, isAdmin, reviewCounts } from '@/lib/world/service'
 import { TOKENS_LABEL, XP_LABEL } from '@/lib/world/types'
@@ -24,10 +24,15 @@ export default async function WorldCompetitionPage({ slug, profile, week }: { sl
                     <ArrowLeft className="h-4 w-4" /> Competitions
                 </Link>
                 {judging && (
+                    <div className="flex items-center gap-2">
+                    <Link href={`/app/competitions/${slug}/admin/analytics`} className="hw-press inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted">
+                        <BarChart3 className="h-3.5 w-3.5 text-primary" /> Analytics
+                    </Link>
                     <Link href="/app/competitions/judging" className="hw-press inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted">
                         <Gavel className="h-3.5 w-3.5 text-primary" /> Judging
                         {judging.inReview + judging.appeals > 0 && <span className="rounded-full bg-primary px-1.5 text-[10px] tabular-nums text-primary-foreground">{judging.inReview + judging.appeals}</span>}
                     </Link>
+                    </div>
                 )}
             </div>
 

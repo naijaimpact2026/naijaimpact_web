@@ -4,6 +4,7 @@ import { characterPreviewUrl } from '@/lib/competitions/config'
 import { XP_LABEL, type LeaderboardView, type LeagueView, type PathwayView, type WorldLeaderboardEntry, type WorldParticipantView } from '@/lib/world/types'
 import { AnimatedBar, CountUp } from '../fx'
 import StatePicker from './StatePicker'
+import ReportButton from '../ReportButton'
 
 /*
  * Leaderboard page body (server component — every filter is a link, so it
@@ -98,7 +99,7 @@ export default function WorldLeaderboard({ slug, params, pathways, me, week, boa
                         <Pill href={href({ period: undefined })} active={board.period === 'all'}>All time</Pill>
                         {week && <Pill href={href({ period: 'week' })} active={board.period === 'week'} icon={Flame}>This week (W{week})</Pill>}
                     </div>
-                    <Players board={board} color={color} />
+                    <Players slug={slug} board={board} color={color} />
                 </>
             )}
 
@@ -109,7 +110,7 @@ export default function WorldLeaderboard({ slug, params, pathways, me, week, boa
 
 // ─── Players ─────────────────────────────────────────────────────────────────
 
-function Players({ board, color }: { board: LeaderboardView; color: string })
+function Players({ slug, board, color }: { slug: string; board: LeaderboardView; color: string })
 {
     if (board.entries.length === 0)
         return (
@@ -140,7 +141,7 @@ function Players({ board, color }: { board: LeaderboardView; color: string })
 
             {rest.length > 0 && (
                 <ol className="overflow-hidden rounded-3xl border border-border bg-card">
-                    {rest.map((e, n) => <Row key={e.userId} e={e} top={top} color={color} delay={Math.min(n, 12) * 35} />)}
+                    {rest.map((e, n) => <Row key={e.userId} slug={slug} e={e} top={top} color={color} delay={Math.min(n, 12) * 35} />)}
                 </ol>
             )}
 
@@ -178,7 +179,7 @@ function PodiumSpot({ e, place, delay, color }: { e: WorldLeaderboardEntry; plac
     )
 }
 
-function Row({ e, top, color, delay }: { e: WorldLeaderboardEntry; top: number; color: string; delay: number })
+function Row({ slug, e, top, color, delay }: { slug: string; e: WorldLeaderboardEntry; top: number; color: string; delay: number })
 {
     const name = e.displayName ?? e.username ?? 'Player'
     return (
@@ -194,6 +195,7 @@ function Row({ e, top, color, delay }: { e: WorldLeaderboardEntry; top: number; 
                 <p className="text-sm font-extrabold tabular-nums text-foreground">{nf(e.xp)}</p>
                 <p className="text-[10px] text-muted-foreground">{XP_LABEL}</p>
             </div>
+            {e.isMe ? <span className="w-[26px] shrink-0" aria-hidden /> : <ReportButton slug={slug} userId={e.userId} name={name} context="leaderboard" />}
         </li>
     )
 }

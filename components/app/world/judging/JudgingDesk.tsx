@@ -30,7 +30,8 @@ const QUICK_FEEDBACK = [
 
 type Tab = 'queue' | 'appeals'
 
-export default function JudgingDesk({ tab, items: initial, counts }: { tab: Tab; items: ReviewQueueItem[]; counts: ReviewCounts })
+
+export default function JudgingDesk({ tab, items: initial, counts, reportsOpen }: { tab: Tab; items: ReviewQueueItem[]; counts: ReviewCounts; reportsOpen?: number })
 {
     const [items, setItems] = useState(initial)
     const [done, setDone] = useState(0)
@@ -63,6 +64,7 @@ export default function JudgingDesk({ tab, items: initial, counts }: { tab: Tab;
             <div className="flex flex-wrap items-center gap-2">
                 <TabLink href="/app/competitions/judging" active={tab === 'queue'} label="To score" count={counts.inReview} />
                 <TabLink href="/app/competitions/judging?tab=appeals" active={tab === 'appeals'} label="Appeals" count={counts.appeals} />
+                {reportsOpen !== undefined && <TabLink href="/app/competitions/judging?tab=reports" active={false} label="Reports" count={reportsOpen} />}
                 <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
                 {(['all', 'career', 'enterprise'] as const).map((f) => (
                     <button
@@ -135,7 +137,7 @@ export default function JudgingDesk({ tab, items: initial, counts }: { tab: Tab;
     )
 }
 
-function TabLink({ href, active, label, count }: { href: string; active: boolean; label: string; count: number })
+export function TabLink({ href, active, label, count }: { href: string; active: boolean; label: string; count: number })
 {
     return (
         <Link href={href} className={`hw-press inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-colors ${active ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-card text-foreground ring-1 ring-border hover:bg-muted'}`}>

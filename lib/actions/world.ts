@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/supabase/auth'
 import { getActingProfile } from '@/lib/modushive/acting-profile'
 import * as world from '@/lib/world/service'
 import * as squads from '@/lib/world/squads'
+import * as reports from '@/lib/world/reports'
 import type { AttemptPayload } from '@/lib/world/types'
 
 /*
@@ -73,6 +74,22 @@ export async function reviewWorldAttemptAction(input: world.ReviewInput)
 {
     const p = await me(); if (!p) return unauthorized
     const r = await world.reviewAttempt(p, input)
+    if (r.ok) revalidatePath('/app/competitions/judging')
+    return r
+}
+
+// ─── Reports ─────────────────────────────────────────────────────────────────
+
+export async function reportPlayerAction(slug: string, input: reports.ReportInput)
+{
+    const p = await me(); if (!p) return unauthorized
+    return reports.reportPlayer(slug, p, input)
+}
+
+export async function handleReportAction(input: reports.HandleReportInput)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await reports.handleReport(p, input)
     if (r.ok) revalidatePath('/app/competitions/judging')
     return r
 }

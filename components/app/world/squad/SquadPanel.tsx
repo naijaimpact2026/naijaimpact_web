@@ -7,6 +7,7 @@ import { ArrowRight, Check, Copy, Crown, Loader2, LogOut, MessageCircle, Pencil,
 import { toast } from '@/components/toast'
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { characterPreviewUrl } from '@/lib/competitions/config'
+import ReportButton from '../ReportButton'
 import { createSquadAction, joinSquadAction, leaveSquadAction, openSquadChatAction, removeSquadMemberAction, renameSquadAction } from '@/lib/actions/world'
 import { SQUAD_MAX, SQUAD_MIN, XP_LABEL, type SquadMemberView, type SquadView } from '@/lib/world/types'
 import { STATUS_META, formatUnlock } from '@/lib/world/ui'
@@ -275,6 +276,7 @@ function MySquad({ slug, squad, color }: { slug: string; squad: SquadView; color
                                 {squad.teamMission && (st
                                     ? <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${st.tone}`}>{st.label}</span>
                                     : <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">Not started</span>)}
+                                {!m.isMe && <ReportButton slug={slug} userId={m.userId} name={name} context="squad" />}
                                 {iLead && !m.isMe && (
                                     <button type="button" onClick={() => setConfirm({ kind: 'remove', member: m })} disabled={Boolean(busy)} className="hw-press shrink-0 rounded-xl p-2 text-muted-foreground hover:bg-red-500/10 hover:text-red-600" aria-label={`Remove ${name}`} title="Remove from squad">
                                         {busy === `rm:${m.userId}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserMinus className="h-4 w-4" />}
