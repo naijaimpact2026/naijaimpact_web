@@ -57,6 +57,31 @@ export async function verifyAndProcessDeposit(
   }
 }
 
+/**
+ * Check the signed-in user's unconfirmed Paystack payments (deposits and
+ * marketplace orders) and credit any that went through. With `reference`,
+ * checks just that payment. Called right after checkout and when the wallet
+ * or orders page opens, so nobody waits on the webhook or the daily cron.
+ */
+export async function checkMyPendingPayments(
+  reference?: string
+): Promise<ActionResult<wallet.PendingPaymentsCheck>> {
+  try {
+    const { profile } = await signedIn()
+    const r = await wallet.checkPendingPayments(profile, reference)
+    if (!r.ok) return { success: false, error: r.error }
+    const { ok: _ok, ...data } = r
+    if (data.settled.some((s) => !s.alreadyProcessed)) {
+      refreshWallet()
+      revalidatePath('/app/market/orders')
+    }
+    return { success: true, data }
+  } catch (err: any) {
+    console.error('checkMyPendingPayments error:', err)
+    return { success: false, error: err.message || 'Could not check payments' }
+  }
+}
+
 /** Record and verify a Paystack reference after the popup onSuccess callback. */
 export async function depositCallback(
   reference: string

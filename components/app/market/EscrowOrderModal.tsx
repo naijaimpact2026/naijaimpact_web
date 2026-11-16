@@ -6,8 +6,9 @@ import { toast } from '@/components/toast'
 import { X, ShoppingCart, Shield, MapPin, Truck, Package } from 'lucide-react'
 import { createEscrowOrder } from '@/lib/actions/marketplace'
 import { startOrderCheckout } from '@/lib/actions/payments'
+import { openPaystack } from '@/lib/payments/paystack-popup'
+import { confirmPayment } from '@/lib/payments/confirm-payment'
 import type { NmListingDetail, NmDeliveryOption } from '@/lib/types'
-import Script from 'next/script'
 
 interface Props
 {
@@ -89,42 +90,27 @@ export default function EscrowOrderModal({ open, onOpenChange, listing, userEmai
                 return
             }
 
-            const handler = (window as any).PaystackPop?.setup({
-                key: paystackKey,
+            await openPaystack({
                 email: intent.email,
-                amount: intent.amountKobo,
-                currency: 'NGN',
-                ref: intent.reference,
-                metadata: {
-                    type: 'marketplace_purchase',
-                    userId: intent.userId,
-                    referenceId: order_id,
-                },
+                amountKobo: intent.amountKobo,
+                reference: intent.reference,
+                metadata: { type: 'marketplace_purchase', userId: intent.userId, referenceId: order_id },
                 onClose: () =>
                 {
                     setLoading(false)
                     toast.info('Payment cancelled. Order is pending')
                 },
-                callback: () =>
+                onSuccess: async (reference) =>
                 {
+                    toast.info('Confirming your payment…')
+                    const outcome = await confirmPayment(reference)
                     setLoading(false)
                     onOpenChange(false)
-                    toast.success('Payment confirmed! Order placed in escrow.')
+                    if (outcome.status === 'settled') toast.success('Payment confirmed! Order placed in escrow.')
+                    else toast.info("Payment received. We'll mark your order paid as soon as Paystack confirms it.")
                     router.push('/app/market/orders')
                 },
             })
-
-            if (handler)
-            {
-                handler.openIframe()
-            } else
-            {
-                // Paystack not loaded — still show success
-                setLoading(false)
-                onOpenChange(false)
-                toast.success('Order created! Complete payment in My Orders.')
-                router.push('/app/market/orders')
-            }
         } catch (err)
         {
             setLoading(false)
@@ -136,7 +122,6 @@ export default function EscrowOrderModal({ open, onOpenChange, listing, userEmai
 
     return (
         <>
-            <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
             <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
                 onClick={() => !loading && onOpenChange(false)}>
                 <div className="w-full max-w-md overflow-hidden rounded-3xl bg-card shadow-2xl"

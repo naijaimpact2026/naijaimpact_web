@@ -2,7 +2,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { checkWalletPin, hasWalletPin, PIN_LOCKED, setWalletPin } from '@/lib/wallet-pin'
 import { rateLimit, RATE_LIMITED } from '@/lib/rate-limit'
 import { paystackInitialize, paystackVerify } from '@/lib/payments/paystack'
-import { settleSuccessfulCharge } from '@/lib/payments/settle'
+import { closeIntent, settleSuccessfulCharge } from '@/lib/payments/settle'
 import { bankNameForCode, listNigerianBanks, resolveNuban, type Bank } from './banks'
 import type { Transaction, User, Wallet } from '@/lib/types'
 
@@ -307,6 +307,93 @@ export async function verifyDeposit(profile: User, email: string, reference: str
     newBalance: wallet.balance,
     alreadyProcessed: result.outcome === 'already_settled',
   }
+}
+
+export interface PendingPaymentsCheck {
+  /** Payments credited now or earlier (deposits and marketplace orders). */
+  settled: Array<{ reference: string; purpose: 'deposit' | 'marketplace_order'; amountNGN: number; alreadyProcessed: boolean }>
+  /** Payments Paystack still reports as in progress (e.g. bank transfer not yet received). */
+  pending: string[]
+  /** Payments Paystack reports as failed. */
+  failed: string[]
+}
+
+const CHECK_WINDOW_MS = 48 * 60 * 60 * 1000
+const CHECK_BATCH = 5
+
+/**
+ * Check the signed-in user's own unsettled payments (deposits and marketplace
+ * orders) against Paystack and settle any that went through. This is the same
+ * work the reconcile cron does, scoped to one user, so a payment is credited
+ * right away instead of waiting for the webhook or the daily cron. Idempotent.
+ *
+ * With `reference`, checks only that payment, and reports it as settled if
+ * the webhook already credited it.
+ */
+export async function checkPendingPayments(profile: User, reference?: string): Promise<WalletResult<PendingPaymentsCheck>> {
+  if (!(await rateLimit(`payment-check:${profile.id}`, 60, 600))) return rateLimited()
+
+  const db = createServiceClient()
+  let query = db
+    .from('payment_intents')
+    .select('reference, purpose, amount_kobo, status')
+    .eq('user_id', profile.id)
+    .gt('created_at', new Date(Date.now() - CHECK_WINDOW_MS).toISOString())
+    .order('created_at', { ascending: false })
+    .limit(CHECK_BATCH)
+  const ref = String(reference ?? '').trim()
+  query = ref ? query.eq('reference', ref) : query.eq('status', 'pending')
+
+  const result: PendingPaymentsCheck = { settled: [], pending: [], failed: [] }
+  const { data: intents, error } = await query
+  if (error) {
+    // Table not created yet: nothing to check.
+    if (error.code === '42P01' || error.code === 'PGRST205') return { ok: true, ...result }
+    console.error('checkPendingPayments load error:', error)
+    return fail('Could not check your payments. Please try again shortly.', 503)
+  }
+
+  for (const intent of intents ?? []) {
+    const amountNGN = Number(intent.amount_kobo) / 100
+    if (intent.status === 'succeeded') {
+      result.settled.push({ reference: intent.reference, purpose: intent.purpose, amountNGN, alreadyProcessed: true })
+      continue
+    }
+    if (intent.status !== 'pending') {
+      if (intent.status === 'failed') result.failed.push(intent.reference)
+      else result.pending.push(intent.reference) // needs_review / abandoned: nothing the user can do here
+      continue
+    }
+
+    const verified = await paystackVerify(intent.reference)
+    if (!verified.ok) {
+      // Not found = checkout opened but nothing paid yet; leave it for the cron.
+      result.pending.push(intent.reference)
+      continue
+    }
+
+    const { tx } = verified
+    if (tx.status === 'success') {
+      const settled = await settleSuccessfulCharge(db, tx)
+      if (settled.outcome === 'settled' || settled.outcome === 'already_settled') {
+        result.settled.push({
+          reference: intent.reference,
+          purpose: intent.purpose,
+          amountNGN: settled.amountNGN ?? Number(tx.amount) / 100,
+          alreadyProcessed: settled.outcome === 'already_settled',
+        })
+      } else {
+        result.pending.push(intent.reference)
+      }
+    } else if (tx.status === 'failed' || tx.status === 'reversed') {
+      await closeIntent(db, intent.reference, 'failed', tx.status, tx.gateway_response || `Paystack: ${tx.status}`)
+      result.failed.push(intent.reference)
+    } else {
+      result.pending.push(intent.reference)
+    }
+  }
+
+  return { ok: true, ...result }
 }
 
 // ─────────────────────────────────────────────

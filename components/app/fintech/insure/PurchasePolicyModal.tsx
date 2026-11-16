@@ -13,6 +13,7 @@ import
 import { Button } from '@/components/ui/button'
 import { purchasePolicy } from '@/lib/actions/fintech/insure'
 import type { InsureProduct } from '@/lib/types'
+import { openPaystack } from '@/lib/payments/paystack-popup'
 
 function formatNGN(amount: number): string
 {
@@ -60,19 +61,10 @@ export default function PurchasePolicyModal({
         {
             const { reference } = await purchasePolicy(product.id, premium)
 
-            const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
-            if (!paystackKey) throw new Error('Payment configuration error')
-
-            if (!window.PaystackPop)
-            {
-                throw new Error('Paystack not loaded. Please refresh and try again.')
-            }
-
-            const handler = window.PaystackPop.setup({
-                key: paystackKey,
+            await openPaystack({
                 email: userEmail,
-                amount: Math.round(premium * 100), // kobo
-                ref: reference,
+                amountKobo: Math.round(premium * 100),
+                reference,
                 metadata: {
                     type: 'insurance_premium',
                     productId: product.id,
@@ -94,8 +86,6 @@ export default function PurchasePolicyModal({
                     setIsLoading(false)
                 },
             })
-
-            handler.openIframe()
         } catch (err: unknown)
         {
             setIsLoading(false)
@@ -105,6 +95,7 @@ export default function PurchasePolicyModal({
 
     function handleOpenChange(nextOpen: boolean)
     {
+        if (isLoading) return // block close while payment popup is open
         if (!nextOpen)
         {
             setError(null)
@@ -115,7 +106,9 @@ export default function PurchasePolicyModal({
     }
 
     return (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
+        // modal={false} while paying: a modal Radix dialog sets pointer-events:none
+        // on <body> and traps focus, which makes the Paystack iframe unclickable.
+        <Dialog open={open} onOpenChange={handleOpenChange} modal={!isLoading}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">

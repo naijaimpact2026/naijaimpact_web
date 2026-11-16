@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, CheckCircle2 } from 'lucide-react'
+import { Loader2, CheckCircle2, Lock } from 'lucide-react'
 import
     {
         Dialog,
@@ -24,8 +24,11 @@ import
         FormLabel,
         FormMessage,
     } from '@/components/ui/form'
-import { depositCallback, verifyAndProcessDeposit } from '@/lib/actions/wallet'
+import { useRouter } from 'next/navigation'
+import { verifyAndProcessDeposit } from '@/lib/actions/wallet'
 import { startDeposit } from '@/lib/actions/payments'
+import { openPaystack } from '@/lib/payments/paystack-popup'
+import { confirmPayment } from '@/lib/payments/confirm-payment'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 
@@ -53,7 +56,9 @@ interface DepositModalProps
 
 export default function DepositModal({ open, onOpenChange, userEmail }: DepositModalProps)
 {
+    const router = useRouter()
     const [inFlight, setInFlight] = useState(false)
+    const [confirming, setConfirming] = useState(false)
     const [success, setSuccess] = useState(false)
     const [recoveryMode, setRecoveryMode] = useState(false)
     const [recoveryRef, setRecoveryRef] = useState('')
@@ -63,6 +68,7 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
         resolver: zodResolver(depositSchema),
         defaultValues: { amount: 1000 },
     })
+    const amount = form.watch('amount')
 
     async function onSubmit(values: DepositFormValues)
     {
@@ -70,56 +76,71 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
 
         try
         {
-            const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
-            if (!paystackKey) throw new Error('Payment configuration error')
-            if (!window.PaystackPop) throw new Error('Paystack not loaded. Please refresh and try again.')
-
             // The server records the payment first, so it can be recovered
             // even if this tab closes before the callback runs.
             const intent = await startDeposit(values.amount)
             if (!intent.success) throw new Error(intent.error)
 
-            const handler = window.PaystackPop.setup({
-                key: paystackKey,
+            await openPaystack({
                 email: intent.email,
-                amount: intent.amountKobo,
-                ref: intent.reference,
-                metadata: {
-                    type: 'deposit',
-                    userId: intent.userId,
-                },
-                onSuccess: async (transaction) =>
-                {
-                    setInFlight(true)
-                    const res = await verifyAndProcessDeposit(transaction.reference)
-                    setInFlight(false)
-                    if (res.success)
-                    {
-                        setSuccess(true)
-                        form.reset()
-                        setTimeout(() =>
-                        {
-                            setSuccess(false)
-                            onOpenChange(false)
-                        }, 2500)
-                    }
-                    else
-                    {
-                        form.setError('root', { message: res.error || 'Verification failed. Use recovery with your reference.' })
-                    }
-                },
-                onClose: () =>
-                {
-                    setInFlight(false)
-                },
+                amountKobo: intent.amountKobo,
+                reference: intent.reference,
+                metadata: { type: 'deposit', userId: intent.userId },
+                onSuccess: (reference) => confirmDeposit(reference, true),
+                // Closed without a success callback: they may still have paid
+                // (e.g. bank transfer), so check once quietly.
+                onClose: () => confirmDeposit(intent.reference, false),
             })
-
-            handler.openIframe()
         } catch (err: unknown)
         {
             setInFlight(false)
             const message = err instanceof Error ? err.message : 'Something went wrong'
             form.setError('root', { message })
+        }
+    }
+
+    /**
+     * Confirm the deposit with the server and credit it. After a success
+     * callback, retry while Paystack still reports it pending; after a plain
+     * close, check once and stay quiet unless the money arrived.
+     */
+    async function confirmDeposit(reference: string, paid: boolean)
+    {
+        setInFlight(true)
+        setConfirming(paid)
+        const outcome = await confirmPayment(reference, paid ? {} : { attempts: 1 })
+        setConfirming(false)
+        setInFlight(false)
+
+        if (outcome.status === 'settled')
+        {
+            setSuccess(true)
+            form.reset()
+            router.refresh()
+            setTimeout(() =>
+            {
+                setSuccess(false)
+                onOpenChange(false)
+            }, 2500)
+            return
+        }
+        if (!paid) return // cancelled checkout; nothing to report
+
+        if (outcome.status === 'pending')
+        {
+            form.setError('root', {
+                message: `Paystack hasn't confirmed this payment yet. Your wallet will be credited automatically once it does. Reference: ${reference}`,
+            })
+        }
+        else if (outcome.status === 'failed')
+        {
+            form.setError('root', { message: 'Paystack reports this payment failed. You have not been charged.' })
+        }
+        else
+        {
+            form.setError('root', {
+                message: `${outcome.message} Your wallet will be credited automatically once we can confirm it. Reference: ${reference}`,
+            })
         }
     }
 
@@ -132,6 +153,7 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
         if (res.success)
         {
             setSuccess(true)
+            router.refresh()
             setTimeout(() =>
             {
                 setSuccess(false)
@@ -160,7 +182,9 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
     }
 
     return (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
+        // modal={false} while paying: a modal Radix dialog sets pointer-events:none
+        // on <body> and traps focus, which makes the Paystack iframe unclickable.
+        <Dialog open={open} onOpenChange={handleOpenChange} modal={!inFlight}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Deposit Funds</DialogTitle>
@@ -214,7 +238,8 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
                                 type="button"
                                 onClick={handleRecover}
                                 disabled={recovering || !recoveryRef.trim()}
-                                className="w-full gradient-primary text-white"
+                                size="lg"
+                                className="h-12 w-full rounded-xl text-base font-semibold shadow-sm"
                             >
                                 {recovering ? (
                                     <>
@@ -276,9 +301,13 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
                                     <button
                                         key={amt}
                                         type="button"
-                                        className="px-3 py-1 rounded-full text-xs border border-border hover:border-primary hover:text-primary transition-colors disabled:opacity-50"
+                                        className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${amount === amt
+                                            ? 'border-primary bg-primary/10 text-primary'
+                                            : 'border-border text-muted-foreground hover:border-primary hover:text-primary'
+                                            }`}
                                         onClick={() => form.setValue('amount', amt, { shouldValidate: true })}
                                         disabled={inFlight}
+                                        aria-pressed={amount === amt}
                                         aria-label={`Set amount to ₦${amt.toLocaleString()}`}
                                     >
                                         ₦{amt.toLocaleString()}
@@ -294,17 +323,23 @@ export default function DepositModal({ open, onOpenChange, userEmail }: DepositM
 
                             <Button
                                 type="submit"
-                                className="w-full gradient-primary text-white"
+                                size="lg"
+                                className="h-12 w-full rounded-xl text-base font-semibold shadow-sm"
                                 disabled={inFlight || form.formState.isSubmitting}
                                 aria-busy={inFlight}
                             >
                                 {inFlight ? (
                                     <>
-                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                        Opening payment…
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        {confirming ? 'Confirming payment…' : 'Waiting for payment…'}
                                     </>
                                 ) : (
-                                    'Deposit now'
+                                    <>
+                                        <Lock className="h-4 w-4" />
+                                        {Number.isFinite(amount) && amount >= 100
+                                            ? `Deposit ₦${amount.toLocaleString('en-NG')}`
+                                            : 'Deposit'}
+                                    </>
                                 )}
                             </Button>
 

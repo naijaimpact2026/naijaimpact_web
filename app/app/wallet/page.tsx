@@ -3,6 +3,7 @@ import Script from 'next/script'
 import { getCurrentUser } from '@/lib/supabase/auth'
 import { fetchWallet } from '@/lib/actions/wallet'
 import WalletPanel from '@/components/app/wallet/WalletPanel'
+import PendingPaymentsCheck from '@/components/app/wallet/PendingPaymentsCheck'
 import { hasWalletPin } from '@/lib/wallet-pin'
 import { fetchEscrowSummary } from '@/lib/actions/artisan-jobs'
 
@@ -28,6 +29,9 @@ export default async function WalletPage() {
                 src="https://js.paystack.co/v1/inline.js"
                 strategy="lazyOnload"
             />
+
+            {/* Credits any deposit the webhook hasn't settled yet. */}
+            <PendingPaymentsCheck />
 
             <WalletPanel
                 wallet={wallet}
