@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getViewerWalletBalance, sendLiveStreamTip } from '@/lib/actions/creator-earnings'
+import { openPaystack } from '@/lib/payments/paystack-popup'
 
 interface LiveTipModalProps {
     isOpen: boolean
@@ -162,34 +163,30 @@ export default function LiveTipModal({
                 setErrorMsg('Paystack configuration error. Please try paying with wallet.')
                 return
             }
-            if (typeof window === 'undefined' || !(window as any).PaystackPop) {
-                setErrorMsg('Payment gateway is loading. Please retry in a few moments.')
-                return
-            }
 
             const ref = `TIP-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
 
             setIsSubmitting(true)
-            const handler = (window as any).PaystackPop.setup({
-                key: paystackKey,
+            void openPaystack({
                 email: 'viewer@hubnovo.com',
-                amount: Math.round(effectiveAmount * 100), // in kobo
-                ref,
+                amountKobo: Math.round(effectiveAmount * 100),
+                reference: ref,
                 metadata: {
                     type: 'stream_tip',
                     live_stream_id: liveStreamId,
                     creator_id: creatorId,
                     gift_badge: selectedBadge,
                 },
-                onSuccess: async (tx: any) => {
-                    await handleCompleteTip(tx.reference || ref)
+                onSuccess: async (reference) => {
+                    await handleCompleteTip(reference || ref)
                 },
                 onClose: () => {
                     setIsSubmitting(false)
                 },
+            }).catch((err: unknown) => {
+                setErrorMsg(err instanceof Error ? err.message : 'Could not open payment. Please try again.')
+                setIsSubmitting(false)
             })
-
-            handler.openIframe()
         }
     }
 

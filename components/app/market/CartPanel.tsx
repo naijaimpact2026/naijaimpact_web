@@ -9,9 +9,9 @@ import { ShoppingCart, Minus, Plus, Trash2, Package, Lock } from 'lucide-react'
 import { useMarketCart } from './MarketCartProvider'
 import { createEscrowOrder } from '@/lib/actions/marketplace'
 import { startOrderCheckout } from '@/lib/actions/payments'
+import { openPaystack } from '@/lib/payments/paystack-popup'
+import { confirmPayment } from '@/lib/payments/confirm-payment'
 
-// window.PaystackPop is declared ambiently in components/app/wallet/DepositModal.tsx
-// (declare global — applies program-wide since that file is part of the build).
 
 function fmt(n: number)
 {
@@ -63,13 +63,6 @@ export default function CartPanel({ userId, userEmail }: Props)
         }
 
         const orderIds = succeeded.map((s) => s.order_id)
-        const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ?? ''
-        if (!window.PaystackPop) {
-            toast.error('Payment service is still loading. Please try again in a moment.')
-            setCheckingOut(false)
-            return
-        }
-
         // Server records the payment; the amount is the stored order totals
         // (incl. delivery), not the cart's client-side figure.
         const intent = await startOrderCheckout(orderIds)
@@ -80,31 +73,36 @@ export default function CartPanel({ userId, userEmail }: Props)
             return
         }
 
-        const handler = window.PaystackPop.setup({
-            key: paystackKey,
-            email: intent.email,
-            amount: intent.amountKobo,
-            ref: intent.reference,
-            metadata: {
-                type: 'marketplace_purchase',
-                userId: intent.userId,
-                orderIds,
-            },
-            onSuccess: () =>
-            {
-                setCheckingOut(false)
-                clear()
-                toast.success('Payment successful! Your order is being processed.')
-                router.push('/app/market/orders')
-            },
-            onClose: () =>
-            {
-                setCheckingOut(false)
-                toast.info('Payment cancelled. Your order is saved and awaiting payment.')
-                router.push('/app/market/orders')
-            },
-        })
-        handler.openIframe()
+        try
+        {
+            await openPaystack({
+                email: intent.email,
+                amountKobo: intent.amountKobo,
+                reference: intent.reference,
+                metadata: { type: 'marketplace_purchase', userId: intent.userId, orderIds },
+                onSuccess: async (reference) =>
+                {
+                    clear()
+                    toast.info('Confirming your payment…')
+                    const outcome = await confirmPayment(reference)
+                    setCheckingOut(false)
+                    if (outcome.status === 'settled') toast.success('Payment confirmed! Your order is being processed.')
+                    else toast.info("Payment received. We'll mark your order paid as soon as Paystack confirms it.")
+                    router.push('/app/market/orders')
+                },
+                onClose: () =>
+                {
+                    setCheckingOut(false)
+                    toast.info('Payment cancelled. Your order is saved and awaiting payment.')
+                    router.push('/app/market/orders')
+                },
+            })
+        } catch (err)
+        {
+            setCheckingOut(false)
+            toast.error(err instanceof Error ? err.message : 'Could not open payment. Your order is saved in My Orders.')
+            router.push('/app/market/orders')
+        }
     }
 
     return (

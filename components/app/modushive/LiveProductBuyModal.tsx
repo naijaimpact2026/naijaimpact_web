@@ -9,6 +9,7 @@ import { toast } from '@/components/toast'
 import { getViewerWalletBalance } from '@/lib/actions/creator-earnings'
 import { purchasePinnedProduct } from '@/lib/actions/live-shopping'
 import type { PinnedProduct } from '@/lib/types'
+import { openPaystack } from '@/lib/payments/paystack-popup'
 
 interface LiveProductBuyModalProps {
     isOpen: boolean
@@ -104,19 +105,14 @@ export default function LiveProductBuyModal({
             setErrorMsg('Paystack configuration error. Please try paying with wallet.')
             return
         }
-        if (typeof window === 'undefined' || !(window as any).PaystackPop) {
-            setErrorMsg('Payment gateway is loading. Please retry in a few moments.')
-            return
-        }
 
         const ref = `SHOP-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
 
         setLoading(true)
-        const handler = (window as any).PaystackPop.setup({
-            key: paystackKey,
+        void openPaystack({
             email: 'shopper@hubnovo.com',
-            amount: Math.round(totalAmount * 100), // in kobo
-            ref,
+            amountKobo: Math.round(totalAmount * 100),
+            reference: ref,
             metadata: {
                 type: 'stream_shopping_order',
                 live_stream_id: liveStreamId,
@@ -124,15 +120,16 @@ export default function LiveProductBuyModal({
                 title: product.title,
                 quantity,
             },
-            onSuccess: async (tx: any) => {
-                await handleCompletePurchase(tx.reference || ref)
+            onSuccess: async (reference) => {
+                await handleCompletePurchase(reference || ref)
             },
             onClose: () => {
                 setLoading(false)
             },
+        }).catch((err: unknown) => {
+            setErrorMsg(err instanceof Error ? err.message : 'Could not open payment. Please try again.')
+            setLoading(false)
         })
-
-        handler.openIframe()
     }
 
     const handleSubmit = async (e: React.FormEvent) => {

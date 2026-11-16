@@ -18,6 +18,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { toast } from '@/components/toast'
 import { getViewerWalletBalance, purchaseStreamTicket } from '@/lib/actions/creator-earnings'
+import { openPaystack } from '@/lib/payments/paystack-popup'
 
 interface WorkshopTicketGateProps {
     liveStreamId: string
@@ -104,33 +105,29 @@ export default function WorkshopTicketGate({
             setErrorMsg('Paystack configuration error. Please try paying with wallet.')
             return
         }
-        if (typeof window === 'undefined' || !(window as any).PaystackPop) {
-            setErrorMsg('Payment gateway is still loading. Please retry in a few moments.')
-            return
-        }
 
         const ref = `TKT-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
 
         setIsPurchasing(true)
-        const handler = (window as any).PaystackPop.setup({
-            key: paystackKey,
+        void openPaystack({
             email: 'attendee@hubnovo.com',
-            amount: Math.round(ticketPrice * 100), // in kobo
-            ref,
+            amountKobo: Math.round(ticketPrice * 100),
+            reference: ref,
             metadata: {
                 type: 'stream_ticket',
                 live_stream_id: liveStreamId,
                 title,
             },
-            onSuccess: async (tx: any) => {
-                await handleConfirmPurchase(tx.reference || ref)
+            onSuccess: async (reference) => {
+                await handleConfirmPurchase(reference || ref)
             },
             onClose: () => {
                 setIsPurchasing(false)
             },
+        }).catch((err: unknown) => {
+            setErrorMsg(err instanceof Error ? err.message : 'Could not open payment. Please try again.')
+            setIsPurchasing(false)
         })
-
-        handler.openIframe()
     }
 
     const handleAction = () => {

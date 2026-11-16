@@ -11,6 +11,7 @@ import
     CarouselPrevious,
 } from '@/components/ui/carousel'
 import type { PostMedia } from '@/lib/types'
+import FeedVideo from './FeedVideo'
 
 interface MediaDisplayProps
 {
@@ -33,12 +34,9 @@ export default function MediaDisplay({ medias, caption }: MediaDisplayProps)
     {
         return (
             <div className="relative w-full aspect-square overflow-hidden rounded-xl bg-black">
-                <video
+                <FeedVideo
                     src={medias[0].url}
-                    controls
-                    poster={undefined}
                     className="absolute inset-0 h-full w-full object-cover"
-                    preload="metadata"
                 />
             </div>
         )
@@ -72,11 +70,9 @@ export default function MediaDisplay({ medias, caption }: MediaDisplayProps)
                         <CarouselItem key={media.id}>
                             {media.media_type === 'video' ? (
                                 <div className="relative w-full aspect-square overflow-hidden rounded-xl bg-black">
-                                    <video
+                                    <FeedVideo
                                         src={media.url}
-                                        controls
                                         className="absolute inset-0 h-full w-full object-cover"
-                                        preload="metadata"
                                     />
                                 </div>
                             ) : (

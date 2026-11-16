@@ -27,6 +27,7 @@ import { initiateCampaignDonation, donateFromWallet, verifyAndProcessCampaignDon
 import { Loader2, Heart, CheckCircle2, CreditCard, Wallet, ShieldCheck, RefreshCw, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import Script from 'next/script'
+import { openPaystack } from '@/lib/payments/paystack-popup'
 
 const donateSchema = z.object({
   amount: z
@@ -105,22 +106,21 @@ export default function DonateModal({
 
         const { reference, userId } = await initiateCampaignDonation(campaignId, values.amount)
 
-        if (!window.PaystackPop) {
-          throw new Error('Paystack payment modal is still loading. Please try again.')
-        }
-
-        const handler = window.PaystackPop.setup({
-          key: paystackKey,
+        // Close the Dialog first so Radix's focus-trap and pointer-events lock
+        // don't freeze Paystack's popup iframe.
+        onOpenChange(false)
+        await openPaystack({
           email: userEmail,
-          amount: Math.round(values.amount * 100), // in kobo
-          ref: reference,
+          amountKobo: Math.round(values.amount * 100),
+          reference,
           metadata: {
             type: 'campaign_donation',
             userId: userId || undefined,
             referenceId: campaignId,
             campaignTitle,
           },
-          onSuccess: async (tx) => {
+          onSuccess: async (txReference) => {
+            const tx = { reference: txReference }
             // Restore modal and show verifying loader
             onOpenChange(true)
             setVerifying(true)
@@ -154,13 +154,6 @@ export default function DonateModal({
             setVerifying(false)
           },
         })
-
-        // Temporarily close Dialog so Radix's focus-trap and pointer-events lock
-        // don't freeze Paystack's popup iframe on first click.
-        onOpenChange(false)
-        setTimeout(() => {
-          handler.openIframe()
-        }, 80)
       }
     } catch (err: any) {
       console.error('Donation error:', err)

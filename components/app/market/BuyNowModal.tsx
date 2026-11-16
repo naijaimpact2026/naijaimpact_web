@@ -6,6 +6,8 @@ import { toast } from '@/components/toast'
 import { X, ShoppingCart, MapPin, Truck, Package, Lock } from 'lucide-react'
 import { createOrder } from '@/lib/actions/marketplace'
 import { startOrderCheckout } from '@/lib/actions/payments'
+import { openPaystack } from '@/lib/payments/paystack-popup'
+import { confirmPayment } from '@/lib/payments/confirm-payment'
 import type { ProductWithSeller } from '@/lib/types'
 
 
@@ -53,13 +55,6 @@ export default function BuyNowModal({ open, onOpenChange, product, userEmail, us
                 delivery_address: address || undefined,
             })
 
-            const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ?? ''
-            if (!window.PaystackPop) {
-                toast.error('Payment service is still loading. Please try again in a moment.')
-                setLoading(false)
-                return
-            }
-
             // Server records the payment (reference + amount from the stored order).
             const intent = await startOrderCheckout([orderId])
             if (!intent.success) {
@@ -68,31 +63,27 @@ export default function BuyNowModal({ open, onOpenChange, product, userEmail, us
                 return
             }
 
-            const handler = window.PaystackPop.setup({
-                key: paystackKey,
+            await openPaystack({
                 email: intent.email,
-                amount: intent.amountKobo,
-                currency: 'NGN',
-                ref: intent.reference,
-                metadata: {
-                    type: 'marketplace_purchase',
-                    userId: intent.userId,
-                    referenceId: orderId,
-                },
+                amountKobo: intent.amountKobo,
+                reference: intent.reference,
+                metadata: { type: 'marketplace_purchase', userId: intent.userId, referenceId: orderId },
                 onClose: () =>
                 {
                     setLoading(false)
                     toast.info('Payment cancelled')
                 },
-                callback: () =>
+                onSuccess: async (reference) =>
                 {
+                    toast.info('Confirming your payment…')
+                    const outcome = await confirmPayment(reference)
                     setLoading(false)
                     onOpenChange(false)
-                    toast.success('Payment successful! Order placed.')
+                    if (outcome.status === 'settled') toast.success('Payment confirmed! Order placed.')
+                    else toast.info("Payment received. We'll mark your order paid as soon as Paystack confirms it.")
                     router.push('/app/market/orders')
                 },
             })
-            handler.openIframe()
         } catch (err)
         {
             setLoading(false)
@@ -230,7 +221,6 @@ export default function BuyNowModal({ open, onOpenChange, product, userEmail, us
                 </div>
             </div>
 
-            <script src="https://js.paystack.co/v1/inline.js" />
         </div>
     )
 }
