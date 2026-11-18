@@ -12,7 +12,9 @@ import { paystackVerify, parseMetadata } from '@/lib/payments/paystack'
  * ?reference=…&trxref=…. The query string is NOT trusted: the reference is
  * verified with Paystack's API, the payment is completed (same code as the
  * webhook, idempotent), and the customer is redirected to the right page with
- * ?payment=success | review | pending | failed.
+ * ?payment=success | review | pending | failed. Deposits from the mobile app
+ * (callback URL carries ?app=1) go to naijaimpact://wallet?payment=…&reference=…
+ * instead.
  *
  * Insurance premiums are left to the webhook (their table has no unique
  * reference key yet, so two writers at once could create two policies).
@@ -32,16 +34,26 @@ function destination(kind: CompleteKind | string, targetId?: string): string {
   }
 }
 
+// Deposits started from the mobile app (POST /api/wallet/deposit adds ?app=1)
+// go back into the app. Always this fixed scheme + path, never a URL taken
+// from the request.
+const APP_RETURN = 'naijaimpact://wallet'
+
 function go(request: NextRequest, path: string, status: 'success' | 'review' | 'pending' | 'failed', reference?: string) {
-  const url = new URL(path, request.url)
+  const url = isAppReturn(request) ? new URL(APP_RETURN) : new URL(path, request.url)
   url.searchParams.set('payment', status)
   if (reference) url.searchParams.set('reference', reference)
   return NextResponse.redirect(url, 303)
 }
 
+// `app` is "1"; tolerate a gateway appending "?trxref=…" to it instead of "&…".
+const appParam = (request: NextRequest) => request.nextUrl.searchParams.get('app') ?? ''
+const isAppReturn = (request: NextRequest) => /^1(\?|$)/.test(appParam(request))
+
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
-  const reference = (params.get('reference') || params.get('trxref') || '').trim()
+  const tail = new URLSearchParams(appParam(request).replace(/^1\??/, ''))
+  const reference = (params.get('reference') || params.get('trxref') || tail.get('reference') || tail.get('trxref') || '').trim()
   if (!REF_RE.test(reference)) return go(request, '/app/wallet', 'failed')
 
   // Each hit calls the Paystack API; keep it bounded per visitor.
