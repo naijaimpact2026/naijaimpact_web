@@ -13,7 +13,9 @@ import WorkshopTicketGate from '@/components/app/modushive/WorkshopTicketGate'
 import PinnedProductOverlay from '@/components/app/modushive/PinnedProductOverlay'
 import HostReplayAction from '@/components/app/modushive/HostReplayAction'
 import DeleteLiveStreamButton from '@/components/app/modushive/DeleteLiveStreamButton'
+import MinimizeButton from '@/components/app/modushive/MinimizeButton'
 import { ProcessingRefresher } from '@/components/app/modushive/VideoActions'
+import type { MiniPlayerState } from '@/components/app/modushive/MiniPlayerContext'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,6 +40,35 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
     const replayR2Url = replayVideo?.provider === 'r2' && replayVideo.source_r2_key ? await presignDownload(replayVideo.source_r2_key).catch(() => null) : null
     const replayDirectUrl = (replayVideo?.provider === 'supabase' || replayVideo?.playback_id?.startsWith('http')) ? replayVideo.playback_id : replayR2Url
     const replayMuxTokens = replayVideo && replayVideo.provider === 'mux' && replayVideo.playback_id ? await signPlayback(replayVideo.playback_id, replayVideo.playback_policy).catch(() => undefined) : undefined
+
+    // ── Build the mini-player state so the MinimizeButton can capture it ──
+    const miniPlayerState: MiniPlayerState | null = (() =>
+    {
+        const sourceUrl = `/app/modushive/live/${id}`
+        const creatorName = host?.display_name ?? 'Creator'
+
+        // Live stream with playback available
+        if (!isLocked && isLive && stream.playback_id)
+        {
+            if (stream.provider === 'cloudflare')
+                return { type: 'cloudflare', playbackId: stream.playback_id, title: stream.title, sourceUrl, creatorName }
+            // Mux
+            return { type: 'mux', playbackId: stream.playback_id, tokens, streamType: 'live', title: stream.title, sourceUrl, creatorName }
+        }
+
+        // Ended stream with replay
+        if (stream.status === 'ended' && replayVideo && replayVideo.status === 'ready')
+        {
+            if (replayVideo.provider === 'cloudflare' && replayVideo.playback_id !== stream.provider_stream_id && !replayVideo.playback_id?.startsWith('http'))
+                return { type: 'cloudflare', playbackId: replayVideo.playback_id!, title: stream.title, sourceUrl, creatorName }
+            if (replayVideo.provider === 'mux' && replayVideo.playback_id)
+                return { type: 'mux', playbackId: replayVideo.playback_id, tokens: replayMuxTokens, streamType: 'on-demand', title: stream.title, sourceUrl, creatorName }
+            if (replayDirectUrl)
+                return { type: 'direct', playbackId: replayDirectUrl, title: stream.title, sourceUrl, creatorName }
+        }
+
+        return null
+    })()
 
     return (
         <div className="w-full px-3 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5 space-y-3 sm:space-y-4">
@@ -189,6 +220,7 @@ export default async function LiveStreamPage({ params }: { params: Promise<{ id:
                         />
                     ) : null
                 }
+                minimizeButton={miniPlayerState ? <MinimizeButton playerState={miniPlayerState} /> : undefined}
             />
         </div>
     )

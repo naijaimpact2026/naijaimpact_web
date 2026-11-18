@@ -12,6 +12,8 @@ import { normalizeRole } from '@/lib/modushive/config'
 import MuxVideoPlayer from '@/components/app/modushive/MuxVideoPlayer'
 import { DeleteVideoButton } from '@/components/app/modushive/VideoActions'
 import AttachRecordingButton from '@/components/app/modushive/AttachRecordingButton'
+import MinimizeButton from '@/components/app/modushive/MinimizeButton'
+import type { MiniPlayerState } from '@/components/app/modushive/MiniPlayerContext'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,11 +49,31 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
     const canDelete = isOwner
     const owner = video.owner
 
+    // ── Mini-player state for the MinimizeButton ──
+    const miniPlayerState: MiniPlayerState | null = (() =>
+    {
+        if (!canPlay) return null
+        const sourceUrl = `/app/modushive/${id}`
+        const creatorName = owner?.display_name ?? 'HubNovo member'
+
+        if (isCloudflare && cfPlaybackId)
+            return { type: 'cloudflare', playbackId: cfPlaybackId, title: video.title, sourceUrl, creatorName }
+        if (isMux && video.playback_id)
+            return { type: 'mux', playbackId: video.playback_id, tokens, streamType: 'on-demand', title: video.title, sourceUrl, creatorName }
+        if (directVideoUrl)
+            return { type: 'direct', playbackId: directVideoUrl, title: video.title, sourceUrl, creatorName }
+
+        return null
+    })()
+
     return (
         <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4">
-            <Link href="/app/modushive" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="h-4 w-4" /> Livestream
-            </Link>
+            <div className="flex items-center justify-between">
+                <Link href="/app/modushive" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground">
+                    <ArrowLeft className="h-4 w-4" /> Livestream
+                </Link>
+                {miniPlayerState && <MinimizeButton playerState={miniPlayerState} />}
+            </div>
 
             {canPlay ? (
                 isCloudflare ? (
