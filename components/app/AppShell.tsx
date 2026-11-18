@@ -14,6 +14,8 @@ import { disconnectChatUser } from '@/lib/stream'
 import SignOutPromptModal, { type SignOutFeedback } from './SignOutPromptModal'
 import { recordSignOutFeedback } from '@/lib/actions/auth'
 import NovoCompanion from './mascot'
+import { MiniPlayerProvider } from './modushive/MiniPlayerContext'
+import MiniPlayerOverlay from './modushive/MiniPlayerOverlay'
 
 interface AppShellInnerProps
 {
@@ -109,6 +111,9 @@ function AppShellInner({ children, user }: AppShellInnerProps)
             {/* AI Animated Mascot Companion */}
             <NovoCompanion user={user} />
 
+            {/* YouTube-style floating mini-player */}
+            <MiniPlayerOverlay />
+
             {/* Sign-out Confirmation & Question Modal */}
             <SignOutPromptModal
                 isOpen={signOutModalOpen}
@@ -135,7 +140,9 @@ export default function AppShell({ children, user, initialNotificationCount = 0 
                 <NotificationListener userId={user.id} initialUnreadCount={initialNotificationCount} />
             )}
             <ChatProvider>
-                <AppShellInner user={user}>{children}</AppShellInner>
+                <MiniPlayerProvider>
+                    <AppShellInner user={user}>{children}</AppShellInner>
+                </MiniPlayerProvider>
             </ChatProvider>
         </UnreadCountProvider>
     )

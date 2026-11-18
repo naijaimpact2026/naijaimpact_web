@@ -16,6 +16,8 @@ interface LiveStreamLayoutProps
     creatorAvatar?: string
     liveStreamId?: string
     pinnedProductOverlay?: React.ReactNode
+    /** Optional minimize button rendered in the top-right action area */
+    minimizeButton?: React.ReactNode
 }
 
 export default function LiveStreamLayout({
@@ -28,6 +30,7 @@ export default function LiveStreamLayout({
     creatorAvatar,
     liveStreamId,
     pinnedProductOverlay,
+    minimizeButton,
 }: LiveStreamLayoutProps)
 {
     const [isChatOpen, setIsChatOpen] = useState(true)
@@ -38,17 +41,20 @@ export default function LiveStreamLayout({
             {/* Top Navigation Row */}
             <div className="flex items-center justify-between gap-4">
                 {backLink}
-                {hasChat && !isChatOpen && (
-                    <button
-                        type="button"
-                        onClick={() => setIsChatOpen(true)}
-                        className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-semibold text-foreground hover:bg-muted transition-colors shadow-sm"
-                        aria-label="Show live chat"
-                    >
-                        <MessageSquare className="h-3.5 w-3.5 text-primary" />
-                        <span>Show chat</span>
-                    </button>
-                )}
+                <div className="flex items-center gap-2">
+                    {minimizeButton}
+                    {hasChat && !isChatOpen && (
+                        <button
+                            type="button"
+                            onClick={() => setIsChatOpen(true)}
+                            className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-semibold text-foreground hover:bg-muted transition-colors shadow-sm"
+                            aria-label="Show live chat"
+                        >
+                            <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                            <span>Show chat</span>
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Main Responsive Grid */}
