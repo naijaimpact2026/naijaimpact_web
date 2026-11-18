@@ -1,12 +1,31 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, Clock, Hand, Loader2, ShieldCheck, Upload, XCircle, Zap } from 'lucide-react'
+import {
+    ArrowRight,
+    BookOpen,
+    CheckCircle2,
+    Clock,
+    ExternalLink,
+    Hand,
+    Loader2,
+    PlusCircle,
+    Radio,
+    ShieldCheck,
+    Star,
+    Store,
+    Truck,
+    Upload,
+    XCircle,
+    Zap,
+} from 'lucide-react'
 import { toast } from '@/components/toast'
 import { checkInMission, claimMission } from '@/lib/actions/competitions'
 import type { MissionView } from '@/lib/competitions/config'
 import ProofDialog from './ProofDialog'
+import SellerGuideModal from './SellerGuideModal'
 
 interface Props
 {
@@ -22,16 +41,37 @@ const VERIFY_LABEL = {
     checkin: { icon: Hand, text: 'Self check-in' },
 } as const
 
+interface MissionActionConfig
+{
+    label: string
+    href?: string
+    isGuide?: boolean
+    icon: React.ComponentType<{ className?: string }>
+}
+
+const MISSION_ACTIONS: Record<string, MissionActionConfig> = {
+    setup_store: { label: 'Storefront Settings', href: '/app/market/stores', icon: Store },
+    first_listing: { label: 'Create Listing', href: '/app/market/create', icon: PlusCircle },
+    ten_listings: { label: 'Add Product', href: '/app/market/create', icon: PlusCircle },
+    seller_guide: { label: 'Read Seller Guide', isGuide: true, icon: BookOpen },
+    first_delivery: { label: 'View Orders', href: '/app/market/orders', icon: Truck },
+    ten_deliveries: { label: 'Manage Orders', href: '/app/market/orders', icon: Truck },
+    five_star: { label: 'My Reviews', href: '/app/market/stores', icon: Star },
+    go_live: { label: 'Open Studio', href: '/app/modushive/studio', icon: Radio },
+}
+
 export default function MissionCard({ mission, joined, seasonOpen, themeColor }: Props)
 {
     const router = useRouter()
     const [pending, startTransition] = useTransition()
     const [proofOpen, setProofOpen] = useState(false)
+    const [guideOpen, setGuideOpen] = useState(false)
 
     const ready = mission.verification === 'auto' && (mission.progress ?? 0) >= mission.target
     const sub = mission.submission
     const pct = mission.verification === 'auto' && mission.progress !== null ? Math.round((mission.progress / mission.target) * 100) : null
     const Verify = VERIFY_LABEL[mission.verification]
+    const actionConfig = MISSION_ACTIONS[mission.key]
 
     function run(action: () => Promise<{ ok: true; xp: number } | { ok: false; error: string }>)
     {
@@ -69,7 +109,16 @@ export default function MissionCard({ mission, joined, seasonOpen, themeColor }:
         )
     } else if (mission.verification === 'checkin')
     {
-        cta = (
+        cta = mission.key === 'seller_guide' ? (
+            <button
+                type="button"
+                onClick={() => setGuideOpen(true)}
+                className="inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-xs font-bold text-white shadow-md hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: themeColor }}
+            >
+                <BookOpen className="h-3.5 w-3.5" /> Read Guide
+            </button>
+        ) : (
             <button
                 type="button"
                 disabled={pending}
@@ -109,6 +158,30 @@ export default function MissionCard({ mission, joined, seasonOpen, themeColor }:
                         <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground">
                             <Verify.icon className="h-3 w-3" /> {Verify.text}
                         </span>
+
+                        {/* Direct action shortcut if mission is not yet completed */}
+                        {!mission.completed && actionConfig && (
+                            actionConfig.isGuide ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setGuideOpen(true)}
+                                    className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary hover:bg-primary/20 transition-colors"
+                                >
+                                    <actionConfig.icon className="h-3 w-3" />
+                                    <span>{actionConfig.label}</span>
+                                    <ArrowRight className="h-2.5 w-2.5" />
+                                </button>
+                            ) : actionConfig.href ? (
+                                <Link
+                                    href={actionConfig.href}
+                                    className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary hover:bg-primary/20 transition-colors"
+                                >
+                                    <actionConfig.icon className="h-3 w-3" />
+                                    <span>{actionConfig.label}</span>
+                                    <ArrowRight className="h-2.5 w-2.5" />
+                                </Link>
+                            ) : null
+                        )}
                     </div>
                     {sub?.status === 'rejected' && !mission.completed && (
                         <p className="flex items-start gap-1 pt-1 text-[11px] text-destructive">
@@ -124,6 +197,15 @@ export default function MissionCard({ mission, joined, seasonOpen, themeColor }:
                 </div>
             )}
             {mission.verification === 'proof' && <ProofDialog mission={mission} open={proofOpen} onOpenChange={setProofOpen} />}
+            {actionConfig?.isGuide && (
+                <SellerGuideModal
+                    open={guideOpen}
+                    onOpenChange={setGuideOpen}
+                    missionId={mission.id}
+                    isCompleted={mission.completed}
+                    themeColor={themeColor}
+                />
+            )}
         </div>
     )
 }
