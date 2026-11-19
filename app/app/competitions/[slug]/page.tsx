@@ -13,6 +13,7 @@ import Leaderboard from '@/components/app/competitions/Leaderboard'
 import AvatarSprite from '@/components/app/competitions/AvatarSprite'
 import EditLookButton from '@/components/app/competitions/EditLookButton'
 import WorldCompetitionPage from '@/components/app/world/WorldCompetitionPage'
+import SellerWalletCard from '@/components/app/competitions/SellerWalletCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -131,6 +132,7 @@ export default async function CompetitionPage({
                                             <p className="text-[10px] font-semibold uppercase text-muted-foreground">Missions</p>
                                         </div>
                                     </div>
+                                    {c.slug === 'marketplace' && <SellerWalletCard userId={profile.id} themeColor={c.theme_color} />}
                                 </section>
                             ) : seasonOpen || (c.season_start && Date.now() < new Date(c.season_start).getTime()) ? (
                                 <section className="rounded-3xl border-2 p-4 sm:p-5 shadow-sm bg-card" style={{ borderColor: `${c.theme_color}66` }}>

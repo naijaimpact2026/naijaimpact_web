@@ -1,6 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import {
+    ArrowRight,
     Award,
     CheckCircle2,
     Crown,
@@ -10,6 +12,7 @@ import {
     ShieldCheck,
     Sparkles,
     Trophy,
+    Wallet,
     Zap,
 } from 'lucide-react'
 import { LEVELS, getLevel } from '@/lib/competitions/config'
@@ -132,6 +135,21 @@ export default function RewardsHub({ xp, themeColor, prizeNote }: RewardsHubProp
                         </span>
                     )}
                 </div>
+
+                {/* Where the money goes */}
+                <Link
+                    href="/app/wallet"
+                    className="flex items-center gap-2.5 rounded-2xl border border-border bg-card/60 p-3.5 text-xs transition-colors hover:bg-muted"
+                >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${themeColor}22`, color: themeColor }}>
+                        <Wallet className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                        <p className="font-bold text-foreground">Cash prizes go to your Hubnovo Wallet</p>
+                        <p className="text-[11px] text-muted-foreground">Set a wallet PIN now so you can withdraw your winnings to your bank.</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </Link>
             </div>
 
             {/* ── Level Ladder & Milestone Perks ── */}
