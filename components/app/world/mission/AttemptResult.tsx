@@ -21,6 +21,8 @@ interface Props
     canRetry: boolean
     onRetry: () => void
     homeHref: string
+    /** In the 3D Campus: close the quest sheet instead of navigating. */
+    onHome?: () => void
 }
 
 const HEADLINE = {
@@ -30,7 +32,7 @@ const HEADLINE = {
     rejected: 'Not accepted',
 } as const
 
-export default function AttemptResult({ slug, mission, attempt, awarded, badge, color, canRetry, onRetry, homeHref }: Props)
+export default function AttemptResult({ slug, mission, attempt, awarded, badge, color, canRetry, onRetry, homeHref, onHome }: Props)
 {
     const status = STATUS_META[attempt.status]
     // Celebrate only a fresh pass (awarded is set right after submitting).
@@ -111,9 +113,15 @@ export default function AttemptResult({ slug, mission, attempt, awarded, badge, 
                         <RotateCcw className="h-4 w-4" /> Try again ({attemptsLeft} left)
                     </button>
                 )}
-                <Link href={homeHref} className="hw-press inline-flex h-11 items-center gap-1.5 rounded-xl border border-border px-4 text-sm font-semibold text-foreground hover:bg-muted">
-                    Back to today <ArrowRight className="h-4 w-4" />
-                </Link>
+                {onHome ? (
+                    <button type="button" onClick={onHome} className="hw-press inline-flex h-11 items-center gap-1.5 rounded-xl border border-border px-4 text-sm font-semibold text-foreground hover:bg-muted">
+                        Back to the Campus <ArrowRight className="h-4 w-4" />
+                    </button>
+                ) : (
+                    <Link href={homeHref} className="hw-press inline-flex h-11 items-center gap-1.5 rounded-xl border border-border px-4 text-sm font-semibold text-foreground hover:bg-muted">
+                        Back to the Campus <ArrowRight className="h-4 w-4" />
+                    </Link>
+                )}
             </div>
 
             {(attempt.status === 'rejected' || (attempt.status === 'needs_revision' && !canRetry)) && <AppealForm slug={slug} attemptId={attempt.id} />}

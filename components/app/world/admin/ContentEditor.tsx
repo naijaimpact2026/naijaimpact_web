@@ -8,7 +8,7 @@ import { toast } from '@/components/toast'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { duplicateMissionsAction, listAdminMissionsAction, setMissionActiveAction } from '@/lib/actions/world'
 import { checkWeek, isFinaleWeek, type AdminMission } from '@/lib/world/content-rules'
-import type { Pathway, PathwayView, RubricView } from '@/lib/world/types'
+import { QUEST_DAY, QUEST_SLOTS, QUEST_SLOT_LABEL, type Pathway, type PathwayView, type RubricView } from '@/lib/world/types'
 import { DAY_NAMES, KIND_META } from '@/lib/world/ui'
 import { inputCls, labelCls } from './ConfigEditors'
 import ImportWeek from './ImportWeek'
@@ -147,8 +147,8 @@ export default function ContentEditor({ slug, name, weeks, currentWeek, pathways
                         </select></label>
                     <label className="space-y-1"><span className={labelCls}>Day</span>
                         <select className={`${inputCls} w-32`} value={day} onChange={(e) => setDay(e.target.value === 'all' ? 'all' : Number(e.target.value))}>
-                            <option value="all">Every day</option>
-                            {DAY_NAMES.map((n, i) => <option key={n} value={i + 1}>{n}{i === 6 ? ' (boss)' : ''}</option>)}
+                            <option value="all">Every quest</option>
+                            {QUEST_SLOTS.map((sl) => <option key={sl} value={QUEST_DAY[sl]}>{DAY_NAMES[QUEST_DAY[sl] - 1]} · {QUEST_SLOT_LABEL[sl]}</option>)}
                         </select></label>
                     <label className="flex items-center gap-2 pb-2 text-sm text-foreground"><input type="checkbox" checked={showOff} onChange={(e) => setShowOff(e.target.checked)} /> Show switched-off</label>
                     <div className="ml-auto flex flex-wrap gap-2">
@@ -159,7 +159,7 @@ export default function ContentEditor({ slug, name, weeks, currentWeek, pathways
                     </div>
                 </div>
 
-                {/* Week planner: one row per pathway, Mon–Sun. */}
+                {/* Week planner: one row per pathway, three quests (Mon Play, Wed Do, Sun Show). */}
                 {week !== 'all' && (
                     <section className="space-y-3">
                         {visiblePathways.map((p) =>
@@ -173,14 +173,15 @@ export default function ContentEditor({ slug, name, weeks, currentWeek, pathways
                                             {check.ready ? <><CheckCircle2 className="h-3.5 w-3.5" /> Week complete</> : <><AlertTriangle className="h-3.5 w-3.5" />{check.problems.join(' ')}</>}
                                         </p>
                                     </div>
-                                    <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-                                        {DAY_NAMES.map((dn, i) =>
+                                    <ol className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                        {QUEST_SLOTS.map((sl) =>
                                         {
+                                            const i = QUEST_DAY[sl] - 1, dn = `${DAY_NAMES[i]} · ${QUEST_SLOT_LABEL[sl]}`
                                             const inSlot = missions.filter((m) => m.pathway === p.key && m.week === week && m.day === i + 1).sort((a, b) => Number(b.isActive) - Number(a.isActive))
                                             const live = inSlot.find((m) => m.isActive)
                                             return (
                                                 <li key={dn} className={`flex min-h-[86px] flex-col rounded-2xl border p-2 text-xs ${live ? 'border-border bg-background' : 'border-dashed border-border bg-muted/30'}`}>
-                                                    <span className="font-bold text-muted-foreground">{dn}{i === 6 ? ' · boss' : ''}</span>
+                                                    <span className="font-bold text-muted-foreground">{dn}</span>
                                                     {live ? (
                                                         <button onClick={() => setForm({ editing: live, initial: draftFrom(live) })} className="mt-1 text-left font-semibold leading-snug text-foreground hover:underline">
                                                             {live.kind === 'boss' && <Swords className="mr-1 inline h-3.5 w-3.5 text-amber-600" />}{live.title}

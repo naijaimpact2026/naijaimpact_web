@@ -1,4 +1,4 @@
-import { BUCKET_WEIGHTS, DEFAULT_PASS_MARK, type AttemptStatus, type MissionKind, type ScoreBucket, type StageScore } from './types'
+import { DEFAULT_PASS_MARK, type AttemptStatus, type MissionKind, type ScoreBucket, type StageScore } from './types'
 
 /*
  * Stage scoring (separate from XP). Per mission:
@@ -6,19 +6,26 @@ import { BUCKET_WEIGHTS, DEFAULT_PASS_MARK, type AttemptStatus, type MissionKind
  *    retries help you learn and earn XP but can't farm the score;
  *  - reviewed kinds: the best reviewed score (revising after feedback is
  *    part of the "reflection & improvement" the rubric rewards).
- * Bucket = average over the stage's missions in that bucket (missing = 0).
- * Total = weighted by BUCKET_WEIGHTS, renormalised over buckets present.
+ * Each quest earns 0–3 STARS from that score (see starsFor). A stage's
+ * total is its stars as a share of the maximum (quests × 3), 0–100.
  *
- * A stage is PASSED (certificate) when total >= pass mark AND the stage
- * finale (its last boss challenge, e.g. the Week 4 showcase) is passed.
- * Missed or failed daily missions already lower the total, so they don't
- * block the certificate on their own. Decided with the team lead, 12 Nov 2026.
+ * A stage is PASSED (certificate) when total >= pass mark (60% of the stars)
+ * AND the stage finale (its last boss challenge, e.g. the Week 4 showcase)
+ * is passed. Missed quests just earn no stars. Stars replaced the 5-part
+ * weighted score on 24 Nov 2026; buckets are still reported (deprecated).
  */
 
 const AUTO_KINDS: MissionKind[] = ['quiz', 'sort', 'scenario']
 
 export interface ScoredMission { id: string; stage: number; kind: MissionKind; bucket: ScoreBucket; week: number }
 export interface ScoredAttempt { mission_id: string; attempt_no: number; status: AttemptStatus; score: number | null }
+
+/** Stars for one quest score: 85+ = 3, 70+ = 2, 50+ = 1, otherwise 0. */
+export function starsFor(score: number | null): number
+{
+    if (score === null || !Number.isFinite(score)) return 0
+    return score >= 85 ? 3 : score >= 70 ? 2 : score >= 50 ? 1 : 0
+}
 
 export function missionScore(m: ScoredMission, attempts: ScoredAttempt[]): number | null
 {
@@ -35,22 +42,28 @@ export function stageScores(missions: ScoredMission[], attempts: ScoredAttempt[]
     {
         const list = missions.filter((m) => m.stage === stage)
         const buckets = { evidence: 0, quality: 0, reflection: 0, teamwork: 0, showcase: 0 } as Record<ScoreBucket, number>
-        let weightSum = 0, weighted = 0, done = 0
+        let done = 0, stars = 0
+        const scores = new Map(list.map((m) => [m.id, missionScore(m, attempts)]))
+        // Deprecated: per-bucket averages, kept so older clients still render.
         for (const b of Object.keys(buckets) as ScoreBucket[])
         {
             const inBucket = list.filter((m) => m.bucket === b)
-            if (inBucket.length === 0) continue
-            const scores = inBucket.map((m) => missionScore(m, attempts))
-            buckets[b] = Math.round(scores.reduce<number>((s, v) => s + (v ?? 0), 0) / inBucket.length)
-            weightSum += BUCKET_WEIGHTS[b]
-            weighted += buckets[b] * BUCKET_WEIGHTS[b]
+            if (inBucket.length) buckets[b] = Math.round(inBucket.reduce((s, m) => s + (scores.get(m.id) ?? 0), 0) / inBucket.length)
         }
         const isPassed = (id: string) => attempts.some((a) => a.mission_id === id && a.status === 'passed')
-        for (const m of list) if (isPassed(m.id)) done++
-        const total = weightSum ? Math.round(weighted / weightSum) : 0
+        for (const m of list)
+        {
+            if (isPassed(m.id)) done++
+            stars += starsFor(scores.get(m.id) ?? null)
+        }
+        const maxStars = list.length * 3
+        const total = maxStars ? Math.round((stars / maxStars) * 100) : 0
         const finale = stageFinale(list)
         const finalePassed = finale ? isPassed(finale.id) : false
-        return { stage, buckets, total, passMark, passed: total >= passMark && finalePassed, finalePassed, missionsDone: done, missionsTotal: list.length }
+        return {
+            stage, buckets, total, stars, maxStars, starsToPass: Math.ceil((maxStars * passMark) / 100),
+            passMark, passed: total >= passMark && finalePassed, finalePassed, missionsDone: done, missionsTotal: list.length,
+        }
     })
 }
 

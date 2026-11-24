@@ -1,6 +1,6 @@
 import { isFormKind } from './grading'
 import {
-    STAGE_WEEKS,
+    MAX_QUEST_FIELDS, QUEST_DAY, QUEST_SLOT_LABEL, SLOT_KINDS, STAGE_WEEKS, slotOfDay,
     type FieldDef, type FieldType, type FormConfig, type MissionConfig, type MissionKind, type Pathway, type QuizConfig,
     type ReviewMode, type ScenarioConfig, type ScoreBucket, type SortConfig,
 } from './types'
@@ -11,9 +11,11 @@ import {
  * runs the very same checks before saving.
  *
  *  - graded quizzes, sorts and scenarios need an answer key
- *  - day 7 is the Sunday boss (kind 'boss', judged by humans); the day-7
- *    boss of weeks 4, 8, 12 and 16 is the stage finale (rubric 'showcase')
- *  - a week is ready when each pathway has 7 active missions, one per day
+ *  - three quests a week per pathway: Play on Monday (quiz, sort or
+ *    scenario), Do on Wednesday (evidence or video, at most 3 fields) and
+ *    Show on Sunday (kind 'boss', judged by humans, at most 3 fields)
+ *  - the Sunday boss of weeks 4, 8, 12 and 16 is the stage finale (rubric 'showcase')
+ *  - a week is ready when each pathway has exactly those three quests
  */
 
 export const MISSION_KINDS: MissionKind[] = ['quiz', 'sort', 'scenario', 'board', 'canvas', 'evidence', 'video', 'reflection', 'team', 'live_event', 'boss']
@@ -224,6 +226,8 @@ export function checkMission(m: MissionInput, opts: { weeks: number; rubrics: Se
     if (!PATHWAYS.includes(m.pathway)) return 'Choose the Career or Enterprise pathway.'
     if (!isInt(m.week, 1, opts.weeks)) return `Week must be 1–${opts.weeks}.`
     if (!isInt(m.day, 1, 7)) return 'Day must be 1–7 (7 = Sunday boss).'
+    const slot = slotOfDay(m.day)
+    if (!slot) return 'Quests open on Monday (Play), Wednesday (Do) or Sunday (Show).'
     if (!isStr(m.title, 140)) return 'Add a title (up to 140 characters).'
     if (m.story != null && (typeof m.story !== 'string' || m.story.length > 4000)) return 'The story is too long (4,000 characters max).'
     if (!MISSION_KINDS.includes(m.kind)) return 'Choose a mission kind.'
@@ -239,8 +243,9 @@ export function checkMission(m: MissionInput, opts: { weeks: number; rubrics: Se
     if (!m.config || typeof m.config !== 'object') return 'The mission has no activity set up.'
 
     // Schedule rules.
-    if (m.day === 7 && m.kind !== 'boss') return 'Day 7 (Sunday) must be a boss mission.'
-    if (m.kind === 'boss' && m.day !== 7) return 'Boss missions go on day 7 (Sunday).'
+    if (!SLOT_KINDS[slot].includes(m.kind))
+        return `${QUEST_SLOT_LABEL[slot]} quests (${['', 'Monday', '', 'Wednesday', '', '', '', 'Sunday'][m.day]}) must be ${SLOT_KINDS[slot].map((k) => KIND_NAME[k] ?? k).join(' or ')}.`
+    if (m.kind === 'boss' && m.day !== QUEST_DAY.show) return 'Boss missions go on Sunday (Show).'
     if (m.kind === 'boss' && m.reviewMode !== 'human') return 'Boss missions are scored by judges: set review to “human”.'
     if (m.kind === 'boss' && isFinaleWeek(m.week))
     {
@@ -252,21 +257,33 @@ export function checkMission(m: MissionInput, opts: { weeks: number; rubrics: Se
     if (m.kind === 'quiz') return checkQuiz(m.config as QuizConfig, key)
     if (m.kind === 'sort') return checkSort(m.config as SortConfig, key)
     if (m.kind === 'scenario') return checkScenario(m.config as ScenarioConfig, key)
-    if (isFormKind(m.kind)) return checkForm(m.config as FormConfig)
+    if (isFormKind(m.kind))
+    {
+        const form = m.config as FormConfig
+        if (Array.isArray(form?.fields) && form.fields.length > MAX_QUEST_FIELDS)
+            return `Keep it light: ${QUEST_SLOT_LABEL[slot]} quests have at most ${MAX_QUEST_FIELDS} fields (this has ${form.fields.length}).`
+        return checkForm(form)
+    }
     return null
 }
 
-/** Week-level rules for one pathway: 7 active missions, Sunday boss, finale on stage weeks. */
+const KIND_NAME: Partial<Record<MissionKind, string>> = { quiz: 'a quiz', sort: 'a sort game', scenario: 'a scenario', evidence: 'an evidence task', video: 'a video', boss: 'a boss challenge' }
+
+/** Week-level rules for one pathway: Play (Mon), Do (Wed), Show (Sun boss); finale on stage weeks. */
 export function checkWeek(pathway: Pathway, week: number, missions: { pathway: Pathway; week: number; day: number; kind: MissionKind; rubricKey: string | null; isActive: boolean }[]): WeekCheck
 {
     const list = missions.filter((m) => m.isActive && m.pathway === pathway && m.week === week)
     const days = [1, 2, 3, 4, 5, 6, 7].map((d) => list.filter((m) => m.day === d).length)
     const problems: string[] = []
     const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    const missing = days.flatMap((n, i) => (n === 0 ? [names[i]] : []))
+    const questDays = Object.values(QUEST_DAY)
+    const missing = questDays.filter((d) => days[d - 1] === 0).map((d) => `${names[d - 1]} (${QUEST_SLOT_LABEL[slotOfDay(d)!]})`)
     const doubled = days.flatMap((n, i) => (n > 1 ? [names[i]] : []))
-    if (missing.length) problems.push(`Missing ${missing.join(', ')} (${list.length}/7 missions).`)
-    if (doubled.length) problems.push(`More than one mission on ${doubled.join(', ')}.`)
+    const offDay = days.flatMap((n, i) => (n > 0 && !questDays.includes(i + 1) ? [names[i]] : []))
+    const quests = questDays.filter((d) => days[d - 1] > 0).length
+    if (missing.length) problems.push(`Missing ${missing.join(', ')} (${quests}/3 quests).`)
+    if (doubled.length) problems.push(`More than one quest on ${doubled.join(', ')}.`)
+    if (offDay.length) problems.push(`${offDay.join(', ')} ${offDay.length > 1 ? 'are not quest days' : 'is not a quest day'}: switch those off or move them to Mon, Wed or Sun.`)
     const sunday = list.find((m) => m.day === 7)
     if (sunday && sunday.kind !== 'boss') problems.push('Sunday must be a boss mission.')
     if (sunday && isFinaleWeek(week) && sunday.rubricKey !== FINALE_RUBRIC) problems.push(`Sunday must be the stage finale (rubric “${FINALE_RUBRIC}”).`)

@@ -145,6 +145,57 @@ export function buildDecor(occupied: (x: number, z: number) => boolean): DecorIt
     return items
 }
 
+// ─── The walkable grid (shared by the 3D scene, the server and the mobile API) ─
+
+/** Key used for the daily drop in door / walk-to handling. */
+export const DROP_KEY = '__drop__'
+
+/** Where the player appears: the Arrival Plaza, just west of the roundabout. */
+export const SPAWN = { x: CENTER - 3, z: CENTER }
+
+export interface WorldGrid
+{
+    /** 1 = can't walk there (building, decor, map edge). Index with idx(x, z). */
+    blocked: Uint8Array
+    /** Walk onto a door to enter that zone. */
+    doors: { key: string; x: number; z: number }[]
+    decor: DecorItem[]
+}
+
+/** Blocked tiles, doors and decor for a set of placed zones (pure, deterministic). */
+export function buildWorldGrid<T extends { key: string }>(placed: { zone: T; slot: Slot }[]): WorldGrid
+{
+    const blocked = new Uint8Array(N * N)
+    const occupiedBy = (x: number, z: number) => placed.some(({ slot }) => slot.style !== 'trophy' && x >= slot.x0 && x < slot.x1 && z >= Math.min(slot.z0, slot.door.z) && z <= Math.max(slot.z1 - 1, slot.door.z))
+    for (const { slot } of placed)
+    {
+        if (slot.style === 'trophy') continue
+        // Building rows (everything except the walkway row with the door).
+        for (let z = slot.z0; z < slot.z1; z++) for (let x = slot.x0; x < slot.x1; x++)
+            if (z !== slot.door.z) blocked[idx(x, z)] = 1
+    }
+    const decor = buildDecor(occupiedBy)
+    for (const d of decor) if (d.kind !== 'flower') blocked[idx(d.x, d.z)] = 1
+    // Map edges are scenery.
+    for (let i = 0; i < N; i++) { blocked[idx(i, 0)] = blocked[idx(i, N - 1)] = blocked[idx(0, i)] = blocked[idx(N - 1, i)] = 1 }
+    const doors = placed.map(({ zone, slot }) => ({ key: zone.key, x: slot.door.x, z: slot.door.z }))
+    return { blocked, doors, decor }
+}
+
+/** Tiles a daily drop may appear on: walkable, off the roads, not a door or the spawn point, away from the map edge. */
+export function dropSpots(grid: WorldGrid): { x: number; z: number }[]
+{
+    const spots: { x: number; z: number }[] = []
+    for (let z = 2; z <= N - 3; z++) for (let x = 2; x <= N - 3; x++)
+    {
+        if (grid.blocked[idx(x, z)] || isRoad(x, z)) continue
+        if (grid.doors.some((d) => d.x === x && d.z === z)) continue
+        if (Math.abs(x - SPAWN.x) <= 1 && Math.abs(z - SPAWN.z) <= 1) continue
+        spots.push({ x, z })
+    }
+    return spots
+}
+
 // ─── Pathfinding (A*, 8-dir, no corner cutting) ─────────────────────────────
 
 export function findPath(blocked: Uint8Array, sx: number, sz: number, tx: number, tz: number): { x: number; z: number }[] | null

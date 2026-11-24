@@ -26,6 +26,8 @@ export interface SeedMission
 
 export const text = (id: string, label: string, o: Partial<FieldDef> = {}): FieldDef => ({ id, label, type: 'text', required: true, ...o })
 export const area = (id: string, label: string, minWords = 20, o: Partial<FieldDef> = {}): FieldDef => ({ id, label, type: 'textarea', required: true, minWords, maxWords: 600, ...o })
+/** One short line (up to ~50 words, no minimum): the "+ 1 line" of a Do quest. */
+export const line = (id: string, label: string, o: Partial<FieldDef> = {}): FieldDef => ({ id, label, type: 'textarea', required: true, maxWords: 50, hint: 'One or two sentences is enough.', ...o })
 export const num = (id: string, label: string, min = 0, max = 100000000, o: Partial<FieldDef> = {}): FieldDef => ({ id, label, type: 'number', required: true, min, max, ...o })
 export const pick = (id: string, label: string, options: string[], o: Partial<FieldDef> = {}): FieldDef =>
     ({ id, label, type: 'select', required: true, options: options.map((l, i) => ({ id: `o${i + 1}`, label: l })), ...o })

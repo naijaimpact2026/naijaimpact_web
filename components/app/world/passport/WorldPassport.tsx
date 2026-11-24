@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { Award, CheckCircle2, Coins, Hourglass, Lock, Medal, ShieldCheck, Sparkles, Zap } from 'lucide-react'
 import type { User } from '@/lib/types'
 import { characterPreviewUrl } from '@/lib/competitions/config'
-import { BUCKET_WEIGHTS, STAGE_WEEKS, TOKENS_LABEL, XP_LABEL, type CompetitionDetail, type MissionView, type ProgressView, type ScoreBucket, type StageScore } from '@/lib/world/types'
+import { STAGE_WEEKS, TOKENS_LABEL, XP_LABEL, type CompetitionDetail, type MissionView, type ProgressView, type StageScore } from '@/lib/world/types'
+import { Stars } from '../campus3d/Stars'
 import { DAY_NAMES, KIND_META } from '@/lib/world/ui'
 import { AnimatedBar, CountUp } from '../fx'
 
@@ -12,7 +13,6 @@ import { AnimatedBar, CountUp } from '../fx'
  * so the mobile app can render the same screen from the same endpoints.
  */
 
-const BUCKET_LABEL: Record<ScoreBucket, string> = { evidence: 'Evidence', quality: 'Quality', reflection: 'Reflection', teamwork: 'Teamwork', showcase: 'Showcase' }
 
 export default function WorldPassport({ competition: c, profile, progress, missions }: { competition: CompetitionDetail; profile: User; progress: ProgressView; missions: MissionView[] })
 {
@@ -134,35 +134,28 @@ export default function WorldPassport({ competition: c, profile, progress, missi
 
 function StageCard({ stage: s, color }: { stage: StageScore; color: string })
 {
-    const gap = Math.max(0, s.passMark - s.total)
+    const gap = Math.max(0, s.starsToPass - s.stars)
     const firstWeek = (s.stage - 1) * STAGE_WEEKS + 1
     return (
         <div className="rounded-3xl border border-border bg-card p-4 sm:p-5 space-y-4">
             <div className="flex items-start justify-between gap-3">
                 <div>
                     <h3 className="text-sm font-bold text-foreground">Stage {s.stage} <span className="font-semibold text-muted-foreground">· Weeks {firstWeek}–{firstWeek + STAGE_WEEKS - 1}</span></h3>
-                    <p className="text-xs text-muted-foreground">{s.missionsDone}/{s.missionsTotal} missions · pass mark {s.passMark}</p>
+                    <p className="text-xs text-muted-foreground">{s.missionsDone}/{s.missionsTotal} quests done · {s.starsToPass} stars to pass</p>
                 </div>
                 <div className="text-right">
-                    <p className="text-2xl font-extrabold tabular-nums text-foreground"><CountUp value={s.total} /></p>
-                    <p className="text-[11px] font-semibold text-muted-foreground">out of 100</p>
+                    <p className="text-2xl font-extrabold tabular-nums text-foreground"><CountUp value={s.stars} /><span className="text-base font-bold text-muted-foreground">/{s.maxStars}</span></p>
+                    <p className="text-[11px] font-semibold text-muted-foreground">stars</p>
                 </div>
             </div>
-            <ul className="space-y-2">
-                {(Object.keys(BUCKET_WEIGHTS) as ScoreBucket[]).map((b) => (
-                    <li key={b} className="grid grid-cols-[92px_1fr_32px] items-center gap-3 text-xs">
-                        <span className="font-semibold text-foreground">{BUCKET_LABEL[b]} <span className="text-muted-foreground">{BUCKET_WEIGHTS[b]}%</span></span>
-                        <AnimatedBar pct={s.buckets[b]} color={color} />
-                        <span className="text-right font-bold tabular-nums text-foreground">{s.buckets[b]}</span>
-                    </li>
-                ))}
-            </ul>
+            <AnimatedBar pct={s.maxStars ? (s.stars / s.maxStars) * 100 : 0} color={s.stars >= s.starsToPass ? '#16A34A' : color} className="h-2.5" />
+            <p className="flex items-center gap-2 text-[11px] text-muted-foreground"><Stars n={3} size="h-3 w-3" /> 85+ · <Stars n={2} size="h-3 w-3" /> 70+ · <Stars n={1} size="h-3 w-3" /> 50+ on each quest</p>
             <p className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold ${s.passed ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-muted text-muted-foreground'}`}>
                 {s.passed
                     ? <><Sparkles className="h-4 w-4" /> Stage passed. Your certificate is ready and the next stage is unlocked.</>
                     : gap > 0
-                        ? <><Lock className="h-4 w-4" /> {gap} more point{gap === 1 ? '' : 's'}{s.finalePassed ? '' : `, then pass the Week ${firstWeek + STAGE_WEEKS - 1} finale,`} to pass this stage.</>
-                        : <><Lock className="h-4 w-4" /> Score reached. Pass the Week {firstWeek + STAGE_WEEKS - 1} finale to complete this stage.</>}
+                        ? <><Lock className="h-4 w-4" /> {gap} more star{gap === 1 ? '' : 's'}{s.finalePassed ? '' : `, then pass the Week ${firstWeek + STAGE_WEEKS - 1} finale,`} to pass this stage.</>
+                        : <><Lock className="h-4 w-4" /> Stars reached. Pass the Week {firstWeek + STAGE_WEEKS - 1} finale to complete this stage.</>}
             </p>
         </div>
     )

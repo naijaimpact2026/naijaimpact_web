@@ -169,6 +169,14 @@ export interface MissionView
     badge: { key: string; label: string } | null
     /** "How to do this" — 1–3 practical steps to show before the activity. */
     tips: string[]
+    /** Weekly quest slot from the day: play (Mon), do (Wed), show (Sun); null for older off-day missions. */
+    slot: QuestSlot | null
+    /** Stars earned so far (0–3) from the score that counts. */
+    stars: number
+    /** District in the 3D Campus where this quest happens. */
+    district: 'learning_academy' | 'career_district' | 'enterprise_hub' | 'competition_arena' | 'rewards_exchange'
+    /** Who greets the player there. character = index into the avatar characters. */
+    host: { name: string; character: number; line: string }
 }
 
 export interface PathwayView
@@ -213,9 +221,15 @@ export interface InstitutionView
 export interface StageScore
 {
     stage: number
-    /** Each bucket 0–100 (average of counted missions). */
+    /** @deprecated Stars replaced the weighted buckets (24 Nov 2026). Each bucket 0–100. */
     buckets: Record<ScoreBucket, number>
-    /** Weighted total 0–100 (40/25/15/10/10). */
+    /** Stars earned in this stage (0–3 per quest). */
+    stars: number
+    /** Most stars possible (quests × 3). */
+    maxStars: number
+    /** Stars needed to reach the pass mark. */
+    starsToPass: number
+    /** Stars as a share of maxStars, 0–100 (used on certificates). */
     total: number
     passMark: number
     /** total >= passMark AND the stage finale (last boss challenge) passed. */
@@ -234,6 +248,8 @@ export interface ProgressView
     rank: number | null
     stages: StageScore[]
     badges: { key: string; label: string; icon: string | null; awardedAt: string }[]
+    /** Consecutive Lagos days with a campus drop claimed or a quest submitted. */
+    streak: number
 }
 
 export interface WorldLeaderboardEntry
@@ -329,6 +345,20 @@ export const MAX_ATTEMPTS = 3
 export const STAGE_WEEKS = 4
 export const BUCKET_WEIGHTS: Record<ScoreBucket, number> = { evidence: 40, quality: 25, reflection: 15, teamwork: 10, showcase: 10 }
 export const DEFAULT_PASS_MARK = 60
+
+// ─── Weekly rhythm: three quests a week (24 Nov 2026) ────────────────────────
+
+/** Play = a game in the Learning Academy, Do = one real-world task at your HQ, Show = the Sunday showcase in the Arena. */
+export type QuestSlot = 'play' | 'do' | 'show'
+export const QUEST_SLOTS: QuestSlot[] = ['play', 'do', 'show']
+/** Day of the week each quest opens (1 = Monday). */
+export const QUEST_DAY: Record<QuestSlot, number> = { play: 1, do: 3, show: 7 }
+export const QUEST_SLOT_LABEL: Record<QuestSlot, string> = { play: 'Play', do: 'Do', show: 'Show' }
+export const slotOfDay = (day: number): QuestSlot | null => (day === 1 ? 'play' : day === 3 ? 'do' : day === 7 ? 'show' : null)
+/** Kinds each slot accepts. */
+export const SLOT_KINDS: Record<QuestSlot, MissionKind[]> = { play: ['quiz', 'sort', 'scenario'], do: ['evidence', 'video'], show: ['boss'] }
+/** Most fields a Do or Show form may have (keeps quests light). */
+export const MAX_QUEST_FIELDS = 3
 
 /** World XP levels (a pathway earns ~5,500 XP per 4-week stage). */
 export const WORLD_LEVELS = [
@@ -439,7 +469,7 @@ export interface MyCertificatesView
     enabled: boolean
     certificates: CertificateView[]
     /** The stage the player is working towards (null when every stage is certified). */
-    next: { stage: number; stageName: string; total: number; passMark: number; finalePassed: boolean; finaleWeek: number } | null
+    next: { stage: number; stageName: string; total: number; passMark: number; stars: number; maxStars: number; starsToPass: number; finalePassed: boolean; finaleWeek: number } | null
 }
 
 // ─── Rewards Exchange ────────────────────────────────────────────────────────

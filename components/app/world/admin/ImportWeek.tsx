@@ -69,7 +69,7 @@ export default function ImportWeek({ slug, weeks, rubricKeys, onImported }: { sl
     return (
         <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-                Load a whole week at once: a JSON list in the same shape as the missions in <span className="font-mono">lib/world/content</span>. One week per import; with “Make live” on, each pathway in the file needs 7 missions (Mon–Sun, Sunday = boss). Missions whose <span className="font-mono">key</span> already exists are updated.
+                Load a whole week at once: a JSON list in the same shape as the missions in <span className="font-mono">lib/world/content</span>. One week per import; with “Make live” on, each pathway in the file needs its 3 quests: Play on Monday, Do on Wednesday and Show (the boss) on Sunday. Missions whose <span className="font-mono">key</span> already exists are updated.
             </p>
             <div className="flex flex-wrap items-center gap-3">
                 <label className="hw-press inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted">
@@ -86,7 +86,7 @@ export default function ImportWeek({ slug, weeks, rubricKeys, onImported }: { sl
                     {weekSet.size > 1 && <p className="text-sm font-semibold text-red-600">All missions must be for the same week (found weeks {[...weekSet].join(', ')}).</p>}
                     {activate && checks.map((c) => (
                         <p key={c.pathway} className={`text-sm font-semibold ${c.ready ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}`}>
-                            {c.pathway === 'career' ? 'Career' : 'Enterprise'} week {c.week}: {c.ready ? 'complete (7 missions, Sunday boss).' : c.problems.join(' ')}
+                            {c.pathway === 'career' ? 'Career' : 'Enterprise'} week {c.week}: {c.ready ? 'complete (Play, Do and Show).' : c.problems.join(' ')}
                         </p>
                     ))}
                     <ul className="divide-y divide-border text-sm">

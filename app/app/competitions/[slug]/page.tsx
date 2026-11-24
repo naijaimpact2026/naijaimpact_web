@@ -22,14 +22,14 @@ export default async function CompetitionPage({
     searchParams,
 }: {
     params: Promise<{ slug: string }>
-    searchParams: Promise<{ state?: string; week?: string }>
+    searchParams: Promise<{ state?: string; week?: string; district?: string; quest?: string }>
 })
 {
-    const [{ slug }, { state: stateParam, week: weekParam }, { profile }] = await Promise.all([params, searchParams, getCurrentUser()])
+    const [{ slug }, { state: stateParam, week: weekParam, district: districtParam, quest: questParam }, { profile }] = await Promise.all([params, searchParams, getCurrentUser()])
     // World competitions (e.g. Campus) have their own player experience.
     const format = await competitionFormat(slug)
     if (!format) notFound()
-    if (format === 'world') return <WorldCompetitionPage slug={slug} profile={profile} week={Number(weekParam) || undefined} />
+    if (format === 'world') return <WorldCompetitionPage slug={slug} profile={profile} week={Number(weekParam) || undefined} district={districtParam} quest={questParam} />
     const detail = await getCompetitionDetail(slug, profile)
     if (!detail) notFound()
 

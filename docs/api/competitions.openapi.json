@@ -1,9 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Hubnovo API — Competitions & Wallet",
+    "title": "Hubnovo World — Competitions API",
     "version": "1.0.0",
-    "description": "REST API for the **Campus Competition** (Career & Employability + Enterprise Development pathways) — used by the mobile app and the web.\n\n**Auth:** `Authorization: Bearer <Supabase access token>` (same token as the ModusHive/Livestream API).\n\n**Responses:** success → `200 { \"ok\": true, ...fields }`. Error → `{ \"error\": \"message\" }` with 400 (show the message), 401, 403 (admin only), 404 (also for a competition you can’t play yet), 429 (120 req/min), 500.\n\n**Points:** XP = progress & level. HubTokens = closed-loop, non-cash credits (no cash-out, no transfers).\n\n**Time:** ISO-8601 UTC. Semesters run on Lagos time (UTC+1); day 1 = Monday, day 7 = Sunday (boss day).\n\n**Access:** the Campus Competition is `live` — any signed-in user can join. (A competition in `preview` is limited to admins and testers.)\n\n**Notifications:** Campus events (daily quest open at 07:00 Lagos, Sunday boss live, judge results, appeal results, squad joins/leader changes) are rows in `public.notifications` with `type = 'competition'`. Show `title` + `body`; open `data.url` (a web path such as `/app/competitions/campus/missions/{id}` or `/app/competitions/campus/squad` → map to the app screen). `data.kind` is `world_quest`, `world_attempt`, `world_squad`, `world_certificate` or `world_reward`; `reference_id` (and `data.resource_id`) the mission / attempt / squad id. Push goes out through the existing OneSignal trigger.\n**App flow:** `GET /competitions` → `GET /competitions/campus` (me = null → onboarding) → `GET /institutions` → `POST …/join` → home `GET …/quests/today` → mission `GET …/missions/{id}` → uploads → `POST …/attempts` → `GET …/progress`, `…/leaderboard`, `…/league`.\n\nShared TypeScript types: `lib/world/types.ts` in the web repo.\n\n**Wallet:** `/wallet`, `/banks`, `/users/lookup` return the documented fields directly (no `ok` flag); errors are `{ \"error\" }` with 400 / 401 / 403 / 404 / 429 / 503 (503 = Paystack or the database is unavailable; retry). Amounts are naira. PIN lockout (5 wrong tries → 15 minutes) and rate limits are shared with the web."
+    "description": "REST API for the **Campus Competition** (Career & Employability + Enterprise Development pathways) — used by the mobile app and the web.\n\n**Auth:** `Authorization: Bearer <Supabase access token>` (same token as the ModusHive/Livestream API).\n\n**Responses:** success → `200 { \"ok\": true, ...fields }`. Error → `{ \"error\": \"message\" }` with 400 (show the message), 401, 403 (admin only), 404 (also for a competition you can’t play yet), 429 (120 req/min), 500.\n\n**Points:** XP = progress & level. HubTokens = closed-loop, non-cash credits (no cash-out, no transfers).\n\n**Time:** ISO-8601 UTC. Semesters run on Lagos time (UTC+1); day 1 = Monday, day 7 = Sunday (boss day).\n\n**Access:** the Campus Competition is `live` — any signed-in user can join. (A competition in `preview` is limited to admins and testers.)\n\n**Notifications:** Campus events (daily quest open at 07:00 Lagos, Sunday boss live, judge results, appeal results, squad joins/leader changes) are rows in `public.notifications` with `type = 'competition'`. Show `title` + `body`; open `data.url` (a web path such as `/app/competitions/campus/missions/{id}` or `/app/competitions/campus/squad` → map to the app screen). `data.kind` is `world_quest`, `world_attempt`, `world_squad`, `world_certificate` or `world_reward`; `reference_id` (and `data.resource_id`) the mission / attempt / squad id. Push goes out through the existing OneSignal trigger.\n**App flow:** `GET /competitions` → `GET /competitions/campus` (me = null → onboarding) → `GET /institutions` → `POST …/join` → home `GET …/quests/today` → mission `GET …/missions/{id}` → uploads → `POST …/attempts` → `GET …/progress`, `…/leaderboard`, `…/league`.\n\nShared TypeScript types: `lib/world/types.ts` in the web repo."
   },
   "servers": [
     {
@@ -56,10 +56,6 @@
     {
       "name": "Admin",
       "description": "role = admin"
-    },
-    {
-      "name": "Wallet",
-      "description": "Wallet, deposits (Paystack), withdrawals, transfers, PIN and banks. Amounts in naira."
     }
   ],
   "paths": {
@@ -446,13 +442,228 @@
         }
       }
     },
+    "/competitions/{slug}/world": {
+      "get": {
+        "tags": [
+          "Quests"
+        ],
+        "summary": "The 3D Campus home (one call)",
+        "description": "Everything the Campus home screen needs: HUD (level, XP, HubTokens, streak, stage stars), this week’s 3 quests (full `MissionView`s, so a quest can open without another call), what each district shows, today’s drop, the squad, plus the world layout and model URLs to draw the same 3D Campus as the web. Flow: walk the avatar on walkable tiles → on a door, open `districts[].questIds[0]` (or the district panel) → on `drop.tile`, open the drop. Use `week` to look at another week.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "week",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "world"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "world": {
+                      "$ref": "#/components/schemas/WorldScreen"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
+    "/competitions/{slug}/drops/today": {
+      "get": {
+        "tags": [
+          "Quests"
+        ],
+        "summary": "Today’s campus drop",
+        "description": "One drop per player per Lagos day: a one-tap card standing on a tile in the 3D Campus. Same card and tile all day on web and mobile. Drops give a little XP and keep the streak; they never count towards stars.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "drop"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "drop": {
+                      "$ref": "#/components/schemas/DropView"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Quests"
+        ],
+        "summary": "Answer today’s drop",
+        "description": "Claims today’s drop once: +10 XP for the right answer, +5 for trying. A second claim the same day returns `alreadyClaimed: true` and `xp: 0`.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Success",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "answer"
+                ],
+                "properties": {
+                  "answer": {
+                    "type": "string",
+                    "description": "an option id from the drop"
+                  }
+                }
+              },
+              "example": {
+                "answer": "fact"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "correct",
+                    "xp",
+                    "answer",
+                    "explain",
+                    "streak",
+                    "alreadyClaimed"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "correct": {
+                      "type": "boolean"
+                    },
+                    "xp": {
+                      "type": "integer"
+                    },
+                    "answer": {
+                      "type": "string"
+                    },
+                    "explain": {
+                      "type": "string"
+                    },
+                    "streak": {
+                      "type": "integer"
+                    },
+                    "alreadyClaimed": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
     "/competitions/{slug}/quests": {
       "get": {
         "tags": [
           "Quests"
         ],
         "summary": "A week of missions",
-        "description": "7 missions (Mon–Sun) for the caller’s pathway. Defaults to the current week.",
+        "description": "3 quests for the caller’s pathway: Play (Monday), Do (Wednesday) and Show (Sunday). Defaults to the current week.",
         "parameters": [
           {
             "name": "slug",
@@ -580,25 +791,29 @@
                     "pathway": "career",
                     "stage": 1,
                     "week": 1,
-                    "day": 6,
-                    "title": "Reality mission: talk to a professional",
-                    "story": "Ask a trusted professional about their work…",
+                    "day": 3,
+                    "title": "Talk to a professional",
+                    "story": "Find someone who does a job you’re curious about and ask them about their work…",
                     "kind": "evidence",
                     "config": {
                       "fields": [
                         {
-                          "id": "role",
-                          "label": "Their job title / industry (no name)",
-                          "type": "text",
+                          "id": "notes",
+                          "label": "A photo of your notes (or a PDF)",
+                          "type": "file",
+                          "accept": [
+                            "image",
+                            "pdf"
+                          ],
                           "required": true
                         },
                         {
-                          "id": "insight1",
-                          "label": "Insight 1",
+                          "id": "surprise",
+                          "label": "The most surprising thing they told you",
                           "type": "textarea",
                           "required": true,
-                          "minWords": 10,
-                          "maxWords": 600
+                          "maxWords": 50,
+                          "hint": "One or two sentences is enough."
                         }
                       ],
                       "checklist": [
@@ -612,9 +827,9 @@
                         }
                       ]
                     },
-                    "estMinutes": 30,
-                    "xp": 100,
-                    "tokens": 10,
+                    "estMinutes": 20,
+                    "xp": 200,
+                    "tokens": 20,
                     "bucket": "evidence",
                     "reviewMode": "ai",
                     "rubric": {
@@ -636,9 +851,17 @@
                     "lastAttempt": null,
                     "badge": null,
                     "tips": [
-                      "Ask a working professional about their job…",
-                      "Write 5 insights in your own words. No names or phone numbers."
-                    ]
+                      "Ask a relative, lecturer or neighbour whose job interests you…",
+                      "Write notes on paper, snap a photo, and leave out their name and number."
+                    ],
+                    "slot": "do",
+                    "stars": 0,
+                    "district": "career_district",
+                    "host": {
+                      "name": "Coach Tunde",
+                      "character": 2,
+                      "line": "This one happens out in the real world. Go and do it, then show me what you found."
+                    }
                   },
                   "attempts": []
                 }
@@ -1506,7 +1729,7 @@
           "Certificates"
         ],
         "summary": "My certificates",
-        "description": "Issues any newly earned certificates first. A stage is passed with a stage score of 60+ **and** its finale (last boss challenge, Week 4 for Stage 1) passed. `next` = the stage being worked towards. `enabled: false` = certificates not switched on yet.",
+        "description": "Issues any newly earned certificates first. A stage is passed with 60% of its stars (`starsToPass`) **and** its finale (last boss challenge, Week 4 for Stage 1) passed. `next` = the stage being worked towards. `enabled: false` = certificates not switched on yet.",
         "parameters": [
           {
             "name": "slug",
@@ -1557,8 +1780,18 @@
                             "stageName": {
                               "type": "string"
                             },
-                            "total": {
+                            "stars": {
                               "type": "integer"
+                            },
+                            "maxStars": {
+                              "type": "integer"
+                            },
+                            "starsToPass": {
+                              "type": "integer"
+                            },
+                            "total": {
+                              "type": "integer",
+                              "description": "stars as a share of maxStars, 0–100"
                             },
                             "passMark": {
                               "type": "integer"
@@ -3131,6 +3364,7 @@
           "Admin"
         ],
         "summary": "Load authored missions (admin)",
+        "description": "`retire: true` also switches off missions in the weeks the authored content covers that are no longer in it (never deletes; attempts are kept). Weeks written in the editor are not touched.",
         "parameters": [
           {
             "name": "slug",
@@ -3153,6 +3387,10 @@
                   "overwrite": {
                     "type": "boolean",
                     "default": false
+                  },
+                  "retire": {
+                    "type": "boolean",
+                    "default": false
                   }
                 }
               }
@@ -3169,7 +3407,8 @@
                   "required": [
                     "ok",
                     "inserted",
-                    "updated"
+                    "updated",
+                    "retired"
                   ],
                   "properties": {
                     "ok": {
@@ -3180,6 +3419,9 @@
                       "type": "integer"
                     },
                     "updated": {
+                      "type": "integer"
+                    },
+                    "retired": {
                       "type": "integer"
                     }
                   }
@@ -3620,7 +3862,7 @@
           "Admin"
         ],
         "summary": "Import a whole week as JSON (admin)",
-        "description": "All missions must be for one week. Nothing is written if any mission fails its checks. With `activate` (default true) each pathway in the file needs 7 missions, Mon–Sun, Sunday = boss. Existing keys are updated; `replace: true` switches off other active missions on the same days.",
+        "description": "All missions must be for one week. Nothing is written if any mission fails its checks. With `activate` (default true) each pathway in the file needs its 3 quests: Play (Mon), Do (Wed), Show (Sun boss). Existing keys are updated; `replace: true` switches off other active missions on the same days.",
         "parameters": [
           {
             "name": "slug",
@@ -3649,7 +3891,7 @@
                     "items": {
                       "$ref": "#/components/schemas/MissionInput"
                     },
-                    "maxItems": 28
+                    "maxItems": 12
                   },
                   "replace": {
                     "type": "boolean",
@@ -4107,655 +4349,6 @@
           },
           "404": {
             "$ref": "#/components/responses/E404"
-          }
-        }
-      }
-    },
-    "/wallet": {
-      "get": {
-        "tags": [
-          "Wallet"
-        ],
-        "summary": "Balance and history",
-        "description": "The caller’s balance (`user_wallet.balance`, the only balance) and latest transactions, newest first.",
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100,
-              "default": 50
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "balance",
-                    "transactions"
-                  ],
-                  "properties": {
-                    "balance": {
-                      "type": "number",
-                      "description": "Naira",
-                      "example": 5000
-                    },
-                    "transactions": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/WalletTransaction"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/E401"
-          },
-          "429": {
-            "$ref": "#/components/responses/E429"
-          }
-        }
-      }
-    },
-    "/wallet/deposit": {
-      "post": {
-        "tags": [
-          "Wallet"
-        ],
-        "summary": "Start a deposit (Paystack checkout)",
-        "description": "Records the deposit and opens a Paystack checkout (₦100 – ₦10,000,000). Open `authorizationUrl` in a browser / WebView. When it navigates to `…/api/paystack/callback`, close it and call `POST /wallet/deposit/verify` with the `reference`. The webhook and a daily reconcile also credit it, so a closed app never loses a payment.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "amount"
-                ],
-                "properties": {
-                  "amount": {
-                    "type": "number",
-                    "description": "Naira",
-                    "example": 5000
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "reference",
-                    "authorizationUrl"
-                  ],
-                  "properties": {
-                    "reference": {
-                      "type": "string",
-                      "example": "DEP_3f1c…"
-                    },
-                    "authorizationUrl": {
-                      "type": "string",
-                      "format": "uri"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/E400"
-          },
-          "401": {
-            "$ref": "#/components/responses/E401"
-          },
-          "429": {
-            "$ref": "#/components/responses/E429"
-          },
-          "503": {
-            "$ref": "#/components/responses/E503"
-          }
-        }
-      }
-    },
-    "/wallet/deposit/verify": {
-      "post": {
-        "tags": [
-          "Wallet"
-        ],
-        "summary": "Verify / recover a deposit",
-        "description": "Checks the reference with Paystack and credits it exactly once (safe to repeat). Also recovers an older deposit by reference. The payment must have been made with the caller’s email. `pending` → poll again shortly (or Paystack is still processing / we are reviewing it); `failed` → show `message`.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "reference"
-                ],
-                "properties": {
-                  "reference": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "status"
-                  ],
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "success",
-                        "pending",
-                        "failed"
-                      ]
-                    },
-                    "amount": {
-                      "type": "number",
-                      "description": "success only",
-                      "example": 5000
-                    },
-                    "newBalance": {
-                      "type": "number",
-                      "description": "success only",
-                      "example": 5000
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "pending / failed only — show it"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/E400"
-          },
-          "401": {
-            "$ref": "#/components/responses/E401"
-          },
-          "403": {
-            "description": "Paid from another account, or not a wallet deposit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Paystack has no such reference",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "$ref": "#/components/responses/E429"
-          },
-          "503": {
-            "$ref": "#/components/responses/E503"
-          }
-        }
-      }
-    },
-    "/wallet/withdraw": {
-      "post": {
-        "tags": [
-          "Wallet"
-        ],
-        "summary": "Withdraw to a bank account",
-        "description": "PIN-checked (5 wrong tries lock the PIN for 15 minutes → 429). The server resolves the account holder’s name with Paystack, holds the amount and queues the payout (`pending` until paid). Minimum ₦100; 5 requests per hour.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "amount",
-                  "bankCode",
-                  "accountNumber",
-                  "pin"
-                ],
-                "properties": {
-                  "amount": {
-                    "type": "number",
-                    "description": "Naira",
-                    "example": 5000
-                  },
-                  "bankCode": {
-                    "type": "string",
-                    "example": "058"
-                  },
-                  "accountNumber": {
-                    "type": "string",
-                    "pattern": "^\\d{10}$"
-                  },
-                  "pin": {
-                    "type": "string",
-                    "pattern": "^\\d{4,6}$",
-                    "example": "1234"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "status",
-                    "reference",
-                    "accountName"
-                  ],
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "success",
-                        "pending"
-                      ]
-                    },
-                    "reference": {
-                      "type": "string"
-                    },
-                    "accountName": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/E400"
-          },
-          "401": {
-            "$ref": "#/components/responses/E401"
-          },
-          "429": {
-            "$ref": "#/components/responses/E429"
-          },
-          "503": {
-            "$ref": "#/components/responses/E503"
-          }
-        }
-      }
-    },
-    "/wallet/transfer": {
-      "post": {
-        "tags": [
-          "Wallet"
-        ],
-        "summary": "Send money to a user",
-        "description": "PIN-checked; debit and credit happen in one database transaction. Minimum ₦50; 10 per 10 minutes.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "username",
-                  "amount",
-                  "pin"
-                ],
-                "properties": {
-                  "username": {
-                    "type": "string",
-                    "example": "ada"
-                  },
-                  "amount": {
-                    "type": "number",
-                    "description": "Naira",
-                    "example": 5000
-                  },
-                  "pin": {
-                    "type": "string",
-                    "pattern": "^\\d{4,6}$",
-                    "example": "1234"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "reference",
-                    "newBalance"
-                  ],
-                  "properties": {
-                    "reference": {
-                      "type": "string"
-                    },
-                    "newBalance": {
-                      "type": "number",
-                      "description": "Naira",
-                      "example": 5000
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/E400"
-          },
-          "401": {
-            "$ref": "#/components/responses/E401"
-          },
-          "404": {
-            "description": "No user with that username",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "429": {
-            "$ref": "#/components/responses/E429"
-          },
-          "503": {
-            "$ref": "#/components/responses/E503"
-          }
-        }
-      }
-    },
-    "/wallet/pin": {
-      "get": {
-        "tags": [
-          "Wallet"
-        ],
-        "summary": "Has the caller set a wallet PIN?",
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "hasPin"
-                  ],
-                  "properties": {
-                    "hasPin": {
-                      "type": "boolean"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/E401"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Wallet"
-        ],
-        "summary": "Set or change the wallet PIN",
-        "description": "4–6 digits. Changing an existing PIN needs `currentPin`. Shared with the web.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "pin"
-                ],
-                "properties": {
-                  "pin": {
-                    "type": "string",
-                    "pattern": "^\\d{4,6}$",
-                    "example": "1234"
-                  },
-                  "currentPin": {
-                    "type": "string",
-                    "pattern": "^\\d{4,6}$",
-                    "example": "1234"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkEmpty"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/E400"
-          },
-          "401": {
-            "$ref": "#/components/responses/E401"
-          },
-          "429": {
-            "$ref": "#/components/responses/E429"
-          }
-        }
-      }
-    },
-    "/banks": {
-      "get": {
-        "tags": [
-          "Wallet"
-        ],
-        "summary": "Nigerian banks",
-        "description": "From Paystack, popular banks first (cached 24h; a short built-in list if Paystack is down).",
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "banks"
-                  ],
-                  "properties": {
-                    "banks": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "name",
-                          "code"
-                        ],
-                        "properties": {
-                          "name": {
-                            "type": "string"
-                          },
-                          "code": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/E401"
-          }
-        }
-      }
-    },
-    "/banks/resolve": {
-      "post": {
-        "tags": [
-          "Wallet"
-        ],
-        "summary": "Resolve an account number",
-        "description": "The account holder’s name for a 10-digit NUBAN at a bank. 30 per 10 minutes.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "bankCode",
-                  "accountNumber"
-                ],
-                "properties": {
-                  "bankCode": {
-                    "type": "string",
-                    "example": "058"
-                  },
-                  "accountNumber": {
-                    "type": "string",
-                    "pattern": "^\\d{10}$"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "accountName"
-                  ],
-                  "properties": {
-                    "accountName": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/E400"
-          },
-          "401": {
-            "$ref": "#/components/responses/E401"
-          },
-          "429": {
-            "$ref": "#/components/responses/E429"
-          },
-          "503": {
-            "$ref": "#/components/responses/E503"
-          }
-        }
-      }
-    },
-    "/users/lookup": {
-      "get": {
-        "tags": [
-          "Wallet"
-        ],
-        "summary": "Find a user by username",
-        "description": "For the Send flow. `user` is null when nobody has that username. A leading `@` is ignored.",
-        "parameters": [
-          {
-            "name": "username",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "user"
-                  ],
-                  "properties": {
-                    "user": {
-                      "oneOf": [
-                        {
-                          "$ref": "#/components/schemas/UserCard"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/E400"
-          },
-          "401": {
-            "$ref": "#/components/responses/E401"
-          },
-          "429": {
-            "$ref": "#/components/responses/E429"
           }
         }
       }
@@ -5828,6 +5421,556 @@
               "type": "string"
             },
             "description": "\"How to do this\": 1–3 practical steps to show above the activity."
+          },
+          "slot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuestSlot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stars": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "Stars earned so far (85+ = 3, 70+ = 2, 50+ = 1)"
+          },
+          "district": {
+            "$ref": "#/components/schemas/DistrictKey"
+          },
+          "host": {
+            "$ref": "#/components/schemas/QuestHost"
+          }
+        }
+      },
+      "QuestSlot": {
+        "type": "string",
+        "enum": [
+          "play",
+          "do",
+          "show"
+        ],
+        "description": "Weekly quest: play = Monday game (Learning Academy, marked instantly), do = Wednesday real-world task (your HQ, AI-reviewed), show = Sunday showcase (Arena, judged)."
+      },
+      "DistrictKey": {
+        "type": "string",
+        "enum": [
+          "learning_academy",
+          "career_district",
+          "enterprise_hub",
+          "competition_arena",
+          "rewards_exchange"
+        ]
+      },
+      "QuestHost": {
+        "type": "object",
+        "description": "The character who greets the player in that district. `character` is a 0–11 avatar index (same models as players).",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Professor Ada"
+          },
+          "character": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 11
+          },
+          "line": {
+            "type": "string"
+          }
+        }
+      },
+      "DistrictState": {
+        "type": "object",
+        "description": "What a district shows right now. Draw a bouncing beacon when `state` is open, a check when done, greyed when locked.",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/DistrictKey"
+          },
+          "label": {
+            "type": "string"
+          },
+          "emoji": {
+            "type": "string"
+          },
+          "blurb": {
+            "type": "string"
+          },
+          "host": {
+            "$ref": "#/components/schemas/QuestHost"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "done",
+              "locked",
+              "idle"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "example": "Play · open now"
+          },
+          "questIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Quests to open when the avatar walks in (this week first, then catch-up)"
+          },
+          "done": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "WorldLayout": {
+        "type": "object",
+        "description": "Deterministic Campus layout (same as the web). Tile (x, z) centre = world (x − gridSize/2 + 0.5, z − gridSize/2 + 0.5); x → east, z → south, y up. Kenney buildings face −z, so rotate them by π + facing.",
+        "properties": {
+          "gridSize": {
+            "type": "integer",
+            "example": 21
+          },
+          "tileSize": {
+            "type": "integer",
+            "example": 1
+          },
+          "roadLines": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "center": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "integer"
+              },
+              "z": {
+                "type": "integer"
+              }
+            }
+          },
+          "spawn": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "integer"
+              },
+              "z": {
+                "type": "integer"
+              }
+            }
+          },
+          "roads": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "integer"
+                },
+                "z": {
+                  "type": "integer"
+                },
+                "piece": {
+                  "type": "string",
+                  "enum": [
+                    "straight",
+                    "crossroad",
+                    "roundabout"
+                  ]
+                },
+                "rot": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "districts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "$ref": "#/components/schemas/DistrictKey"
+                },
+                "style": {
+                  "type": "string",
+                  "enum": [
+                    "market",
+                    "tower",
+                    "logistics",
+                    "arena",
+                    "trophy",
+                    "plaza",
+                    "academy"
+                  ]
+                },
+                "x0": {
+                  "type": "integer"
+                },
+                "z0": {
+                  "type": "integer"
+                },
+                "x1": {
+                  "type": "integer"
+                },
+                "z1": {
+                  "type": "integer"
+                },
+                "door": {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "integer"
+                    },
+                    "z": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "facing": {
+                  "type": "number",
+                  "description": "radians, 0 = facing +z"
+                }
+              }
+            }
+          },
+          "decor": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "palm",
+                    "palmTall",
+                    "palmBend",
+                    "bush",
+                    "flower",
+                    "house",
+                    "shop",
+                    "tall",
+                    "light"
+                  ]
+                },
+                "x": {
+                  "type": "integer"
+                },
+                "z": {
+                  "type": "integer"
+                },
+                "rot": {
+                  "type": "number"
+                },
+                "variant": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "blocked": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "gridSize rows of gridSize chars, blocked[z][x]: \"1\" = not walkable. Walk with A* on \"0\" tiles; stepping on a district door opens it; stepping on drop.tile opens the drop."
+          }
+        }
+      },
+      "WorldAssets": {
+        "type": "object",
+        "properties": {
+          "baseUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "models": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            },
+            "description": "GLB URLs (meshopt-compressed, CC0 Kenney kits)"
+          },
+          "characters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": {
+                  "type": "integer"
+                },
+                "model": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "preview": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      },
+      "WorldScreen": {
+        "type": "object",
+        "properties": {
+          "hud": {
+            "type": "object",
+            "properties": {
+              "level": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "integer"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "xpToNext": {
+                    "type": "integer"
+                  },
+                  "progress": {
+                    "type": "number"
+                  }
+                }
+              },
+              "xp": {
+                "type": "integer"
+              },
+              "tokens": {
+                "type": "integer"
+              },
+              "rank": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "streak": {
+                "type": "integer"
+              },
+              "badges": {
+                "type": "integer"
+              },
+              "stage": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/StageScore"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "week": {
+            "type": "object",
+            "properties": {
+              "number": {
+                "type": "integer"
+              },
+              "current": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "total": {
+                "type": "integer"
+              },
+              "quests": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MissionView"
+                },
+                "description": "Play, Do, Show (sorted by day)"
+              }
+            }
+          },
+          "catchUp": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MissionView"
+            }
+          },
+          "districts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DistrictState"
+            }
+          },
+          "drop": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DropView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "squad": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "members": {
+                    "type": "integer"
+                  },
+                  "needed": {
+                    "type": "integer"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "me": {
+            "type": "object",
+            "properties": {
+              "character": {
+                "type": "integer"
+              },
+              "pathway": {
+                "$ref": "#/components/schemas/Pathway"
+              },
+              "lite": {
+                "type": "boolean",
+                "description": "true = show the 2D map instead of 3D"
+              },
+              "reducedMotion": {
+                "type": "boolean"
+              }
+            }
+          },
+          "layout": {
+            "$ref": "#/components/schemas/WorldLayout"
+          },
+          "assets": {
+            "$ref": "#/components/schemas/WorldAssets"
+          }
+        }
+      },
+      "DropView": {
+        "type": "object",
+        "description": "Today’s campus drop. Walk the avatar to `tile` (world grid) to open the card. The answer is only sent after claiming.",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "false until drops are switched on"
+          },
+          "day": {
+            "type": "string",
+            "format": "date",
+            "description": "Lagos day"
+          },
+          "key": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "tile": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "integer"
+              },
+              "z": {
+                "type": "integer"
+              }
+            }
+          },
+          "xp": {
+            "type": "object",
+            "properties": {
+              "correct": {
+                "type": "integer",
+                "example": 10
+              },
+              "tried": {
+                "type": "integer",
+                "example": 5
+              }
+            }
+          },
+          "claimed": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "correct": {
+                    "type": "boolean"
+                  },
+                  "xp": {
+                    "type": "integer"
+                  },
+                  "answer": {
+                    "type": "string"
+                  },
+                  "explain": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "streak": {
+            "type": "integer"
           }
         }
       },
@@ -6017,12 +6160,26 @@
       },
       "StageScore": {
         "type": "object",
+        "description": "Stars per stage: each quest earns 0–3 stars from its score (85+ = 3, 70+ = 2, 50+ = 1). Pass = stars ≥ 60% of maxStars AND the stage finale passed.",
         "properties": {
           "stage": {
             "type": "integer"
           },
+          "stars": {
+            "type": "integer",
+            "description": "stars earned in this stage"
+          },
+          "maxStars": {
+            "type": "integer",
+            "description": "quests × 3"
+          },
+          "starsToPass": {
+            "type": "integer"
+          },
           "buckets": {
             "type": "object",
+            "deprecated": true,
+            "description": "Deprecated (24 Nov 2026): replaced by stars. Still sent for older clients.",
             "properties": {
               "evidence": {
                 "type": "number"
@@ -6042,12 +6199,17 @@
             }
           },
           "total": {
-            "type": "number"
+            "type": "number",
+            "description": "stars as a share of maxStars, 0–100 (shown on certificates)"
           },
           "passMark": {
-            "type": "integer"
+            "type": "integer",
+            "description": "percent of maxStars needed (60)"
           },
           "passed": {
+            "type": "boolean"
+          },
+          "finalePassed": {
             "type": "boolean"
           },
           "missionsDone": {
@@ -6103,6 +6265,10 @@
             "items": {
               "$ref": "#/components/schemas/StageScore"
             }
+          },
+          "streak": {
+            "type": "integer",
+            "description": "Consecutive Lagos days with a campus drop claimed or a quest submitted"
           },
           "badges": {
             "type": "array",
@@ -6999,7 +7165,7 @@
             "items": {
               "type": "integer"
             },
-            "description": "active missions per day, Mon…Sun"
+            "description": "active missions per day, Mon…Sun (quests only on Mon = Play, Wed = Do, Sun = Show)"
           },
           "problems": {
             "type": "array",
@@ -7009,7 +7175,7 @@
           },
           "ready": {
             "type": "boolean",
-            "description": "7 active missions, one per day, Sunday boss (finale on weeks 4/8/12/16)"
+            "description": "exactly 3 quests: Play (Mon), Do (Wed), Show (Sun boss; finale on weeks 4/8/12/16)"
           }
         }
       },
@@ -7902,97 +8068,6 @@
             "const": true
           }
         }
-      },
-      "UserCard": {
-        "type": "object",
-        "required": [
-          "id",
-          "username",
-          "displayName",
-          "avatarUrl"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "username": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "example": "ada"
-          },
-          "displayName": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "example": "Ada Obi"
-          },
-          "avatarUrl": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        }
-      },
-      "WalletTransaction": {
-        "type": "object",
-        "required": [
-          "id",
-          "type",
-          "amount",
-          "status",
-          "reference",
-          "description",
-          "createdAt"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "type": {
-            "type": "string",
-            "description": "Credits: deposit, topup, transfer_credit, receive, escrow_release, escrow_refund, course_sale, campaign_payout. Debits: withdrawal, transfer_debit, transfer, escrow_hold, marketplace_purchase, course_purchase, campaign_donation, …",
-            "example": "transfer_debit"
-          },
-          "amount": {
-            "type": "number",
-            "description": "Naira, always positive — the type says credit or debit",
-            "example": 5000
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "success",
-              "failed",
-              "rejected",
-              "reversed"
-            ]
-          },
-          "reference": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "description": {
-            "type": "string",
-            "example": "Sent to @ada"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "counterparty": {
-            "$ref": "#/components/schemas/UserCard",
-            "description": "The other user on a transfer"
-          }
-        }
       }
     },
     "responses": {
@@ -8047,16 +8122,6 @@
       },
       "E429": {
         "description": "Rate limited",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            }
-          }
-        }
-      },
-      "E503": {
-        "description": "Paystack or the database is unavailable — try again",
         "content": {
           "application/json": {
             "schema": {

@@ -7,7 +7,8 @@ import { NIGERIAN_STATES } from '@/lib/competitions/config'
 import type { User } from '@/lib/types'
 import { aiReview } from './ai-review'
 import { autoGrade, formToText, isFormKind, quizInsights, validateForm } from './grading'
-import { stageFinale, stageScores } from './progress'
+import { missionScore, stageFinale, stageScores, starsFor } from './progress'
+import { HOSTS, districtOf } from './districts'
 import { semesterClock, stageOfWeek, unlockAt } from './schedule'
 import { WORLD_CONTENT } from './content'
 import { MISSION_TIPS } from './content/tips'
@@ -15,7 +16,7 @@ import { QUIZ_PROFILES } from './content/profiles'
 import { CONTENT_TTL_MS, invalidateWorldCache, ttl } from './cache'
 import { notifyWorld } from './notify'
 import {
-    DEFAULT_PASS_MARK, MAX_ATTEMPTS, worldLevel,
+    DEFAULT_PASS_MARK, MAX_ATTEMPTS, slotOfDay, worldLevel,
     type AttemptPayload, type AttemptStatus, type AttemptView, type CompetitionDetail, type CompetitionSummary,
     type FormConfig, type InstitutionLeagueEntry, type InstitutionView, type MissionConfig, type MissionKind, type MissionStatus,
     type MissionView, type Pathway, type QuizConfig, type PathwayView, type ProgressView, type ReviewMode, type RubricView, type ScoreBucket,
@@ -378,6 +379,7 @@ export const buildMissionViews = cache(async (competitionId: string, seasonStart
         const status: MissionStatus = st ?? (timeLocked || stageLocked ? 'locked' : 'available')
         const last = [...mine].sort((a, b) => b.attempt_no - a.attempt_no)[0]
         const config = clientConfig(m)
+        const district = districtOf(m)
         return {
             id: m.id, key: m.key, pathway: m.pathway, stage: m.stage, week: m.week, day: m.day, title: m.title, story: m.story,
             kind: m.kind, config, estMinutes: m.est_minutes, xp: m.xp, tokens: m.tokens, bucket: m.bucket,
@@ -385,6 +387,7 @@ export const buildMissionViews = cache(async (competitionId: string, seasonStart
             unlocksAt: (opensAt ?? new Date(0)).toISOString(), attemptsUsed: mine.length, maxAttempts: m.max_attempts || MAX_ATTEMPTS,
             lastAttempt: last ? toAttemptView(last, config) : null, badge: m.badge ?? null,
             tips: MISSION_TIPS[m.key] ?? [],
+            slot: slotOfDay(m.day), stars: starsFor(missionScore(m, mine)), district, host: HOSTS[district],
         }
     })
     return { views, missions: allMissions, attempts }
@@ -627,8 +630,10 @@ export async function getProgress(slug: string, profile: User): Promise<Result<{
     ])
     const xp = ((xpRows ?? []) as { amount: number }[]).reduce((s, r) => s + r.amount, 0)
     const tokens = ((tokRows ?? []) as { amount: number }[]).reduce((s, r) => s + r.amount, 0)
-    const { count } = await db.from('competition_scores').select('user_id', { count: 'exact', head: true })
-        .eq('competition_id', c.id).eq('pathway', me.pathway).gt('xp', xp)
+    const [{ count }, streak] = await Promise.all([
+        db.from('competition_scores').select('user_id', { count: 'exact', head: true }).eq('competition_id', c.id).eq('pathway', me.pathway).gt('xp', xp),
+        import('./drops').then((d) => d.playerStreak(c.id, profile.id)).catch(() => 0),
+    ])
     return {
         ok: true,
         progress: {
@@ -636,6 +641,7 @@ export async function getProgress(slug: string, profile: User): Promise<Result<{
             stages: stageScores(missions, attempts),
             badges: ((badges ?? []) as { badge_key: string; label: string; icon: string | null; awarded_at: string }[])
                 .map((b) => ({ key: b.badge_key.replace(`world:${c.slug}:`, ''), label: b.label, icon: b.icon, awardedAt: b.awarded_at })),
+            streak,
         },
     }
 }
@@ -802,17 +808,23 @@ export async function institutionLeague(slug: string, profile: User, pathway?: s
 
 // ─── Admin: content + review ─────────────────────────────────────────────────
 
-/** Loads authored content (lib/world/content) into the DB. overwrite=false only adds missing missions. */
-export async function syncContent(slug: string, profile: User, overwrite = false): Promise<Result<{ inserted: number; updated: number }>>
+/**
+ * Loads authored content (lib/world/content) into the DB. overwrite=false only adds missing missions.
+ * retire=true also switches off (is_active=false, never deletes) missions in the weeks the code content
+ * covers whose key is no longer in it — e.g. the old 7-a-week missions after the 3-quest change. Weeks
+ * the content doesn't cover (written in the admin editor) are never touched.
+ */
+export async function syncContent(slug: string, profile: User, overwrite = false, retire = false): Promise<Result<{ inserted: number; updated: number; retired: number }>>
 {
     if (!isAdmin(profile)) return fail('Unauthorized')
     const c = await loadCompetition(slug)
     const content = WORLD_CONTENT[slug]
     if (!c || c.format !== 'world' || !content) return fail(NOT_FOUND)
     const db = createServiceClient()
-    const { data: existing } = await db.from('competition_missions').select('id, key').eq('competition_id', c.id)
-    const byKey = new Map(((existing ?? []) as { id: string; key: string }[]).map((m) => [m.key, m.id]))
-    let inserted = 0, updated = 0
+    const { data: existing } = await db.from('competition_missions').select('id, key, week, is_active').eq('competition_id', c.id)
+    const rows = (existing ?? []) as { id: string; key: string; week: number | null; is_active: boolean }[]
+    const byKey = new Map(rows.map((m) => [m.key, m.id]))
+    let inserted = 0, updated = 0, retired = 0
 
     for (const s of content)
     {
@@ -842,8 +854,20 @@ export async function syncContent(slug: string, profile: User, overwrite = false
             if (error) return fail(`Could not save the answer key for ${s.key}.`)
         }
     }
+    if (retire)
+    {
+        const keys = new Set(content.map((s) => s.key))
+        const weeks = new Set(content.map((s) => s.week))
+        const stale = rows.filter((m) => m.is_active && m.week !== null && weeks.has(m.week) && !keys.has(m.key)).map((m) => m.id)
+        if (stale.length)
+        {
+            const { error } = await db.from('competition_missions').update({ is_active: false }).in('id', stale)
+            if (error) return fail(`Could not switch off old missions: ${error.message}`)
+            retired = stale.length
+        }
+    }
     invalidateWorldCache()
-    return { ok: true, inserted, updated }
+    return { ok: true, inserted, updated, retired }
 }
 
 export interface ReviewQueueItem

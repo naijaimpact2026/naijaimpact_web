@@ -17,11 +17,20 @@ interface Props
     paused: boolean
     onZoneEnter: (key: string) => void
     onError: () => void
+    /** Today's drop tile (null = none / claimed). */
+    drop?: { x: number; z: number } | null
+    onDrop?: () => void
+    /** Walk the avatar to a zone (or the drop); bump nonce to start. */
+    goTo?: { key: string; nonce: number } | null
+    /** Height/shape of the frame (defaults to the classic tall card). */
+    className?: string
+    /** Hide the built-in "how to move" hint (when the page shows its own). */
+    hideHint?: boolean
 }
 
 const MOVE_KEYS = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'])
 
-export default function CityView({ zones, character, themeColor, paused, onZoneEnter, onError }: Props)
+export default function CityView({ zones, character, themeColor, paused, onZoneEnter, onError, drop = null, onDrop, goTo = null, className, hideHint }: Props)
 {
     const wrapRef = useRef<HTMLDivElement>(null)
     const keys = useRef(new Set<string>())
@@ -31,19 +40,22 @@ export default function CityView({ zones, character, themeColor, paused, onZoneE
     const [recenter, setRecenter] = useState(0)
     const enterRef = useRef(onZoneEnter)
     enterRef.current = onZoneEnter
+    const dropRef = useRef(onDrop)
+    dropRef.current = onDrop
 
     useEffect(() => { setTouch(window.matchMedia('(pointer: coarse)').matches) }, [])
     useEffect(() => { if (paused) { keys.current.clear(); joystick.current = { x: 0, y: 0 } } }, [paused])
 
     const handleReady = useCallback(() => setReady(true), [])
     const handleEnter = useCallback((k: string) => enterRef.current(k), [])
+    const handleDrop = useCallback(() => dropRef.current?.(), [])
 
     return (
         <div
             ref={wrapRef}
             tabIndex={0}
             aria-label="Competition city. Use arrow keys or WASD to walk, drag to rotate, scroll or pinch to zoom, tap a building to go there."
-            className="relative h-[78vh] min-h-[460px] max-h-[920px] w-full overflow-hidden rounded-3xl border border-border bg-[#bfe6f7] shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-primary touch-none"
+            className={`relative w-full overflow-hidden rounded-3xl border border-border bg-[#bfe6f7] shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-primary touch-none ${className ?? 'h-[78vh] min-h-[460px] max-h-[920px]'}`}
             onPointerDown={() => wrapRef.current?.focus({ preventScroll: true })}
             onKeyDown={(e) =>
             {
@@ -66,6 +78,9 @@ export default function CityView({ zones, character, themeColor, paused, onZoneE
                 joystick={joystick}
                 keys={keys}
                 recenter={recenter}
+                drop={drop}
+                onDrop={handleDrop}
+                goTo={goTo}
             />
 
             {!ready && (
@@ -76,9 +91,11 @@ export default function CityView({ zones, character, themeColor, paused, onZoneE
             )}
             {ready && (
                 <>
-                    <p className="pointer-events-none absolute left-3 top-3 max-w-[70%] rounded-full bg-black/40 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-                        {touch ? 'Tap to walk · drag to look around · tap a building' : 'Click or WASD to walk · drag to rotate · scroll to zoom'}
-                    </p>
+                    {!hideHint && (
+                        <p className="pointer-events-none absolute left-3 top-3 max-w-[70%] rounded-full bg-black/40 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+                            {touch ? 'Tap to walk · drag to look around · tap a building' : 'Click or WASD to walk · drag to rotate · scroll to zoom'}
+                        </p>
+                    )}
                     <button
                         type="button"
                         onClick={() => setRecenter((n) => n + 1)}

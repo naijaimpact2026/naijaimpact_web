@@ -12,8 +12,8 @@ import { DISTRICTS, districtProgress, type DistrictKey, type WorldMissionLite } 
 
 // The scene is drawn in a 600 × 220 box. From md up the box keeps that ratio,
 // so pins placed in the same units always sit on their building.
-const W = 600, H = 220
-const AT: Record<DistrictKey, { x: number; y: number }> = {
+export const W = 600, H = 220
+export const AT: Record<DistrictKey, { x: number; y: number }> = {
     learning_academy: { x: 75, y: 84 },
     career_district: { x: 192, y: 52 },
     competition_arena: { x: 305, y: 104 },
@@ -21,7 +21,7 @@ const AT: Record<DistrictKey, { x: number; y: number }> = {
     rewards_exchange: { x: 530, y: 88 },
 }
 // Left-to-right order on the street.
-const STREET: DistrictKey[] = ['learning_academy', 'career_district', 'competition_arena', 'enterprise_hub', 'rewards_exchange']
+export const STREET: DistrictKey[] = ['learning_academy', 'career_district', 'competition_arena', 'enterprise_hub', 'rewards_exchange']
 
 const withDistrict = (href: string, key: DistrictKey) => `${href}${href.includes('?') ? '&' : '?'}district=${key}`
 
@@ -120,7 +120,7 @@ export default function WorldEntryCard({ href, color, character, missions, myDis
 }
 
 /** Flat, sunny street with every district on it (decorative; 600 × 220 units, ground line at y = 140). */
-function Street({ color }: { color: string })
+export function Street({ color }: { color: string })
 {
     const win = (x: number, y: number, cols: number, rows: number, w = 5, h = 6, gx = 9, gy = 11) =>
         Array.from({ length: cols * rows }, (_, i) => <rect key={`${x}-${y}-${i}`} x={x + (i % cols) * gx} y={y + Math.floor(i / cols) * gy} width={w} height={h} rx={1} fill="#fef3c7" opacity={0.9} />)
