@@ -33,6 +33,17 @@ Every quest earns **0–3 stars** (`MissionView.stars`: 85+ = 3, 70+ = 2, 50+ = 
 
 Every day there is also a **campus drop**: a one-tap card standing on a tile of the 3D Campus. `GET /competitions/:slug/drops/today`, walk the avatar to `drop.tile`, show the card, then `POST` the answer. +10 XP right, +5 for trying, once a day. Drops and quest submissions keep the **streak** (`progress.streak`).
 
+### The Campus home = one call
+
+`GET /competitions/:slug/world` returns the whole home screen: `hud`, `week.quests` (full MissionViews), `catchUp`, `districts` (state + note + host + questIds), `drop`, `squad`, `me`, plus `layout` and `assets` to draw the same 3D Campus as the web:
+
+- `layout.blocked[z][x]` is `"1"` where the avatar can't walk. Path-find (A*, 8 directions) over `"0"` tiles.
+- Tile `(x, z)` centre in world units = `(x − 10.5 + 0.5, z − 10.5 + 0.5)` for the 21×21 grid. x → east, z → south.
+- Each `layout.districts[]` has a footprint, a `door` tile and `facing`. Stepping onto a door opens that district: show `districts[].questIds[0]` in a quest sheet (host portrait + `host.line` + the activity), or a small panel if it has no quest.
+- Stepping onto `drop.tile` (when `drop.claimed` is null) opens the drop card → `POST /drops/today`.
+- Models are the CC0 Kenney GLBs at `assets.models` (meshopt-compressed); avatars at `assets.characters[i]`.
+- If `me.lite` is true, or the phone can't run 3D, show a 2D map of the five districts with the same states.
+
 ---
 
 ## Flow for the app
@@ -40,7 +51,7 @@ Every day there is also a **campus drop**: a one-tap card standing on a tile of 
 1. `GET /competitions` → find `slug: "campus"`; show it if `canPlay`.
 2. `GET /competitions/campus` → if `me` is `null`, show onboarding.
 3. Onboarding: `GET /institutions?q=uni` → `POST /competitions/campus/join`.
-4. Home: `GET /competitions/campus/quests/today` (today's quest + catch-up list).
+4. Home: `GET /competitions/campus/world` (the 3D Campus: HUD, this week's 3 quests, districts, drop, layout). `quests/today` still works for a simple list.
 5. Mission screen: `GET /competitions/campus/missions/:id` → render by `kind` → (uploads) → `POST .../attempts`.
 6. Show the result: `attempt.status`, `attempt.score`, `attempt.feedback`, `awarded.xp`, `awarded.tokens`, `badge`.
 7. Passport: `GET /competitions/campus/progress`. Leaderboards: `.../leaderboard`, `.../league`.

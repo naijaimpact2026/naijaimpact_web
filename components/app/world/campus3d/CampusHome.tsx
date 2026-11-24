@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { characterPreviewUrl } from '@/lib/competitions/config'
-import { DISTRICTS, HOSTS, hqOf, type DistrictKey } from '@/lib/world/districts'
+import { DISTRICTS, HOSTS, districtStates, hqOf, type DistrictKey } from '@/lib/world/districts'
 import type { DropView } from '@/lib/world/drops'
 import { QUEST_SLOT_LABEL, TOKENS_LABEL, XP_LABEL, type MissionView, type Pathway, type WorldParticipantView } from '@/lib/world/types'
 import { DAY_NAMES } from '@/lib/world/ui'
@@ -131,22 +131,9 @@ export default function CampusHome(props: CampusHomeProps)
         walk(DROP_KEY)
     }
 
-    // Markers: open quest = beacon, done = check, locked = grey.
-    const zones = useMemo<CityZone[]>(() => DISTRICTS.map((d) =>
-    {
-        const here = quests.filter((m) => m.district === d.key)
-        const done = here.filter((m) => m.status === 'passed').length
-        const zone = { key: d.key, label: d.label, emoji: d.emoji, done, total: here.length }
-        if (d.key === 'rewards_exchange') return { ...zone, state: 'idle' as const, note: `${me.tokens.toLocaleString('en-NG')} ${TOKENS_LABEL}` }
-        if ((d.key === 'career_district' || d.key === 'enterprise_hub') && d.key !== hq) return { ...zone, state: 'idle' as const, note: 'Other pathway' }
-        const open = here.find(isOpen) ?? catchUp.find((m) => m.district === d.key && isOpen(m))
-        if (open) return { ...zone, state: 'open' as const, note: `${open.slot ? QUEST_SLOT_LABEL[open.slot] : 'Quest'} · ${open.status === 'needs_revision' ? 'try again' : 'open now'}` }
-        const q = here[0]
-        if (!q) return { ...zone, state: 'idle' as const, note: d.key === 'competition_arena' ? 'Squad & rankings' : 'No quest this week' }
-        if (q.status === 'passed') return { ...zone, state: 'done' as const, note: q.stars ? '★'.repeat(q.stars) : 'Done' }
-        if (q.status === 'locked') return { ...zone, state: 'locked' as const, note: `Opens ${DAY_NAMES[q.day - 1]}` }
-        return { ...zone, state: 'idle' as const, note: q.status === 'in_review' ? 'In review' : 'Closed' }
-    }), [quests, catchUp, hq, me.tokens])
+    // Markers: open quest = beacon, done = check, locked = grey (same states the mobile API sends).
+    const zones = useMemo<CityZone[]>(() => districtStates(quests, catchUp, pathway.key, me.tokens, TOKENS_LABEL)
+        .map((d) => ({ key: d.key, label: d.label, emoji: d.emoji, done: d.done, total: d.total, state: d.state, note: d.note })), [quests, catchUp, pathway.key, me.tokens])
 
     const quest = sheet?.kind === 'quest' ? everyQuest.find((m) => m.id === sheet.id) ?? null : null
     const stage = me.stage

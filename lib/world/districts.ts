@@ -1,4 +1,4 @@
-import { slotOfDay, type MissionKind, type MissionStatus, type Pathway, type QuestSlot } from './types'
+import { QUEST_SLOT_LABEL, slotOfDay, type MissionKind, type MissionStatus, type MissionView, type Pathway, type QuestSlot } from './types'
 
 /*
  * Hubnovo World districts (the 3D Campus map). Client-safe data: which
@@ -72,4 +72,45 @@ export function districtProgress(missions: WorldMissionLite[])
         else if (m.status === 'available' || m.status === 'needs_revision') p.open++
     }
     return out
+}
+
+// ─── District state (markers on web, the same data for mobile) ──────────────
+
+const DAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const isOpenQuest = (m: { status: MissionStatus }) => m.status === 'available' || m.status === 'needs_revision'
+
+export interface DistrictState
+{
+    key: DistrictKey
+    label: string
+    emoji: string
+    /** open = a quest is waiting (beacon), done = this week's quest here is passed, locked = opens later, idle = nothing to do */
+    state: 'open' | 'done' | 'locked' | 'idle'
+    /** Short line under the label, e.g. "Play · open now", "Opens Wed", "★★". */
+    note: string
+    /** This week's quests here, then still-open catch-up quests. */
+    questIds: string[]
+    done: number
+    total: number
+}
+
+/** What each district shows right now for this player. */
+export function districtStates(quests: MissionView[], catchUp: MissionView[], pathway: Pathway, tokens: number, tokensLabel: string): DistrictState[]
+{
+    const hq = hqOf(pathway)
+    return DISTRICTS.map((d) =>
+    {
+        const here = quests.filter((m) => m.district === d.key)
+        const late = catchUp.filter((m) => m.district === d.key && isOpenQuest(m) && !here.some((h) => h.id === m.id))
+        const base = { key: d.key, label: d.label, emoji: d.emoji, questIds: [...here, ...late].map((m) => m.id), done: here.filter((m) => m.status === 'passed').length, total: here.length }
+        if (d.key === 'rewards_exchange') return { ...base, state: 'idle', note: `${tokens.toLocaleString('en-NG')} ${tokensLabel}` }
+        if ((d.key === 'career_district' || d.key === 'enterprise_hub') && d.key !== hq) return { ...base, state: 'idle', note: 'Other pathway' }
+        const open = here.find(isOpenQuest) ?? late[0]
+        if (open) return { ...base, state: 'open', note: `${open.slot ? QUEST_SLOT_LABEL[open.slot] : 'Quest'} · ${open.status === 'needs_revision' ? 'try again' : 'open now'}` }
+        const q = here[0]
+        if (!q) return { ...base, state: 'idle', note: d.key === 'competition_arena' ? 'Squad & rankings' : 'No quest this week' }
+        if (q.status === 'passed') return { ...base, state: 'done', note: q.stars ? '★'.repeat(q.stars) : 'Done' }
+        if (q.status === 'locked') return { ...base, state: 'locked', note: `Opens ${DAY_SHORT[q.day - 1]}` }
+        return { ...base, state: 'idle', note: q.status === 'in_review' ? 'In review' : 'Closed' }
+    })
 }

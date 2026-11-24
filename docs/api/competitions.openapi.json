@@ -442,6 +442,70 @@
         }
       }
     },
+    "/competitions/{slug}/world": {
+      "get": {
+        "tags": [
+          "Quests"
+        ],
+        "summary": "The 3D Campus home (one call)",
+        "description": "Everything the Campus home screen needs: HUD (level, XP, HubTokens, streak, stage stars), this week’s 3 quests (full `MissionView`s, so a quest can open without another call), what each district shows, today’s drop, the squad, plus the world layout and model URLs to draw the same 3D Campus as the web. Flow: walk the avatar on walkable tiles → on a door, open `districts[].questIds[0]` (or the district panel) → on `drop.tile`, open the drop. Use `week` to look at another week.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "campus"
+            },
+            "description": "Competition slug. Use `campus` for the Campus Competition."
+          },
+          {
+            "name": "week",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 16
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "world"
+                  ],
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "world": {
+                      "$ref": "#/components/schemas/WorldScreen"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          }
+        }
+      }
+    },
     "/competitions/{slug}/drops/today": {
       "get": {
         "tags": [
@@ -5416,6 +5480,411 @@
           },
           "line": {
             "type": "string"
+          }
+        }
+      },
+      "DistrictState": {
+        "type": "object",
+        "description": "What a district shows right now. Draw a bouncing beacon when `state` is open, a check when done, greyed when locked.",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/DistrictKey"
+          },
+          "label": {
+            "type": "string"
+          },
+          "emoji": {
+            "type": "string"
+          },
+          "blurb": {
+            "type": "string"
+          },
+          "host": {
+            "$ref": "#/components/schemas/QuestHost"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "done",
+              "locked",
+              "idle"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "example": "Play · open now"
+          },
+          "questIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Quests to open when the avatar walks in (this week first, then catch-up)"
+          },
+          "done": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "WorldLayout": {
+        "type": "object",
+        "description": "Deterministic Campus layout (same as the web). Tile (x, z) centre = world (x − gridSize/2 + 0.5, z − gridSize/2 + 0.5); x → east, z → south, y up. Kenney buildings face −z, so rotate them by π + facing.",
+        "properties": {
+          "gridSize": {
+            "type": "integer",
+            "example": 21
+          },
+          "tileSize": {
+            "type": "integer",
+            "example": 1
+          },
+          "roadLines": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "center": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "integer"
+              },
+              "z": {
+                "type": "integer"
+              }
+            }
+          },
+          "spawn": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "integer"
+              },
+              "z": {
+                "type": "integer"
+              }
+            }
+          },
+          "roads": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "integer"
+                },
+                "z": {
+                  "type": "integer"
+                },
+                "piece": {
+                  "type": "string",
+                  "enum": [
+                    "straight",
+                    "crossroad",
+                    "roundabout"
+                  ]
+                },
+                "rot": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "districts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "$ref": "#/components/schemas/DistrictKey"
+                },
+                "style": {
+                  "type": "string",
+                  "enum": [
+                    "market",
+                    "tower",
+                    "logistics",
+                    "arena",
+                    "trophy",
+                    "plaza",
+                    "academy"
+                  ]
+                },
+                "x0": {
+                  "type": "integer"
+                },
+                "z0": {
+                  "type": "integer"
+                },
+                "x1": {
+                  "type": "integer"
+                },
+                "z1": {
+                  "type": "integer"
+                },
+                "door": {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "integer"
+                    },
+                    "z": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "facing": {
+                  "type": "number",
+                  "description": "radians, 0 = facing +z"
+                }
+              }
+            }
+          },
+          "decor": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "palm",
+                    "palmTall",
+                    "palmBend",
+                    "bush",
+                    "flower",
+                    "house",
+                    "shop",
+                    "tall",
+                    "light"
+                  ]
+                },
+                "x": {
+                  "type": "integer"
+                },
+                "z": {
+                  "type": "integer"
+                },
+                "rot": {
+                  "type": "number"
+                },
+                "variant": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "blocked": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "gridSize rows of gridSize chars, blocked[z][x]: \"1\" = not walkable. Walk with A* on \"0\" tiles; stepping on a district door opens it; stepping on drop.tile opens the drop."
+          }
+        }
+      },
+      "WorldAssets": {
+        "type": "object",
+        "properties": {
+          "baseUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "models": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            },
+            "description": "GLB URLs (meshopt-compressed, CC0 Kenney kits)"
+          },
+          "characters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": {
+                  "type": "integer"
+                },
+                "model": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "preview": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      },
+      "WorldScreen": {
+        "type": "object",
+        "properties": {
+          "hud": {
+            "type": "object",
+            "properties": {
+              "level": {
+                "type": "object",
+                "properties": {
+                  "level": {
+                    "type": "integer"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "xpToNext": {
+                    "type": "integer"
+                  },
+                  "progress": {
+                    "type": "number"
+                  }
+                }
+              },
+              "xp": {
+                "type": "integer"
+              },
+              "tokens": {
+                "type": "integer"
+              },
+              "rank": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "streak": {
+                "type": "integer"
+              },
+              "badges": {
+                "type": "integer"
+              },
+              "stage": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/StageScore"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "week": {
+            "type": "object",
+            "properties": {
+              "number": {
+                "type": "integer"
+              },
+              "current": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "total": {
+                "type": "integer"
+              },
+              "quests": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MissionView"
+                },
+                "description": "Play, Do, Show (sorted by day)"
+              }
+            }
+          },
+          "catchUp": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MissionView"
+            }
+          },
+          "districts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DistrictState"
+            }
+          },
+          "drop": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DropView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "squad": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "members": {
+                    "type": "integer"
+                  },
+                  "needed": {
+                    "type": "integer"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "me": {
+            "type": "object",
+            "properties": {
+              "character": {
+                "type": "integer"
+              },
+              "pathway": {
+                "$ref": "#/components/schemas/Pathway"
+              },
+              "lite": {
+                "type": "boolean",
+                "description": "true = show the 2D map instead of 3D"
+              },
+              "reducedMotion": {
+                "type": "boolean"
+              }
+            }
+          },
+          "layout": {
+            "$ref": "#/components/schemas/WorldLayout"
+          },
+          "assets": {
+            "$ref": "#/components/schemas/WorldAssets"
           }
         }
       },
