@@ -10,6 +10,7 @@ import { isFormKind } from '@/lib/world/grading'
 import { stageOfWeek } from '@/lib/world/schedule'
 import { MAX_ATTEMPTS, QUEST_DAY, QUEST_SLOTS, QUEST_SLOT_LABEL, SLOT_KINDS, slotOfDay, type FormConfig, type MissionKind, type MissionView, type PathwayView, type QuizConfig, type RubricView, type ScenarioConfig, type SortConfig } from '@/lib/world/types'
 import { DAY_LONG, KIND_META, REVIEW_META } from '@/lib/world/ui'
+import { HOSTS, districtOf } from '@/lib/world/districts'
 import MissionPlayer from '../mission/MissionPlayer'
 import { FormEditor, QuizEditor, ScenarioEditor, SortEditor, defaultConfig, inputCls, labelCls, type AnswerKey } from './ConfigEditors'
 
@@ -54,6 +55,7 @@ function previewView(d: Draft, rubrics: RubricView[]): MissionView
         story: d.story || null, kind: d.kind, config: d.config, estMinutes: d.estMinutes, xp: d.xp, tokens: d.tokens, bucket: d.bucket,
         reviewMode: d.reviewMode, rubric: rubrics.find((r) => r.key === d.rubricKey) ?? null, status: 'available',
         unlocksAt: new Date().toISOString(), attemptsUsed: 0, maxAttempts: MAX_ATTEMPTS, lastAttempt: null, badge: d.badge ?? null, tips: [],
+        slot: slotOfDay(d.day), stars: 0, district: districtOf(d), host: HOSTS[districtOf(d)],
     }
 }
 

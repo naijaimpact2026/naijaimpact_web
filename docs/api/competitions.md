@@ -19,6 +19,22 @@ Shared TypeScript types live in [`lib/world/types.ts`](../../lib/world/types.ts)
 
 ---
 
+## How a week works (since 24 Nov 2026)
+
+Each pathway gets **3 quests a week**. `MissionView.slot` says which:
+
+| slot | Opens | District | What | Marked |
+|---|---|---|---|---|
+| `play` | Monday | Learning Academy | quiz, sort or scenario game | instantly |
+| `do` | Wednesday | the player's HQ (Career District / Enterprise Hub) | one upload or link + one short line | AI, in minutes |
+| `show` | Sunday | Competition Arena | showcase (boss); weeks 4/8/12/16 = stage finale | judges |
+
+Every quest earns **0–3 stars** (`MissionView.stars`: 85+ = 3, 70+ = 2, 50+ = 1). A stage passes with **60% of its stars + the finale passed** (`StageScore.stars / maxStars / starsToPass`). `buckets` are deprecated.
+
+Every day there is also a **campus drop**: a one-tap card standing on a tile of the 3D Campus. `GET /competitions/:slug/drops/today`, walk the avatar to `drop.tile`, show the card, then `POST` the answer. +10 XP right, +5 for trying, once a day. Drops and quest submissions keep the **streak** (`progress.streak`).
+
+---
+
 ## Flow for the app
 
 1. `GET /competitions` → find `slug: "campus"`; show it if `canPlay`.
@@ -127,11 +143,22 @@ The Novo coach for one mission: explains the brief and rubric and helps the play
 { "ok": true, "progress": {
   "level": { "level": 3, "name": "Builder", "xpToNext": 550, "progress": 0.63 },
   "xp": 2450, "tokens": 132, "rank": 4,
-  "stages": [ { "stage": 1, "buckets": { "evidence": 80, "quality": 72, "reflection": 65, "teamwork": 70, "showcase": 0 },
-                "total": 71, "passMark": 60, "passed": false, "missionsDone": 18, "missionsTotal": 28 } ],
+  "streak": 4,
+  "stages": [ { "stage": 1, "stars": 22, "maxStars": 36, "starsToPass": 22, "total": 61, "passMark": 60,
+                "passed": false, "finalePassed": false, "missionsDone": 9, "missionsTotal": 12,
+                "buckets": { "evidence": 80, "quality": 72, "reflection": 0, "teamwork": 0, "showcase": 0 } } ],
   "badges": [ { "key": "career-explorer", "label": "Career Explorer", "icon": "award", "awardedAt": "…" } ]
 } }
 ```
+
+### `GET /competitions/:slug/drops/today` · `POST` body `{ "answer": "fact" }`
+```json
+{ "ok": true, "drop": { "enabled": true, "day": "2026-11-24", "key": "d-bvn",
+  "prompt": "Sharing your BVN in a WhatsApp chat is safe if the person says they work for a bank.",
+  "options": [ { "id": "myth", "label": "Myth" }, { "id": "fact", "label": "Fact" } ],
+  "tile": { "x": 15, "z": 9 }, "xp": { "correct": 10, "tried": 5 }, "claimed": null, "streak": 3 } }
+```
+POST returns `{ "ok": true, "correct": true, "xp": 10, "answer": "myth", "explain": "…", "streak": 4, "alreadyClaimed": false }`.
 
 ### `GET /competitions/:slug/leaderboard?pathway=career&scope=overall|institution|state&value=&period=all|week&limit=50`
 - `pathway` defaults to the caller's. `scope=institution` / `scope=state` without `value` use the caller's own campus / state (or pass `value=<institutionId>` / `value=Lagos`).
@@ -193,7 +220,10 @@ Show `title` and `body`; `data.url` is the web path to open (e.g. `/app/competit
   reviewMode: 'auto'|'ai'|'human', rubric: { key, title, passMark, criteria: [{ id, label, weight }] } | null,
   status: 'locked'|'available'|'in_review'|'passed'|'needs_revision'|'rejected',
   unlocksAt, attemptsUsed, maxAttempts, lastAttempt: AttemptView | null, badge: { key, label } | null,
-  tips: string[] /* "How to do this" steps to show above the activity */ }
+  tips: string[] /* "How to do this" steps to show above the activity */,
+  slot: 'play'|'do'|'show'|null, stars: 0|1|2|3,
+  district: 'learning_academy'|'career_district'|'enterprise_hub'|'competition_arena'|'rewards_exchange',
+  host: { name, character /* 0–11 avatar */, line } /* who greets the player there */ }
 ```
 
 ## Mission kinds, configs and payloads

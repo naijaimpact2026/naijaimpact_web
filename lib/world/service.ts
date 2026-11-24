@@ -7,7 +7,8 @@ import { NIGERIAN_STATES } from '@/lib/competitions/config'
 import type { User } from '@/lib/types'
 import { aiReview } from './ai-review'
 import { autoGrade, formToText, isFormKind, quizInsights, validateForm } from './grading'
-import { stageFinale, stageScores } from './progress'
+import { missionScore, stageFinale, stageScores, starsFor } from './progress'
+import { HOSTS, districtOf } from './districts'
 import { semesterClock, stageOfWeek, unlockAt } from './schedule'
 import { WORLD_CONTENT } from './content'
 import { MISSION_TIPS } from './content/tips'
@@ -15,7 +16,7 @@ import { QUIZ_PROFILES } from './content/profiles'
 import { CONTENT_TTL_MS, invalidateWorldCache, ttl } from './cache'
 import { notifyWorld } from './notify'
 import {
-    DEFAULT_PASS_MARK, MAX_ATTEMPTS, worldLevel,
+    DEFAULT_PASS_MARK, MAX_ATTEMPTS, slotOfDay, worldLevel,
     type AttemptPayload, type AttemptStatus, type AttemptView, type CompetitionDetail, type CompetitionSummary,
     type FormConfig, type InstitutionLeagueEntry, type InstitutionView, type MissionConfig, type MissionKind, type MissionStatus,
     type MissionView, type Pathway, type QuizConfig, type PathwayView, type ProgressView, type ReviewMode, type RubricView, type ScoreBucket,
@@ -378,6 +379,7 @@ export const buildMissionViews = cache(async (competitionId: string, seasonStart
         const status: MissionStatus = st ?? (timeLocked || stageLocked ? 'locked' : 'available')
         const last = [...mine].sort((a, b) => b.attempt_no - a.attempt_no)[0]
         const config = clientConfig(m)
+        const district = districtOf(m)
         return {
             id: m.id, key: m.key, pathway: m.pathway, stage: m.stage, week: m.week, day: m.day, title: m.title, story: m.story,
             kind: m.kind, config, estMinutes: m.est_minutes, xp: m.xp, tokens: m.tokens, bucket: m.bucket,
@@ -385,6 +387,7 @@ export const buildMissionViews = cache(async (competitionId: string, seasonStart
             unlocksAt: (opensAt ?? new Date(0)).toISOString(), attemptsUsed: mine.length, maxAttempts: m.max_attempts || MAX_ATTEMPTS,
             lastAttempt: last ? toAttemptView(last, config) : null, badge: m.badge ?? null,
             tips: MISSION_TIPS[m.key] ?? [],
+            slot: slotOfDay(m.day), stars: starsFor(missionScore(m, mine)), district, host: HOSTS[district],
         }
     })
     return { views, missions: allMissions, attempts }
@@ -627,8 +630,10 @@ export async function getProgress(slug: string, profile: User): Promise<Result<{
     ])
     const xp = ((xpRows ?? []) as { amount: number }[]).reduce((s, r) => s + r.amount, 0)
     const tokens = ((tokRows ?? []) as { amount: number }[]).reduce((s, r) => s + r.amount, 0)
-    const { count } = await db.from('competition_scores').select('user_id', { count: 'exact', head: true })
-        .eq('competition_id', c.id).eq('pathway', me.pathway).gt('xp', xp)
+    const [{ count }, streak] = await Promise.all([
+        db.from('competition_scores').select('user_id', { count: 'exact', head: true }).eq('competition_id', c.id).eq('pathway', me.pathway).gt('xp', xp),
+        import('./drops').then((d) => d.playerStreak(c.id, profile.id)).catch(() => 0),
+    ])
     return {
         ok: true,
         progress: {
@@ -636,6 +641,7 @@ export async function getProgress(slug: string, profile: User): Promise<Result<{
             stages: stageScores(missions, attempts),
             badges: ((badges ?? []) as { badge_key: string; label: string; icon: string | null; awarded_at: string }[])
                 .map((b) => ({ key: b.badge_key.replace(`world:${c.slug}:`, ''), label: b.label, icon: b.icon, awardedAt: b.awarded_at })),
+            streak,
         },
     }
 }

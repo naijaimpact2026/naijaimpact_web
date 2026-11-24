@@ -169,6 +169,14 @@ export interface MissionView
     badge: { key: string; label: string } | null
     /** "How to do this" — 1–3 practical steps to show before the activity. */
     tips: string[]
+    /** Weekly quest slot from the day: play (Mon), do (Wed), show (Sun); null for older off-day missions. */
+    slot: QuestSlot | null
+    /** Stars earned so far (0–3) from the score that counts. */
+    stars: number
+    /** District in the 3D Campus where this quest happens. */
+    district: 'learning_academy' | 'career_district' | 'enterprise_hub' | 'competition_arena' | 'rewards_exchange'
+    /** Who greets the player there. character = index into the avatar characters. */
+    host: { name: string; character: number; line: string }
 }
 
 export interface PathwayView
@@ -240,6 +248,8 @@ export interface ProgressView
     rank: number | null
     stages: StageScore[]
     badges: { key: string; label: string; icon: string | null; awardedAt: string }[]
+    /** Consecutive Lagos days with a campus drop claimed or a quest submitted. */
+    streak: number
 }
 
 export interface WorldLeaderboardEntry

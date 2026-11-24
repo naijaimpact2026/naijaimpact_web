@@ -17,7 +17,7 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { CHARACTERS, characterModelUrl } from '@/lib/competitions/config'
 import {
-    CAR_LOOP, CENTER, N, assignSlots, buildDecor, buildRoads, findPath, idx, inside, nearestFree, tileToWorld, worldToTile,
+    CAR_LOOP, CENTER, N, SPAWN, assignSlots, buildRoads, buildWorldGrid, findPath, idx, inside, nearestFree, tileToWorld, worldToTile,
     type DecorItem, type Slot,
 } from './layout'
 
@@ -556,25 +556,8 @@ export default function CityScene(props: CitySceneProps)
 
     // Static world: blocked tiles, doors, decor (depends only on which slots are used).
     const slotKey = placed.map((p) => `${p.zone.key}:${p.slot.style}`).join('|')
-    const { blocked, doors, decor } = useMemo(() =>
-    {
-        const blocked = new Uint8Array(N * N)
-        const occupiedBy = (x: number, z: number) => placed.some(({ slot }) => slot.style !== 'trophy' && x >= slot.x0 && x < slot.x1 && z >= Math.min(slot.z0, slot.door.z) && z <= Math.max(slot.z1 - 1, slot.door.z))
-        for (const { slot } of placed)
-        {
-            if (slot.style === 'trophy') continue
-            // Building rows (everything except the walkway row with the door).
-            for (let z = slot.z0; z < slot.z1; z++) for (let x = slot.x0; x < slot.x1; x++)
-                if (z !== slot.door.z) blocked[idx(x, z)] = 1
-        }
-        const decor = buildDecor(occupiedBy)
-        for (const d of decor) if (d.kind !== 'flower') blocked[idx(d.x, d.z)] = 1
-        // Map edges are scenery.
-        for (let i = 0; i < N; i++) { blocked[idx(i, 0)] = blocked[idx(i, N - 1)] = blocked[idx(0, i)] = blocked[idx(N - 1, i)] = 1 }
-        const doors = placed.map(({ zone, slot }) => ({ key: zone.key, x: slot.door.x, z: slot.door.z }))
-        return { blocked, doors, decor }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [slotKey])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const { blocked, doors, decor } = useMemo(() => buildWorldGrid(placed), [slotKey])
 
     const world = useRef<WorldState>({
         blocked,
@@ -582,7 +565,7 @@ export default function CityScene(props: CitySceneProps)
         keys: keys.current,
         inputEnabled: true,
         insideDoor: null,
-        player: new THREE.Vector3(wx(CENTER - 3), 0, wx(CENTER)),
+        player: new THREE.Vector3(wx(SPAWN.x), 0, wx(SPAWN.z)),
     })
     world.current.blocked = blocked
     world.current.inputEnabled = !paused
