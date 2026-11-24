@@ -469,7 +469,7 @@ export interface MyCertificatesView
     enabled: boolean
     certificates: CertificateView[]
     /** The stage the player is working towards (null when every stage is certified). */
-    next: { stage: number; stageName: string; total: number; passMark: number; finalePassed: boolean; finaleWeek: number } | null
+    next: { stage: number; stageName: string; total: number; passMark: number; stars: number; maxStars: number; starsToPass: number; finalePassed: boolean; finaleWeek: number } | null
 }
 
 // ─── Rewards Exchange ────────────────────────────────────────────────────────

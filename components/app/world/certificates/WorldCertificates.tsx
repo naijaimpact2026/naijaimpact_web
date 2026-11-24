@@ -15,7 +15,7 @@ export default function WorldCertificates({ slug, view, color, pathwayName }: { 
             <section className="hw-rise rounded-3xl border border-dashed border-border bg-card p-10 text-center">
                 <Award className="mx-auto h-9 w-9 text-muted-foreground" />
                 <h1 className="mt-3 text-lg font-bold text-foreground">Certificates are switching on soon</h1>
-                <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">Finish a stage with 60+ and pass its finale to earn a verified certificate.</p>
+                <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">Earn 60% of a stage’s stars and pass its finale to earn a verified certificate.</p>
             </section>
         )
 
@@ -101,7 +101,7 @@ function CertificateCard({ cert, color, delay }: { cert: CertificateView; color:
 
 function NextStage({ next, color, first, slug }: { next: NonNullable<MyCertificatesView['next']>; color: string; first: boolean; slug: string })
 {
-    const scoreOk = next.total >= next.passMark
+    const scoreOk = next.stars >= next.starsToPass
     return (
         <section className="hw-rise rounded-3xl border border-dashed border-border bg-card p-5" style={{ animationDelay: '120ms' }}>
             <div className="flex items-start gap-3">
@@ -113,11 +113,11 @@ function NextStage({ next, color, first, slug }: { next: NonNullable<MyCertifica
                 </div>
             </div>
             <div className="mt-4">
-                <div className="flex justify-between text-xs font-semibold"><span className="text-muted-foreground">Stage score</span><span className="tabular-nums text-foreground">{next.total} / pass {next.passMark}</span></div>
-                <AnimatedBar pct={next.total} color={scoreOk ? '#16A34A' : color} className="mt-1 h-2" />
+                <div className="flex justify-between text-xs font-semibold"><span className="text-muted-foreground">Stage stars</span><span className="tabular-nums text-foreground">{next.stars} / {next.maxStars} · need {next.starsToPass}</span></div>
+                <AnimatedBar pct={next.maxStars ? (next.stars / next.maxStars) * 100 : 0} color={scoreOk ? '#16A34A' : color} className="mt-1 h-2" />
             </div>
             <ul className="mt-4 space-y-2 text-sm">
-                <Req done={scoreOk}>Stage score of {next.passMark} or more</Req>
+                <Req done={scoreOk}>{next.starsToPass} stars or more ({next.passMark}% of the stage’s stars)</Req>
                 <Req done={next.finalePassed}>Pass the Week {next.finaleWeek} finale (judged)</Req>
             </ul>
             <a href={`/app/competitions/${slug}`} className="mt-4 inline-flex text-xs font-bold hover:underline" style={{ color }}>Keep going with today’s quest →</a>

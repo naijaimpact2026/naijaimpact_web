@@ -1665,7 +1665,7 @@
           "Certificates"
         ],
         "summary": "My certificates",
-        "description": "Issues any newly earned certificates first. A stage is passed with a stage score of 60+ **and** its finale (last boss challenge, Week 4 for Stage 1) passed. `next` = the stage being worked towards. `enabled: false` = certificates not switched on yet.",
+        "description": "Issues any newly earned certificates first. A stage is passed with 60% of its stars (`starsToPass`) **and** its finale (last boss challenge, Week 4 for Stage 1) passed. `next` = the stage being worked towards. `enabled: false` = certificates not switched on yet.",
         "parameters": [
           {
             "name": "slug",
@@ -1716,8 +1716,18 @@
                             "stageName": {
                               "type": "string"
                             },
-                            "total": {
+                            "stars": {
                               "type": "integer"
+                            },
+                            "maxStars": {
+                              "type": "integer"
+                            },
+                            "starsToPass": {
+                              "type": "integer"
+                            },
+                            "total": {
+                              "type": "integer",
+                              "description": "stars as a share of maxStars, 0–100"
                             },
                             "passMark": {
                               "type": "integer"

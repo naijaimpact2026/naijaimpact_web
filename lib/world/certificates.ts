@@ -123,6 +123,7 @@ export async function myCertificates(slug: string, profile: User): Promise<Resul
         ok: true, enabled: true, certificates,
         next: stage ? {
             stage: stage.stage, stageName: stageName(me.pathway, stage.stage), total: stage.total, passMark: stage.passMark,
+            stars: stage.stars, maxStars: stage.maxStars, starsToPass: stage.starsToPass,
             finalePassed: stage.finalePassed, finaleWeek: finale?.week ?? stage.stage * STAGE_WEEKS,
         } : null,
     }

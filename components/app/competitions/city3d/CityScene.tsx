@@ -17,11 +17,22 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { CHARACTERS, characterModelUrl } from '@/lib/competitions/config'
 import {
-    CAR_LOOP, CENTER, N, SPAWN, assignSlots, buildRoads, buildWorldGrid, findPath, idx, inside, nearestFree, tileToWorld, worldToTile,
+    CAR_LOOP, CENTER, DROP_KEY, N, SPAWN, assignSlots, buildRoads, buildWorldGrid, findPath, idx, inside, nearestFree, tileToWorld, worldToTile,
     type DecorItem, type Slot,
 } from './layout'
 
-export interface CityZone { key: string; label: string; done: number; total: number; /** Marker icon (defaults to the building style's). */ emoji?: string }
+export interface CityZone
+{
+    key: string; label: string; done: number; total: number
+    /** Marker icon (defaults to the building style's). */
+    emoji?: string
+    /** Quest state for the marker: open = beacon, done = check, locked = greyed. */
+    state?: 'open' | 'done' | 'locked' | 'idle'
+    /** Second line under the label, e.g. "Play · open now". Replaces the done/total count. */
+    note?: string
+}
+
+export { DROP_KEY }
 
 export interface CitySceneProps
 {
@@ -38,6 +49,11 @@ export interface CitySceneProps
     keys: React.MutableRefObject<Set<string>>
     /** Bump to recentre the camera on the player. */
     recenter: number
+    /** Today's drop tile (null = none or already claimed). */
+    drop?: { x: number; z: number } | null
+    onDrop?: () => void
+    /** Walk the avatar to a zone's door (or DROP_KEY); a new nonce starts a new walk. */
+    goTo?: { key: string; nonce: number } | null
 }
 
 const A = '/competitions/city'
@@ -220,7 +236,9 @@ function Landmark({ zone, slot, color, onTapBuilding, onTapMarker }: {
     const cx = (slot.x0 + slot.x1) / 2 - N / 2
     const cz = slot.style === 'trophy' ? wx(CENTER) : ((slot.z0 + slot.z1) / 2 - N / 2) + (slot.facing === 0 ? 0.5 : -0.5)
     const isIsland = slot.style === 'trophy'
-    const done = zone.total > 0 && zone.done === zone.total
+    const state = zone.state ?? (zone.total > 0 && zone.done === zone.total ? 'done' : 'idle')
+    const done = state === 'done'
+    const bg = done ? '#16a34a' : state === 'open' ? '#F59E0B' : state === 'locked' ? '#64748b' : color
     return (
         <group position={[isIsland ? wx(CENTER) : cx, 0, cz]}>
             {!isIsland && (
@@ -249,14 +267,21 @@ function Landmark({ zone, slot, color, onTapBuilding, onTapMarker }: {
                     className="flex flex-col items-center gap-1 select-none"
                     style={{ transform: 'translateY(-50%)' }}
                 >
-                    <span
-                        className="flex h-11 w-11 items-center justify-center rounded-full border-[3px] border-white text-lg shadow-lg"
-                        style={{ backgroundColor: done ? '#16a34a' : color }}
-                    >
-                        {done ? '✓' : zone.emoji ?? MARKER_EMOJI[slot.style]}
+                    <span className={`relative flex items-center justify-center ${state === 'open' ? 'motion-safe:animate-bounce' : ''}`}>
+                        {state === 'open' && <span className="absolute inset-0 rounded-full bg-amber-400/70 motion-safe:animate-ping" aria-hidden />}
+                        <span
+                            className={`relative flex items-center justify-center rounded-full border-[3px] border-white shadow-lg ${state === 'open' ? 'h-14 w-14 text-2xl' : 'h-11 w-11 text-lg'} ${state === 'locked' ? 'opacity-80 grayscale' : ''}`}
+                            style={{ backgroundColor: bg }}
+                        >
+                            {done ? '✓' : zone.emoji ?? MARKER_EMOJI[slot.style]}
+                        </span>
+                        {state === 'open' && <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 text-[11px] font-black text-white">!</span>}
                     </span>
-                    <span className="whitespace-nowrap rounded-full bg-[#102A43]/90 px-3 py-1 text-[13px] font-bold text-white shadow-md">
-                        {zone.label}{zone.total > 0 ? ` · ${zone.done}/${zone.total}` : ''}
+                    <span className="flex flex-col items-center whitespace-nowrap rounded-2xl bg-[#102A43]/90 px-3 py-1 leading-tight text-white shadow-md">
+                        <span className="text-[13px] font-bold">{zone.label}</span>
+                        {zone.note
+                            ? <span className={`text-[11px] font-semibold ${state === 'open' ? 'text-amber-300' : 'text-white/75'}`}>{zone.note}</span>
+                            : zone.total > 0 && <span className="text-[11px] font-semibold text-white/75">{zone.done}/{zone.total}</span>}
                     </span>
                 </button>
             </Html>
@@ -265,6 +290,49 @@ function Landmark({ zone, slot, color, onTapBuilding, onTapMarker }: {
 }
 
 const MARKER_EMOJI: Record<Slot['style'], string> = { market: '🛍️', tower: '🎓', logistics: '🚚', arena: '🎤', trophy: '🏆', plaza: '📍', academy: '📚' }
+
+// ─── Daily drop ──────────────────────────────────────────────────────────────
+
+function DropCoin({ tile, onTap }: { tile: { x: number; z: number }; onTap: () => void })
+{
+    const coin = useRef<THREE.Group>(null)
+    useFrame((s, dt) =>
+    {
+        if (!coin.current) return
+        coin.current.rotation.y += dt * 2.2
+        coin.current.position.y = 0.6 + Math.sin(s.clock.elapsedTime * 2.4) * 0.08
+    })
+    return (
+        <group position={at(tile.x, tile.z)}>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}>
+                <ringGeometry args={[0.3, 0.44, 40]} />
+                <meshBasicMaterial color="#fde047" transparent opacity={0.75} />
+            </mesh>
+            <group
+                ref={coin}
+                position={[0, 0.6, 0]}
+                onClick={(e) => { if (e.delta > 6) return; e.stopPropagation(); onTap() }}
+                onPointerOver={() => { document.body.style.cursor = 'pointer' }}
+                onPointerOut={() => { document.body.style.cursor = '' }}
+            >
+                <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
+                    <cylinderGeometry args={[0.3, 0.3, 0.08, 36]} />
+                    <meshStandardMaterial color="#facc15" metalness={0.8} roughness={0.25} emissive="#a16207" emissiveIntensity={0.55} />
+                </mesh>
+                <mesh rotation={[Math.PI / 2, 0, 0]}>
+                    <cylinderGeometry args={[0.2, 0.2, 0.1, 5]} />
+                    <meshStandardMaterial color="#fef08a" metalness={0.6} roughness={0.3} emissive="#ca8a04" emissiveIntensity={0.4} />
+                </mesh>
+            </group>
+            <pointLight position={[0, 0.9, 0]} color="#fde047" intensity={1.4} distance={2.8} />
+            <Html position={[0, 1.35, 0]} center distanceFactor={10} zIndexRange={[30, 0]}>
+                <button type="button" onClick={onTap} className="select-none whitespace-nowrap rounded-full bg-amber-400 px-3 py-1 text-[13px] font-extrabold text-[#102A43] shadow-md">
+                    Daily drop
+                </button>
+            </Html>
+        </group>
+    )
+}
 
 // ─── Decor ───────────────────────────────────────────────────────────────────
 
@@ -551,7 +619,7 @@ class SceneErrorBoundary extends Component<{ onError: () => void; children: Reac
 
 export default function CityScene(props: CitySceneProps)
 {
-    const { zones, character, themeColor, paused, onZoneEnter, onReady, onError, joystick, keys, recenter } = props
+    const { zones, character, themeColor, paused, onZoneEnter, onReady, onError, joystick, keys, recenter, drop = null, onDrop, goTo = null } = props
     const placed = useMemo(() => assignSlots(zones), [zones])
 
     // Static world: blocked tiles, doors, decor (depends only on which slots are used).
@@ -577,6 +645,26 @@ export default function CityScene(props: CitySceneProps)
         const path = findPath(w.blocked, worldToTile(w.player.x), worldToTile(w.player.z), target.x, target.z)
         if (path) w.path = path.slice(1)
     }
+
+    // Doors plus today's drop: stepping on either fires its handler.
+    const triggers = useMemo(() => (drop ? [...doors, { key: DROP_KEY, x: drop.x, z: drop.z }] : doors), [doors, drop])
+    const onTrigger = (key: string) => { if (key === DROP_KEY) onDrop?.(); else onZoneEnter(key) }
+
+    // "Walk me there": path to the door (or the drop); open it on arrival.
+    useEffect(() =>
+    {
+        if (!goTo) return
+        const target = triggers.find((t) => t.key === goTo.key)
+        if (!target) return
+        const w = world.current
+        const px = worldToTile(w.player.x), pz = worldToTile(w.player.z)
+        if (px === target.x && pz === target.z) { onTrigger(target.key); return }
+        w.insideDoor = null
+        const path = findPath(w.blocked, px, pz, target.x, target.z)
+        if (path) w.path = path.slice(1)
+        else onTrigger(target.key)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [goTo?.nonce])
 
     const onTapGround = (e: ThreeEvent<MouseEvent>) =>
     {
@@ -630,7 +718,8 @@ export default function CityScene(props: CitySceneProps)
                     <Car url={M.cars[0]} offset={0.6} speed={2.0} />
                     <Car url={M.cars[2]} offset={0.82} speed={2.4} />
                     {npcChars.map((c, i) => <Npc key={c} url={characterModelUrl(c)} world={world} seed={i + 1} />)}
-                    <Player url={characterModelUrl(character)} world={world} joystick={joystick} doors={doors} onDoor={onZoneEnter} />
+                    {drop && <DropCoin tile={drop} onTap={() => { if (!paused) { world.current.insideDoor = null; walkTo(drop.x, drop.z) } }} />}
+                    <Player url={characterModelUrl(character)} world={world} joystick={joystick} doors={triggers} onDoor={onTrigger} />
                     <ReadyWatcher onReady={onReady} />
                 </Suspense>
                 <CameraRig world={world} recenter={recenter} />

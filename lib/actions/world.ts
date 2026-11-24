@@ -9,6 +9,7 @@ import * as content from '@/lib/world/admin-content'
 import type { AttemptPayload, Pathway, RubricView } from '@/lib/world/types'
 import * as rewards from '@/lib/world/rewards'
 import * as reports from '@/lib/world/reports'
+import * as drops from '@/lib/world/drops'
 
 /*
  * Web server actions for Hubnovo World. Thin wrappers: every check lives in
@@ -61,6 +62,14 @@ export async function submitWorldAttemptAction(slug: string, missionId: string, 
     const p = await me(); if (!p) return unauthorized
     const r = await world.submitAttempt(slug, missionId, p, payload)
     if (r.ok) refresh(slug)
+    return r
+}
+
+export async function claimDropAction(slug: string, answer: string)
+{
+    const p = await me(); if (!p) return unauthorized
+    const r = await drops.claimTodayDrop(slug, p, answer)
+    if (r.ok && !r.alreadyClaimed) refresh(slug)
     return r
 }
 

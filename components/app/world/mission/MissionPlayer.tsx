@@ -20,7 +20,7 @@ import ReviewingCard from './ReviewingCard'
  * `preview` (admin content editor): nothing is submitted — quiz/sort/scenario
  * are marked locally with the draft answer key so the author can check it.
  */
-export default function MissionPlayer({ slug, mission, attempts, color, homeHref, defaults, preview }: { slug: string; mission: MissionView; attempts: AttemptView[]; color: string; homeHref: string; defaults?: Record<string, string>; preview?: { answerKey: unknown } })
+export default function MissionPlayer({ slug, mission, attempts, color, homeHref, defaults, preview, onHome }: { slug: string; mission: MissionView; attempts: AttemptView[]; color: string; homeHref: string; defaults?: Record<string, string>; preview?: { answerKey: unknown }; onHome?: () => void })
 {
     const router = useRouter()
     const [pending, start] = useTransition()
@@ -53,7 +53,7 @@ export default function MissionPlayer({ slug, mission, attempts, color, homeHref
             setRetrying(false)
             if (r.awarded.xp > 0) toast.success(`+${r.awarded.xp} XP earned!`)
             router.refresh()
-            window.scrollTo({ top: 0, behavior: 'smooth' })
+            if (!onHome) window.scrollTo({ top: 0, behavior: 'smooth' })
         })
     }
 
@@ -85,6 +85,7 @@ export default function MissionPlayer({ slug, mission, attempts, color, homeHref
                 canRetry={mission.maxAttempts - used > 0}
                 onRetry={() => { setResult(null); setRetrying(true); setRound((n) => n + 1) }}
                 homeHref={homeHref}
+                onHome={onHome}
             />
         )
     }

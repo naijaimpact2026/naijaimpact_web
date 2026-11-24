@@ -147,6 +147,9 @@ export function buildDecor(occupied: (x: number, z: number) => boolean): DecorIt
 
 // ─── The walkable grid (shared by the 3D scene, the server and the mobile API) ─
 
+/** Key used for the daily drop in door / walk-to handling. */
+export const DROP_KEY = '__drop__'
+
 /** Where the player appears: the Arrival Plaza, just west of the roundabout. */
 export const SPAWN = { x: CENTER - 3, z: CENTER }
 
