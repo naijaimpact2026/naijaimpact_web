@@ -802,17 +802,23 @@ export async function institutionLeague(slug: string, profile: User, pathway?: s
 
 // ─── Admin: content + review ─────────────────────────────────────────────────
 
-/** Loads authored content (lib/world/content) into the DB. overwrite=false only adds missing missions. */
-export async function syncContent(slug: string, profile: User, overwrite = false): Promise<Result<{ inserted: number; updated: number }>>
+/**
+ * Loads authored content (lib/world/content) into the DB. overwrite=false only adds missing missions.
+ * retire=true also switches off (is_active=false, never deletes) missions in the weeks the code content
+ * covers whose key is no longer in it — e.g. the old 7-a-week missions after the 3-quest change. Weeks
+ * the content doesn't cover (written in the admin editor) are never touched.
+ */
+export async function syncContent(slug: string, profile: User, overwrite = false, retire = false): Promise<Result<{ inserted: number; updated: number; retired: number }>>
 {
     if (!isAdmin(profile)) return fail('Unauthorized')
     const c = await loadCompetition(slug)
     const content = WORLD_CONTENT[slug]
     if (!c || c.format !== 'world' || !content) return fail(NOT_FOUND)
     const db = createServiceClient()
-    const { data: existing } = await db.from('competition_missions').select('id, key').eq('competition_id', c.id)
-    const byKey = new Map(((existing ?? []) as { id: string; key: string }[]).map((m) => [m.key, m.id]))
-    let inserted = 0, updated = 0
+    const { data: existing } = await db.from('competition_missions').select('id, key, week, is_active').eq('competition_id', c.id)
+    const rows = (existing ?? []) as { id: string; key: string; week: number | null; is_active: boolean }[]
+    const byKey = new Map(rows.map((m) => [m.key, m.id]))
+    let inserted = 0, updated = 0, retired = 0
 
     for (const s of content)
     {
@@ -842,8 +848,20 @@ export async function syncContent(slug: string, profile: User, overwrite = false
             if (error) return fail(`Could not save the answer key for ${s.key}.`)
         }
     }
+    if (retire)
+    {
+        const keys = new Set(content.map((s) => s.key))
+        const weeks = new Set(content.map((s) => s.week))
+        const stale = rows.filter((m) => m.is_active && m.week !== null && weeks.has(m.week) && !keys.has(m.key)).map((m) => m.id)
+        if (stale.length)
+        {
+            const { error } = await db.from('competition_missions').update({ is_active: false }).in('id', stale)
+            if (error) return fail(`Could not switch off old missions: ${error.message}`)
+            retired = stale.length
+        }
+    }
     invalidateWorldCache()
-    return { ok: true, inserted, updated }
+    return { ok: true, inserted, updated, retired }
 }
 
 export interface ReviewQueueItem

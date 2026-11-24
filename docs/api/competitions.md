@@ -84,7 +84,7 @@ Any of `state`, `character`, `accessibility`, `institutionId`, `institutionName`
 `catchUp` = earlier missions still `available` or `needs_revision` (no streak penalties).
 
 ### `GET /competitions/:slug/quests?week=2`
-`{ "ok": true, "week": 2, "missions": [MissionView] }` — 7 missions (Mon–Sun) for the caller's pathway.
+`{ "ok": true, "week": 2, "missions": [MissionView] }` — 3 quests for the caller's pathway: Play (Monday), Do (Wednesday), Show (Sunday).
 
 ### `GET /competitions/:slug/missions/:missionId`
 `{ "ok": true, "mission": MissionView, "attempts": [AttemptView] }`

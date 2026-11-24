@@ -292,7 +292,7 @@ export async function duplicateMissions(slug: string, profile: User, input: { mi
 /**
  * Bulk import a whole week (same shape as SeedMission). Every mission is
  * checked first; nothing is written if any check fails. For each pathway in
- * the file the week must have exactly 7 missions, one per day. Missions
+ * the file the week must have exactly its 3 quests (Mon Play, Wed Do, Sun Show). Missions
  * whose key already exists are updated; existing active missions in the
  * same slots are switched off when `replace` is true.
  */
@@ -302,7 +302,7 @@ export async function importWeek(slug: string, profile: User, input: { missions:
     if (!a.ok) return a
     const list = input.missions
     if (!Array.isArray(list) || list.length === 0) return fail('Paste a list of missions.')
-    if (list.length > 28) return fail('Import one week at a time (up to 14 missions: 7 per pathway).')
+    if (list.length > 12) return fail('Import one week at a time (up to 6 quests: 3 per pathway).')
     const rubrics = await rubricKeys()
     for (const [i, m] of list.entries())
     {

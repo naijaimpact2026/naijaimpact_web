@@ -213,9 +213,15 @@ export interface InstitutionView
 export interface StageScore
 {
     stage: number
-    /** Each bucket 0–100 (average of counted missions). */
+    /** @deprecated Stars replaced the weighted buckets (24 Nov 2026). Each bucket 0–100. */
     buckets: Record<ScoreBucket, number>
-    /** Weighted total 0–100 (40/25/15/10/10). */
+    /** Stars earned in this stage (0–3 per quest). */
+    stars: number
+    /** Most stars possible (quests × 3). */
+    maxStars: number
+    /** Stars needed to reach the pass mark. */
+    starsToPass: number
+    /** Stars as a share of maxStars, 0–100 (used on certificates). */
     total: number
     passMark: number
     /** total >= passMark AND the stage finale (last boss challenge) passed. */
@@ -329,6 +335,20 @@ export const MAX_ATTEMPTS = 3
 export const STAGE_WEEKS = 4
 export const BUCKET_WEIGHTS: Record<ScoreBucket, number> = { evidence: 40, quality: 25, reflection: 15, teamwork: 10, showcase: 10 }
 export const DEFAULT_PASS_MARK = 60
+
+// ─── Weekly rhythm: three quests a week (24 Nov 2026) ────────────────────────
+
+/** Play = a game in the Learning Academy, Do = one real-world task at your HQ, Show = the Sunday showcase in the Arena. */
+export type QuestSlot = 'play' | 'do' | 'show'
+export const QUEST_SLOTS: QuestSlot[] = ['play', 'do', 'show']
+/** Day of the week each quest opens (1 = Monday). */
+export const QUEST_DAY: Record<QuestSlot, number> = { play: 1, do: 3, show: 7 }
+export const QUEST_SLOT_LABEL: Record<QuestSlot, string> = { play: 'Play', do: 'Do', show: 'Show' }
+export const slotOfDay = (day: number): QuestSlot | null => (day === 1 ? 'play' : day === 3 ? 'do' : day === 7 ? 'show' : null)
+/** Kinds each slot accepts. */
+export const SLOT_KINDS: Record<QuestSlot, MissionKind[]> = { play: ['quiz', 'sort', 'scenario'], do: ['evidence', 'video'], show: ['boss'] }
+/** Most fields a Do or Show form may have (keeps quests light). */
+export const MAX_QUEST_FIELDS = 3
 
 /** World XP levels (a pathway earns ~5,500 XP per 4-week stage). */
 export const WORLD_LEVELS = [

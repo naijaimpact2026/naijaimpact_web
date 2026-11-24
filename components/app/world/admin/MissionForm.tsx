@@ -8,7 +8,7 @@ import { saveMissionAction } from '@/lib/actions/world'
 import { FINALE_RUBRIC, MISSION_KINDS, REVIEW_MODES, SCORE_BUCKETS, checkMission, isFinaleWeek, type AdminMission, type MissionInput } from '@/lib/world/content-rules'
 import { isFormKind } from '@/lib/world/grading'
 import { stageOfWeek } from '@/lib/world/schedule'
-import { MAX_ATTEMPTS, type FormConfig, type MissionKind, type MissionView, type PathwayView, type QuizConfig, type RubricView, type ScenarioConfig, type SortConfig } from '@/lib/world/types'
+import { MAX_ATTEMPTS, QUEST_DAY, QUEST_SLOTS, QUEST_SLOT_LABEL, SLOT_KINDS, slotOfDay, type FormConfig, type MissionKind, type MissionView, type PathwayView, type QuizConfig, type RubricView, type ScenarioConfig, type SortConfig } from '@/lib/world/types'
 import { DAY_LONG, KIND_META, REVIEW_META } from '@/lib/world/ui'
 import MissionPlayer from '../mission/MissionPlayer'
 import { FormEditor, QuizEditor, ScenarioEditor, SortEditor, defaultConfig, inputCls, labelCls, type AnswerKey } from './ConfigEditors'
@@ -27,18 +27,20 @@ export function draftFrom(m: AdminMission): Draft
     }
 }
 
-/** Sensible defaults for a new mission in a slot (Sunday → boss / finale). */
-export function newDraft(pathway: MissionInput['pathway'], week: number, day: number): Draft
+/** Sensible defaults for a new quest in a slot: Play (Mon) = quiz, Do (Wed) = evidence, Show (Sun) = boss / finale. */
+export function newDraft(pathway: MissionInput['pathway'], week: number, dayIn: number): Draft
 {
-    const boss = day === 7
-    const kind: MissionKind = boss ? 'boss' : 'reflection'
+    const slot = slotOfDay(dayIn) ?? 'play'
+    const day = QUEST_DAY[slot]
+    const boss = slot === 'show'
+    const kind: MissionKind = SLOT_KINDS[slot][0]
     const { config, answerKey } = defaultConfig(kind)
     const finale = boss && isFinaleWeek(week)
     return {
         pathway, week, day, title: '', story: '', kind, config, answerKey,
-        xp: boss ? (finale ? 1500 : 750) : 70, tokens: boss ? (finale ? 60 : 30) : 7,
-        bucket: boss ? 'showcase' : 'reflection', reviewMode: boss ? 'human' : 'ai',
-        rubricKey: boss ? (finale ? FINALE_RUBRIC : 'boss') : 'practice', estMinutes: boss ? 30 : 20,
+        xp: boss ? (finale ? 1500 : 750) : slot === 'do' ? 200 : 100, tokens: boss ? (finale ? 60 : 30) : slot === 'do' ? 20 : 10,
+        bucket: boss ? 'showcase' : slot === 'do' ? 'evidence' : 'quality', reviewMode: boss ? 'human' : slot === 'do' ? 'ai' : 'auto',
+        rubricKey: boss ? (finale ? FINALE_RUBRIC : 'boss') : slot === 'do' ? 'evidence' : null, estMinutes: boss ? 25 : slot === 'do' ? 30 : 8,
         badge: finale ? { key: `${pathway}-stage${stageOfWeek(week)}`, label: `${pathway === 'career' ? 'Career' : 'Enterprise'} Stage ${stageOfWeek(week)} Complete` } : null,
         isActive: true,
     }
@@ -138,11 +140,13 @@ export default function MissionForm({ slug, editing, initial, rubrics, weeks, pa
                     </select></label>
                 <label className="space-y-1"><span className={labelCls}>Day</span>
                     <select className={inputCls} value={d.day} onChange={(e) => set({ day: Number(e.target.value) })}>
-                        {DAY_LONG.map((n, i) => <option key={n} value={i + 1}>{i + 1} · {n}{i === 6 ? ' (boss)' : ''}</option>)}
+                        {QUEST_SLOTS.map((sl) => <option key={sl} value={QUEST_DAY[sl]}>{DAY_LONG[QUEST_DAY[sl] - 1]} · {QUEST_SLOT_LABEL[sl]}</option>)}
+                        {!slotOfDay(d.day) && <option value={d.day}>{DAY_LONG[d.day - 1]} (not a quest day)</option>}
                     </select></label>
                 <label className="space-y-1"><span className={labelCls}>Kind</span>
                     <select className={inputCls} disabled={locked} value={d.kind} onChange={(e) => changeKind(e.target.value as MissionKind)}>
-                        {MISSION_KINDS.map((k) => <option key={k} value={k}>{KIND_META[k].label}</option>)}
+                        {(slotOfDay(d.day) ? SLOT_KINDS[slotOfDay(d.day)!] : MISSION_KINDS).concat(slotOfDay(d.day) && !SLOT_KINDS[slotOfDay(d.day)!].includes(d.kind) ? [d.kind] : [])
+                            .map((k) => <option key={k} value={k}>{KIND_META[k].label}</option>)}
                     </select></label>
             </section>
 
